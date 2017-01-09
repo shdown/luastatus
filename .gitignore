@@ -1,0 +1,17 @@
+*.o
+*.so
+/luastatus/luastatus
+/_gitignored/
+# CMake
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+Makefile
+cmake_install.cmake
+install_manifest.txt
+CTestTestfile.cmake
+build/
+# generated headers
+/config.h
+/version.h
+/probes.h
