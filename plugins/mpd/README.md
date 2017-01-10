@@ -10,6 +10,10 @@ Options
 
   Port to connect to. Default is 6600.
 
+* `password`: string
+
+  Server’s password.
+
 * `timeout`: number
 
   Number of seconds to wait before calling `cb` with `what="timeout"` (after a connection has been established). May be fractional. If not specified or negative, `cb` is never called with `what="timeout"`.
