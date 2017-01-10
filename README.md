@@ -30,7 +30,7 @@ The `widget` table **must** contain the following entries:
   receive data from. If it contains a slash, it is treated as a path to a shared
   library. If it does not, the program tries to load `<plugin>.so` from the
   directory configured at the build time (CMake `PLUGINS_DIR` variable, defaults
-  to `CMAKE_INSTALL_PREFIX}/lib/luastatus/plugins`).
+  to `${CMAKE_INSTALL_PREFIX}/lib/luastatus/plugins`).
 
   * `cb`: a function that converts the data received from a *plugin* to the
   format a *barlib* (see below) understands. It should take exactly one
