@@ -297,8 +297,7 @@ interact(int fd, LuastatusPluginData *pd,
     }
 
     if (fd >= FD_SETSIZE && !ls_timespec_is_invalid(p->timeout)) {
-        LUASTATUS_WARNF(pd, "connection file descriptor is too large, will not report time "
-                                 "outs");
+        LUASTATUS_WARNF(pd, "connection file descriptor is too large, will not report time outs");
     }
 
     fd_set fds;
