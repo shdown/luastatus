@@ -130,7 +130,7 @@ files.
 If `-b` argument contains a slash, it is treated as a path to a shared library.
 If it does not, the program tries to load `<argument>.so` from the directory
 configured at the build time (CMake `BARLIBS_DIR` variable, defaults to
-`CMAKE_INSTALL_PREFIX}/lib/luastatus/barlibs`).
+`${CMAKE_INSTALL_PREFIX}/lib/luastatus/barlibs`).
 
 Example:
 
