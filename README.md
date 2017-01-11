@@ -17,7 +17,7 @@ Screenshot
 
 Above is i3bar with luastatus with time, battery, volume and keyboard layout
 widgets. Widgets and i3bar configuration are
-[here](https://github.com/doushiyou/luastatus/tree/master/contrib/widget-examples).
+[here](https://github.com/shdown/luastatus/tree/master/contrib/widget-examples).
 
 Widgets
 ===
