@@ -39,6 +39,8 @@ size_t nwidgets;
 #define LOCK_L(W_)   PTH_CHECK(pthread_mutex_lock(&(W_)->lua_mtx))
 #define UNLOCK_L(W_) PTH_CHECK(pthread_mutex_unlock(&(W_)->lua_mtx))
 
+#define WIDGET_INDEX(W_) ((W_) - widgets)
+
 LS_ATTR_NORETURN
 void
 fatal_error_reported(void)
@@ -97,7 +99,7 @@ plugin_call_end(void *userdata)
 
     LOCK_B();
 
-    size_t widget_idx = (size_t)(w - widgets);
+    size_t widget_idx = WIDGET_INDEX(w);
     if (!check_lua_call(L, lua_pcall(L, 1, 1, 0))) {
         // L: -
         set_error_unlocked(widget_idx);
@@ -134,8 +136,7 @@ widget_thread(void *userdata)
                   w->plugin.name, w->filename);
 
     LOCK_B();
-    size_t widget_idx = (size_t)(w - widgets);
-    set_error_unlocked(widget_idx);
+    set_error_unlocked(WIDGET_INDEX(w));
     UNLOCK_B();
 
     widget_unload(w);
@@ -320,7 +321,7 @@ main(int argc, char **argv)
         goto cleanup;
     }
 
-    nwidgets = (size_t)(argc - optind);
+    nwidgets = argc - optind;
     widgets = LS_XNEW(Widget, nwidgets);
     for (size_t i = 0; i < nwidgets; ++i) {
         Widget *w = &widgets[i];
