@@ -22,7 +22,7 @@ parse_groups(LSStringArray *groups, const char *layout)
         case ',':
             if (balance == 0) {
                 ls_strarr_append(groups, layout + prev, i - prev);
-                prev = i;
+                prev = i + 1;
             }
             break;
         }
