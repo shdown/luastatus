@@ -15,9 +15,10 @@
 
 #include "libls/alloc_utils.h"
 #include "libls/compdep.h"
+#include "libls/strarr.h"
 
 #include "rules_names.h"
-#include "groups_buffer.h"
+#include "parse_groups.h"
 
 typedef struct {
     char *dpyname;
@@ -102,13 +103,13 @@ open_dpy(LuastatusPluginData *pd, char *dpyname)
 }
 
 bool
-query_groups(Display *dpy, GroupsBuffer *gb)
+query_groups(Display *dpy, LSStringArray *groups)
 {
     RulesNames rn;
     if (!rules_names_load(dpy, &rn)) {
         return false;
     }
-    groups_buffer_assign(gb, rn.layout ? rn.layout : "");
+    parse_groups(groups, rn.layout ? rn.layout : "");
     rules_names_destroy(&rn);
     return true;
 }
@@ -150,13 +151,15 @@ run(
     LuastatusPluginCallEnd call_end)
 {
     Priv *p = pd->priv;
-    GroupsBuffer gb = GROUPS_BUFFER_INITIALIZER;
+    LSStringArray groups = LS_STRARR_INITIALIZER;
     Display *dpy = NULL;
 
     global_pd = pd;
     if (setjmp(global_jmpbuf) != 0) {
-        // we have jumped here
-        // we don't bother to clean up
+        // We have jumped here.
+        // We don't bother to clean up because we could not call XCloseDisplay(dpy) anyway.
+        // Since we have a taint and there can't be multiple xkb widgets, the amount of leaked
+        // memory is constant.
         return;
     }
     XSetIOErrorHandler(x11_io_error_handler);
@@ -166,7 +169,7 @@ run(
         goto error;
     }
 
-    if (!query_groups(dpy, &gb)) {
+    if (!query_groups(dpy, &groups)) {
         LUASTATUS_FATALF(pd, "query_groups failed");
         goto error;
     }
@@ -182,13 +185,13 @@ run(
         int group = state.group;
         if (group < 0) {
             LUASTATUS_WARNF(pd, "group ID is negative (%d)", group);
-        } else if ((size_t) group >= groups_buffer_size(&gb)) {
+        } else if ((size_t) group >= ls_strarr_size(groups)) {
             LUASTATUS_WARNF(pd, "group ID (%d) is too large, requerying", group);
-            if (!query_groups(dpy, &gb)) {
+            if (!query_groups(dpy, &groups)) {
                 LUASTATUS_FATALF(pd, "query_groups failed");
                 goto error;
             }
-            if ((size_t) group >= groups_buffer_size(&gb)) {
+            if ((size_t) group >= ls_strarr_size(groups)) {
                 LUASTATUS_WARNF(pd, "group ID is still too large");
             }
         }
@@ -198,8 +201,10 @@ run(
         lua_newtable(L); // L: table
         lua_pushinteger(L, group); // L: table n
         lua_setfield(L, -2, "id"); // L: table
-        if (group >= 0 && (size_t) group < groups_buffer_size(&gb)) {
-            lua_pushstring(L, groups_buffer_at(&gb, group)); // L: table str
+        if (group >= 0 && (size_t) group < ls_strarr_size(groups)) {
+            size_t nbuf;
+            const char *buf = ls_strarr_at(groups, group, &nbuf);
+            lua_pushlstring(L, buf, nbuf); // L: table group
             lua_setfield(L, -2, "name"); // L: table
         }
         call_end(pd->userdata);
@@ -223,7 +228,7 @@ error:
     if (dpy) {
         XCloseDisplay(dpy);
     }
-    groups_buffer_destroy(&gb);
+    ls_strarr_destroy(groups);
 }
 
 static

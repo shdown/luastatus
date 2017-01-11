@@ -22,9 +22,7 @@
 #include "libls/sprintf_utils.h"
 #include "libls/osdep.h"
 #include "libls/wakeup_fifo.h"
-
-#include "plugin_run_data.h"
-#include "call_state.h"
+#include "libls/strarr.h"
 
 typedef struct {
     char *hostname;
@@ -164,21 +162,31 @@ dollar_strlen(const char *s)
     return len;
 }
 
-// If line is of form "<key>: <value>\n", performs the assignment
-//     t[key] = value
-// where t is the table on top of the L's stack.
+// If line is of form "<key>: <value>\n", appends <key> and <value> to sa.
 void
-line_setfield(lua_State *L, const char *line)
+kv_strarr_line_append(LSStringArray *sa, const char *line)
 {
     const char *colon_pos = strchr(line, ':');
     if (!colon_pos || colon_pos[1] != ' ') {
         return;
     }
     const char *value_pos = colon_pos + 2;
-    // L: table
-    lua_pushlstring(L, line, colon_pos - line); // L: table key
-    lua_pushlstring(L, value_pos, dollar_strlen(value_pos)); // L: table key value
-    lua_settable(L, -3); // L: table
+    ls_strarr_append(sa, line, colon_pos - line);
+    ls_strarr_append(sa, value_pos, dollar_strlen(value_pos));
+}
+
+void
+kv_strarr_table_assign(LSStringArray sa, lua_State *L)
+{
+    const size_t n = ls_strarr_size(sa);
+    for (size_t i = 0; i < n; i += 2) {
+        size_t nkey;
+        const char *key = ls_strarr_at(sa, i, &nkey);
+        lua_pushlstring(L, key, nkey);
+        size_t nvalue;
+        const char *value = ls_strarr_at(sa, i + 1, &nvalue);
+        lua_pushlstring(L, value, nvalue);
+    }
 }
 
 typedef enum {
@@ -200,74 +208,96 @@ response_type(const char *buf)
     return RESP_TYPE_OTHER;
 }
 
-// Code above is pretty ugly and spaghetti-like. Rewrite it if you can.
+static inline
 void
-interact(int fd, PluginRunData data)
+report_status(LuastatusPluginData *pd,
+              LuastatusPluginCallBegin call_begin, LuastatusPluginCallEnd call_end,
+              const char *what)
 {
-    Priv *p = data.pd->priv;
+    lua_State *L = call_begin(pd->userdata);
+    lua_newtable(L); // L: table
+    lua_pushstring(L, what); // L: table what
+    lua_setfield(L, -2, "what"); // L: table
+    call_end(pd->userdata);
+}
+
+// Code below is pretty ugly and spaghetti-like. Rewrite it if you can.
+void
+interact(int fd, LuastatusPluginData *pd,
+         LuastatusPluginCallBegin call_begin, LuastatusPluginCallEnd call_end)
+{
+    Priv *p = pd->priv;
 
     FILE *f = NULL;
     int fd_to_close = fd;
     char *buf = NULL;
     size_t nbuf = 0;
-    CallState s = CALL_STATE_INITIALIZER;
+    LSStringArray kv_song   = LS_STRARR_INITIALIZER;
+    LSStringArray kv_status = LS_STRARR_INITIALIZER;
+
+#define GETLINE() \
+    do { \
+        if (getline(&buf, &nbuf, f) < 0) { \
+            goto io_error; \
+        } \
+    } while (0)
+
+#define WRITEF(...) \
+    do { \
+        if (fprintf(f, __VA_ARGS__) < 0 || fflush(f) < 0) { \
+            goto io_error; \
+        } \
+    } while (0)
+
+#define UNTIL_OK(...) \
+    do { \
+        GETLINE(); \
+        const ResponseType rt_ = response_type(buf); \
+        if (rt_ == RESP_TYPE_OK) { \
+            break; \
+        } else if (rt_ == RESP_TYPE_ACK) { \
+            LUASTATUS_ERRF(pd, "server said: %.*s", (int) dollar_strlen(buf), buf); \
+            goto error; \
+        } else { \
+            __VA_ARGS__ \
+        } \
+    } while (/*note infinite cycle here*/ 1)
 
     if (!(f = fdopen(fd, "r+"))) {
         LS_WITH_ERRSTR(str, errno,
-            LUASTATUS_ERRF(data.pd, "fdopen: %s", str);
+            LUASTATUS_ERRF(pd, "fdopen: %s", str);
         );
         goto error;
     }
     fd_to_close = -1;
 
     // read and check the greeting
-    if (getline(&buf, &nbuf, f) < 0) {
-        goto io_error;
-    }
+    GETLINE();
     if (strncmp(buf, "OK MPD ", 7) != 0) {
-        LUASTATUS_ERRF(data.pd, "bad greeting: %.*s", (int) dollar_strlen(buf), buf);
+        LUASTATUS_ERRF(pd, "bad greeting: %.*s", (int) dollar_strlen(buf), buf);
         goto error;
     }
 
+    // send the password, if specified
     if (p->password) {
-        if (fprintf(f, "password %s\n", p->password) < 0 || fflush(f) < 0) {
-            goto io_error;
-        }
-        if (getline(&buf, &nbuf, f) < 0) {
-            goto io_error;
-        }
+        WRITEF("password %s\n", p->password);
+        GETLINE();
         if (response_type(buf) != RESP_TYPE_OK) {
-            LUASTATUS_ERRF(data.pd, "(password) server said: %.*s", (int) dollar_strlen(buf), buf);
+            LUASTATUS_ERRF(pd, "(password) server said: %.*s", (int) dollar_strlen(buf), buf);
             goto error;
         }
     }
 
-#define UNTIL_OK(...) \
-    do { \
-        if (getline(&buf, &nbuf, f) < 0) { \
-            goto io_error; \
-        } \
-        ResponseType r_ = response_type(buf); \
-        if (r_ == RESP_TYPE_OK) { \
-            break; \
-        } else if (r_ == RESP_TYPE_ACK) { \
-            LUASTATUS_ERRF(data.pd, "server said: %.*s", (int) dollar_strlen(buf), buf); \
-            goto error; \
-        } else { \
-            __VA_ARGS__ \
-        } \
-    } while (1) /*(!)*/
-
     sigset_t allsigs;
     if (sigfillset(&allsigs) < 0) {
         LS_WITH_ERRSTR(str, errno,
-            LUASTATUS_ERRF(data.pd, "sigfillset: %s", str);
+            LUASTATUS_ERRF(pd, "sigfillset: %s", str);
         );
         goto error;
     }
 
     if (fd >= FD_SETSIZE && !ls_timespec_is_invalid(p->timeout)) {
-        LUASTATUS_WARNF(data.pd, "connection file descriptor is too large, will not report time "
+        LUASTATUS_WARNF(pd, "connection file descriptor is too large, will not report time "
                                  "outs");
     }
 
@@ -275,41 +305,35 @@ interact(int fd, PluginRunData data)
     FD_ZERO(&fds);
 
     while (1) {
-        // query and make a call
-        call_state_call_begin(&s, data);
-
-        // set "what"
-        lua_newtable(s.L); // s.L: table
-        lua_pushstring(s.L, "update"); // s.L: table "update"
-        lua_setfield(s.L, -2, "what"); // s.L: table
-
-        // set "currentsong"
-        if (fputs("currentsong\n", f) < 0 || fflush(f) < 0) {
-            goto io_error;
-        }
-        lua_newtable(s.L); // s.L: table table
+        WRITEF("currentsong\n");
         UNTIL_OK(
-            line_setfield(s.L, buf);
+            kv_strarr_line_append(&kv_song, buf);
         );
-        lua_setfield(s.L, -2, "song"); // s.L: table
 
-        // set "status"
-        if (fputs("status\n", f) < 0 || fflush(f) < 0) {
-            goto io_error;
-        }
-        lua_newtable(s.L); // s.L: table table
+        WRITEF("status\n");
         UNTIL_OK(
-            line_setfield(s.L, buf);
+            kv_strarr_line_append(&kv_status, buf);
         );
-        lua_setfield(s.L, -2, "status"); // s.L: table
 
-        // done
-        call_state_call_end(&s, data);
+        lua_State *L = call_begin(pd->userdata);
+        lua_newtable(L); // L: table
 
-        // wait
-        if (fputs("idle player mixer\n", f) < 0 || fflush(f) < 0) {
-            goto io_error;
-        }
+        lua_pushstring(L, "update"); // L: table "update"
+        lua_setfield(L, -2, "what"); // L: table
+
+        lua_newtable(L); // L: table table
+        kv_strarr_table_assign(kv_song, L); // L: table table
+        ls_strarr_clear(&kv_song);
+        lua_setfield(L, -2, "song"); // L: table
+
+        lua_newtable(L); // L: table table
+        kv_strarr_table_assign(kv_status, L); // L: table table
+        ls_strarr_clear(&kv_status);
+        lua_setfield(L, -2, "status"); // L: table
+
+        call_end(pd->userdata);
+
+        WRITEF("idle player mixer\n");
 
         if (fd < FD_SETSIZE && !ls_timespec_is_invalid(p->timeout)) {
             while (1) {
@@ -317,15 +341,11 @@ interact(int fd, PluginRunData data)
                 int r = pselect(fd + 1, &fds, NULL, NULL, &p->timeout, &allsigs);
                 if (r < 0) {
                     LS_WITH_ERRSTR(str, errno,
-                        LUASTATUS_ERRF(data.pd, "pselect (on connection file descriptor): %s", str);
+                        LUASTATUS_ERRF(pd, "pselect (on connection file descriptor): %s", str);
                     );
                     goto error;
                 } else if (r == 0) {
-                    call_state_call_begin(&s, data);
-                    lua_newtable(s.L); // s.L: table
-                    lua_pushstring(s.L, "timeout"); // s.L: table "timeout"
-                    lua_setfield(s.L, -2, "what"); // s.L: table
-                    call_state_call_end(&s, data);
+                    report_status(pd, call_begin, call_end, "timeout");
                 } else {
                     break;
                 }
@@ -340,25 +360,21 @@ interact(int fd, PluginRunData data)
 
 io_error:
     if (feof(f)) {
-        LUASTATUS_ERRF(data.pd, "server closed the connection");
+        LUASTATUS_ERRF(pd, "server closed the connection");
     } else {
         LS_WITH_ERRSTR(str, errno,
-            LUASTATUS_ERRF(data.pd, "I/O error: %s", str);
+            LUASTATUS_ERRF(pd, "I/O error: %s", str);
         );
     }
 
 error:
-    call_state_call_begin_or_reuse(&s, data);
-    lua_newtable(s.L); // s.L: table
-    lua_pushstring(s.L, "error"); // s.L: table "error"
-    lua_setfield(s.L, -2, "what"); // s.L: table
-    call_state_call_end(&s, data);
-
     if (f) {
         fclose(f);
     }
     ls_close(fd_to_close);
     free(buf);
+    ls_strarr_destroy(kv_song);
+    ls_strarr_destroy(kv_status);
 }
 
 void
@@ -384,22 +400,19 @@ run(LuastatusPluginData *pd, LuastatusPluginCallBegin call_begin, LuastatusPlugi
     ls_xsnprintf(portstr, sizeof(portstr), "%d", p->port);
 
     while (1) {
-        lua_State *L = call_begin(pd->userdata);
-        lua_newtable(L); // L: table
-        lua_pushstring(L, "connecting"); // L: table "connecting"
-        lua_setfield(L, -2, "what"); // L: table
-        call_end(pd->userdata);
+        report_status(pd, call_begin, call_end, "connecting");
 
         int fd = tcp_open(pd, p->hostname, portstr);
         if (fd >= 0) {
-            interact(fd, (PluginRunData) {.pd = pd, .call_begin = call_begin,
-                                          .call_end = call_end});
+            interact(fd, pd, call_begin, call_end);
         }
 
         if (ls_timespec_is_invalid(p->retry_in)) {
             LUASTATUS_FATALF(pd, "an error occurred; not retrying as requested");
             goto error;
         }
+
+        report_status(pd, call_begin, call_end, "error");
 
         if (ls_wakeup_fifo_open(&w) < 0) {
             LS_WITH_ERRSTR(s, errno,
