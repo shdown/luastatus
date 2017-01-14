@@ -7,6 +7,9 @@
 #include "cstring_utils.h"
 #include "compdep.h"
 
+// Like strerror_r, but always fills buf with something (and is GNU-safe).
+//
+// May alter errno.
 LS_INHEADER
 void
 ls_strerror_r(int errnum, char *buf, size_t nbuf)
@@ -25,6 +28,10 @@ ls_strerror_r(int errnum, char *buf, size_t nbuf)
 #endif
 }
 
+// Defines a char[] variable named BufVar_ in a new block, fill it with description of error
+// with number ErrNum_, and then expands __VA_ARGS__.
+//
+// May alter errno before or after expanding __VA_ARGS__.
 #define LS_WITH_ERRSTR(BufVar_, ErrNum_, ...) \
     do { \
         char BufVar_[256]; \
