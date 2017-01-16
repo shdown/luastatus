@@ -17,3 +17,4 @@ add_custom_target (version
 add_dependencies (luastatus version)
 
 install (TARGETS luastatus DESTINATION bin)
+install (FILES luastatus.1 DESTINATION man/man1)

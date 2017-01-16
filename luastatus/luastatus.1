@@ -1,0 +1,58 @@
+.TH LUASTATUS 1
+.SH NAME
+luastatus \- universal status bar content generator
+.SH SYNOPSIS
+.B luastatus
+\fB\-b \fIbarlib\fR
+[\fB\-B \fIbarlib_option\fR]...
+[\fB\-l \fIloglevel\fR]
+[\fB\-e\fR]
+.IR widget_file ...
+
+.B luastatus \-v
+
+.SH DESCRIPTION
+
+luastatus is a universal status bar content generator. It allows you to
+configure the way the data from plugins is processed and shown with Lua.
+
+For more information, see
+.IR https://github.com/shdown/luastatus .
+
+.SH OPTIONS
+
+.TP
+\fB\-b \fIbarlib\fR
+Specify a barlib to load. If \fIbarlib\fR contains a slash, it is treated as a
+path to a shared library. If it does not, the program tries to load
+\fIbarlib\fR.so from the directory configured at the build time.
+
+.TP
+\fB\-B \fIbarlib_option\fR
+Pass an option to \fIbarlib\fR. May be specified multiple times.
+
+.TP
+\fB\-l \fIloglevel\fR
+Specify a log level. Available ones are: \fIfatal error warning info verbose debug trace\fR.
+
+Default one is \fIinfo\fR.
+
+.TP
+.B \-e
+Do not hang, but exit normally when \fIbarlib\fR's event watcher and all
+plugins' run() have returned. Default behaviour is to hang, because there are
+status bars that require their generator process not to terminate (namely
+i3bar). Useful tor testing.
+
+.TP
+.B \-v
+Show version and exit.
+
+.SH CHANGELOG
+
+See
+.IR https://github.com/shdown/luastatus/releases .
+
+.SH COPYRIGHT
+
+GNU LGPL 3.0 or later.
