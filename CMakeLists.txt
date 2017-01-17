@@ -68,7 +68,7 @@ set (PLUGINS_DIR "${CMAKE_INSTALL_PREFIX}/lib/luastatus/plugins")
 
 function (luastatus_add_barlib_or_plugin destdir name)
     set (sources ${ARGV})
-    list (REMOVE_ITEM sources 0 1)
+    list (REMOVE_AT sources 0 1)
     add_library ("${name}" MODULE ${sources})
     set_target_properties ("${name}" PROPERTIES PREFIX "")
     install (TARGETS "${name}" DESTINATION "${destdir}")
