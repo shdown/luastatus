@@ -1,7 +1,7 @@
 #include "event_watcher.h"
 #include <stdbool.h>
 #include <lua.h>
-#include <yajl_parse.h>
+#include <yajl/yajl_parse.h>
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>

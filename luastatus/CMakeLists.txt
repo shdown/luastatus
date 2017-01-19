@@ -16,5 +16,7 @@ add_custom_target (version
     VERBATIM)
 add_dependencies (luastatus version)
 
-install (TARGETS luastatus DESTINATION bin)
-install (FILES luastatus.1 DESTINATION man/man1)
+include(GNUInstallDirs)
+
+install (TARGETS luastatus DESTINATION ${CMAKE_INSTALL_BINDIR})
+install (FILES luastatus.1 DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)

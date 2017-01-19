@@ -9,4 +9,6 @@ find_package (PkgConfig REQUIRED)
 pkg_check_modules (YAJL REQUIRED yajl>=2.1.0)
 luastatus_target_build_with (i3 YAJL)
 
-install (FILES luastatus-i3-wrapper DESTINATION bin)
+include(GNUInstallDirs)
+
+install (FILES luastatus-i3-wrapper DESTINATION ${CMAKE_INSTALL_BINDIR})
