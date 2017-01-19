@@ -178,14 +178,16 @@ kv_strarr_line_append(LSStringArray *sa, const char *line)
 void
 kv_strarr_table_assign(LSStringArray sa, lua_State *L)
 {
+    // L: table
     const size_t n = ls_strarr_size(sa);
     for (size_t i = 0; i < n; i += 2) {
         size_t nkey;
         const char *key = ls_strarr_at(sa, i, &nkey);
-        lua_pushlstring(L, key, nkey);
+        lua_pushlstring(L, key, nkey); // L: table key
         size_t nvalue;
         const char *value = ls_strarr_at(sa, i + 1, &nvalue);
-        lua_pushlstring(L, value, nvalue);
+        lua_pushlstring(L, value, nvalue); // L: table key value
+        lua_settable(L, -3); // L: table
     }
 }
 
