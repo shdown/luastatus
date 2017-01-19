@@ -65,8 +65,8 @@ endfunction ()
 #------------------------------------------------------------------------------
 include(GNUInstallDirs)
 
-set (BARLIBS_DIR "${CMAKE_INSTALL_LIBDIR}/luastatus/barlibs")
-set (PLUGINS_DIR "${CMAKE_INSTALL_LIBDIR}/luastatus/plugins")
+set (BARLIBS_DIR "${CMAKE_INSTALL_FULL_LIBDIR}/luastatus/barlibs")
+set (PLUGINS_DIR "${CMAKE_INSTALL_FULL_LIBDIR}/luastatus/plugins")
 
 function (luastatus_add_barlib_or_plugin destdir name)
     set (sources ${ARGV})

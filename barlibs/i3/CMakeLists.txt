@@ -11,4 +11,4 @@ luastatus_target_build_with (i3 YAJL)
 
 include(GNUInstallDirs)
 
-install (FILES luastatus-i3-wrapper DESTINATION ${CMAKE_INSTALL_BINDIR})
+install (PROGRAMS luastatus-i3-wrapper DESTINATION ${CMAKE_INSTALL_BINDIR})
