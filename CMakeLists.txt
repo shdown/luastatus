@@ -63,9 +63,10 @@ function (luastatus_target_build_with target var)
 endfunction ()
 
 #------------------------------------------------------------------------------
+include(GNUInstallDirs)
 
-set (BARLIBS_DIR "${CMAKE_INSTALL_PREFIX}/lib/luastatus/barlibs")
-set (PLUGINS_DIR "${CMAKE_INSTALL_PREFIX}/lib/luastatus/plugins")
+set (BARLIBS_DIR "${CMAKE_INSTALL_FULL_LIBDIR}/luastatus/barlibs")
+set (PLUGINS_DIR "${CMAKE_INSTALL_FULL_LIBDIR}/luastatus/plugins")
 
 function (luastatus_add_barlib_or_plugin destdir name)
     set (sources ${ARGV})
