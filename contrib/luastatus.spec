@@ -6,7 +6,6 @@ Summary:        Lua status
 License:        LGPL3+
 URL:            https://github.com/shdown/luastatus
 Source0:        https://github.com/shdown/luastatus/archive/v%version.tar.gz
-Patch0:		fedora-build.patch
 
 BuildRequires:  cmake
 BuildRequires:  luajit-devel
@@ -28,7 +27,6 @@ Lua status plugins
 
 %prep
 %setup -q
-%patch0 -p1 -b .fedora-build
 
 %build
 %cmake -DWITH_LUA_LIBRARY=luajit .
