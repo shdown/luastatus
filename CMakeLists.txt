@@ -88,6 +88,7 @@ endfunction ()
 
 option (BUILD_BARLIB_DWM "build barlibs/dwm" ON)
 option (BUILD_BARLIB_I3 "build barlibs/i3" ON)
+option (BUILD_BARLIB_LEMONBAR "build barlibs/lemonbar" ON)
 
 option (BUILD_PLUGIN_ALSA "build plugins/alsa" ON)
 option (BUILD_PLUGIN_FS "build plugins/fs" ON)
@@ -108,6 +109,10 @@ endif ()
 
 if (BUILD_BARLIB_I3)
     add_subdirectory (barlibs/i3)
+endif ()
+
+if (BUILD_BARLIB_LEMONBAR)
+    add_subdirectory (barlibs/lemonbar)
 endif ()
 
 if (BUILD_PLUGIN_ALSA)
