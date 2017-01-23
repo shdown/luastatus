@@ -40,6 +40,7 @@ ls_spawnp_pipe(const char *file, int *pipe_fd, char *const *argv)
 
     if (pipe_fd) {
         if (ls_cloexec_pipe(pipe_fds) < 0) {
+            pipe_fds[0] = pipe_fds[1] = -1;
             goto cleanup;
         }
         if ((errno = posix_spawn_file_actions_init(&fa))) {
