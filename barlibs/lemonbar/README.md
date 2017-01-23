@@ -2,8 +2,6 @@ This barlib talks with `lemonbar`.
 
 It joins all non-empty strings returned by widgets by a separator, which defaults to ` | `.
 
-It does not support events yet.
-
 Redirections and `luastatus-lemonbar-wrapper`
 ===
 `lemonbar` requires all the data to be written to stdout and read from stdin. This makes it very easy to mess things up: Lua’s `print()` prints to stdout, processes spawned by widgets/plugins/barlib inherit our stdin and stdout, etc.
@@ -16,6 +14,10 @@ A string with lemonbar markup, or nil. Nil is equivalent to an empty string.
 Functions
 ===
 `escape` escapes text for lemonbar markup.
+
+`event` argument
+===
+A string with a name of the command.
 
 Options
 ===

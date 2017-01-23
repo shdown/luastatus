@@ -144,8 +144,7 @@ l_escape(lua_State *L)
     LS_VECTOR_CLEAR(*buf);
 
     // just replace all % with %%
-    const char *t;
-    while (ns && (t = memchr(s, '%', ns))) {
+    for (const char *t; (t = memchr(s, '%', ns));) {
         const size_t nseg = t - s + 1;
         ls_string_append_b(buf, s, nseg);
         ls_string_append_c(buf, '%');
@@ -201,14 +200,30 @@ LuastatusBarlibSetResult
 set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
 {
     Priv *p = bd->priv;
+    LSString *buf = &p->bufs[widget_idx];
+    LS_VECTOR_CLEAR(*buf);
     int type = lua_type(L, -1);
     if (type == LUA_TSTRING) {
         size_t ns;
         const char *s = lua_tolstring(L, -1, &ns);
-        ls_string_assign_b(&p->bufs[widget_idx], s, ns);
-    } else if (type == LUA_TNIL) {
-        LS_VECTOR_CLEAR(p->bufs[widget_idx]);
-    } else {
+        const char *prev = s;
+        for (const char *t; (t = memchr(s, '%', ns));) {
+            if (t[1] == '{' && t[2] == 'A' && t[3] != '}') {
+                const char *colon_pos = memchr(t, ':', ns - (t - s));
+                if (colon_pos) {
+                    ls_string_append_b(buf, prev, colon_pos + 1 - prev);
+                    ls_string_append_f(buf, "%zu_", widget_idx);
+                    prev = colon_pos + 1;
+                    ns -= colon_pos - s;
+                    s = colon_pos;
+                }
+            } else if (t[1] == '%') {
+                ++s, --ns;
+            }
+            ++s, --ns;
+        }
+        ls_string_append_b(buf, prev, s + ns - prev);
+    } else if (type != LUA_TNIL) {
         LUASTATUS_ERRF(bd, "expected string or nil, found %s", luaL_typename(L, -1));
         return LUASTATUS_BARLIB_SET_RESULT_NONFATAL_ERR;
     }
@@ -229,6 +244,45 @@ set_error(LuastatusBarlibData *bd, size_t widget_idx)
     return LUASTATUS_BARLIB_SET_ERROR_RESULT_OK;
 }
 
+LuastatusBarlibEWResult
+event_watcher(LuastatusBarlibData *bd,
+              LuastatusBarlibEWCallBegin call_begin,
+              LuastatusBarlibEWCallEnd call_end)
+{
+    Priv *p = bd->priv;
+
+    char *buf = NULL;
+    size_t nbuf = 0;
+
+    for (ssize_t nread; (nread = getline(&buf, &nbuf, p->in)) >= 0;) {
+        if (nread == 0) {
+            continue;
+        }
+        const size_t nline = nread - 1;
+        const char *endptr;
+        int widget_idx = ls_parse_uint(buf, nline, &endptr);
+        if (widget_idx < 0 || *endptr != '_') {
+            continue;
+        }
+        lua_State *L = call_begin(bd->userdata, widget_idx);
+        const char *command = endptr + 1;
+        lua_pushlstring(L, command, buf + nline - command);
+        call_end(bd->userdata, widget_idx);
+    }
+
+    if (feof(p->in)) {
+        LUASTATUS_ERRF(bd, "lemonbar closed its pipe end");
+    } else {
+        LS_WITH_ERRSTR(s, errno,
+            LUASTATUS_ERRF(bd, "read error: %s", s);
+        );
+    }
+
+    free(buf);
+
+    return LUASTATUS_BARLIB_EW_RESULT_FATAL_ERR;
+}
+
 void
 destroy(LuastatusBarlibData *bd)
 {
@@ -241,5 +295,6 @@ LuastatusBarlibIface luastatus_barlib_iface = {
     .register_funcs = register_funcs,
     .set = set,
     .set_error = set_error,
+    .event_watcher = event_watcher,
     .destroy = destroy,
 };
