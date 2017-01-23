@@ -40,6 +40,7 @@ Lua status plugins
 %doc LICENSE.txt README.md
 %{_bindir}/luastatus
 %{_bindir}/luastatus-i3-wrapper
+%{_bindir}/luastatus-lemonbar-wrapper
 %{_mandir}/man1/luastatus.1*
 %{_libdir}/luastatus/barlibs/*.so
 
