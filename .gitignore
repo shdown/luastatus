@@ -1,6 +1,5 @@
 *.o
 *.so
-/luastatus/luastatus
 /_gitignored/
 # CMake
 CMakeCache.txt
