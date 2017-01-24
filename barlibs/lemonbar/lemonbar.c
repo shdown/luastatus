@@ -55,6 +55,9 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
         .out = NULL,
         .luabuf = LS_VECTOR_NEW(),
     };
+    for (size_t i = 0; i < nwidgets; ++i) {
+        LS_VECTOR_INIT_RESERVE(p->bufs[i], 512);
+    }
 
     // All the options may be passed multiple times!
     const char *sep = NULL;
