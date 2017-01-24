@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# requires bash 4.0 or higher
+coproc ${LEMONBAR:-lemonbar}
+eval "exec 3<&0 4>&1 <&${COPROC[0]} >&${COPROC[1]}"
+exec ${LUASTATUS:-luastatus} -b ${LUASTATUS_LEMONBAR_BARLIB:-lemonbar} 3<&0 0</dev/null -B in_fd=3 4>&1 1>&2 -B out_fd=4 "$@"
