@@ -196,6 +196,18 @@ redraw(LuastatusBarlibData *bd)
     return true;
 }
 
+static inline
+const char *
+mem2chr(const char *s, char c1, char c2, size_t ns)
+{
+    for (const char *end = s + ns; s != end; ++s) {
+        if (*s == c1 || *s == c2) {
+            return s;
+        }
+    }
+    return NULL;
+}
+
 LuastatusBarlibSetResult
 set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
 {
@@ -208,9 +220,9 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
         const char *s = lua_tolstring(L, -1, &ns);
         const char *prev = s;
         for (const char *t; (t = memchr(s, '%', ns));) {
-            if (t[1] == '{' && t[2] == 'A' && t[3] != '}') {
-                const char *colon_pos = memchr(t, ':', ns - (t - s));
-                if (colon_pos) {
+            if (t[1] == '{' && t[2] == 'A') {
+                const char *colon_pos = mem2chr(t, ':', '}', ns - (t - s));
+                if (colon_pos && *colon_pos == ':') {
                     ls_string_append_b(buf, prev, colon_pos + 1 - prev);
                     ls_string_append_f(buf, "%zu_", widget_idx);
                     prev = colon_pos + 1;
