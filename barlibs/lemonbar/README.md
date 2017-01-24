@@ -2,17 +2,6 @@ This barlib talks with `lemonbar`.
 
 It joins all non-empty strings returned by widgets by a separator, which defaults to ` | `.
 
-Using with `lemonbar`
-===
-One method to connect `luastatus` with `lemonbar` is to use socat:
-
-`socat 'EXEC:luastatus-lemonbar-wrapper -B separator=" " widget1.lua widget2.lua' 'EXEC:lemonbar'`
-
-Redirections and `luastatus-lemonbar-wrapper`
-===
-`lemonbar` requires all the data to be written to stdout and read from stdin. This makes it very easy to mess things up: Lua’s `print()` prints to stdout, processes spawned by widgets/plugins/barlib inherit our stdin and stdout, etc.
-That’s why this barlib requires that stdin and stdout file descriptors are manually redirected. A shell wrapper, `luastatus-lemonbar-wrapper`, is shipped with it; it does all the redirections and executes `luastatus` with `-b lemonbar`, all the required `-B` options, and additional arguments passed by you.
-
 `cb` return value
 ===
 A string with lemonbar markup, or nil. Nil is equivalent to an empty string.

@@ -1,2 +1,0 @@
-#!/bin/sh
-exec ${LUASTATUS:-luastatus} -b lemonbar 3<&0 0</dev/null -B in_fd=3 4>&1 1>&2 -B out_fd=4 "$@"
