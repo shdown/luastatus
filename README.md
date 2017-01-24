@@ -30,7 +30,7 @@ The `widget` table **must** contain the following entries:
   receive data from. If it contains a slash, it is treated as a path to a shared
   library. If it does not, luastatus tries to load `<plugin>.so` from the
   directory configured at the build time (CMake `PLUGINS_DIR` variable, defaults
-  to `${CMAKE_INSTALL_PREFIX}/lib/luastatus/plugins`).
+  to `${CMAKE_INSTALL_FULL_LIBDIR}/luastatus/plugins`).
 
   * `cb`: a function that converts the data received from a *plugin* to the
   format a *barlib* (see below) understands. It should take exactly one
@@ -130,7 +130,7 @@ files.
 If `-b` argument contains a slash, it is treated as a path to a shared library.
 If it does not, luastatus tries to load `<argument>.so` from the directory
 configured at the build time (CMake `BARLIBS_DIR` variable, defaults to
-`${CMAKE_INSTALL_PREFIX}/lib/luastatus/barlibs`).
+`${CMAKE_INSTALL_FULL_LIBDIR}/luastatus/barlibs`).
 
 Example:
 
