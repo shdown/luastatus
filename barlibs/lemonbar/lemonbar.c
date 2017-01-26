@@ -270,7 +270,7 @@ event_watcher(LuastatusBarlibData *bd,
     size_t nbuf = 0;
 
     for (ssize_t nread; (nread = getline(&buf, &nbuf, p->in)) >= 0;) {
-        if (nread == 0) {
+        if (nread == 0 || buf[nread - 1] != '\n') {
             continue;
         }
         const size_t nline = nread - 1;
