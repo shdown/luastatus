@@ -29,7 +29,7 @@ Example
 i = 0
 widget = {
     plugin = 'timer',
-    opts = {timeout=2.0},
+    opts = {period=2.0},
     cb = function(t)
         i = i+1
         if i == 1 then
