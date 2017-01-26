@@ -1,4 +1,4 @@
-set (sources "lemonbar.c")
+file (GLOB sources "*.c")
 luastatus_add_barlib (lemonbar $<TARGET_OBJECTS:ls> ${sources})
 
 target_compile_definitions (lemonbar PUBLIC -D_POSIX_C_SOURCE=200809L)
