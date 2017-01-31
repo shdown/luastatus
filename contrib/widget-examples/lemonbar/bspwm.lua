@@ -1,4 +1,4 @@
-dofile 'lib.lua'
+lib = require "lib"
 
 widget = {
   plugin = 'pipe',
@@ -6,6 +6,6 @@ widget = {
     args = { 'bspc', 'control', '--subscribe' }, 
   },
   cb = function(t)
-    return pager(t)
+    return lib.pager(t)
   end,
 }

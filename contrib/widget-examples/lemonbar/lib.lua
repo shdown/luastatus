@@ -1,11 +1,11 @@
-function colorize (text, fg, bg, u)
-  text = ( fg and '%{F' .. fg .. '}' .. text .. '%{F-}' ) or text
-  text = ( bg and '%{B' .. bg .. '}' .. text .. '%{B-}' ) or text
-  text = ( u and '%{U' .. u .. '}' .. text .. '%{U-}' ) or text
+function colorize(text, fg, bg, u)
+  text = (fg and string.format('%%{F%s}%s%%{F-}', fg, text)) or text
+  text = (bg and string.format('%%{B%s}%s%%{B-}', bg, text)) or text
+  text = (u and string.format('%%{U%s}%s%%{U-}', u, text)) or text
   return text
 end
 
-function pager (status)
+function pager(status)
   local colors = {
     M = { fg='#000000', bg='#ff5900' },
     m = { fg='#ff5900', bg='#000000' },
@@ -19,16 +19,19 @@ function pager (status)
   }
 
   local text = ''
-  local status = status:sub(2, #status)
-  for block in status:gmatch("[^:]+") do
+  for block in status:sub(2):gmatch("[^:]+") do
     text = text .. 
       colorize(
-        string.format(' %s ', block:sub(2,#block)), 
+        string.format(' %s ', block:sub(2)), 
         colors[block:sub(1,1)].fg, 
         colors[block:sub(1,1)].bg
       )
-
   end
 
   return text
 end
+
+local lib = {}
+lib.colorize = colorize
+lib.pager = pager
+return lib
