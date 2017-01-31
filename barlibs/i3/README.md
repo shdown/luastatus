@@ -4,7 +4,6 @@ Redirections and `luastatus-i3-wrapper`
 ===
 `i3bar` requires all the data to be written to stdout and read from stdin. This makes it very easy to mess things up: Lua’s `print()` prints to stdout, processes spawned by widgets/plugins inherit our stdin and stdout, etc.
 That’s why this barlib requires that stdin and stdout file descriptors are manually redirected. A shell wrapper, `luastatus-i3-wrapper`, is shipped with it; it does all the redirections and executes `luastatus` (or whatever is in `LUASTATUS` environment variable) with `-b i3` (or whatever is in `LUASTATUS_I3_BARLIB` environment variable), all the required `-B` options, and additional arguments passed by you.
-Note that environment variables are split by `IFS`, which is space, tab and newline by default.
 
 `cb` return value
 ===
