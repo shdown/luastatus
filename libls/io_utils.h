@@ -29,6 +29,10 @@ pid_t
 ls_spawnp_pipe(const char *file, int *pipe_fd, char *const *argv);
 
 // Makes a file descriptor CLOEXEC.
+//
+// On success, fd is returned.
+//
+// On failure, -1 is returned and errno is set.
 LS_INHEADER
 int
 ls_make_cloexec(int fd)

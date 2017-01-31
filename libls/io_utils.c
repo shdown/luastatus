@@ -35,6 +35,7 @@ ls_spawnp_pipe(const char *file, int *pipe_fd, char *const *argv)
     pid_t pid = -1;
     int pipe_fds[2] = {-1, -1};
     posix_spawn_file_actions_t fa;
+    // Contract: once fa has been initialized, p_inited_fa points to it.
     posix_spawn_file_actions_t *p_inited_fa = NULL;
     int saved_errno;
 
@@ -58,6 +59,7 @@ ls_spawnp_pipe(const char *file, int *pipe_fd, char *const *argv)
     }
 
     if (pipe_fd) {
+        // "move out" value from pipe_fds[0] to *pipe_fd
         *pipe_fd = pipe_fds[0];
         pipe_fds[0] = -1;
     }

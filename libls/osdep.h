@@ -8,6 +8,10 @@
 #include "compdep.h"
 #include "probes.h"
 
+// EINTR-safe close(). Please read:
+// 1. http://www.daemonology.net/blog/2011-12-17-POSIX-close-is-broken.html
+// 2. https://news.ycombinator.com/item?id=3363819
+// 3. https://sourceware.org/bugzilla/show_bug.cgi?id=16302
 #if LS_HAVE_POSIX_CLOSE
 #   define ls_close(FD_) posix_close(FD_, 0)
 #elif defined (__hpux)
