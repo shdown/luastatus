@@ -2,8 +2,9 @@ This barlib talks with `i3bar`.
 
 Redirections and `luastatus-i3-wrapper`
 ===
-`i3bar` requires all the data to be written to stdout and read from stdin. This makes it very easy to mess things up: Lua’s `print()` prints to stdout, processes spawned by widgets/plugins/barlib inherit our stdin and stdout, etc.
-That’s why this barlib requires that stdin and stdout file descriptors are manually redirected. A shell wrapper, `luastatus-i3-wrapper`, is shipped with it; it does all the redirections and executes `luastatus` with `-b i3`, all the required `-B` options, and additional arguments passed by you.
+`i3bar` requires all the data to be written to stdout and read from stdin. This makes it very easy to mess things up: Lua’s `print()` prints to stdout, processes spawned by widgets/plugins inherit our stdin and stdout, etc.
+That’s why this barlib requires that stdin and stdout file descriptors are manually redirected. A shell wrapper, `luastatus-i3-wrapper`, is shipped with it; it does all the redirections and executes `luastatus` (or whatever is in `LUASTATUS` environment variable) with `-b i3` (or whatever is in `LUASTATUS_I3_BARLIB` environment variable), all the required `-B` options, and additional arguments passed by you.
+Note that environment variables are split by `IFS`, which is space, tab and newline by default.
 
 `cb` return value
 ===
@@ -29,25 +30,26 @@ Example
 i = 0
 widget = {
     plugin = 'timer',
-    opts = {period=2.0},
+    opts = {period = 2},
     cb = function(t)
         i = i+1
         if i == 1 then
             return {} -- hides widget; alternatively, you can return nil.
         elseif i == 2 then
             -- no markup unless you specify markup='pango'
-            return {full_text='<Hello!>', color='#aaaa00'}
+            return {full_text = '<Hello!>', color = '#aaaa00'}
         elseif i == 3 then
             -- see https://developer.gnome.org/pango/stable/PangoMarkupFormat.html
-            return {full_text='Hello, <span color="#aaaa00">' .. luastatus.barlib.pango_escape(luastatus.dollar{'whoami'}) .. '</span>!', markup='pango'}
+            return {full_text = 'Hello, <span color="#aaaa00">' .. luastatus.barlib.pango_escape(luastatus.dollar{'whoami'}) .. '</span>!',
+                    markup = 'pango'}
         elseif i == 4 then
             i = 0
             return {
-                {full_text='Now,', instance='now-segment'},
+                {full_text = 'Now,', instance = 'now-segment'},
                 nil, -- nils are ignored so that you can do
                      --     return {get_time(), get_battery(), get_smth_else()}
                      -- where, for example, get_battery() returns nil if the battery is full.
-                {full_text='click me!', instance='click-me-segment'},
+                {full_text = 'click me!', instance = 'click-me-segment'},
             }
         end
     end,
