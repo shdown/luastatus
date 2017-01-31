@@ -43,24 +43,11 @@ DEPEND=""
 RDEPEND="${DEPEND}
 	dev-lang/lua
 	dev-lang/luajit
-	${PN}_plugins_xtitle? ( 
-		x11-libs/libxcb 
-		x11-libs/xcb-util-wm 
-	)
-	${PN}_plugins_xkb? ( 
-		x11-libs/libX11 
-		x11-libs/libxcb 
-	)
+	${PN}_plugins_xtitle? ( x11-libs/libxcb x11-libs/xcb-util-wm )
+	${PN}_plugins_xkb? ( x11-libs/libX11 )
 	${PN}_plugins_alsa? ( media-libs/alsa-lib )
-	${PN}_barlibs_dwm? ( 
-		x11-wm/dwm 
-		x11-libs/libxcb 
-	)
-	${PN}_barlibs_i3? ( 
-		x11-wm/i3 
-		>=dev-libs/yajl-2.1.0 
-	)
-	${PN}_barlibs_lemonbar? ( x11-misc/lemonbar )
+	${PN}_barlibs_dwm? ( x11-libs/libxcb )
+	${PN}_barlibs_i3? ( >=dev-libs/yajl-2.1.0 )
 "
 
 src_configure() {
