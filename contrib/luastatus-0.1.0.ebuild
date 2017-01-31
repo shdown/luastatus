@@ -40,8 +40,8 @@ IUSE="${BARLIBS} ${PLUGINS}"
 
 DEPEND=""
 RDEPEND="${DEPEND}
-	dev-lang/lua
-	dev-lang/luajit
+	luajit? ( dev-lang/luajit:2 )
+	!luajit? ( dev-lang/lua:0 )
 	${PN}_plugins_xtitle? ( x11-libs/libxcb x11-libs/xcb-util-wm )
 	${PN}_plugins_xkb? ( x11-libs/libX11 )
 	${PN}_plugins_alsa? ( media-libs/alsa-lib )
