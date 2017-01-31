@@ -8,17 +8,6 @@ It does not provide functions and does not support events.
 ===
 A string or nil. Nil is equivalent to an empty string.
 
-Example
-===
-````lua
-widget = {
-    plugin = 'timer',
-    cb = function(t)
-        return os.date('%H:%M')
-    end,
-}
-````
-
 Options
 ===
 * `display=<name>`
