@@ -69,7 +69,9 @@ check_taints(Barlib *barlib, Widget *widgets, size_t nwidgets)
 
     push_taints(&tv, barlib->iface.taints, TAINT_OWNER_BARLIB);
     for (size_t i = 0; i < nwidgets; ++i) {
-        push_taints(&tv, widgets[i].plugin.iface.taints, i);
+        if (widgets[i].state != WIDGET_STATE_DUMMY) {
+            push_taints(&tv, widgets[i].plugin.iface.taints, i);
+        }
     }
 
     qsort(tv.data, tv.size, sizeof(Taint), taint_cmp);
