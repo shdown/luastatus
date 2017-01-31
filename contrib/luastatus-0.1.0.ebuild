@@ -36,7 +36,7 @@ PLUGINS="
 
 LICENSE="GPL-3"
 SLOT="0"
-IUSE="${BARLIBS} ${PLUGINS}"
+IUSE="luajit ${BARLIBS} ${PLUGINS}"
 
 DEPEND=""
 RDEPEND="${DEPEND}
@@ -51,14 +51,15 @@ RDEPEND="${DEPEND}
 
 src_configure() {
 	local mycmakeargs=(
-		-DBUILD_BARLIB_DWM=$( usex ${PN}_barlibs_dwm )
-		-DBUILD_BARLIB_I3=$( usex ${PN}_barlibs_i3 )
-		-DBUILD_PLUGIN_ALSA=$(usex ${PN}_plugins_alsa )
-		-DBUILD_PLUGIN_FS=$(usex ${PN}_plugins_fs )
-		-DBUILD_PLUGIN_MPD=$(usex ${PN}_plugins_mpd )
-		-DBUILD_PLUGIN_PIPE=$(usex ${PN}_plugins_pipe )
-		-DBUILD_PLUGIN_TIMER=$(usex ${PN}_plugins_timer )
-		-DBUILD_PLUGIN_XKB=$(usex ${PN}_plugins_xkb )
+		$(use luajit && echo -DWITH_LUA_LIBRARY=luajit)
+		-DBUILD_BARLIB_DWM=$(usex ${PN}_barlibs_dwm)
+		-DBUILD_BARLIB_I3=$(usex ${PN}_barlibs_i3)
+		-DBUILD_PLUGIN_ALSA=$(usex ${PN}_plugins_alsa)
+		-DBUILD_PLUGIN_FS=$(usex ${PN}_plugins_fs)
+		-DBUILD_PLUGIN_MPD=$(usex ${PN}_plugins_mpd)
+		-DBUILD_PLUGIN_PIPE=$(usex ${PN}_plugins_pipe)
+		-DBUILD_PLUGIN_TIMER=$(usex ${PN}_plugins_timer)
+		-DBUILD_PLUGIN_XKB=$(usex ${PN}_plugins_xkb)
 		-DBUILD_PLUGIN_XTITLE=$(usex ${PN}_plugins_xtitle)
 	)
 	cmake-utils_src_configure
