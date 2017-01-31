@@ -99,9 +99,10 @@ run(
     }
     fd = -1;
 
-    int delim = (unsigned char) p->delim;
+    const char delim = p->delim;
+    const int idelim = (unsigned char) delim;
     while (1) {
-        ssize_t r = getdelim(&buf, &nbuf, delim, f);
+        const ssize_t r = getdelim(&buf, &nbuf, idelim, f);
         if (r < 0) {
             if (feof(f)) {
                 LUASTATUS_FATALF(pd, "child process closed its stdout");
@@ -111,7 +112,7 @@ run(
                 );
             }
             goto error;
-        } else if (r > 0) {
+        } else if (r > 0 && buf[r - 1] == delim) {
             lua_State *L = call_begin(pd->userdata);
             lua_pushlstring(L, buf, r - 1);
             call_end(pd->userdata);
