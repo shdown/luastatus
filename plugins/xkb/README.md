@@ -16,7 +16,7 @@ A table with the following entries:
 
   * `name`: string
 
-  Group name (if number of group names reported by libxkb-file is sufficient).
+  Group name (if number of group names reported is sufficient).
 
   * `id`: number (in Lua 5.3, integer)
 
