@@ -2,7 +2,7 @@ bat_uev = io.open('/sys/class/power_supply/BAT0/uevent', 'r')
 
 function get_bat_seg()
     if not bat_uev then
-        return {full_text='[-?-]'}
+        return {full_text = '[-?-]'}
     end
     bat_uev:seek('set', 0) -- yes, seeking on sysfs files is OK
     local status, capa
@@ -25,13 +25,13 @@ function get_bat_seg()
         sym = '↑'
         color = '#60b48a'
     end
-    return {full_text=string.format('[%3d%%%s]', capa, sym), color=color}
+    return {full_text = string.format('[%3d%%%s]', capa, sym), color = color}
 end
 
 widget = {
     plugin = 'timer',
-    opts = { period = 2 },
+    opts = {period = 2},
     cb = function(t)
-        return {{full_text=os.date('[%H:%M]'), color='#dc8cc3'}, get_bat_seg()}
+        return {{full_text = os.date('[%H:%M]'), color = '#dc8cc3'}, get_bat_seg()}
     end,
 }

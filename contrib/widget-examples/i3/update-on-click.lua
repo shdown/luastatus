@@ -18,9 +18,9 @@ widget = {
     },
     cb = function(t)
         if t == 'fifo' then
-            return {full_text='Thanks!'}
+            return {full_text = 'Thanks!'}
         else
-            return {full_text='Click me'}
+            return {full_text = 'Click me'}
         end
     end,
     event = function(t)
