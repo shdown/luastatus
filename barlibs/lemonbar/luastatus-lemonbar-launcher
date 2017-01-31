@@ -17,6 +17,7 @@ while true; do
     (( $# == 0 )) && usage "'--' argument not found."
     case "$1" in
     --)
+        shift
         break
         ;;
     -p)
