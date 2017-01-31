@@ -22,6 +22,7 @@ fi
 BARLIBS="
 	${PN}_barlibs_dwm
 	${PN}_barlibs_i3
+	${PN}_barlibs_lemonbar
 "
 
 PLUGINS="
@@ -53,6 +54,7 @@ src_configure() {
 	local mycmakeargs=(
 		-DBUILD_BARLIB_DWM=$( usex ${PN}_barlibs_dwm )
 		-DBUILD_BARLIB_I3=$( usex ${PN}_barlibs_i3 )
+		-DBUILD_BARLIB_LEMONBAR=$( usex ${PN}_barlibs_lemonbar )
 		-DBUILD_PLUGIN_ALSA=$(usex ${PN}_plugins_alsa )
 		-DBUILD_PLUGIN_FS=$(usex ${PN}_plugins_fs )
 		-DBUILD_PLUGIN_MPD=$(usex ${PN}_plugins_mpd )
