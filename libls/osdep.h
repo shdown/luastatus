@@ -8,7 +8,7 @@
 #include "compdep.h"
 #include "probes.h"
 
-// EINTR-safe close(). Please read:
+// EINTR-safe (as possible) close(). Please read:
 // 1. http://www.daemonology.net/blog/2011-12-17-POSIX-close-is-broken.html
 // 2. https://news.ycombinator.com/item?id=3363819
 // 3. https://sourceware.org/bugzilla/show_bug.cgi?id=16302

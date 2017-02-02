@@ -9,7 +9,7 @@
 // Copies up to nbuf - 1 characters from the string src to dst, zero-terminating the result if nbuf
 // is not 0.
 //
-// Returns strlen(src).
+// Returns the length of src.
 LS_INHEADER
 size_t
 ls_strlcpy(char *buf, const char *src, size_t nbuf)
@@ -17,6 +17,8 @@ ls_strlcpy(char *buf, const char *src, size_t nbuf)
     const size_t nsrc = strlen(src);
     if (nbuf) {
         const size_t ncopy = LS_MIN(nsrc, nbuf - 1);
+        // both buf and src are safe to dereference here, so it's safe to call memcpy without
+        // additional checks (see ../DOCS/empty-ranges-and-c-stdlib.md).
         memcpy(buf, src, ncopy);
         buf[ncopy] = '\0';
     }
@@ -30,13 +32,14 @@ ls_strlcpy(char *buf, const char *src, size_t nbuf)
 //
 // If the src and buf strings overlap, the behavior is undefined.
 //
-// Returns strnlen(buf, nbuf).
+// Returns the initial length of buf plus the length of src.
 LS_INHEADER
 size_t
 ls_strlcat(char *buf, const char *src, size_t nbuf)
 {
-    const size_t nbufstr = strnlen(buf, nbuf);
-    return nbufstr + ls_strlcpy(buf + nbufstr, src, nbuf - nbufstr);
+    // see ../DOCS/empty-ranges-and-c-stdlib.md
+    const size_t ninit = nbuf ? strnlen(buf, nbuf) : 0;
+    return ninit + ls_strlcpy(buf + ninit, src, nbuf - ninit);
 }
 
 // If zero-terminated string a starts with zero-terminated string b, returns a + strlen(b).

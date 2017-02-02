@@ -16,6 +16,7 @@ void
 ls_string_assign_b(LSString *s, const char *buf, size_t nbuf)
 {
     LS_VECTOR_ENSURE(*s, nbuf);
+    // see ../DOCS/empty-ranges-and-c-stdlib.md
     if (nbuf) {
         memcpy(s->data, buf, nbuf);
     }
@@ -34,6 +35,7 @@ void
 ls_string_append_b(LSString *s, const char *buf, size_t nbuf)
 {
     LS_VECTOR_ENSURE(*s, s->size + nbuf);
+    // see ../DOCS/empty-ranges-and-c-stdlib.md
     if (nbuf) {
         memcpy(s->data + s->size, buf, nbuf);
     }

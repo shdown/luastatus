@@ -11,6 +11,8 @@
 #include "cstring_utils.h"
 #include "errno_utils.h"
 
+// The behaviour is same as calling vsnprintf(buf, nbuf, fmt, vl), except when an encoding error
+// occurs. In that case, this function fills the buffer with an error message (unless nbuf is zero).
 LS_INHEADER
 void
 ls_svsnprintf(char *buf, size_t nbuf, const char *fmt, va_list vl)
@@ -20,6 +22,8 @@ ls_svsnprintf(char *buf, size_t nbuf, const char *fmt, va_list vl)
     }
 }
 
+// The behaviour is same as calling snprintf(buf, nbuf, fmt, ...), except when an encoding error
+// occurs. In that case, this function fills the buffer with an error message (unless nbuf is zero).
 LS_INHEADER LS_ATTR_PRINTF(3, 4)
 void
 ls_ssnprintf(char *buf, size_t nbuf, const char *fmt, ...)
@@ -30,6 +34,10 @@ ls_ssnprintf(char *buf, size_t nbuf, const char *fmt, ...)
     va_end(vl);
 }
 
+// The behaviour is same as calling vsnprintf(buf, nbuf, fmt, vl), except when:
+//     1. an encoding error occurs, or;
+//     2. buffer space is insufficient.
+//  In these cases, this function panics.
 LS_INHEADER
 void
 ls_xvsnprintf(char *buf, size_t nbuf, const char *fmt, va_list vl)
@@ -46,6 +54,10 @@ ls_xvsnprintf(char *buf, size_t nbuf, const char *fmt, va_list vl)
     }
 }
 
+// The behaviour is same as calling snprintf(buf, nbuf, fmt, ...), except when:
+//     1. an encoding error occurs, or;
+//     2. buffer space is insufficient.
+//  In these cases, this function panics.
 LS_INHEADER LS_ATTR_PRINTF(3, 4)
 void
 ls_xsnprintf(char *buf, size_t nbuf, const char *fmt, ...)
@@ -56,11 +68,19 @@ ls_xsnprintf(char *buf, size_t nbuf, const char *fmt, ...)
     va_end(vl);
 }
 
-char*
+// Tries to allocate (with malloc, calloc or realloc) a buffer of sufficient size and
+// vsnprintf([...], fmt, vl) into it. On success, returns the buffer.
+//
+// If an encoding error occurs, NULL is returned and errno is set by vsnprintf.
+//
+// If allocation fails, NULL is returned and errno is set to ENOMEM.
+char *
 ls_vasprintf(const char *fmt, va_list vl);
 
+// The same as ls_vasprintf, except that this function is called with a variable number of arguments
+// instead of a va_list.
 LS_INHEADER LS_ATTR_PRINTF(1, 2)
-char*
+char *
 ls_asprintf(const char *fmt, ...)
 {
     va_list vl;
@@ -72,8 +92,10 @@ ls_asprintf(const char *fmt, ...)
     return r;
 }
 
+// The behaviour is same as calling ls_vasprintf(fmt, vl), except when the latter returns NULL. In
+// that case, this function panics.
 LS_INHEADER
-char*
+char *
 ls_xvasprintf(const char *fmt, va_list vl)
 {
     char *r = ls_vasprintf(fmt, vl);
@@ -86,8 +108,10 @@ ls_xvasprintf(const char *fmt, va_list vl)
     return r;
 }
 
+// The behaviour is same as calling ls_asprintf(fmt, ...), except when the latter returns NULL. In
+// that case, this function panics.
 LS_INHEADER LS_ATTR_PRINTF(1, 2)
-char*
+char *
 ls_xasprintf(const char *fmt, ...)
 {
     va_list vl;
