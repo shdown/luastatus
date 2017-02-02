@@ -118,11 +118,11 @@ lspawn_func(lua_State *L, const char *funcname, bool return_output, bool return_
     } while (0)
 
     if (!return_output && !return_exitcode) {
-        // Yes, we invoke shell to spawn a process without waiting for its
-        // termination. Doing otherwise would hilariously increase the
-        // complexity, or leak zombie processes (execvp() is not async-safe, so
-        // forking twice means reimplementing its job of searching for the
-        // binary over $PATH).
+        // Yes, we invoke shell to spawn a process without waiting for its termination. Doing
+        // otherwise would hilariously increase the complexity (execvp() is not async-safe (see
+        // http://www.linuxprogrammingblog.com/threads-and-fork-think-twice-before-using-them), so
+        // forking twice means reimplementing its job of searching for the binary over $PATH), or
+        // leak zombie processes.
         LS_VECTOR_PUSH(argv, ls_xstrdup(LUASTATUS_POSIX_SH_PATH));
         LS_VECTOR_PUSH(argv, ls_xstrdup("-c"));
         LS_VECTOR_PUSH(argv, ls_xstrdup("exec \"$@\"&"));
