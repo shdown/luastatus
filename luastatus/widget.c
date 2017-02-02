@@ -91,8 +91,9 @@ widget_load_dummy(Widget *w)
     if (!(w->L = luaL_newstate())) {
         ls_oom();
     }
-    w->state = WIDGET_STATE_DUMMY;
+    PTH_CHECK(pthread_mutex_init(&w->lua_mtx, NULL));
     w->lua_ref_event = LUA_REFNIL;
+    w->state = WIDGET_STATE_DUMMY;
 }
 
 bool
