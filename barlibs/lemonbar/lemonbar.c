@@ -16,6 +16,7 @@
 #include "libls/io_utils.h"
 #include "libls/lua_utils.h"
 #include "libls/alloc_utils.h"
+#include "markup_utils.h"
 
 typedef struct {
     size_t nwidgets;
@@ -133,11 +134,8 @@ error:
 int
 l_escape(lua_State *L)
 {
-    // L: -
     size_t ns;
-    // WARNING: luaL_check*() call luaL_error() on error, which, in turn, calls lua_error(),
-    // which, it turn, does longjmp(). If this function should acquire any resource, it should be
-    // done *after* calling luaL_check*().
+    // WARNING: luaL_check*() functions do a long jump on error!
     const char *s = luaL_checklstring(L, 1, &ns);
 
     LuastatusBarlibData *bd = lua_touserdata(L, lua_upvalueindex(1));
@@ -146,16 +144,9 @@ l_escape(lua_State *L)
     LSString *buf = &p->luabuf;
     LS_VECTOR_CLEAR(*buf);
 
-    // just replace all % with %%
-    for (const char *t; (t = memchr(s, '%', ns));) {
-        const size_t nseg = t - s + 1;
-        ls_string_append_b(buf, s, nseg);
-        ls_string_append_c(buf, '%');
-        ns -= nseg;
-        s += nseg;
-    }
-    ls_string_append_b(buf, s, ns);
+    lemonbar_ls_string_append_escaped_b(buf, s, ns);
 
+    // L: -
     lua_pushlstring(L, buf->data, buf->size); // L: string
     return 1;
 }
@@ -176,7 +167,7 @@ redraw(LuastatusBarlibData *bd)
     FILE *out = p->out;
     size_t n = p->nwidgets;
     LSString *bufs = p->bufs;
-    char *sep = p->sep;
+    const char *sep = p->sep;
 
     bool first = true;
     for (size_t i = 0; i < n; ++i) {
@@ -199,49 +190,51 @@ redraw(LuastatusBarlibData *bd)
     return true;
 }
 
-static inline
-const char *
-mem2chr(const char *s, char c1, char c2, size_t ns)
-{
-    for (const char *end = s + ns; s != end; ++s) {
-        if (*s == c1 || *s == c2) {
-            return s;
-        }
-    }
-    return NULL;
-}
-
 LuastatusBarlibSetResult
 set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
 {
     Priv *p = bd->priv;
     LSString *buf = &p->bufs[widget_idx];
+
     LS_VECTOR_CLEAR(*buf);
-    int type = lua_type(L, -1);
-    if (type == LUA_TSTRING) {
-        size_t ns;
-        const char *s = lua_tolstring(L, -1, &ns);
-        const char *prev = s;
-        for (const char *t; (t = memchr(s, '%', ns));) {
-            if (t[1] == '{' && t[2] == 'A') {
-                const char *colon_pos = mem2chr(t, ':', '}', ns - (t - s));
-                if (colon_pos && *colon_pos == ':') {
-                    ls_string_append_b(buf, prev, colon_pos + 1 - prev);
-                    ls_string_append_f(buf, "%zu_", widget_idx);
-                    prev = colon_pos + 1;
-                    ns -= colon_pos - s;
-                    s = colon_pos;
-                }
-            } else if (t[1] == '%') {
-                ++s, --ns;
-            }
-            ++s, --ns;
+    switch (lua_type(L, -1)) {
+    case LUA_TNIL:
+        break;
+    case LUA_TSTRING:
+        {
+            size_t ns;
+            const char *s = lua_tolstring(L, -1, &ns);
+            lemonbar_ls_string_append_sanitized_b(buf, widget_idx, s, ns);
         }
-        ls_string_append_b(buf, prev, s + ns - prev);
-    } else if (type != LUA_TNIL) {
+        break;
+    case LUA_TTABLE:
+        {
+            const char *sep = p->sep;
+            LS_LUA_TRAVERSE(L, -1) {
+                if (!lua_isnumber(L, LS_LUA_TRAVERSE_KEY)) {
+                    LUASTATUS_ERRF(bd, "table key: expected number, found %s",
+                                   luaL_typename(L, LS_LUA_TRAVERSE_KEY));
+                    return LUASTATUS_BARLIB_SET_RESULT_NONFATAL_ERR;
+                }
+                if (!lua_isstring(L, LS_LUA_TRAVERSE_VALUE)) {
+                    LUASTATUS_ERRF(bd, "table value: expected string, found %s",
+                                   luaL_typename(L, LS_LUA_TRAVERSE_VALUE));
+                    return LUASTATUS_BARLIB_SET_RESULT_NONFATAL_ERR;
+                }
+                size_t ns;
+                const char *s = lua_tolstring(L, LS_LUA_TRAVERSE_VALUE, &ns);
+                if (buf->size && ns) {
+                    ls_string_append_s(buf, sep);
+                }
+                lemonbar_ls_string_append_sanitized_b(buf, widget_idx, s, ns);
+            }
+        }
+        break;
+    default:
         LUASTATUS_ERRF(bd, "expected string or nil, found %s", luaL_typename(L, -1));
         return LUASTATUS_BARLIB_SET_RESULT_NONFATAL_ERR;
     }
+
     if (!redraw(bd)) {
         return LUASTATUS_BARLIB_SET_RESULT_FATAL_ERR;
     }
@@ -273,15 +266,14 @@ event_watcher(LuastatusBarlibData *bd,
         if (nread == 0 || buf[nread - 1] != '\n') {
             continue;
         }
-        const size_t nline = nread - 1;
-        const char *endptr;
-        int widget_idx = ls_parse_uint(buf, nline, &endptr);
-        if (widget_idx < 0 || *endptr != '_') {
+        size_t ncommand;
+        size_t widget_idx;
+        const char *command = lemonbar_parse_command(buf, nread - 1, &ncommand, &widget_idx);
+        if (!command) {
             continue;
         }
         lua_State *L = call_begin(bd->userdata, widget_idx);
-        const char *command = endptr + 1;
-        lua_pushlstring(L, command, buf + nline - command);
+        lua_pushlstring(L, command, ncommand);
         call_end(bd->userdata, widget_idx);
     }
 

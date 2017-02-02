@@ -16,7 +16,7 @@ luastatus-lemonbar-launcher -p -B#111111 -p -f'Droid Sans Mono for Powerline:pix
 
 `cb` return value
 ===
-A string with lemonbar markup, or nil. Nil is equivalent to an empty string.
+A string with lemonbar markup, a table of such strings (all non-empty elements of which are joined by the separator), or nil. Nil or an empty table is equivalent to an empty string.
 
 Functions
 ===
