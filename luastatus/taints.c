@@ -74,7 +74,10 @@ check_taints(Barlib *barlib, Widget *widgets, size_t nwidgets)
         }
     }
 
-    qsort(tv.data, tv.size, sizeof(Taint), taint_cmp);
+    // see ../DOCS/empty-ranges-and-c-stdlib.md
+    if (tv.size) {
+        qsort(tv.data, tv.size, sizeof(Taint), taint_cmp);
+    }
 
     for (size_t i = 1; i < tv.size; ++i) {
         if (taint_cmp(&tv.data[i - 1], &tv.data[i]) == 0) {
