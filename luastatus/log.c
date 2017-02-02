@@ -54,6 +54,14 @@ common_logf(LuastatusLogLevel level, const char *subsystem, const char *fmt, va_
     char buf[1024];
     ls_svsnprintf(buf, sizeof(buf), fmt, vl);
 
+    // http://pubs.opengroup.org/onlinepubs/9699919799/functions/flockfile.html
+    //
+    // > All functions that reference (FILE *) objects, except those with names ending in _unlocked,
+    // > shall behave as if they use flockfile() and funlockfile() internally to obtain ownership of
+    // > these (FILE *) objects.
+    //
+    // So fprintf is guaranteed to be atomic.
+
     if (subsystem) {
         fprintf(stderr, "luastatus: (%s) %s: %s\n", subsystem, loglevel_tostr(level), buf);
     } else {
