@@ -52,6 +52,7 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
         LS_VECTOR_INIT_RESERVE(p->bufs[i], 1024);
     }
 
+    // All the options may be passed multiple times!
     int in_fd = -1;
     int out_fd = -1;
     bool allow_stopping = false;
@@ -168,11 +169,8 @@ redraw(LuastatusBarlibData *bd)
 int
 l_pango_escape(lua_State *L)
 {
-    // L: -
     size_t ns;
-    // WARNING: luaL_check*() call luaL_error() on error, which, in turn, calls lua_error(),
-    // which, it turn, does longjmp(). If this function should acquire any resource, it should be
-    // done *after* calling luaL_check*().
+    // WARNING: luaL_check*() functions do a long jump on error!
     const char *s = luaL_checklstring(L, 1, &ns);
 
     LuastatusBarlibData *bd = lua_touserdata(L, lua_upvalueindex(1));
@@ -181,6 +179,7 @@ l_pango_escape(lua_State *L)
     LSString *buf = &p->luabuf;
     LS_VECTOR_CLEAR(*buf);
     pango_ls_string_append_escaped_b(buf, s, ns);
+    // L: -
     lua_pushlstring(L, buf->data, buf->size); // L: string
     return 1;
 }
@@ -194,8 +193,10 @@ register_funcs(LuastatusBarlibData *bd, lua_State *L)
     ls_lua_rawsetf(L, "pango_escape"); // L: table
 }
 
+// Appends a JSON segment to ((Priv*) bd->priv)->bufs[widget_idx] from the table at position
+// table_pos on L's stack.
 bool
-append_segment(LuastatusBarlibData *bd, lua_State *L, int table_idx, size_t widget_idx)
+append_segment(LuastatusBarlibData *bd, lua_State *L, int table_pos, size_t widget_idx)
 {
     Priv *p = bd->priv;
     LSString *s = &p->bufs[widget_idx];
@@ -205,7 +206,7 @@ append_segment(LuastatusBarlibData *bd, lua_State *L, int table_idx, size_t widg
     }
     ls_string_append_f(s, "{\"name\":\"%zu\"", widget_idx);
     bool separator_key_found = false;
-    LS_LUA_TRAVERSE(L, table_idx) {
+    LS_LUA_TRAVERSE(L, table_pos) {
         if (!lua_isstring(L, LS_LUA_TRAVERSE_KEY)) {
             LUASTATUS_ERRF(bd, "segment key: expected string, found %s", luaL_typename(L, -2));
             return false;
@@ -253,46 +254,47 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
     Priv *p = bd->priv;
     LS_VECTOR_CLEAR(p->bufs[widget_idx]);
 
-    int type = lua_type(L, -1);
-    if (type == LUA_TNIL) {
-        goto done;
-    } else if (type != LUA_TTABLE) {
+    switch (lua_type(L, -1)) {
+    case LUA_TNIL:
+        break;
+    case LUA_TTABLE:
+        // L: table
+        lua_pushnil(L); // L: table nil
+        if (lua_next(L, -2)) {
+            // table is not empty
+            // L: table key value
+            bool is_array = lua_isnumber(L, -2);
+            lua_pop(L, 2); // L: table
+            if (is_array) {
+                LS_LUA_TRAVERSE(L, -1) {
+                    if (!lua_istable(L, LS_LUA_TRAVERSE_VALUE)) {
+                        LUASTATUS_ERRF(bd, "array value: expected table, found %s",
+                                       luaL_typename(L, LS_LUA_TRAVERSE_VALUE));
+                        goto invalid_data;
+                    }
+                    if (!append_segment(bd, L, LS_LUA_TRAVERSE_VALUE, widget_idx)) {
+                        goto invalid_data;
+                    }
+                }
+            } else {
+                if (!append_segment(bd, L, -1, widget_idx)) {
+                    goto invalid_data;
+                }
+            }
+        } // else: L: table
+        break;
+    default:
         LUASTATUS_ERRF(bd, "expected table or nil, found %s", luaL_typename(L, -1));
         goto invalid_data;
     }
 
-    // L: table
-    lua_pushnil(L); // L: table nil
-    if (lua_next(L, -2)) {
-        // table is not empty
-        // L: table key value
-        bool is_array = lua_isnumber(L, -2);
-        lua_pop(L, 2); // L: table
-        if (is_array) {
-            LS_LUA_TRAVERSE(L, -1) {
-                if (!lua_istable(L, LS_LUA_TRAVERSE_VALUE)) {
-                    LUASTATUS_ERRF(bd, "array value: expected table, found %s",
-                                   luaL_typename(L, LS_LUA_TRAVERSE_VALUE));
-                    goto invalid_data;
-                }
-                if (!append_segment(bd, L, LS_LUA_TRAVERSE_VALUE, widget_idx)) {
-                    goto invalid_data;
-                }
-            }
-        } else {
-            if (!append_segment(bd, L, -1, widget_idx)) {
-                goto invalid_data;
-            }
-        }
-    } // else: L: table
-
-done:
     if (!redraw(bd)) {
         return LUASTATUS_BARLIB_SET_RESULT_FATAL_ERR;
     }
     return LUASTATUS_BARLIB_SET_RESULT_OK;
 
 invalid_data:
+    // the buffer may contain an invalid JSON at this point; just clear it.
     LS_VECTOR_CLEAR(p->bufs[widget_idx]);
     return LUASTATUS_BARLIB_SET_RESULT_NONFATAL_ERR;
 }

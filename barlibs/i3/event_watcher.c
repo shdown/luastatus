@@ -96,7 +96,7 @@ callback_null(void *vctx)
         LUASTATUS_ERRF(ctx->bd, "(event watcher) unexpected null");
         return 0;
     }
-    // nothing to do
+    // nothing to do: Lua tables can't have nil values
     return 1;
 }
 
@@ -104,7 +104,7 @@ static
 int
 callback_boolean(void *vctx, int value)
 {
-    return callback_value_helper(vctx, (EventWatcherValue){
+    return callback_value_helper(vctx, (EventWatcherValue) {
         .type = EVENT_WATCHER_VALUE_TYPE_BOOL,
         .u = { .b = value },
     });
@@ -114,7 +114,7 @@ static
 int
 callback_integer(void *vctx, long long value)
 {
-    return callback_value_helper(vctx, (EventWatcherValue){
+    return callback_value_helper(vctx, (EventWatcherValue) {
         .type = EVENT_WATCHER_VALUE_TYPE_DOUBLE,
         .u = { .d = value },
     });
@@ -124,7 +124,7 @@ static
 int
 callback_double(void *vctx, double value)
 {
-    return callback_value_helper(vctx, (EventWatcherValue){
+    return callback_value_helper(vctx, (EventWatcherValue) {
         .type = EVENT_WATCHER_VALUE_TYPE_DOUBLE,
         .u = { .d = value },
     });
@@ -134,7 +134,7 @@ static
 int
 callback_string(void *vctx, const unsigned char *buf, size_t nbuf)
 {
-    return callback_value_helper(vctx, (EventWatcherValue){
+    return callback_value_helper(vctx, (EventWatcherValue) {
         .type = EVENT_WATCHER_VALUE_TYPE_STRING,
         .u = { .s = append_to_buf(vctx, (const char*) buf, nbuf) },
     });
