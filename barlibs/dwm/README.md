@@ -6,7 +6,7 @@ It does not provide functions and does not support events.
 
 `cb` return value
 ===
-A string or nil. Nil is equivalent to an empty string.
+A string, an array (that is, a table with numeric keys) of strings (all non-empty elements of which are joined by the separator), or nil. Nil or an empty table is equivalent to an empty string.
 
 Options
 ===
