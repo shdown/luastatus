@@ -22,7 +22,7 @@ local colors = {
 function lib.pager(status)
   local text = ''
   for block in status:sub(2):gmatch('[^:]+') do
-    text = text .. colorize(
+    text = text .. lib.colorize(
       string.format(' %s ', block:sub(2)),
       colors[block:sub(1, 1)].fg,
       colors[block:sub(1, 1)].bg
