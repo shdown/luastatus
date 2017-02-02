@@ -206,15 +206,17 @@ ignore_signal(LS_ATTR_UNUSED_ARG int signo)
 bool
 prepare_signals(void)
 {
+    // see ../DOCS/eintr-policy.md
+
     struct sigaction sa = {.sa_flags = SA_RESTART};
     if (sigemptyset(&sa.sa_mask) < 0) {
         LS_WITH_ERRSTR(s, errno,
-            fprintf(stderr, "luastatus: (prepare) WARNING: sigemptyset: %s", s);
+            fprintf(stderr, "luastatus: (prepare) FATAL: sigemptyset: %s", s);
         );
         return false;
     }
 
-#define CATCH(SigNo_) \
+#define HANDLE(SigNo_) \
     do { \
         if (sigaction(SigNo_, &sa, NULL) < 0) { \
             LS_WITH_ERRSTR(s, errno, \
@@ -223,14 +225,31 @@ prepare_signals(void)
         } \
     } while (0)
 
+    // we don't want to terminate on write to a dead pipe (especially if it's a barlib/plugin that
+    // does that)
+    // not SIG_IGN because children inherit the set of ignored signals
     sa.sa_handler = ignore_signal;
-    CATCH(SIGPIPE);
+    HANDLE(SIGPIPE);
 
+    // the sole purpose of this is to ensure SA_RESTART
     sa.sa_handler = SIG_DFL;
-    CATCH(SIGCHLD);
-    CATCH(SIGURG);
+    // Another reason for not using SIG_IGN here is:
+    //
+    // http://pubs.opengroup.org/onlinepubs/009695399/functions/xsh_chap02_04.html#tag_02_04_03
+    //
+    // > If the action for the SIGCHLD signal is set to SIG_IGN, child processes of the calling
+    // > processes shall not be transformed into zombie processes when they terminate. If the
+    // > calling process subsequently waits for its children, and the process has no unwaited-for
+    // > children that were transformed into zombie processes, it shall block until all of its
+    // > children terminate, and wait(), waitid(), and waitpid() shall fail and set errno to ECHILD.
+    HANDLE(SIGCHLD);
+    // I have no idea what SIGURG is, but default action for it is to ignore, so let's ensure
+    // SA_RESTART for it too.
+    HANDLE(SIGURG);
 
-#undef CATCH
+    // we will also ensure SA_RESTART for any platform-specific signal that will annoy us.
+
+#undef HANDLE
     return true;
 }
 
