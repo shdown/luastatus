@@ -38,7 +38,7 @@ lemonbar_ls_string_append_sanitized_b(LSString *buf, size_t widget_idx, const ch
             if (i + 1 < ns) {
                 if (s[i + 1] == '{' && i + 2 < ns && s[i + 2] == 'A') {
                     a_tag = true;
-                } else if (s[ + 1] == '%') {
+                } else if (s[i + 1] == '%') {
                     ++i;
                 }
             }
