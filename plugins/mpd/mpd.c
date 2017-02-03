@@ -67,6 +67,10 @@ init(LuastatusPluginData *pd, lua_State *L)
     );
 
     PU_MAYBE_VISIT_STR("password", s,
+        if ((strchr(s, '\n'))) {
+            LUASTATUS_FATALF(pd, "password contains a line break");
+            goto error;
+        }
         p->password = ls_xstrdup(s);
     );
 
@@ -223,6 +227,19 @@ report_status(LuastatusPluginData *pd,
     call_end(pd->userdata);
 }
 
+void
+mpd_write_quoted(FILE *f, const char *s)
+{
+    fputc('"', f);
+    for (const char *t; (t = strchr(s, '"'));) {
+        fwrite(s, 1, t - s, f);
+        fputs("\\\"", f);
+        s = t + 1;
+    }
+    fputs(s, f);
+    fputc('"', f);
+}
+
 // Code below is pretty ugly and spaghetti-like. Rewrite it if you can.
 void
 interact(int fd, LuastatusPluginData *pd,
@@ -244,9 +261,11 @@ interact(int fd, LuastatusPluginData *pd,
         } \
     } while (0)
 
-#define WRITEF(...) \
+#define WRITE(What_) \
     do { \
-        if (fprintf(f, __VA_ARGS__) < 0 || fflush(f) < 0) { \
+        fputs(What_, f); \
+        fflush(f); \
+        if (ferror(f)) { \
             goto io_error; \
         } \
     } while (0)
@@ -282,7 +301,13 @@ interact(int fd, LuastatusPluginData *pd,
 
     // send the password, if specified
     if (p->password) {
-        WRITEF("password %s\n", p->password);
+        fputs("password ", f);
+        mpd_write_quoted(f, p->password);
+        fputc('\n', f);
+        fflush(f);
+        if (ferror(f)) {
+            goto io_error;
+        }
         GETLINE();
         if (response_type(buf) != RESP_TYPE_OK) {
             LUASTATUS_ERRF(pd, "(password) server said: %.*s", (int) dollar_strlen(buf), buf);
@@ -306,12 +331,12 @@ interact(int fd, LuastatusPluginData *pd,
     FD_ZERO(&fds);
 
     while (1) {
-        WRITEF("currentsong\n");
+        WRITE("currentsong\n");
         UNTIL_OK(
             kv_strarr_line_append(&kv_song, buf);
         );
 
-        WRITEF("status\n");
+        WRITE("status\n");
         UNTIL_OK(
             kv_strarr_line_append(&kv_status, buf);
         );
@@ -334,7 +359,7 @@ interact(int fd, LuastatusPluginData *pd,
 
         call_end(pd->userdata);
 
-        WRITEF("idle player mixer\n");
+        WRITE("idle player mixer\n");
 
         if (fd < FD_SETSIZE && !ls_timespec_is_invalid(p->timeout)) {
             while (1) {
