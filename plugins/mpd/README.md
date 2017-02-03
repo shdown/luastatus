@@ -4,7 +4,7 @@ Options
 ===
 * `hostname`: string
 
-  Hostname to connect to. Default is to connect to the local host.
+  Hostname to connect to. Default is to connect to the local host. An absolute path to a UNIX domain socket can also be specified.
 
 * `port`: number
 
