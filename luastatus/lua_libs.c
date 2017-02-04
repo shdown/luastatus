@@ -54,7 +54,7 @@ static
 int
 l_os_getenv(lua_State *L)
 {
-    const char *r = ls_getenv_r(luaL_checkstring(L, 1), environ);
+    const char *r = ls_getenv_r(luaL_checkstring(L, 1));
     if (r) {
         lua_pushstring(L, r);
     } else {
