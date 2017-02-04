@@ -25,8 +25,6 @@
 #include "barlib.h"
 #include "widget.h"
 
-extern char **environ;
-
 static
 int
 l_os_execute(lua_State *L)
