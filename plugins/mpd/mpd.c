@@ -458,7 +458,7 @@ run(LuastatusPluginData *pd, LuastatusPluginCallBegin call_begin, LuastatusPlugi
     while (1) {
         report_status(pd, call_begin, call_end, "connecting");
 
-        int fd = p->hostname[0] == '/'
+        int fd = (p->hostname && p->hostname[0] == '/')
             ? socket_open(pd, p->hostname)
             : tcp_open(pd, p->hostname, portstr);
         if (fd >= 0) {
