@@ -16,8 +16,6 @@
 #include "libls/osdep.h"
 #include "libls/lua_utils.h"
 
-extern char **environ;
-
 typedef struct {
     LS_VECTOR_OF(char*) args;
     char delim;
