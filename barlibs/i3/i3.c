@@ -81,6 +81,8 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
     }
 
     // check
+    // we require in_fd/out_fd to be not less that 3 because making stdin/stdout/stderr CLOEXEC has
+    // very bad consequences, and we just don't want to complicate the logic.
     if (in_fd < 3) {
         LUASTATUS_FATALF(bd, "in_fd is not specified or less than 3");
         goto error;
