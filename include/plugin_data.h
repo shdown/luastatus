@@ -87,7 +87,7 @@ typedef struct {
     // This function must destroy a previously successfully initialized widget.
     void (*destroy)(LuastatusPluginData *pd);
 
-    // See ../WRITING_BARLIB_OR_PLUGIN.md.
+    // See ../DOCS/WRITING_BARLIB_OR_PLUGIN.md.
     //
     // May be NULL.
     const char *const *taints;

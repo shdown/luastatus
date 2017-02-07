@@ -51,7 +51,7 @@ A plugin is a thing that knows when to call the `cb` function and what to pass
 to.
 
 Plugins are shared libraries. For how to write them, see
-`WRITING_BARLIB_OR_PLUGIN.md`.
+`DOCS/WRITING_BARLIB_OR_PLUGIN.md`.
 
 Barlibs
 ===
@@ -64,7 +64,7 @@ A barlib (**bar** **lib**rary) is a thing that knows:
   * how to indicate an error, should one happen.
 
 Barlibs are shared libraries, too. For how to write them, see
-`WRITING_BARLIB_OR_PLUGIN.md`.
+`DOCS/WRITING_BARLIB_OR_PLUGIN.md`.
 
 Barlibs are capable of taking options.
 

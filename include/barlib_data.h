@@ -145,7 +145,7 @@ typedef struct {
     // This function must destroy a previously successfully initialized barlib.
     void (*destroy)(LuastatusBarlibData *bd);
 
-    // See ../WRITING_BARLIB_OR_PLUGIN.md.
+    // See ../DOCS/WRITING_BARLIB_OR_PLUGIN.md.
     //
     // May be NULL.
     //
