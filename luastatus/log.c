@@ -45,7 +45,7 @@ loglevel_fromstr(const char *s)
 #undef EXPAND_LOGLEVELS
 
 void
-common_logf(LuastatusLogLevel level, const char *subsystem, const char *fmt, va_list vl)
+common_vlogf(LuastatusLogLevel level, const char *subsystem, const char *fmt, va_list vl)
 {
     if (level > global_loglevel) {
         return;
@@ -67,13 +67,4 @@ common_logf(LuastatusLogLevel level, const char *subsystem, const char *fmt, va_
     } else {
         fprintf(stderr, "luastatus: %s: %s\n", loglevel_tostr(level), buf);
     }
-}
-
-void
-internal_logf(LuastatusLogLevel level, const char *fmt, ...)
-{
-    va_list vl;
-    va_start(vl, fmt);
-    common_logf(level, NULL, fmt, vl);
-    va_end(vl);
 }

@@ -57,9 +57,9 @@ external_logf(void *userdata, LuastatusLogLevel level, const char *fmt, ...)
         Widget *w = userdata;
         char who[1024];
         ls_ssnprintf(who, sizeof(who), "%s@%s", w->plugin.name, w->filename);
-        common_logf(level, who, fmt, vl);
+        common_vlogf(level, who, fmt, vl);
     } else {
-        common_logf(level, "barlib", fmt, vl);
+        common_vlogf(level, "barlib", fmt, vl);
     }
     va_end(vl);
 }
