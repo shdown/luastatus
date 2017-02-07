@@ -2,7 +2,7 @@ bat_uev = io.open('/sys/class/power_supply/BAT0/uevent', 'r')
 
 function get_bat_seg()
     if not bat_uev then
-        return ' [-?-]'
+        return '[-?-]'
     end
     bat_uev:seek('set', 0) -- yes, seeking on sysfs files is OK
     local status, capa
@@ -15,7 +15,7 @@ function get_bat_seg()
         end
     end
     if status == 'Unknown' or status == 'Full' then
-        return ''
+        return nil
     end
     local sym = '?'
     if status == 'Discharging' then
@@ -23,13 +23,13 @@ function get_bat_seg()
     elseif status == 'Charging' then
         sym = '↑'
     end
-    return string.format(' [%3d%%%s]', capa, sym)
+    return string.format('[%3d%%%s]', capa, sym)
 end
 
 widget = {
     plugin = 'timer',
     opts = { period = 2 },
     cb = function(t)
-        return os.date('[%H:%M]') .. get_bat_seg()
+        return {os.date('[%H:%M]'), get_bat_seg()}
     end,
 }
