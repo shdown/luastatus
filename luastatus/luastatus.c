@@ -351,6 +351,10 @@ main(int argc, char **argv)
         }
     }
 
+    if (!nwidgets) {
+        internal_logf(LUASTATUS_WARN, "no widgets specified (see luastatus(1) for usage info)");
+    }
+
     if (!load_barlib_by_name(&barlib, barlib_name)) {
         internal_logf(LUASTATUS_FATAL, "can't load barlib '%s'", barlib_name);
         goto cleanup;
