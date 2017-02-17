@@ -8,10 +8,10 @@ function get_mem_seg()
         if key == 'MemFree' then
             value = tonumber(value)
             if um == 'kB' then
-                value = value / 1024.0 / 1024.0
-                um = ' GB'
+                value = value / 1000.0 / 1000.0
+                um = 'GB'
             end
-            result = string.format('[%3.2f%s]', value, um)
+            result = string.format('[%3.2f %s]', value, um)
             break
         end
     end
