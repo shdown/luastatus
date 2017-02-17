@@ -15,7 +15,7 @@ function get_mem_seg()
             break
         end
     end
-    return {full_text = result, color='#af8ec3'}
+    return {full_text = result, color = '#af8ec3'}
 end
 
 widget = {
