@@ -33,7 +33,6 @@ ls_wakeup_fifo_open(LSWakeupFifo *w)
 int
 ls_wakeup_fifo_pselect(LSWakeupFifo *w)
 {
-    // Contract: w->fds is either empty or only contains w->fd.
     const int fd = w->fd;
 
     if (fd >= 0) {
@@ -42,6 +41,9 @@ ls_wakeup_fifo_pselect(LSWakeupFifo *w)
     const int r = pselect(fd >= 0 ? fd + 1 : 0, &w->fds, NULL, NULL, w->timeout, w->sigmask);
     if (r < 0) {
         int saved_errno = errno;
+        if (fd >= 0) {
+            FD_CLR(fd, &w->fds);
+        }
         ls_close(fd);
         w->fd = -1;
         errno = saved_errno;
@@ -49,6 +51,7 @@ ls_wakeup_fifo_pselect(LSWakeupFifo *w)
     } else if (r == 0) {
         return 0;
     } else {
+        FD_CLR(fd, &w->fds);
         ls_close(fd);
         w->fd = -1;
         return 1;
