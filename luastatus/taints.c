@@ -39,21 +39,21 @@ push_taints(TaintsVector *tv, const char *const *taints, size_t owner)
     }
 }
 
-static
+static inline
 void
 log_taint_block_begin(const char *id)
 {
     internal_logf(LUASTATUS_INFO, "the following entities share taint '%s':", id);
 }
 
-static
+static inline
 void
 log_taint_owner_barlib(LS_ATTR_UNUSED_ARG Barlib *b)
 {
     internal_logf(LUASTATUS_INFO, "  * the barlib");
 }
 
-static
+static inline
 void
 log_taint_owner_widget(Widget *w)
 {
