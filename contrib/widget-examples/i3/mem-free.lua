@@ -1,4 +1,5 @@
 mem_uev = assert(io.open('/proc/meminfo', 'r'))
+mem_uev:setvbuf('no')
 
 function get_mem_seg()
     local result = '[-?-]'

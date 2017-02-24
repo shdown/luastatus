@@ -1,4 +1,5 @@
 bat_uev = io.open('/sys/class/power_supply/BAT0/uevent', 'r')
+bet_uev:setvbuf('no')
 
 function get_bat_seg()
     if not bat_uev then
