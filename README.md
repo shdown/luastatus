@@ -3,7 +3,7 @@ configure the way the data from plugins is processed and shown with Lua.
 
 Its main feature is that the content can be updated immediately as some event
 occurs, be it a change of keyboard layout, active window title, volume or a song
-in your favourite player (if there is a plugin for it, of course) — a thing
+in your favorite player (if there is a plugin for it, of course) — a thing
 rather uncommon for tiling window managers.
 
 Its motto is:
@@ -113,7 +113,7 @@ Lua limitations
 ===
 luastatus prohibits `os.execute`, `os.setlocale`, and `os.exit` as they are not
 thread-safe. It’s pretty easy to implement `os.execute` in terms of
-`luastatus.rc`, and two other just shouldn’t be used in widgets.
+`luastatus.rc`, and other two two just shouldn’t be used in widgets.
 
 Supported Lua versions
 ===
