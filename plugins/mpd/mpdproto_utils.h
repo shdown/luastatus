@@ -4,13 +4,15 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "libls/compdep.h"
+
 typedef enum {
     MPDPROTO_RESP_TYPE_OK,
     MPDPROTO_RESP_TYPE_ACK,
     MPDPROTO_RESP_TYPE_OTHER,
 } MPDProtoResponseType;
 
-static inline
+LS_INHEADER
 MPDProtoResponseType
 mpdproto_response_type(const char *buf)
 {
@@ -23,7 +25,7 @@ mpdproto_response_type(const char *buf)
     return MPDPROTO_RESP_TYPE_OTHER;
 }
 
-static inline
+LS_INHEADER
 void
 mpdproto_write_quoted(FILE *f, const char *s)
 {
