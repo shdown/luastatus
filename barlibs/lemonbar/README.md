@@ -4,8 +4,8 @@ It joins all non-empty strings returned by widgets by a separator, which default
 
 Redirections and `luastatus-lemonbar-launcher`
 ===
-`lemonbar` requires all the data to be written to stdout and read from stdin. This makes it very easy to mess things up: Lua’s `print()` prints to stdout, processes spawned by widgets/plugins inherit our stdin and stdout, etc.
-That’s why this barlib requires that stdin and stdout file descriptors are manually redirected.
+`lemonbar` is not capable of creating a bidirectional pipe itself; instead, it requires all the data to be written to its stdin and read from its stdout.
+That’s why the input/output file descriptors of this barlib must be manually redirected.
 
 A launcher, `luastatus-lemonbar-launcher`, is shipped with it; it spawns `lemonbar` (or whatever is in `LEMONBAR` environment variable) connected to a bidirectional pipe and executes `luastatus` (or whatever is in `LUASTATUS` environment variable) with `-b lemonbar` (or whatever is in `LUASTATUS_LEMONBAR_BARLIB` environment variable), all the required `-B` options, and additional arguments passed by you.
 
