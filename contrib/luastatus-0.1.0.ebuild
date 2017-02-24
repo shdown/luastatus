@@ -12,7 +12,7 @@ HOMEPAGE="https://github.com/shdown/luastatus"
 if [[ ${PV} == *9999* ]]; then
 	inherit git-r3
 	SRC_URI=""
-	EGIT_REPO_URI="git@github.com:shdown/${PN}.git"
+	EGIT_REPO_URI="https://github.com/shdown/${PN}.git"
 	KEYWORDS="~amd64 ~x86"
 else
 	SRC_URI="https://github.com/shdown/${PN}/archive/v${PV}.tar.gz -> ${P}.tar.gz"
@@ -34,7 +34,7 @@ PLUGINS="
 	+${PN}_plugins_xtitle
 "
 
-LICENSE="GPL-3"
+LICENSE="LGPL-3+"
 SLOT="0"
 IUSE="luajit ${BARLIBS} ${PLUGINS}"
 
