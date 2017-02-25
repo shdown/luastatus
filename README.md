@@ -113,7 +113,7 @@ Lua limitations
 ===
 luastatus prohibits `os.execute`, `os.setlocale`, and `os.exit` as they are not
 thread-safe. It’s pretty easy to implement `os.execute` in terms of
-`luastatus.rc`, and other two two just shouldn’t be used in widgets.
+`luastatus.rc`, and the other two just shouldn’t be used in widgets.
 
 Supported Lua versions
 ===
