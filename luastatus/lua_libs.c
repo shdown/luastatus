@@ -258,6 +258,9 @@ lualibs_inject(lua_State *L)
 void
 lualibs_register_funcs(Widget *w, Barlib *barlib)
 {
+    assert(w->state == WIDGET_STATE_INITED);
+    assert(barlib->state == BARLIB_STATE_INITED);
+
     lua_State *L = w->L; // L: -
     ls_lua_pushglobaltable(L); // L: _G
     ls_lua_rawgetf(L, "luastatus"); // L: _G luastatus

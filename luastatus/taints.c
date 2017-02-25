@@ -57,6 +57,8 @@ static inline
 void
 log_taint_owner_widget(Widget *w)
 {
+    assert(w->state != WIDGET_STATE_DUMMY);
+
     internal_logf(LUASTATUS_INFO, "  * plugin '%s' requested by widget '%s'", w->plugin.name,
                   w->filename);
 }
