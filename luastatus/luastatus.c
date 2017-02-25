@@ -54,7 +54,7 @@ external_logf(void *userdata, LuastatusLogLevel level, const char *fmt, ...)
     va_list vl;
     va_start(vl, fmt);
     if (userdata) {
-        Widget *w = userdata;
+        Widget *w = userdata; // w->state == WIDGET_STATE_INITED
         char who[1024];
         ls_ssnprintf(who, sizeof(who), "%s@%s", w->plugin.name, w->filename);
         common_vlogf(level, who, fmt, vl);
@@ -80,7 +80,7 @@ set_error_unlocked(size_t widget_idx)
 lua_State *
 plugin_call_begin(void *userdata)
 {
-    Widget *w = userdata;
+    Widget *w = userdata; // w->state == WIDGET_STATE_INITED
 
     LOCK_L(w);
 
@@ -92,7 +92,7 @@ plugin_call_begin(void *userdata)
 void
 plugin_call_end(void *userdata)
 {
-    Widget *w = userdata;
+    Widget *w = userdata; // w->state == WIDGET_STATE_INITED
     lua_State *L = w->L;
 
     assert(lua_gettop(L) == 2); // L: cb data
@@ -129,7 +129,7 @@ plugin_call_end(void *userdata)
 void *
 widget_thread(void *userdata)
 {
-    Widget *w = userdata;
+    Widget *w = userdata; // w->state == WIDGET_STATE_INITED
 
     w->plugin.iface.run(&w->data, plugin_call_begin, plugin_call_end);
     internal_logf(LUASTATUS_WARN, "plugin's (%s) run() for widget '%s' has returned",
@@ -139,9 +139,9 @@ widget_thread(void *userdata)
     set_error_unlocked(WIDGET_INDEX(w));
     UNLOCK_B();
 
-    LOCK_L(w);
-    widget_uninit(w);
-    UNLOCK_L(w);
+    // We can't even uninit the widget here, because function registered by plugin (in
+    // luastatus.plugin) still refer to w->data, and may be called by widget in event().
+    // So do nothing.
 
     return NULL;
 }
@@ -151,7 +151,7 @@ ew_call_begin(LS_ATTR_UNUSED_ARG void *userdata, size_t widget_idx)
 {
     assert(widget_idx < nwidgets);
 
-    Widget *w = &widgets[widget_idx];
+    Widget *w = &widgets[widget_idx]; // w->state can be anything here!
 
     LOCK_L(w);
 
@@ -165,7 +165,7 @@ ew_call_end(LS_ATTR_UNUSED_ARG void *userdata, size_t widget_idx)
 {
     assert(widget_idx < nwidgets);
 
-    Widget *w = &widgets[widget_idx];
+    Widget *w = &widgets[widget_idx]; // w->state can be anything here!
     lua_State *L = w->L;
 
     assert(lua_gettop(L) == 2); // L: event arg
