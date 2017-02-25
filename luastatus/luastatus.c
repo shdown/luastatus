@@ -139,7 +139,9 @@ widget_thread(void *userdata)
     set_error_unlocked(WIDGET_INDEX(w));
     UNLOCK_B();
 
-    widget_unload(w);
+    LOCK_L(w);
+    widget_uninit(w);
+    UNLOCK_L(w);
 
     return NULL;
 }
