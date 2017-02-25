@@ -136,7 +136,7 @@ callback_string(void *vctx, const unsigned char *buf, size_t nbuf)
 {
     return callback_value_helper(vctx, (EventWatcherValue) {
         .type = EVENT_WATCHER_VALUE_TYPE_STRING,
-        .u = { .s = append_to_buf(vctx, (const char*) buf, nbuf) },
+        .u = { .s = append_to_buf(vctx, (const char *) buf, nbuf) },
     });
 }
 
@@ -165,7 +165,7 @@ callback_map_key(void *vctx, const unsigned char *buf, size_t nbuf)
         LUASTATUS_ERRF(ctx->bd, "(event watcher) unexpected map key");
         return 0;
     }
-    ctx->last_key = append_to_buf(vctx, (const char*) buf, nbuf);
+    ctx->last_key = append_to_buf(vctx, (const char *) buf, nbuf);
     return 1;
 }
 
@@ -286,7 +286,7 @@ event_watcher(LuastatusBarlibData *bd,
         case yajl_status_error:
             {
                 unsigned char *descr = yajl_get_error(hand, /*verbose*/ 1, buf, nread);
-                LUASTATUS_ERRF(bd, "(event watcher) yajl parse error: %s", (char*) descr);
+                LUASTATUS_ERRF(bd, "(event watcher) yajl parse error: %s", (char *) descr);
                 yajl_free_error(hand, descr);
             }
             goto error;

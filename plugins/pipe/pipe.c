@@ -17,7 +17,7 @@
 #include "libls/lua_utils.h"
 
 typedef struct {
-    LS_VECTOR_OF(char*) args;
+    LS_VECTOR_OF(char *) args;
     char delim;
 } Priv;
 
@@ -35,7 +35,7 @@ init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
-        .args = LS_VECTOR_NEW_RESERVE(char*, 8),
+        .args = LS_VECTOR_NEW_RESERVE(char *, 8),
         .delim = '\n',
     };
 

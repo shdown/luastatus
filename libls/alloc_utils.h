@@ -10,11 +10,11 @@
 
 // The behaviour is same as casting the result of ls_xmalloc(NElems_, sizeof(Type_)) to pointer to
 // Type_.
-#define LS_XNEW(Type_, NElems_)  ((Type_*) ls_xmalloc(NElems_, sizeof(Type_)))
+#define LS_XNEW(Type_, NElems_)  ((Type_ *) ls_xmalloc(NElems_, sizeof(Type_)))
 
 // The behaviour is same as casting the result of ls_xcalloc(NElems_, sizeof(Type_)) to pointer to
 // Type_.
-#define LS_XNEW0(Type_, NElems_) ((Type_*) ls_xcalloc(NElems_, sizeof(Type_)))
+#define LS_XNEW0(Type_, NElems_) ((Type_ *) ls_xcalloc(NElems_, sizeof(Type_)))
 
 // Out-of-memory handler, called when allocation fails.
 //

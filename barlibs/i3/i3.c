@@ -195,7 +195,7 @@ register_funcs(LuastatusBarlibData *bd, lua_State *L)
     ls_lua_rawsetf(L, "pango_escape"); // L: table
 }
 
-// Appends a JSON segment to ((Priv*) bd->priv)->bufs[widget_idx] from the table at position
+// Appends a JSON segment to ((Priv *) bd->priv)->bufs[widget_idx] from the table at position
 // table_pos on L's stack.
 bool
 append_segment(LuastatusBarlibData *bd, lua_State *L, int table_pos, size_t widget_idx)

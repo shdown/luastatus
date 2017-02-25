@@ -45,7 +45,7 @@ socket_open(LuastatusPluginData *pd, const char *path)
 int
 tcp_open(LuastatusPluginData *pd, const char *hostname, const char *service)
 {
-    struct addrinfo* ai = NULL;
+    struct addrinfo *ai = NULL;
     int fd = -1;
 
     struct addrinfo hints = {

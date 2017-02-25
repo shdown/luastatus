@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <stdarg.h>
 
-char*
+char *
 ls_vasprintf(const char *fmt, va_list vl)
 {
     char *ret = NULL;

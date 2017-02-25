@@ -146,7 +146,7 @@ title_changed(Data *d, xcb_generic_event_t *evt, xcb_window_t *win, xcb_window_t
     if (XCB_EVENT_RESPONSE_TYPE(evt) != XCB_PROPERTY_NOTIFY) {
         return false;
     }
-    xcb_property_notify_event_t *pne = (xcb_property_notify_event_t*) evt;
+    xcb_property_notify_event_t *pne = (xcb_property_notify_event_t *) evt;
 
     if (pne->atom == d->ewmh->_NET_ACTIVE_WINDOW) {
         watch(d, *last_win, false);

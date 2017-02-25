@@ -295,7 +295,7 @@ main(int argc, char **argv)
 {
     int ret = EXIT_FAILURE;
     char *barlib_name = NULL;
-    LS_VECTOR_OF(char*) barlib_args = LS_VECTOR_NEW();
+    LS_VECTOR_OF(char *) barlib_args = LS_VECTOR_NEW();
     bool no_hang = false;
     LS_VECTOR_OF(pthread_t) threads = LS_VECTOR_NEW();
     nwidgets = 0;
@@ -368,7 +368,7 @@ main(int argc, char **argv)
 
     LS_VECTOR_PUSH(barlib_args, NULL);
     if (!barlib_init(&barlib, (LuastatusBarlibData) {.userdata = NULL, .logf = external_logf},
-                     (const char* const*) barlib_args.data, nwidgets))
+                     (const char *const *) barlib_args.data, nwidgets))
     {
         internal_logf(LUASTATUS_FATAL, "can't init the barlib");
         goto cleanup;

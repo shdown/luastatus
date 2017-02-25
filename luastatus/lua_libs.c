@@ -89,7 +89,7 @@ int
 lspawn_func(lua_State *L, const char *funcname, bool return_output, bool return_exitcode)
 {
     int init_top = lua_gettop(L);
-    LS_VECTOR_OF(char*) argv = LS_VECTOR_NEW_RESERVE(char*, 8);
+    LS_VECTOR_OF(char *) argv = LS_VECTOR_NEW_RESERVE(char *, 8);
     LSString output_buf = LS_VECTOR_NEW();
     int pipe_fd = -1;
     pid_t pid = -1;

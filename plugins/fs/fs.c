@@ -16,7 +16,7 @@
 #include "libls/wakeup_fifo.h"
 
 typedef struct {
-    LS_VECTOR_OF(char*) paths;
+    LS_VECTOR_OF(char *) paths;
     struct timespec period;
     char *fifo;
 } Priv;

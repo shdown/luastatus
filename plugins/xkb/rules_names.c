@@ -37,8 +37,8 @@ rules_names_load(Display *dpy, RulesNames *out)
         goto done;
     }
 
-    const char *ptr = (const char*) out->_data;
-    const char *end = (const char*) out->_data + ndata;
+    const char *ptr = (const char *) out->_data;
+    const char *end = (const char *) out->_data + ndata;
 
     if (ptr != end) {
         out->rules = ptr;
