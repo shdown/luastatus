@@ -6,6 +6,17 @@
 #include <fcntl.h>
 #include "compdep.h"
 
+// reads data from a file descriptor and appends it to *pbuf (and reallocates it as needed, as if
+// realloc() were used) until either end of file is reached or a read error occurs.
+//
+// *pbuf must point to an object of size at least *palloc bytes.
+//
+// *psize is the previous "size" of the buffer, that is, position to append after. Must not be
+// greater than *palloc.
+//
+// If the end of file is reached, returns the total number of bytes appended.
+// If a read error occurs, returns -1 and errno is set.
+// *pbuf, *psize and *palloc are always updated.
 ssize_t
 ls_full_read_append(int fd, char **pbuf, size_t *psize, size_t *palloc);
 

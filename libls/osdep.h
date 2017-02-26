@@ -27,9 +27,13 @@ ls_close(int fd)
 #   define ls_close close
 #endif
 
+// The behaviour is same as calling pipe(pipefd), except that both file descriptors are made
+// CLOEXEC. If the latter fails, the pipe is destroyed, -1 is returned and errno it set.
 int
 ls_cloexec_pipe(int pipefd[2]);
 
+// The behaviour is same as calling socket(domain, type, protocol), except that the file descriptor
+// is make CLOEXEC. If the latter fails, the pipe is destroyed, -1 is reurned and errno is set.
 int
 ls_cloexec_socket(int domain, int type, int protocol);
 
