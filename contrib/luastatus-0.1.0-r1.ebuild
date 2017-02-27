@@ -67,21 +67,16 @@ src_configure() {
 
 src_install() {
     default
-
-    local wm
-    if use examples ; then
+    local i wm
+    if use examples; then
         dodir /usr/share/doc/${PF}/widget-examples
         docinto widget-examples
-
-        for i in ${BARLIBS}
-        do
-            if use ${i}
-            then
+        for i in ${BARLIBS//+/}; do
+            if use ${i}; then
                 wm=${i#${PN}_barlibs_}
                 dodoc -r contrib/widget-examples/${wm}
                 docompress -x /usr/share/doc/${PF}/widget-examples/${wm}
             fi
         done
-
     fi
 }
