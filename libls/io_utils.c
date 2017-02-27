@@ -29,7 +29,7 @@ ls_full_read_append(int fd, char **pbuf, size_t *psize, size_t *palloc)
     return nread;
 }
 
-// before modifying, please read:
+// Before modifying, please read:
 // http://www.linuxprogrammingblog.com/threads-and-fork-think-twice-before-using-them
 pid_t
 ls_spawnp_pipe(const char *file, int *pipe_fd, char *const *argv)

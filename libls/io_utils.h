@@ -6,7 +6,7 @@
 #include <fcntl.h>
 #include "compdep.h"
 
-// reads data from a file descriptor and appends it to *pbuf (and reallocates it as needed, as if
+// Reads data from a file descriptor and appends it to *pbuf (and reallocates it as needed, as if
 // realloc() were used) until either end of file is reached or a read error occurs.
 //
 // *pbuf must point to an object of size at least *palloc bytes.
