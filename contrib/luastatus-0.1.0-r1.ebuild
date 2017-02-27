@@ -10,28 +10,28 @@ DESCRIPTION="Universal status bar content generator"
 HOMEPAGE="https://github.com/shdown/luastatus"
 
 if [[ ${PV} == *9999* ]]; then
-	inherit git-r3
-	SRC_URI=""
-	EGIT_REPO_URI="https://github.com/shdown/${PN}.git"
-	KEYWORDS="~amd64 ~x86"
+    inherit git-r3
+    SRC_URI=""
+    EGIT_REPO_URI="https://github.com/shdown/${PN}.git"
+    KEYWORDS="~amd64 ~x86"
 else
-	SRC_URI="https://github.com/shdown/${PN}/archive/v${PV}.tar.gz -> ${P}.tar.gz"
-	KEYWORDS="amd64 x86"
+    SRC_URI="https://github.com/shdown/${PN}/archive/v${PV}.tar.gz -> ${P}.tar.gz"
+    KEYWORDS="amd64 x86"
 fi
 
 BARLIBS="
-	${PN}_barlibs_dwm
-	${PN}_barlibs_i3
+    ${PN}_barlibs_dwm
+    ${PN}_barlibs_i3
 "
 
 PLUGINS="
-	+${PN}_plugins_alsa
-	+${PN}_plugins_fs
-	+${PN}_plugins_mpd
-	+${PN}_plugins_pipe
-	+${PN}_plugins_timer
-	+${PN}_plugins_xkb
-	+${PN}_plugins_xtitle
+    +${PN}_plugins_alsa
+    +${PN}_plugins_fs
+    +${PN}_plugins_mpd
+    +${PN}_plugins_pipe
+    +${PN}_plugins_timer
+    +${PN}_plugins_xkb
+    +${PN}_plugins_xtitle
 "
 
 LICENSE="LGPL-3+"
@@ -40,29 +40,29 @@ IUSE="examples luajit ${BARLIBS} ${PLUGINS}"
 
 DEPEND=""
 RDEPEND="${DEPEND}
-	luajit? ( dev-lang/luajit:2 )
-	!luajit? ( dev-lang/lua:0 )
-	${PN}_plugins_xtitle? ( x11-libs/libxcb x11-libs/xcb-util-wm )
-	${PN}_plugins_xkb? ( x11-libs/libX11 )
-	${PN}_plugins_alsa? ( media-libs/alsa-lib )
-	${PN}_barlibs_dwm? ( x11-libs/libxcb )
-	${PN}_barlibs_i3? ( >=dev-libs/yajl-2.1.0 )
+    luajit? ( dev-lang/luajit:2 )
+    !luajit? ( dev-lang/lua:0 )
+    ${PN}_plugins_xtitle? ( x11-libs/libxcb x11-libs/xcb-util-wm )
+    ${PN}_plugins_xkb? ( x11-libs/libX11 )
+    ${PN}_plugins_alsa? ( media-libs/alsa-lib )
+    ${PN}_barlibs_dwm? ( x11-libs/libxcb )
+    ${PN}_barlibs_i3? ( >=dev-libs/yajl-2.1.0 )
 "
 
 src_configure() {
-	local mycmakeargs=(
-		$(use luajit && echo -DWITH_LUA_LIBRARY=luajit)
-		-DBUILD_BARLIB_DWM=$(usex ${PN}_barlibs_dwm)
-		-DBUILD_BARLIB_I3=$(usex ${PN}_barlibs_i3)
-		-DBUILD_PLUGIN_ALSA=$(usex ${PN}_plugins_alsa)
-		-DBUILD_PLUGIN_FS=$(usex ${PN}_plugins_fs)
-		-DBUILD_PLUGIN_MPD=$(usex ${PN}_plugins_mpd)
-		-DBUILD_PLUGIN_PIPE=$(usex ${PN}_plugins_pipe)
-		-DBUILD_PLUGIN_TIMER=$(usex ${PN}_plugins_timer)
-		-DBUILD_PLUGIN_XKB=$(usex ${PN}_plugins_xkb)
-		-DBUILD_PLUGIN_XTITLE=$(usex ${PN}_plugins_xtitle)
-	)
-	cmake-utils_src_configure
+    local mycmakeargs=(
+        $(use luajit && echo -DWITH_LUA_LIBRARY=luajit)
+        -DBUILD_BARLIB_DWM=$(usex ${PN}_barlibs_dwm)
+        -DBUILD_BARLIB_I3=$(usex ${PN}_barlibs_i3)
+        -DBUILD_PLUGIN_ALSA=$(usex ${PN}_plugins_alsa)
+        -DBUILD_PLUGIN_FS=$(usex ${PN}_plugins_fs)
+        -DBUILD_PLUGIN_MPD=$(usex ${PN}_plugins_mpd)
+        -DBUILD_PLUGIN_PIPE=$(usex ${PN}_plugins_pipe)
+        -DBUILD_PLUGIN_TIMER=$(usex ${PN}_plugins_timer)
+        -DBUILD_PLUGIN_XKB=$(usex ${PN}_plugins_xkb)
+        -DBUILD_PLUGIN_XTITLE=$(usex ${PN}_plugins_xtitle)
+    )
+    cmake-utils_src_configure
 }
 
 src_install() {
