@@ -192,7 +192,9 @@ cleanup:
     LS_VECTOR_FREE(argv);
     LS_VECTOR_FREE(output_buf);
     ls_close(pipe_fd);
-    waitpid(pid, NULL, 0);
+    if (pid > 0) {
+        waitpid(pid, NULL, 0);
+    }
     if (luaerr) {
         return luaL_error(L, "%s", luaerr_msg);
     } else {

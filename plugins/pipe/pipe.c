@@ -118,7 +118,9 @@ run(
     }
 
 error:
-    waitpid(pid, NULL, 0);
+    if (pid > 0) {
+        waitpid(pid, NULL, 0);
+    }
     if (f) {
         fclose(f);
     }
