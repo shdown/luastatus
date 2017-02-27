@@ -163,8 +163,8 @@ interact(int fd, LuastatusPluginData *pd,
     int fd_to_close = fd;
     char *buf = NULL;
     size_t nbuf = 0;
-    LSStringArray kv_song   = LS_STRARR_INITIALIZER;
-    LSStringArray kv_status = LS_STRARR_INITIALIZER;
+    LSStringArray kv_song   = ls_strarr_new();
+    LSStringArray kv_status = ls_strarr_new();
 
 #define GETLINE() \
     do { \

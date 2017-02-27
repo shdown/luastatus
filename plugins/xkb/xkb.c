@@ -151,7 +151,7 @@ run(
     LuastatusPluginCallEnd call_end)
 {
     Priv *p = pd->priv;
-    LSStringArray groups = LS_STRARR_INITIALIZER;
+    LSStringArray groups = ls_strarr_new();
     Display *dpy = NULL;
 
     global_pd = pd;
