@@ -13,14 +13,14 @@ BuildRequires:  libxcb-devel
 BuildRequires:  yajl-devel
 BuildRequires:  alsa-lib-devel
 BuildRequires:  xcb-util-wm-devel
-BuildRequires:	xcb-util-devel
+BuildRequires:  xcb-util-devel
 
 %description
 Lua status daemon
 
 %package plugins
-Summary:	Lua status plugins
-Requires:	%{name} = %{version}-%{release}
+Summary:    Lua status plugins
+Requires:   %{name} = %{version}-%{release}
 
 %description plugins
 Lua status plugins
