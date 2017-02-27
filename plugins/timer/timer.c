@@ -76,9 +76,7 @@ run(
         );
         goto error;
     }
-    w.fifo = p->fifo;
-    w.timeout = &p->period;
-    w.sigmask = &allsigs;
+    ls_wakeup_fifo_setup(&w, p->fifo, &p->period, &allsigs);
 
     const char *what = "hello";
 

@@ -330,9 +330,7 @@ run(LuastatusPluginData *pd, LuastatusPluginCallBegin call_begin, LuastatusPlugi
         );
         goto error;
     }
-    w.fifo = p->retry_fifo;
-    w.timeout = &p->retry_in;
-    w.sigmask = &allsigs;
+    ls_wakeup_fifo_setup(&w, p->retry_fifo, &p->retry_in, &allsigs);
 
     char portstr[8];
     ls_xsnprintf(portstr, sizeof(portstr), "%d", p->port);

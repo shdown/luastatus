@@ -108,9 +108,7 @@ run(
         );
         goto error;
     }
-    w.fifo = p->fifo;
-    w.timeout = &p->period;
-    w.sigmask = &allsigs;
+    ls_wakeup_fifo_setup(&w, p->fifo, &p->period, &allsigs);
 
     while (1) {
         // make a call
