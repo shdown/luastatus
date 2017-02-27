@@ -36,7 +36,7 @@ PLUGINS="
 
 LICENSE="LGPL-3+"
 SLOT="0"
-IUSE="luajit ${BARLIBS} ${PLUGINS}"
+IUSE="examples luajit ${BARLIBS} ${PLUGINS}"
 
 DEPEND=""
 RDEPEND="${DEPEND}
@@ -63,4 +63,25 @@ src_configure() {
 		-DBUILD_PLUGIN_XTITLE=$(usex ${PN}_plugins_xtitle)
 	)
 	cmake-utils_src_configure
+}
+
+src_install() {
+    default
+
+    local wm
+    if use examples ; then
+        dodir /usr/share/doc/${PF}/widget-examples
+        docinto widget-examples
+
+        for i in ${BARLIBS}
+        do
+            if use ${i}
+            then
+                wm=${i#${PN}_barlibs_}
+                dodoc -r contrib/widget-examples/${wm}
+                docompress -x /usr/share/doc/${PF}/widget-examples/${wm}
+            fi
+        done
+
+    fi
 }
