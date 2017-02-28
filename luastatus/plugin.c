@@ -9,6 +9,11 @@
 #include "sane_dlerror.h"
 #include "log.h"
 
+// http://pubs.opengroup.org/onlinepubs/9699919799/functions/dlerror.html
+//
+// > It is implementation-defined whether or not the dlerror() function is thread-safe.
+//
+// So, plugin_load isn't thread-safe.
 bool
 plugin_load(Plugin *p, const char *filename, const char *name)
 {

@@ -266,12 +266,21 @@ lualibs_register_funcs(Widget *w, Barlib *barlib)
     lua_State *L = w->L; // L: -
     ls_lua_pushglobaltable(L); // L: _G
     ls_lua_rawgetf(L, "luastatus"); // L: _G luastatus
+
+    // Consider the following widget:
+    //
+    //     luastatus = nil     -- why not?
+    //     widget = { ... }
+    //
+    // Unlike the widget code, all our C code runs "unprotected", so without this check, Lua would
+    // just panic on attempt to index a non-table value.
     if (!lua_istable(L, -1)) {
         internal_logf(LUASTATUS_WARN,
                       "widget '%s': 'luastatus' is not a table anymore, will not register "
                       "plugin/barlib functions", w->filename);
         goto done;
     }
+
     if (w->plugin.iface.register_funcs) {
         lua_newtable(L); // L: _G luastatus table
         w->plugin.iface.register_funcs(&w->data, L);

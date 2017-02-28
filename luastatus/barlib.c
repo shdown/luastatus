@@ -10,6 +10,11 @@
 #include "log.h"
 #include "pth_check.h"
 
+// http://pubs.opengroup.org/onlinepubs/9699919799/functions/dlerror.html
+//
+// > It is implementation-defined whether or not the dlerror() function is thread-safe.
+//
+// So, barlib_load isn't thread-safe.
 bool
 barlib_load(Barlib *b, const char *filename)
 {
