@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "config.h"
+#include "config.generated.h"
 #include "luastatus/barlib.h"
 #include "luastatus/plugin.h"
 #include "libls/alloc_utils.h"

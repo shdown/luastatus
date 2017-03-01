@@ -15,7 +15,7 @@ else
     version=$(cat VERSION)
 fi
 
-printf > "$2"/version.h '%s\n' "\
+printf > "$2"/version.generated.h '%s\n' "\
 #ifndef version_h_
 #define version_h_
 

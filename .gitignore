@@ -11,6 +11,4 @@ install_manifest.txt
 CTestTestfile.cmake
 build/
 # generated headers
-/config.h
-/version.h
-/probes.h
+*.generated.h

@@ -21,7 +21,7 @@
 #include "libls/io_utils.h"
 #include "include/loglevel.h"
 #include "log.h"
-#include "config.h"
+#include "config.generated.h"
 #include "barlib.h"
 #include "widget.h"
 

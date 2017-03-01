@@ -6,7 +6,7 @@
 #include <errno.h>
 #include <sys/socket.h>
 #include "io_utils.h"
-#include "probes.h"
+#include "probes.generated.h"
 
 int
 ls_cloexec_pipe(int pipefd[2])

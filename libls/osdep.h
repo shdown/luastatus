@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include "compdep.h"
-#include "probes.h"
+#include "probes.generated.h"
 
 // EINTR-safe (as possible) close(). Please read:
 // 1. http://www.daemonology.net/blog/2011-12-17-POSIX-close-is-broken.html

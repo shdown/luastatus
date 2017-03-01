@@ -27,8 +27,8 @@
 #include "load_by_name.h"
 #include "taints.h"
 #include "lua_libs.h"
-#include "config.h"
-#include "version.h"
+#include "config.generated.h"
+#include "version.generated.h"
 
 Barlib barlib;
 Widget *widgets;
