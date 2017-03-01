@@ -97,6 +97,7 @@ option (BUILD_PLUGIN_PIPE "build plugins/pipe" ON)
 option (BUILD_PLUGIN_TIMER "build plugins/timer" ON)
 option (BUILD_PLUGIN_XKB "build plugins/xkb" ON)
 option (BUILD_PLUGIN_XTITLE "build plugins/xtitle" ON)
+option (BUILD_PLUGIN_INOTIFY "build plugins/inotify" ON)
 
 #------------------------------------------------------------------------------
 
@@ -141,4 +142,8 @@ endif ()
 
 if (BUILD_PLUGIN_XTITLE)
     add_subdirectory (plugins/xtitle)
+endif ()
+
+if (BUILD_PLUGIN_INOTIFY)
+    add_subdirectory (plugins/inotify)
 endif ()
