@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <sys/inotify.h>
 #include <fcntl.h>
+#include <errno.h>
 
 #include "libls/io_utils.h"
 #include "libls/osdep.h"
@@ -18,6 +19,7 @@ compat_inotify_init(bool nonblock, bool cloexec)
     return inotify_init1((nonblock ? IN_NONBLOCK : 0) |
                          (cloexec  ? IN_CLOEXEC  : 0));
 #else
+    int saved_errno;
     int fd = inotify_init();
 
     if (fd < 0) {
@@ -37,7 +39,9 @@ compat_inotify_init(bool nonblock, bool cloexec)
     return fd;
 
 error:
+    saved_errno = errno;
     ls_close(fd);
+    errno = saved_errno;
     return -1;
 #endif
 }
