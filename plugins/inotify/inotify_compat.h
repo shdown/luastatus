@@ -8,6 +8,7 @@
 
 #include "libls/io_utils.h"
 #include "libls/osdep.h"
+#include "libls/compdep.h"
 
 #include "probes.generated.h"
 

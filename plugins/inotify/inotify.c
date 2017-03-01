@@ -1,9 +1,12 @@
 #include <lua.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <limits.h>
 #include <stdint.h>
+#include <errno.h>
+#include <sys/inotify.h>
 #include "include/plugin.h"
 #include "include/plugin_logf_macros.h"
 #include "include/plugin_utils.h"
@@ -11,6 +14,7 @@
 #include "libls/vector.h"
 #include "libls/osdep.h"
 #include "libls/errno_utils.h"
+#include "libls/cstring_utils.h"
 #include "inotify_compat.h"
 
 typedef struct {
