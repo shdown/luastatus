@@ -29,7 +29,7 @@ ls_lua_rawgetf(lua_State *L, const char *key)
     lua_rawget(L, -2);
 }
 
-// The behaviour is same as calling lua_setfield(L, -3, key), except that it does not invoke
+// The behaviour is same as calling lua_setfield(L, -2, key), except that it does not invoke
 // metamethods.
 LS_INHEADER
 void
