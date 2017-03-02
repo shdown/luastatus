@@ -78,6 +78,7 @@ static const EventType EVENT_TYPES[] = {
     {0,                false, false, NULL},
 };
 
+// returns 0 on failure
 static inline
 uint32_t
 parse_mask(LuastatusPluginData *pd, const char *buf)
