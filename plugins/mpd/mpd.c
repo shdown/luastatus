@@ -162,7 +162,7 @@ interact(int fd, LuastatusPluginData *pd,
     FILE *f = NULL;
     int fd_to_close = fd;
     char *buf = NULL;
-    size_t nbuf = 0;
+    size_t nbuf = 1024;
     LSStringArray kv_song   = ls_strarr_new();
     LSStringArray kv_status = ls_strarr_new();
 

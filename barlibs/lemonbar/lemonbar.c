@@ -262,7 +262,7 @@ event_watcher(LuastatusBarlibData *bd,
     Priv *p = bd->priv;
 
     char *buf = NULL;
-    size_t nbuf = 0;
+    size_t nbuf = 256;
 
     for (ssize_t nread; (nread = getline(&buf, &nbuf, p->in)) >= 0;) {
         if (nread == 0 || buf[nread - 1] != '\n') {
