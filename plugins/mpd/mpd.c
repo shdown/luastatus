@@ -294,6 +294,8 @@ interact(int fd, LuastatusPluginData *pd,
             // do nothing
         );
     }
+#undef GETLINE
+#undef WRITE
 #undef UNTIL_OK
 
 io_error:
