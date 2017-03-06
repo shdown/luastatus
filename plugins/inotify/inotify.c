@@ -206,6 +206,9 @@ run(
     while (1) {
         ssize_t r = read(fd, buf, sizeof(buf));
         if (r < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
             LS_WITH_ERRSTR(s, errno,
                 LUASTATUS_FATALF(pd, "read: %s", s);
             );
