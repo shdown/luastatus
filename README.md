@@ -140,7 +140,7 @@ Note that some barlibs can provide their own wrappers for luastatus.
 
 Installation
 ===
-`cmake . && make && make install`
+`cmake . && make && sudo make install`
 
 You can specify a Lua library to build with: `cmake -DWITH_LUA_LIBRARY=luajit .`.
 
