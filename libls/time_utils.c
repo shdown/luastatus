@@ -4,7 +4,7 @@
 #include <sys/time.h>
 #include <errno.h>
 
-// time_t can't be less that 31 bits, can it?...
+// time_t can't be less than 31 bits, can it?...
 static const double TIME_T_LIMIT = 2147483647.;
 
 struct timespec
