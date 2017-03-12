@@ -5,7 +5,9 @@
 #include <lua.h>
 #include <pthread.h>
 #include "include/plugin_data.h"
+#include "libls/compdep.h"
 #include "plugin.h"
+#include "sepstate.h"
 
 typedef enum {
     WIDGET_STATE_DUMMY,
@@ -22,11 +24,12 @@ typedef struct {
     // INITED: plugin's data
     LuastatusPluginData data;
 
-    // DUMMY: an empty Lua state
+    // DUMMY: undefined
     // LOADED, INITED: a Lua state initialized from widget's file
     lua_State *L;
 
-    // DUMMY, LOADED, INITED: an initialized pthread_mutex_t
+    // DUMMY: undefined
+    // LOADED, INITED: an initialized pthread_mutex_t
     pthread_mutex_t lua_mtx;
 
     // DUMMY: undefined
@@ -37,12 +40,30 @@ typedef struct {
     // LOADED, INITED: LUA_REFNIL or a reference to the 'event' function
     int lua_ref_event;
 
+    // DUMMY: true
+    // LOADED, INITED: whether or not lua_ref_event is a reference to sepstate.L's registry
+    bool sepstate_event;
+
     // DUMMY: undefined
     // LOADED, INITED: path to widget's file
     char *filename;
 
     WidgetState state;
 } Widget;
+
+LS_INHEADER
+lua_State *
+widget_event_lua_state(Widget *w)
+{
+    return w->sepstate_event ? sepstate.L : w->L;
+}
+
+LS_INHEADER
+pthread_mutex_t *
+widget_event_lua_mutex(Widget *w)
+{
+    return w->sepstate_event ? &sepstate.lua_mtx : &w->lua_mtx;
+}
 
 bool
 widget_load(Widget *w, const char *filename);

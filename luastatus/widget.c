@@ -10,12 +10,14 @@
 #include "libls/alloc_utils.h"
 #include "libls/lua_utils.h"
 #include "libls/compdep.h"
+#include "libls/sprintf_utils.h"
 #include "pth_check.h"
 #include "log.h"
 #include "check_lua_call.h"
 #include "lua_libs.h"
 #include "load_by_name.h"
 #include "plugin.h"
+#include "sepstate.h"
 
 bool
 widget_load(Widget *w, const char *filename)
@@ -64,12 +66,41 @@ widget_load(Widget *w, const char *filename)
     }
     w->lua_ref_cb = luaL_ref(L, LUA_REGISTRYINDEX); // L: _G widget
     ls_lua_rawgetf(L, "event"); // L: _G widget event
-    if (!lua_isfunction(L, -1) && !lua_isnil(L, -1)) {
-        internal_logf(LUASTATUS_ERR, "widget.event: expected function or nil, found %s",
+    switch (lua_type(L, -1)) {
+    case LUA_TNIL:
+    case LUA_TFUNCTION:
+        w->lua_ref_event = luaL_ref(L, LUA_REGISTRYINDEX); // L: _G widget
+        w->sepstate_event = false;
+        break;
+    case LUA_TSTRING:
+        {
+            sepstate_ensure_inited();
+
+            size_t ncode;
+            const char *code = lua_tolstring(L, -1, &ncode);
+
+            char *chunkname = ls_xasprintf("widget.event of %s", filename);
+            bool r = check_lua_call(sepstate.L, luaL_loadbuffer(sepstate.L, code, ncode,
+                                                                chunkname));
+            free(chunkname);
+
+            if (!r) {
+                goto error;
+            }
+
+            // L: _G widget event
+            // sepstate.L: chunk
+            w->lua_ref_event = luaL_ref(sepstate.L, LUA_REGISTRYINDEX); // sepstate.L: -
+            w->sepstate_event = true;
+
+            lua_pop(L, 1); // L: _G widget
+        }
+        break;
+    default:
+        internal_logf(LUASTATUS_ERR, "widget.event: expected function, nil or string, found %s",
                       luaL_typename(L, -1));
         goto error;
     }
-    w->lua_ref_event = luaL_ref(L, LUA_REGISTRYINDEX); // L: _G widget
     lua_pop(L, 2); // L: -
 
     PTH_CHECK(pthread_mutex_init(&w->lua_mtx, NULL));
@@ -88,11 +119,9 @@ error:
 void
 widget_load_dummy(Widget *w)
 {
-    if (!(w->L = luaL_newstate())) {
-        ls_oom();
-    }
-    PTH_CHECK(pthread_mutex_init(&w->lua_mtx, NULL));
+    sepstate_ensure_inited();
     w->lua_ref_event = LUA_REFNIL;
+    w->sepstate_event = true;
     w->state = WIDGET_STATE_DUMMY;
 }
 
@@ -152,11 +181,11 @@ widget_unload(Widget *w)
         /* fallthru */
     case WIDGET_STATE_LOADED:
         plugin_unload(&w->plugin);
+        PTH_CHECK(pthread_mutex_destroy(&w->lua_mtx));
+        lua_close(w->L);
         free(w->filename);
         /* fallthru */
     case WIDGET_STATE_DUMMY:
-        lua_close(w->L);
-        PTH_CHECK(pthread_mutex_destroy(&w->lua_mtx));
         return;
     }
     LS_UNREACHABLE();

@@ -34,10 +34,14 @@ Barlib barlib;
 Widget *widgets;
 size_t nwidgets;
 
-#define LOCK_B()      PTH_CHECK(pthread_mutex_lock(&barlib.set_mtx))
-#define UNLOCK_B()    PTH_CHECK(pthread_mutex_unlock(&barlib.set_mtx))
+#define LOCK_B()   PTH_CHECK(pthread_mutex_lock(&barlib.set_mtx))
+#define UNLOCK_B() PTH_CHECK(pthread_mutex_unlock(&barlib.set_mtx))
+
 #define LOCK_L(W_)   PTH_CHECK(pthread_mutex_lock(&(W_)->lua_mtx))
 #define UNLOCK_L(W_) PTH_CHECK(pthread_mutex_unlock(&(W_)->lua_mtx))
+
+#define LOCK_L_OR_S(W_)   PTH_CHECK(pthread_mutex_lock(widget_event_lua_mutex(W_)))
+#define UNLOCK_L_OR_S(W_) PTH_CHECK(pthread_mutex_unlock(widget_event_lua_mutex(W_)))
 
 #define WIDGET_INDEX(W_) ((W_) - widgets)
 
@@ -153,11 +157,12 @@ ew_call_begin(LS_ATTR_UNUSED_ARG void *userdata, size_t widget_idx)
 
     Widget *w = &widgets[widget_idx]; // w->state can be anything here!
 
-    LOCK_L(w);
+    LOCK_L_OR_S(w);
+    lua_State *L = widget_event_lua_state(w);
 
-    assert(lua_gettop(w->L) == 0); // w->L: -
-    lua_rawgeti(w->L, LUA_REGISTRYINDEX, w->lua_ref_event); // w->L: event
-    return w->L;
+    assert(lua_gettop(L) == 0); // L: -
+    lua_rawgeti(L, LUA_REGISTRYINDEX, w->lua_ref_event); // L: event
+    return L;
 }
 
 void
@@ -166,7 +171,7 @@ ew_call_end(LS_ATTR_UNUSED_ARG void *userdata, size_t widget_idx)
     assert(widget_idx < nwidgets);
 
     Widget *w = &widgets[widget_idx]; // w->state can be anything here!
-    lua_State *L = w->L;
+    lua_State *L = widget_event_lua_state(w);
 
     assert(lua_gettop(L) == 2); // L: event arg
 
@@ -181,7 +186,7 @@ ew_call_end(LS_ATTR_UNUSED_ARG void *userdata, size_t widget_idx)
         } // else: L: -
     }
 
-    UNLOCK_L(w);
+    UNLOCK_L_OR_S(w);
 }
 
 bool
