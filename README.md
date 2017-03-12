@@ -46,11 +46,11 @@ The `widget` table **may** contain the following entries:
      widget occurs (typically a click). It should take exactly one argument and
      not return anything;
    - if is a string, it is compiled as a function in a *separate state*, and
-     when some event with the widget occurs, the compiled function will be
-     called in that state (not in widget state, in which `cb` gets called
-     This may be useful for widgets that want not to receive data from plugin,
-     but to generate it themselves (possibly using some external modules). Such
-     a widget may want to specify `plugin = 'timer', opts = {period = 0}` and
+     when some event with the widget occurs, the compiled function is called in
+     that state (not in widget state, in which `cb` gets called). This may be
+     useful for widgets that want not to receive data from plugin, but to
+     generate it themselves (possibly using some external modules). Such a
+     widget may want to specify `plugin = 'timer', opts = {period = 0}` and
      block in `cb` until it wants to update. The problem is that in this case,
      widget’s Lua mutex is almost always being acquired by `cb`, and there is
      very little change for `event` to get called. A separate-state `event`
