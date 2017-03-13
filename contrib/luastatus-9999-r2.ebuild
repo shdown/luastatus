@@ -33,11 +33,12 @@ PLUGINS="
     +${PN}_plugins_timer
     +${PN}_plugins_xkb
     +${PN}_plugins_xtitle
+    +${PN}_plugins_inotify
 "
 
 LICENSE="LGPL-3+"
 SLOT="0"
-IUSE="examples luajit ${BARLIBS} ${PLUGINS}"
+IUSE="doc examples luajit ${BARLIBS} ${PLUGINS}"
 
 DEPEND=""
 RDEPEND="${DEPEND}
@@ -63,13 +64,14 @@ src_configure() {
         -DBUILD_PLUGIN_TIMER=$(usex ${PN}_plugins_timer)
         -DBUILD_PLUGIN_XKB=$(usex ${PN}_plugins_xkb)
         -DBUILD_PLUGIN_XTITLE=$(usex ${PN}_plugins_xtitle)
+        -DBUILD_PLUGIN_INOTIFY=$(usex ${PN}_plugins_inotify)
     )
     cmake-utils_src_configure
 }
 
 src_install() {
     default
-    local i wm
+    local i wm plugin
     if use examples; then
         dodir /usr/share/doc/${PF}/widget-examples
         docinto widget-examples
@@ -78,6 +80,26 @@ src_install() {
                 wm=${i#${PN}_barlibs_}
                 dodoc -r contrib/widget-examples/${wm}
                 docompress -x /usr/share/doc/${PF}/widget-examples/${wm}
+            fi
+        done
+    fi
+
+    if use doc; then
+        for i in ${PLUGINS//+/}; do
+            if use ${i}; then
+                plugin=${i#${PN}_plugins_}
+                dodir /usr/share/doc/${PF}/plugins/${plugin}
+                docinto plugins/${plugin}
+                dodoc plugins/${plugin}/README.md
+            fi
+        done
+
+        for i in ${BARLIBS//+/}; do
+            if use ${i}; then
+                wm=${i#${PN}_barlibs_}
+                dodir /usr/share/doc/${PF}/barlibs/${wm}
+                docinto barlibs/${wm}
+                dodoc barlibs/${wm}/README.md
             fi
         done
     fi
