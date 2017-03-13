@@ -86,10 +86,21 @@ src_install() {
 
     if use doc; then
         for i in ${PLUGINS//+/}; do
-            plugin=${i#${PN}_plugins_}
-            dodir /usr/share/doc/${PF}/plugins/${plugin}
-            docinto plugins/${plugin}
-            dodoc plugins/${plugin}/README.md
+            if use ${i}; then
+                plugin=${i#${PN}_plugins_}
+                dodir /usr/share/doc/${PF}/plugins/${plugin}
+                docinto plugins/${plugin}
+                dodoc plugins/${plugin}/README.md
+            fi
+        done
+
+        for i in ${BARLIBS//+/}; do
+            if use ${i}; then
+                wm=${i#${PN}_barlibs_}
+                dodir /usr/share/doc/${PF}/barlibs/${wm}
+                docinto barlibs/${wm}
+                dodoc barlibs/${wm}/README.md
+            fi
         done
     fi
 }
