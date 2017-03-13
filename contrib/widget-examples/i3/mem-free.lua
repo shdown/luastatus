@@ -6,7 +6,7 @@ function get_mem_seg()
     mem_uev:seek('set', 0)
     for line in mem_uev:lines() do
         local key, value, um = string.match(line, '(.*): +(.*) +(.*)')
-        if key == 'MemFree' then
+        if key == 'MemAvailable' then
             value = tonumber(value)
             if um == 'kB' then
                 value = value / 1024.0 / 1024.0
