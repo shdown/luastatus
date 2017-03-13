@@ -71,15 +71,15 @@ src_configure() {
 
 src_install() {
     default
-    local i wm plugin
+    local i barlib plugin
     if use examples; then
         dodir /usr/share/doc/${PF}/widget-examples
         docinto widget-examples
         for i in ${BARLIBS//+/}; do
             if use ${i}; then
-                wm=${i#${PN}_barlibs_}
-                dodoc -r contrib/widget-examples/${wm}
-                docompress -x /usr/share/doc/${PF}/widget-examples/${wm}
+                barlib=${i#${PN}_barlibs_}
+                dodoc -r contrib/widget-examples/${barlib}
+                docompress -x /usr/share/doc/${PF}/widget-examples/${barlib}
             fi
         done
     fi
@@ -96,10 +96,10 @@ src_install() {
 
         for i in ${BARLIBS//+/}; do
             if use ${i}; then
-                wm=${i#${PN}_barlibs_}
-                dodir /usr/share/doc/${PF}/barlibs/${wm}
-                docinto barlibs/${wm}
-                dodoc barlibs/${wm}/README.md
+                barlib=${i#${PN}_barlibs_}
+                dodir /usr/share/doc/${PF}/barlibs/${barlib}
+                docinto barlibs/${barlib}
+                dodoc barlibs/${barlib}/README.md
             fi
         done
     fi
