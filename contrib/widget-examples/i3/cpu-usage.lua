@@ -9,7 +9,7 @@ function getstats()
     return t
 end
 
-function get_total_idle(t)
+function get_idle_total(t)
     local idle = t.idle + t.iowait
     return idle,
            idle + t.user + t.nice + t.system + t.irq + t.softirq + t.steal
@@ -21,8 +21,8 @@ widget = {
     cb = function()
         local cur = getstats()
         if prev then
-            local ci, ct = get_total_idle(cur)
-            local pi, pt = get_total_idle(prev)
+            local ci, ct = get_idle_total(cur)
+            local pi, pt = get_idle_total(prev)
             local di, dt = ci - pi, ct - pt
             local perc = (dt - di) / dt * 100
             return {full_text = string.format('[%3.0f%%]', perc)}
