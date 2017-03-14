@@ -55,14 +55,14 @@ LS_INHEADER
 lua_State *
 widget_event_lua_state(Widget *w)
 {
-    return w->sepstate_event ? sepstate.L : w->L;
+    return w->sepstate_event ? global_sepstate.L : w->L;
 }
 
 LS_INHEADER
 pthread_mutex_t *
 widget_event_lua_mutex(Widget *w)
 {
-    return w->sepstate_event ? &sepstate.lua_mtx : &w->lua_mtx;
+    return w->sepstate_event ? &global_sepstate.lua_mtx : &w->lua_mtx;
 }
 
 bool

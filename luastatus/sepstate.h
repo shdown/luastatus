@@ -9,7 +9,7 @@ typedef struct {
     pthread_mutex_t lua_mtx;
 } SepState;
 
-extern SepState sepstate;
+extern SepState global_sepstate;
 
 void
 sepstate_ensure_inited(void);

@@ -80,8 +80,8 @@ widget_load(Widget *w, const char *filename)
             const char *code = lua_tolstring(L, -1, &ncode);
 
             char *chunkname = ls_xasprintf("widget.event of %s", filename);
-            bool r = check_lua_call(sepstate.L, luaL_loadbuffer(sepstate.L, code, ncode,
-                                                                chunkname));
+            bool r = check_lua_call(global_sepstate.L,
+                                    luaL_loadbuffer(global_sepstate.L, code, ncode, chunkname));
             free(chunkname);
 
             if (!r) {
@@ -89,8 +89,8 @@ widget_load(Widget *w, const char *filename)
             }
 
             // L: _G widget event
-            // sepstate.L: chunk
-            w->lua_ref_event = luaL_ref(sepstate.L, LUA_REGISTRYINDEX); // sepstate.L: -
+            // global_sepstate.L: chunk
+            w->lua_ref_event = luaL_ref(global_sepstate.L, LUA_REGISTRYINDEX); // sepstate.L: -
             w->sepstate_event = true;
 
             lua_pop(L, 1); // L: _G widget

@@ -7,19 +7,19 @@
 #include "pth_check.h"
 #include "lua_libs.h"
 
-SepState sepstate = {.L = NULL};
+SepState global_sepstate = {.L = NULL};
 
 void
 sepstate_ensure_inited(void)
 {
-    if (sepstate.L) {
+    if (global_sepstate.L) {
         // already initialized
         return;
     }
-    if (!(sepstate.L = luaL_newstate())) {
+    if (!(global_sepstate.L = luaL_newstate())) {
         ls_oom();
     }
-    luaL_openlibs(sepstate.L);
-    lualibs_inject(sepstate.L);
-    PTH_CHECK(pthread_mutex_init(&sepstate.lua_mtx, NULL));
+    luaL_openlibs(global_sepstate.L);
+    lualibs_inject(global_sepstate.L);
+    PTH_CHECK(pthread_mutex_init(&global_sepstate.lua_mtx, NULL));
 }
