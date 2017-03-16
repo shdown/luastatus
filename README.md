@@ -42,10 +42,10 @@ The `widget` table **may** contain the following entries:
   substituted.
 
   * `event`: a function or a string.
-   - If is a function, it is called by the *barlib* when some event with the
+    - If is a function, it is called by the *barlib* when some event with the
      widget occurs (typically a click). It should take exactly one argument and
      not return anything;
-   - if is a string, it is compiled as a function in a *separate state*, and
+    - if is a string, it is compiled as a function in a *separate state*, and
      when some event with the widget occurs, the compiled function is called in
      that state (not in the widget’s state, in which `cb` gets called). This may
      be useful for widgets that want not to receive data from plugin, but to
