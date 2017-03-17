@@ -122,9 +122,9 @@ Plugins and barlibs can also register Lua functions. They appear in
 
 Lua limitations
 ===
-luastatus prohibits `os.execute`, `os.setlocale`, and `os.exit` as they are not
-thread-safe. It’s pretty easy to implement `os.execute` in terms of
-`luastatus.rc`, and the other two just shouldn’t be used in widgets.
+luastatus prohibits `os.execute` and `os.setlocale` as they are not thread-safe.
+It’s pretty easy to implement `os.execute` in terms of `luastatus.rc`, and
+`os.setlocale` just shouldn’t be used in widgets.
 
 Supported Lua versions
 ===

@@ -8,6 +8,7 @@
 #include <lauxlib.h>
 #include <errno.h>
 #include <sys/wait.h>
+#include <stdio.h>
 #include <lua.h>
 #include "libls/lua_utils.h"
 #include "libls/getenv_r.h"
@@ -37,7 +38,9 @@ static
 int
 l_os_exit(lua_State *L)
 {
-    return luaL_error(L, "os.exit isn't thread-safe; don't use it");
+    int code = luaL_optinteger(L, 1, /*default value*/ 0);
+    fflush(NULL);
+    _exit(code);
 }
 
 static
