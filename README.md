@@ -53,7 +53,7 @@ The `widget` table **may** contain the following entries:
      widget may want to specify `plugin = 'timer', opts = {period = 0}` and
      block in `cb` until it wants to update. The problem is that in this case,
      widget’s Lua mutex is almost always being acquired by `cb`, and there is
-     very little change for `event` to get called. A separate-state `event`
+     very little chance for `event` to get called. A separate-state `event`
      function solves that.
 
 Plugins
