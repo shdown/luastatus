@@ -92,12 +92,12 @@ option (BUILD_BARLIB_LEMONBAR "build barlibs/lemonbar" ON)
 
 option (BUILD_PLUGIN_ALSA "build plugins/alsa" ON)
 option (BUILD_PLUGIN_FS "build plugins/fs" ON)
+option (BUILD_PLUGIN_INOTIFY "build plugins/inotify" ON)
 option (BUILD_PLUGIN_MPD "build plugins/mpd" ON)
 option (BUILD_PLUGIN_PIPE "build plugins/pipe" ON)
 option (BUILD_PLUGIN_TIMER "build plugins/timer" ON)
 option (BUILD_PLUGIN_XKB "build plugins/xkb" ON)
 option (BUILD_PLUGIN_XTITLE "build plugins/xtitle" ON)
-option (BUILD_PLUGIN_INOTIFY "build plugins/inotify" ON)
 
 #------------------------------------------------------------------------------
 
@@ -124,6 +124,10 @@ if (BUILD_PLUGIN_FS)
     add_subdirectory (plugins/fs)
 endif ()
 
+if (BUILD_PLUGIN_INOTIFY)
+    add_subdirectory (plugins/inotify)
+endif ()
+
 if (BUILD_PLUGIN_MPD)
     add_subdirectory (plugins/mpd)
 endif ()
@@ -142,8 +146,4 @@ endif ()
 
 if (BUILD_PLUGIN_XTITLE)
     add_subdirectory (plugins/xtitle)
-endif ()
-
-if (BUILD_PLUGIN_INOTIFY)
-    add_subdirectory (plugins/inotify)
 endif ()
