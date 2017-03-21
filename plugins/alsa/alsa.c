@@ -18,10 +18,12 @@ typedef struct {
 } Priv;
 
 void
-priv_destroy(Priv *p)
+destroy(LuastatusPluginData *pd)
 {
+    Priv *p = pd->priv;
     free(p->card);
     free(p->channel);
+    free(p);
 }
 
 LuastatusPluginInitResult
@@ -50,8 +52,7 @@ init(LuastatusPluginData *pd, lua_State *L)
     return LUASTATUS_PLUGIN_INIT_RESULT_OK;
 
 error:
-    priv_destroy(p);
-    free(p);
+    destroy(pd);
     return LUASTATUS_PLUGIN_INIT_RESULT_ERR;
 }
 
@@ -185,13 +186,6 @@ error:
         snd_mixer_close(mixer);
     }
     free(realname);
-}
-
-void
-destroy(LuastatusPluginData *pd)
-{
-    priv_destroy(pd->priv);
-    free(pd->priv);
 }
 
 LuastatusPluginIface luastatus_plugin_iface = {

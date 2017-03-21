@@ -27,9 +27,11 @@ typedef struct {
 
 static
 void
-priv_destroy(Priv *p)
+destroy(LuastatusPluginData *pd)
 {
+    Priv *p = pd->priv;
     free(p->dpyname);
+    free(p);
 }
 
 static
@@ -61,8 +63,7 @@ init(LuastatusPluginData *pd, lua_State *L)
     return LUASTATUS_PLUGIN_INIT_RESULT_OK;
 
 error:
-    priv_destroy(p);
-    free(p);
+    destroy(pd);
     return LUASTATUS_PLUGIN_INIT_RESULT_ERR;
 }
 
@@ -229,14 +230,6 @@ error:
         XCloseDisplay(dpy);
     }
     ls_strarr_destroy(groups);
-}
-
-static
-void
-destroy(LuastatusPluginData *pd)
-{
-    priv_destroy(pd->priv);
-    free(pd->priv);
 }
 
 LuastatusPluginIface luastatus_plugin_iface = {

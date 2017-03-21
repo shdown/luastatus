@@ -28,8 +28,9 @@ typedef struct {
 } Priv;
 
 void
-priv_destroy(Priv *p)
+destroy(LuastatusBarlibData *bd)
 {
+    Priv *p = bd->priv;
     for (size_t i = 0; i < p->nwidgets; ++i) {
         LS_VECTOR_FREE(p->bufs[i]);
     }
@@ -42,6 +43,7 @@ priv_destroy(Priv *p)
         fclose(p->out);
     }
     LS_VECTOR_FREE(p->luabuf);
+    free(p);
 }
 
 LuastatusBarlibInitResult
@@ -128,8 +130,7 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
     return LUASTATUS_BARLIB_INIT_RESULT_OK;
 
 error:
-    priv_destroy(p);
-    free(p);
+    destroy(bd);
     return LUASTATUS_BARLIB_INIT_RESULT_ERR;
 }
 
@@ -290,13 +291,6 @@ event_watcher(LuastatusBarlibData *bd,
     free(buf);
 
     return LUASTATUS_BARLIB_EW_RESULT_FATAL_ERR;
-}
-
-void
-destroy(LuastatusBarlibData *bd)
-{
-    priv_destroy(bd->priv);
-    free(bd->priv);
 }
 
 LuastatusBarlibIface luastatus_barlib_iface = {

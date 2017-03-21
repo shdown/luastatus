@@ -22,13 +22,15 @@ typedef struct {
 } Priv;
 
 void
-priv_destroy(Priv *p)
+destroy(LuastatusPluginData *pd)
 {
+    Priv *p = pd->priv;
     for (size_t i = 0; i < p->paths.size; ++i) {
         free(p->paths.data[i]);
     }
     LS_VECTOR_FREE(p->paths);
     free(p->fifo);
+    free(p);
 }
 
 LuastatusPluginInitResult
@@ -65,8 +67,7 @@ init(LuastatusPluginData *pd, lua_State *L)
     return LUASTATUS_PLUGIN_INIT_RESULT_OK;
 
 error:
-    priv_destroy(p);
-    free(p);
+    destroy(pd);
     return LUASTATUS_PLUGIN_INIT_RESULT_ERR;
 }
 
@@ -137,13 +138,6 @@ run(
 
 error:
     ls_wakeup_fifo_destroy(&w);
-}
-
-void
-destroy(LuastatusPluginData *pd)
-{
-    priv_destroy(pd->priv);
-    free(pd->priv);
 }
 
 LuastatusPluginIface luastatus_plugin_iface = {
