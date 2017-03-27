@@ -1,5 +1,5 @@
-#ifndef sane_dlsym_dlerror_h_
-#define sane_dlsym_dlerror_h_
+#ifndef sane_dlerror_h_
+#define sane_dlerror_h_
 
 #include <dlfcn.h>
 #include "libls/compdep.h"
