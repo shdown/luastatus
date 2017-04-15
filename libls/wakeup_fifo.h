@@ -10,8 +10,8 @@ typedef struct {
     const struct timespec *timeout;
     const sigset_t *sigmask;
 
-    fd_set fds;
-    int fd;
+    fd_set _fds;
+    int _fd;
 } LSWakeupFifo;
 
 void
