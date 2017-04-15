@@ -156,7 +156,7 @@ init(LuastatusPluginData *pd, lua_State *L)
     return LUASTATUS_PLUGIN_INIT_RESULT_OK;
 
 error:
-    destroy(p);
+    destroy(pd);
     return LUASTATUS_PLUGIN_INIT_RESULT_ERR;
 }
 
