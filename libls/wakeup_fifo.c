@@ -10,7 +10,9 @@ ls_wakeup_fifo_init(LSWakeupFifo *w)
     FD_ZERO(&w->_fds);
     w->_fd = -1;
     // Not really required, just in case a user forgets to set one of these.
-    w->fifo = w->timeout = w->sigmask = NULL;
+    w->fifo = NULL;
+    w->timeout = NULL;
+    w->sigmask = NULL;
 }
 
 int
