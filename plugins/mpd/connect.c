@@ -69,7 +69,7 @@ tcp_open(LuastatusPluginData *pd, const char *hostname, const char *service)
     }
 
     for (struct addrinfo *pai = ai; pai; pai = pai->ai_next) {
-        if ((fd = socket(pai->ai_family, pai->ai_socktype, pai->ai_protocol)) < 0) {
+        if ((fd = ls_cloexec_socket(pai->ai_family, pai->ai_socktype, pai->ai_protocol)) < 0) {
             LS_WITH_ERRSTR(s, errno,
                 LUASTATUS_WARNF(pd, "(candiate) socket: %s", s);
             );
@@ -79,7 +79,7 @@ tcp_open(LuastatusPluginData *pd, const char *hostname, const char *service)
             LS_WITH_ERRSTR(s, errno,
                 LUASTATUS_WARNF(pd, "(candiate) connect: %s", s);
             );
-            close(fd);
+            ls_close(fd);
             fd = -1;
             continue;
         }
