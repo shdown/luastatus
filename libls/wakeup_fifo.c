@@ -2,24 +2,30 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <signal.h>
 #include "osdep.h"
 
-void
+#include "time_utils.h"
+
+int
 ls_wakeup_fifo_init(LSWakeupFifo *w)
 {
     FD_ZERO(&w->_fds);
     w->_fd = -1;
-    // Not really required, just in case a user forgets to set one of these.
+
     w->fifo = NULL;
-    w->timeout = NULL;
-    w->sigmask = NULL;
+    w->timeout = ls_timespec_invalid;
+    if (sigfillset(&w->sigmask) < 0) {
+        return -1;
+    }
+    return 0;
 }
 
 int
 ls_wakeup_fifo_open(LSWakeupFifo *w)
 {
     if (w->_fd < 0 && w->fifo) {
-        w->_fd = open(w->fifo, O_RDONLY | O_NONBLOCK | O_CLOEXEC);
+        w->_fd = open(w->fifo, O_RDONLY | O_CLOEXEC);
         if (w->_fd < 0) {
             return -1;
         }
@@ -35,14 +41,18 @@ ls_wakeup_fifo_open(LSWakeupFifo *w)
 }
 
 int
-ls_wakeup_fifo_pselect(LSWakeupFifo *w)
+ls_wakeup_fifo_wait(LSWakeupFifo *w)
 {
     const int fd = w->_fd;
 
     if (fd >= 0) {
         FD_SET(fd, &w->_fds);
     }
-    const int r = pselect(fd >= 0 ? fd + 1 : 0, &w->_fds, NULL, NULL, w->timeout, w->sigmask);
+    const int r = pselect(
+        fd >= 0 ? fd + 1 : 0,
+        &w->_fds, NULL, NULL,
+        ls_timespec_is_invalid(w->timeout) ? NULL : &w->timeout,
+        &w->sigmask);
     if (r < 0) {
         int saved_errno = errno;
         if (fd >= 0) {

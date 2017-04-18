@@ -98,20 +98,16 @@ run(
     LuastatusPluginCallEnd call_end)
 {
     Priv *p = pd->priv;
-
     LSWakeupFifo w;
-    ls_wakeup_fifo_init(&w);
 
-    sigset_t allsigs;
-    if (sigfillset(&allsigs) < 0) {
+    if (ls_wakeup_fifo_init(&w) < 0) {
         LS_WITH_ERRSTR(s, errno,
-            LUASTATUS_FATALF(pd, "sigfillset: %s", s);
+            LUASTATUS_FATALF(pd, "ls_wakeup_fifo_init: %s", s);
         );
         goto error;
     }
     w.fifo = p->fifo;
-    w.timeout = &p->period;
-    w.sigmask = &allsigs;
+    w.timeout = p->period;
 
     while (1) {
         // make a call
@@ -127,12 +123,12 @@ run(
         // wait
         if (ls_wakeup_fifo_open(&w) < 0) {
             LS_WITH_ERRSTR(s, errno,
-                LUASTATUS_WARNF(pd, "open: %s: %s", p->fifo, s);
+                LUASTATUS_WARNF(pd, "ls_wakeup_fifo_open: %s: %s", p->fifo, s);
             );
         }
-        if (ls_wakeup_fifo_pselect(&w) < 0) {
+        if (ls_wakeup_fifo_wait(&w) < 0) {
             LS_WITH_ERRSTR(s, errno,
-                LUASTATUS_FATALF(pd, "pselect: %s", s);
+                LUASTATUS_FATALF(pd, "ls_wakeup_fifo_wait: %s", s);
                 goto error;
             );
         }

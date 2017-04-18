@@ -322,20 +322,16 @@ void
 run(LuastatusPluginData *pd, LuastatusPluginCallBegin call_begin, LuastatusPluginCallEnd call_end)
 {
     Priv *p = pd->priv;
-
     LSWakeupFifo w;
-    ls_wakeup_fifo_init(&w);
 
-    sigset_t allsigs;
-    if (sigfillset(&allsigs) < 0) {
+    if (ls_wakeup_fifo_init(&w) < 0) {
         LS_WITH_ERRSTR(s, errno,
-            LUASTATUS_FATALF(pd, "sigfillset: %s", s);
+            LUASTATUS_FATALF(pd, "ls_wakeup_fifo_init: %s", s);
         );
         goto error;
     }
     w.fifo = p->retry_fifo;
-    w.timeout = &p->retry_in;
-    w.sigmask = &allsigs;
+    w.timeout = p->retry_in;
 
     char portstr[8];
     ls_xsnprintf(portstr, sizeof(portstr), "%d", p->port);
@@ -359,12 +355,12 @@ run(LuastatusPluginData *pd, LuastatusPluginCallBegin call_begin, LuastatusPlugi
 
         if (ls_wakeup_fifo_open(&w) < 0) {
             LS_WITH_ERRSTR(s, errno,
-                LUASTATUS_WARNF(pd, "open: %s: %s", p->retry_fifo, s);
+                LUASTATUS_WARNF(pd, "ls_wakeup_fifo_open: %s: %s", p->retry_fifo, s);
             );
         }
-        if (ls_wakeup_fifo_pselect(&w) < 0) {
+        if (ls_wakeup_fifo_wait(&w) < 0) {
             LS_WITH_ERRSTR(s, errno,
-                LUASTATUS_FATALF(pd, "pselect (on retry_fifo): %s", s);
+                LUASTATUS_FATALF(pd, "ls_wakeup_fifo_wait: %s", s);
             );
             goto error;
         }
