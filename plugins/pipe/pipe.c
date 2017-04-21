@@ -41,14 +41,14 @@ init(LuastatusPluginData *pd, lua_State *L)
         .delim = '\n',
     };
 
-    PU_MAYBE_TRAVERSE_TABLE("args",
+    PU_TRAVERSE_TABLE("args",
         PU_CHECK_TYPE_AT(LS_LUA_TRAVERSE_KEY, "'args' key", LUA_TNUMBER);
         PU_VISIT_STR_AT(LS_LUA_TRAVERSE_VALUE, "'args' element", s,
             LS_VECTOR_PUSH(p->args, ls_xstrdup(s));
         );
     );
     if (!p->args.size) {
-        LUASTATUS_FATALF(pd, "args not specified or empty");
+        LUASTATUS_FATALF(pd, "args are empty");
         goto error;
     }
     LS_VECTOR_PUSH(p->args, NULL);

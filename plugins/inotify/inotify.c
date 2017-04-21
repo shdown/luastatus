@@ -127,7 +127,7 @@ init(LuastatusPluginData *pd, lua_State *L)
         goto error;
     }
 
-    PU_MAYBE_TRAVERSE_TABLE("watch",
+    PU_TRAVERSE_TABLE("watch",
         uint32_t mask;
         PU_VISIT_STR_AT(LS_LUA_TRAVERSE_VALUE, "'watch' value", s,
             if (!(mask = parse_mask(pd, s))) {
@@ -152,6 +152,9 @@ init(LuastatusPluginData *pd, lua_State *L)
             }));
         );
     );
+    if (!p->watches.size) {
+        LUASTATUS_WARNF(pd, "nothing to watch");
+    }
 
     return LUASTATUS_PLUGIN_INIT_RESULT_OK;
 

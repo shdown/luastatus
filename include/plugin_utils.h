@@ -63,6 +63,7 @@
         __VA_ARGS__ \
     } while (0)
 
+// May be useful when you want not to just traverse a table. Dunno.
 #define PU_VISIT_TABLE_AT(StackIndex_, StringRepr_, IndexVar_, ...) \
     do { \
         PU_CHECK_TYPE_AT(StackIndex_, StringRepr_, LUA_TTABLE); \
@@ -131,6 +132,9 @@
 
 #define PU_VISIT_BOOL(Key_, Var_, ...) \
     PU__EXPAND_AT_KEY(Key_, PU_VISIT_BOOL_AT, Var_, __VA_ARGS__)
+
+#define PU_TRAVERSE_TABLE(Key_, ...) \
+    PU__EXPAND_AT_KEY(Key_, PU_TRAVERSE_TABLE_AT, __VA_ARGS__)
 
 #define PU_VISIT_TABLE(Key_, IndexVar_, ...) \
     PU__EXPAND_AT_KEY(Key_, PU_VISIT_TABLE_AT, IndexVar_, __VA_ARGS__)
