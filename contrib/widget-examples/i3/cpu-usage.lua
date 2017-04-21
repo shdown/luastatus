@@ -41,7 +41,7 @@ widget = {
         cur = {}
 
         if denom ~= 0 then
-            return {full_text = string.format('[%3.0f%%]', num / denom * 100)}
+            return {full_text = string.format('[%5.1f%%]', num / denom * 100)}
         end
     end,
 }
