@@ -5,7 +5,7 @@ widget = {
             return '[mute]'
         else
             local percent = (t.vol.cur - t.vol.min) / (t.vol.max - t.vol.min) * 100
-            return string.format('[%3.0f%%]', percent)
+            return string.format('[%3d%%]', math.floor(0.5 + percent))
         end
     end,
 }
