@@ -1,28 +1,20 @@
-mem_uev = assert(io.open('/proc/meminfo', 'r'))
-mem_uev:setvbuf('no')
-
-function get_mem_seg()
-    local result = '[-?-]'
-    mem_uev:seek('set', 0)
-    for line in mem_uev:lines() do
-        local key, value, um = string.match(line, '(.*): +(.*) +(.*)')
-        if key == 'MemAvailable' then
-            value = tonumber(value)
-            if um == 'kB' then
-                value = value / 1024.0 / 1024.0
-                um = 'GiB'
-            end
-            result = string.format('[%3.2f %s]', value, um)
-            break
-        end
-    end
-    return {full_text = result, color = '#af8ec3'}
-end
+f = assert(io.open('/proc/meminfo', 'r'))
+f:setvbuf('no')
 
 widget = {
     plugin = 'timer',
     opts = {period = 2},
     cb = function(t)
-        return {get_mem_seg()}
+        f:seek('set', 0)
+        for line in f:lines() do
+            local key, value, unit = string.match(line, '(.*): +(.*) +(.*)')
+            if key == 'MemAvailable' then
+                if unit == 'kB' then
+                    value = value / 1024 / 1024
+                    unit = 'GiB'
+                end
+                return {full_text = string.format('[%3.2f %s]', value, unit), color = '#af8ec3'}
+            end
+        end
     end,
 }
