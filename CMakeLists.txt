@@ -52,7 +52,7 @@ endif ()
 function (luastatus_target_compile_with target var)
     target_include_directories (${target} SYSTEM PUBLIC
         ${${var}_INCLUDE_DIRS})
-    target_compile_definitions (${target} PUBLIC
+    target_compile_options (${target} PUBLIC
         ${${var}_CFLAGS_OTHER})
 endfunction ()
 
