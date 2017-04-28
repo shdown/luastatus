@@ -140,6 +140,21 @@ oom:
     ls_oom();
 }
 
+// Duplicates (as if with malloc) n bytes of memory at address p. Panics on failure.
+LS_INHEADER LS_ATTR_MALLOC
+void *
+ls_xmemdup(const void *p, size_t n)
+{
+    void *r = malloc(n);
+    if (n) {
+        if (!r) {
+            ls_oom();
+        }
+        memcpy(r, p, n);
+    }
+    return r;
+}
+
 // The behaviour is same as calling strdup(s), except when allocation fails. In that case, this
 // function panics.
 LS_INHEADER LS_ATTR_MALLOC
