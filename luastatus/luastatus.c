@@ -101,10 +101,12 @@ plugin_call_end(void *userdata)
 
     assert(lua_gettop(L) == 2); // L: cb data
 
+    bool r = check_lua_call(L, lua_pcall(L, 1, 1, 0));
+
     LOCK_B();
 
     size_t widget_idx = WIDGET_INDEX(w);
-    if (!check_lua_call(L, lua_pcall(L, 1, 1, 0))) {
+    if (!r) {
         // L: -
         set_error_unlocked(widget_idx);
     } else {
