@@ -10,8 +10,8 @@
 int
 ls_wakeup_fifo_init(LSWakeupFifo *w)
 {
-    FD_ZERO(&w->_fds);
-    w->_fd = -1;
+    FD_ZERO(&w->fds_);
+    w->fd_ = -1;
 
     w->fifo = NULL;
     w->timeout = ls_timespec_invalid;
@@ -24,14 +24,14 @@ ls_wakeup_fifo_init(LSWakeupFifo *w)
 int
 ls_wakeup_fifo_open(LSWakeupFifo *w)
 {
-    if (w->_fd < 0 && w->fifo) {
-        w->_fd = open(w->fifo, O_RDONLY | O_CLOEXEC);
-        if (w->_fd < 0) {
+    if (w->fd_ < 0 && w->fifo) {
+        w->fd_ = open(w->fifo, O_RDONLY | O_CLOEXEC);
+        if (w->fd_ < 0) {
             return -1;
         }
-        if (w->_fd >= FD_SETSIZE) {
-            ls_close(w->_fd);
-            w->_fd = -1;
+        if (w->fd_ >= FD_SETSIZE) {
+            ls_close(w->fd_);
+            w->fd_ = -1;
             errno = EMFILE;
             return -1;
         }
@@ -43,31 +43,31 @@ ls_wakeup_fifo_open(LSWakeupFifo *w)
 int
 ls_wakeup_fifo_wait(LSWakeupFifo *w)
 {
-    const int fd = w->_fd;
+    const int fd = w->fd_;
 
     if (fd >= 0) {
-        FD_SET(fd, &w->_fds);
+        FD_SET(fd, &w->fds_);
     }
     const int r = pselect(
         fd >= 0 ? fd + 1 : 0,
-        &w->_fds, NULL, NULL,
+        &w->fds_, NULL, NULL,
         ls_timespec_is_invalid(w->timeout) ? NULL : &w->timeout,
         &w->sigmask);
     if (r < 0) {
         int saved_errno = errno;
         if (fd >= 0) {
-            FD_CLR(fd, &w->_fds);
+            FD_CLR(fd, &w->fds_);
         }
         ls_close(fd);
-        w->_fd = -1;
+        w->fd_ = -1;
         errno = saved_errno;
         return -1;
     } else if (r == 0) {
         return 0;
     } else {
-        FD_CLR(fd, &w->_fds);
+        FD_CLR(fd, &w->fds_);
         ls_close(fd);
-        w->_fd = -1;
+        w->fd_ = -1;
         return 1;
     }
 }
@@ -75,5 +75,5 @@ ls_wakeup_fifo_wait(LSWakeupFifo *w)
 void
 ls_wakeup_fifo_destroy(LSWakeupFifo *w)
 {
-    ls_close(w->_fd);
+    ls_close(w->fd_);
 }

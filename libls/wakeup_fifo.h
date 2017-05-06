@@ -53,8 +53,8 @@ typedef struct {
     struct timespec timeout;
     sigset_t sigmask;
 
-    fd_set _fds;
-    int _fd;
+    fd_set fds_;
+    int fd_;
 } LSWakeupFifo;
 
 int
