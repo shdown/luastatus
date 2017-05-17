@@ -307,8 +307,9 @@ main(int argc, char **argv)
     LS_VECTOR_OF(char *) barlib_args = LS_VECTOR_NEW();
     bool no_hang = false;
     LS_VECTOR_OF(pthread_t) threads = LS_VECTOR_NEW();
-    nwidgets = 0;
     bool barlib_loaded = false;
+    nwidgets = 0;
+    widgets = NULL;
 
     for (int c; (c = getopt(argc, argv, "b:B:l:ev")) != -1;) {
         switch (c) {
@@ -429,6 +430,7 @@ cleanup:
     for (size_t i = 0; i < nwidgets; ++i) {
         widget_unload(&widgets[i]);
     }
+    free(widgets);
     if (barlib_loaded) {
         barlib_unload(&barlib);
     }
