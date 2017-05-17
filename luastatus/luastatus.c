@@ -145,8 +145,8 @@ widget_thread(void *userdata)
     set_error_unlocked(WIDGET_INDEX(w));
     UNLOCK_B();
 
-    // We can't even uninit the widget here, because function registered by plugin (in
-    // luastatus.plugin) still refer to w->data, and may be called by widget in event().
+    // We can't even uninit the widget here, because functions registered by plugin (in
+    // luastatus.plugin) that still refer to w->data, may still be called by widget in event().
     // So do nothing.
 
     return NULL;

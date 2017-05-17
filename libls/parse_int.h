@@ -4,7 +4,7 @@
 #include <stddef.h>
 
 // Parses (locale-independently) a decimal unsigned integer, inspecting no more than first ns
-// characters of s. Once this limit is reached, or a non-digit character is found, this functions
+// characters of s. Once this limit is reached, or a non-digit character is found, this function
 // stops, writes the current position to *endptr, and returns what has been parsed insofar (if
 // nothing, 0 is returned).
 //
