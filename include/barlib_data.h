@@ -4,49 +4,28 @@
 #include <lua.h>
 #include <stddef.h>
 
-#include "loglevel.h"
+#include "common.h"
 
-#ifndef LUASTATUS_BARLIB_LOGF_ATTRIBUTE
+#ifndef LUASTATUS_BARLIB_SAYF_ATTRIBUTE
 #   ifdef __GNUC__
-#       define LUASTATUS_BARLIB_LOGF_ATTRIBUTE __attribute__((format(printf, 3, 4)))
+#       define LUASTATUS_BARLIB_SAYF_ATTRIBUTE __attribute__((format(printf, 3, 4)))
 #   else
-#       define LUASTATUS_BARLIB_LOGF_ATTRIBUTE /*nothing*/
+#       define LUASTATUS_BARLIB_SAYF_ATTRIBUTE /*nothing*/
 #   endif
 #endif
 
-typedef LUASTATUS_BARLIB_LOGF_ATTRIBUTE void LuastatusBarlibLogf(void *userdata,
-                                                                 LuastatusLogLevel level,
+typedef LUASTATUS_BARLIB_SAYF_ATTRIBUTE void LuastatusBarlibSayf(void *userdata,
+                                                                 int level,
                                                                  const char *fmt, ...);
 
 typedef struct {
     void *priv;
     void *userdata;
-    LuastatusBarlibLogf *logf;
+    LuastatusBarlibSayf *sayf;
 } LuastatusBarlibData;
 
 typedef lua_State *LuastatusBarlibEWCallBegin(void *userdata, size_t widget_idx);
 typedef void       LuastatusBarlibEWCallEnd(void *userdata, size_t widget_idx);
-
-typedef enum {
-    LUASTATUS_BARLIB_INIT_RESULT_OK,
-    LUASTATUS_BARLIB_INIT_RESULT_ERR,
-} LuastatusBarlibInitResult;
-
-typedef enum {
-    LUASTATUS_BARLIB_SET_RESULT_OK,
-    LUASTATUS_BARLIB_SET_RESULT_NONFATAL_ERR,
-    LUASTATUS_BARLIB_SET_RESULT_FATAL_ERR,
-} LuastatusBarlibSetResult;
-
-typedef enum {
-    LUASTATUS_BARLIB_SET_ERROR_RESULT_OK,
-    LUASTATUS_BARLIB_SET_ERROR_RESULT_FATAL_ERR,
-} LuastatusBarlibSetErrorResult;
-
-typedef enum {
-    LUASTATUS_BARLIB_EW_RESULT_NO_MORE_EVENTS,
-    LUASTATUS_BARLIB_EW_RESULT_FATAL_ERR,
-} LuastatusBarlibEWResult;
 
 typedef struct {
     // This function must initialize a barlib by assigning something to bd->priv.
@@ -70,12 +49,11 @@ typedef struct {
     //
     // It must return:
     //
-    //     LUASTATUS_BARLIB_INIT_RESULT_ERR on failure;
+    //     LUASTATUS_RES_ERR on failure;
     //
-    //     LUASTATUS_BARLIB_INIT_RESULT_OK on success.
+    //     LUASTATUS_RES_OK on success.
     //
-    LuastatusBarlibInitResult (*init)(LuastatusBarlibData *bd, const char *const *opts,
-                                      size_t nwidgets);
+    int (*init)(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets);
 
     // This function must assign Lua functions that the barlib provides to the table on the top of
     // L's stack.
@@ -97,29 +75,28 @@ typedef struct {
     //
     // It must return:
     //
-    //   LUASTATUS_BARLIB_SET_RESULT_OK on success.
+    //   LUASTATUS_RES_OK on success.
     //     In this case, L's stack must not contain any extra elements pushed onto it;
     //
-    //  LUASTATUS_BARLIB_SET_RESULT_NONFATAL_ERR on a non-fatal error, e.g., if the format of the
-    //     data on top of L's stack is invalid. In this case, L's stack may contain extra elements
-    //     pushed onto it;
+    //  LUASTATUS_RES_NONFATAL_ERR on a non-fatal error, e.g., if the format of the data on top of
+    //     L's stack is invalid. In this case, L's stack may contain extra elements pushed onto it;
     //
-    //  LUASTATUS_BARLIB_SET_ERROR_FATAL_ERR on a fatal error, e.g. if the connection to the
-    //     display has been lost. In this case, L's stack may contain extra elements pushed onto it.
+    //  LUASTATUS_RES_ERR on a fatal error, e.g. if the connection to the display has been lost. In
+    //     this case, L's stack may contain extra elements pushed onto it.
     //
-    LuastatusBarlibSetResult (*set)(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx);
+    int (*set)(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx);
 
     // This function must update the widget with index widget_idx and set its
     // content to something that indicates an error.
     //
     // It must return:
     //
-    //   LUASTATUS_BARLIB_SET_ERROR_RESULT_OK on success;
+    //   LUASTATUS_RES_OK on success;
     //
-    //   LUASTATUS_BARLIB_SET_ERROR_FATAL_ERR on a fatal error, e.g. if the connection to the
-    //     display has been lost.
+    //   LUASTATUS_RES_NONFATAL_ERR on a fatal error, e.g. if the connection to the display has been
+    //     lost.
     //
-    LuastatusBarlibSetErrorResult (*set_error)(LuastatusBarlibData *bd, size_t widget_idx);
+    int (*set_error)(LuastatusBarlibData *bd, size_t widget_idx);
 
     // This function must launch barlib's event watcher. Once the barlib wants to report an event
     // occurred on widget with index widget_idx, it must call call_begin(widget_idx, bd->userdata),
@@ -130,17 +107,15 @@ typedef struct {
     // It must not call call_begin() and return without calling call_end().
     //
     // It must return:
-    //   LUASTATUS_BARLIB_EW_RESULT_NO_MORE_EVENTS if it is clear that no events will be reported
-    //     anymore;
+    //   LUASTATUS_RES_NONFATAL_ERR if it is clear that no events will be reported anymore;
     //
-    //   LUASTATUS_BARLIB_EW_RESULT_FATAL_ERR on a fatal error, e.g. if the connection to the
-    //     display has been lost.
+    //   LUASTATUS_RES_ERR on a fatal error, e.g. if the connection to the display has been lost.
     //
     // May be NULL (and should be NULL if events are not supported).
     //
-    LuastatusBarlibEWResult (*event_watcher)(LuastatusBarlibData *bd,
-                                             LuastatusBarlibEWCallBegin call_begin,
-                                             LuastatusBarlibEWCallEnd call_end);
+    int (*event_watcher)(LuastatusBarlibData *bd,
+                         LuastatusBarlibEWCallBegin call_begin,
+                         LuastatusBarlibEWCallEnd call_end);
 
     // This function must destroy a previously successfully initialized barlib.
     void (*destroy)(LuastatusBarlibData *bd);

@@ -3,7 +3,7 @@
 #include <lua.h>
 #include <stdbool.h>
 #include <lauxlib.h>
-#include "include/loglevel.h"
+#include "include/common.h"
 #include "log.h"
 
 bool
@@ -40,7 +40,7 @@ check_lua_call(lua_State *L, int retval)
     if (!msg) {
         msg = "(error object can't be converted to string)";
     }
-    internal_logf(LUASTATUS_ERR, "%s%s", prefix, msg);
+    sayf(LUASTATUS_ERR, "%s%s", prefix, msg);
     lua_pop(L, 1);
     return false;
 }

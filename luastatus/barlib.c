@@ -5,7 +5,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #include "libls/compdep.h"
-#include "include/loglevel.h"
+#include "include/common.h"
 #include "sane_dlerror.h"
 #include "log.h"
 #include "pth_check.h"
@@ -22,24 +22,23 @@ barlib_load(Barlib *b, const char *filename)
 
     (void) dlerror(); // clear any last error
     if (!(b->dlhandle = dlopen(filename, RTLD_NOW))) {
-        internal_logf(LUASTATUS_ERR, "dlopen: %s: %s", filename, sane_dlerror());
+        sayf(LUASTATUS_ERR, "dlopen: %s: %s", filename, sane_dlerror());
         goto error;
     }
     int *p_lua_ver = dlsym(b->dlhandle, "LUASTATUS_BARLIB_LUA_VERSION_NUM");
     if (!p_lua_ver) {
-        internal_logf(LUASTATUS_ERR, "dlsym: LUASTATUS_BARLIB_LUA_VERSION_NUM: %s",
-                      sane_dlerror());
+        sayf(LUASTATUS_ERR, "dlsym: LUASTATUS_BARLIB_LUA_VERSION_NUM: %s", sane_dlerror());
         goto error;
     }
     if (*p_lua_ver != LUA_VERSION_NUM) {
-        internal_logf(LUASTATUS_ERR,
-                      "barlib '%s' was compiled with LUA_VERSION_NUM=%d and luastatus with %d",
-                      filename, *p_lua_ver, LUA_VERSION_NUM);
+        sayf(LUASTATUS_ERR,
+             "barlib '%s' was compiled with LUA_VERSION_NUM=%d and luastatus with %d",
+             filename, *p_lua_ver, LUA_VERSION_NUM);
         goto error;
     }
     LuastatusBarlibIface *p_iface = dlsym(b->dlhandle, "luastatus_barlib_iface");
     if (!p_iface) {
-        internal_logf(LUASTATUS_ERR, "dlsym: luastatus_barlib_iface: %s", sane_dlerror());
+        sayf(LUASTATUS_ERR, "dlsym: luastatus_barlib_iface: %s", sane_dlerror());
         goto error;
     }
     b->iface = *p_iface;
@@ -62,11 +61,11 @@ barlib_init(Barlib *b, LuastatusBarlibData data, const char *const *opts, size_t
 
     b->data = data;
     switch (b->iface.init(&b->data, opts, nwidgets)) {
-    case LUASTATUS_BARLIB_INIT_RESULT_OK:
+    case LUASTATUS_RES_OK:
         b->state = BARLIB_STATE_INITED;
         return true;
-    case LUASTATUS_BARLIB_INIT_RESULT_ERR:
-        internal_logf(LUASTATUS_ERR, "barlib's init() failed");
+    case LUASTATUS_RES_ERR:
+        sayf(LUASTATUS_ERR, "barlib's init() failed");
         return false;
     }
     LS_UNREACHABLE();

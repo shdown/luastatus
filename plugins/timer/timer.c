@@ -9,7 +9,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include "include/plugin.h"
-#include "include/plugin_logf_macros.h"
+#include "include/sayf_macros.h"
 #include "include/plugin_utils.h"
 #include "libls/alloc_utils.h"
 #include "libls/lua_utils.h"
@@ -32,7 +32,7 @@ destroy(LuastatusPluginData *pd)
     free(p);
 }
 
-LuastatusPluginInitResult
+int
 init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
@@ -43,7 +43,7 @@ init(LuastatusPluginData *pd, lua_State *L)
 
     PU_MAYBE_VISIT_NUM("period", n,
         if (ls_timespec_is_invalid(p->period = ls_timespec_from_seconds(n))) {
-            LUASTATUS_FATALF(pd, "invalid 'period' value");
+            LS_FATALF(pd, "invalid 'period' value");
             goto error;
         }
     );
@@ -52,11 +52,11 @@ init(LuastatusPluginData *pd, lua_State *L)
         p->fifo = ls_xstrdup(s);
     );
 
-    return LUASTATUS_PLUGIN_INIT_RESULT_OK;
+    return LUASTATUS_RES_OK;
 
 error:
     destroy(pd);
-    return LUASTATUS_PLUGIN_INIT_RESULT_ERR;
+    return LUASTATUS_RES_ERR;
 }
 
 void
@@ -70,7 +70,7 @@ run(
 
     if (ls_wakeup_fifo_init(&w) < 0) {
         LS_WITH_ERRSTR(s, errno,
-            LUASTATUS_WARNF(pd, "ls_wakeup_fifo_init: %s", s);
+            LS_WARNF(pd, "ls_wakeup_fifo_init: %s", s);
         );
         goto error;
     }
@@ -87,13 +87,13 @@ run(
         // wait
         if (ls_wakeup_fifo_open(&w) < 0) {
             LS_WITH_ERRSTR(s, errno,
-                LUASTATUS_WARNF(pd, "ls_wakeup_fifo_open: %s: %s", p->fifo, s);
+                LS_WARNF(pd, "ls_wakeup_fifo_open: %s: %s", p->fifo, s);
             );
         }
         int r = ls_wakeup_fifo_wait(&w);
         if (r < 0) {
             LS_WITH_ERRSTR(s, errno,
-                LUASTATUS_FATALF(pd, "ls_wakeup_fifo_wait: %s", s);
+                LS_FATALF(pd, "ls_wakeup_fifo_wait: %s", s);
             );
             goto error;
         } else if (r == 0) {

@@ -3,7 +3,7 @@
 
 #include "include/barlib_data.h"
 
-LuastatusBarlibEWResult
+int
 event_watcher(LuastatusBarlibData *bd,
               LuastatusBarlibEWCallBegin call_begin,
               LuastatusBarlibEWCallEnd call_end);

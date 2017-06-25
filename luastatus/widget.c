@@ -6,7 +6,7 @@
 #include <lualib.h>
 #include <lauxlib.h>
 #include <assert.h>
-#include "include/loglevel.h"
+#include "include/common.h"
 #include "libls/alloc_utils.h"
 #include "libls/lua_utils.h"
 #include "libls/compdep.h"
@@ -39,20 +39,19 @@ widget_load(Widget *w, const char *filename)
         goto error;
     }
     // L: -
-    ls_lua_pushglobaltable(L); // L: _G
+    ls_lua_pushg(L); // L: _G
     ls_lua_rawgetf(L, "widget"); // L: _G widget
     if (!lua_istable(L, -1)) {
-        internal_logf(LUASTATUS_ERR, "widget: expected table, found %s", luaL_typename(L, -1));
+        sayf(LUASTATUS_ERR, "widget: expected table, found %s", luaL_typename(L, -1));
         goto error;
     }
     ls_lua_rawgetf(L, "plugin"); // L: _G widget plugin
     if (!lua_isstring(L, -1)) {
-        internal_logf(LUASTATUS_ERR, "widget.plugin: expected string, found %s",
-                      luaL_typename(L, -1));
+        sayf(LUASTATUS_ERR, "widget.plugin: expected string, found %s", luaL_typename(L, -1));
         goto error;
     }
     if (!load_plugin_by_name(&w->plugin, lua_tostring(L, -1))) {
-        internal_logf(LUASTATUS_ERR, "can't load plugin '%s'", lua_tostring(L, -1));
+        sayf(LUASTATUS_ERR, "can't load plugin '%s'", lua_tostring(L, -1));
         goto error;
     }
     plugin_loaded = true;
@@ -60,8 +59,7 @@ widget_load(Widget *w, const char *filename)
 
     ls_lua_rawgetf(L, "cb"); // L: _G widget cb
     if (!lua_isfunction(L, -1)) {
-        internal_logf(LUASTATUS_ERR, "widget.cb: expected function, found %s",
-                      luaL_typename(L, -1));
+        sayf(LUASTATUS_ERR, "widget.cb: expected function, found %s", luaL_typename(L, -1));
         goto error;
     }
     w->lua_ref_cb = luaL_ref(L, LUA_REGISTRYINDEX); // L: _G widget
@@ -97,8 +95,8 @@ widget_load(Widget *w, const char *filename)
         }
         break;
     default:
-        internal_logf(LUASTATUS_ERR, "widget.event: expected function, nil or string, found %s",
-                      luaL_typename(L, -1));
+        sayf(LUASTATUS_ERR, "widget.event: expected function, nil or string, found %s",
+            luaL_typename(L, -1));
         goto error;
     }
     lua_pop(L, 2); // L: -
@@ -134,7 +132,7 @@ widget_init(Widget *w, LuastatusPluginData data)
     lua_State *L = w->L;
     int init_top = lua_gettop(L);
     // L: -
-    ls_lua_pushglobaltable(L); // L: _G
+    ls_lua_pushg(L); // L: _G
     ls_lua_rawgetf(L, "widget"); // L: _G widget
     assert(lua_istable(L, -1));
     ls_lua_rawgetf(L, "opts"); // L: _G widget opts
@@ -143,17 +141,17 @@ widget_init(Widget *w, LuastatusPluginData data)
             lua_pop(L, 1); // L: _G widget
             lua_newtable(L); // L: _G widget table
         } else {
-            internal_logf(LUASTATUS_ERR, "widget.opts: expected table or nil, found %s",
-                          luaL_typename(L, -1));
+            sayf(LUASTATUS_ERR, "widget.opts: expected table or nil, found %s",
+                luaL_typename(L, -1));
             goto done;
         }
     }
     switch (w->plugin.iface.init(&w->data, w->L)) {
-    case LUASTATUS_PLUGIN_INIT_RESULT_OK:
+    case LUASTATUS_RES_OK:
         w->state = WIDGET_STATE_INITED;
         goto done;
-    case LUASTATUS_PLUGIN_INIT_RESULT_ERR:
-        internal_logf(LUASTATUS_ERR, "plugin's (%s) init() failed", w->plugin.name);
+    case LUASTATUS_RES_ERR:
+        sayf(LUASTATUS_ERR, "plugin's (%s) init() failed", w->plugin.name);
         goto done;
     }
     LS_UNREACHABLE();

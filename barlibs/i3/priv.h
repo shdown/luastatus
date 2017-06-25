@@ -1,7 +1,7 @@
 #ifndef priv_h_
 #define priv_h_
 
-#include "libls/string.h"
+#include "libls/string_.h"
 #include <stdio.h>
 #include <stdbool.h>
 #include <stddef.h>

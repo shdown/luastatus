@@ -6,7 +6,7 @@
 #include <time.h>
 #include <sys/statvfs.h>
 #include "include/plugin.h"
-#include "include/plugin_logf_macros.h"
+#include "include/sayf_macros.h"
 #include "include/plugin_utils.h"
 #include "libls/alloc_utils.h"
 #include "libls/lua_utils.h"
@@ -33,7 +33,7 @@ destroy(LuastatusPluginData *pd)
     free(p);
 }
 
-LuastatusPluginInitResult
+int
 init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
@@ -44,18 +44,18 @@ init(LuastatusPluginData *pd, lua_State *L)
     };
 
     PU_TRAVERSE_TABLE("paths",
-        PU_CHECK_TYPE_AT(LS_LUA_TRAVERSE_KEY, "'paths' key", LUA_TNUMBER);
-        PU_VISIT_STR_AT(LS_LUA_TRAVERSE_VALUE, "'paths' element", s,
+        PU_CHECK_TYPE_AT(LS_LUA_KEY, "'paths' key", LUA_TNUMBER);
+        PU_VISIT_STR_AT(LS_LUA_VALUE, "'paths' element", s,
             LS_VECTOR_PUSH(p->paths, ls_xstrdup(s));
         );
     );
     if (!p->paths.size) {
-        LUASTATUS_WARNF(pd, "paths are empty");
+        LS_WARNF(pd, "paths are empty");
     }
 
     PU_MAYBE_VISIT_NUM("period", n,
         if (ls_timespec_is_invalid(p->period = ls_timespec_from_seconds(n))) {
-            LUASTATUS_FATALF(pd, "invalid 'period' value");
+            LS_FATALF(pd, "invalid 'period' value");
             goto error;
         }
     );
@@ -64,11 +64,11 @@ init(LuastatusPluginData *pd, lua_State *L)
         p->fifo = ls_xstrdup(s);
     );
 
-    return LUASTATUS_PLUGIN_INIT_RESULT_OK;
+    return LUASTATUS_RES_OK;
 
 error:
     destroy(pd);
-    return LUASTATUS_PLUGIN_INIT_RESULT_ERR;
+    return LUASTATUS_RES_ERR;
 }
 
 bool
@@ -77,7 +77,7 @@ push_for(LuastatusPluginData *pd, lua_State *L, const char *path)
     struct statvfs st;
     if (statvfs(path, &st) < 0) {
         LS_WITH_ERRSTR(s, errno,
-            LUASTATUS_WARNF(pd, "statvfs: %s: %s", path, s);
+            LS_WARNF(pd, "statvfs: %s: %s", path, s);
         );
         return false;
     }
@@ -102,7 +102,7 @@ run(
 
     if (ls_wakeup_fifo_init(&w) < 0) {
         LS_WITH_ERRSTR(s, errno,
-            LUASTATUS_FATALF(pd, "ls_wakeup_fifo_init: %s", s);
+            LS_FATALF(pd, "ls_wakeup_fifo_init: %s", s);
         );
         goto error;
     }
@@ -123,12 +123,12 @@ run(
         // wait
         if (ls_wakeup_fifo_open(&w) < 0) {
             LS_WITH_ERRSTR(s, errno,
-                LUASTATUS_WARNF(pd, "ls_wakeup_fifo_open: %s: %s", p->fifo, s);
+                LS_WARNF(pd, "ls_wakeup_fifo_open: %s: %s", p->fifo, s);
             );
         }
         if (ls_wakeup_fifo_wait(&w) < 0) {
             LS_WITH_ERRSTR(s, errno,
-                LUASTATUS_FATALF(pd, "ls_wakeup_fifo_wait: %s", s);
+                LS_FATALF(pd, "ls_wakeup_fifo_wait: %s", s);
                 goto error;
             );
         }

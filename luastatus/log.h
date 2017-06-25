@@ -3,31 +3,31 @@
 
 #include <stdbool.h>
 #include <stdarg.h>
-#include "include/loglevel.h"
+#include "include/common.h"
 #include "libls/compdep.h"
 
 enum {
     DEFAULT_LOGLEVEL = LUASTATUS_INFO,
 };
 
-extern LuastatusLogLevel global_loglevel;
+extern int global_loglevel;
 
 const char *
-loglevel_tostr(LuastatusLogLevel level);
+loglevel_tostr(int level);
 
-LuastatusLogLevel
+int
 loglevel_fromstr(const char *s);
 
 void
-common_vlogf(LuastatusLogLevel level, const char *subsystem, const char *fmt, va_list vl);
+common_vsayf(int level, const char *subsystem, const char *fmt, va_list vl);
 
 LS_INHEADER LS_ATTR_PRINTF(2, 3)
 void
-internal_logf(LuastatusLogLevel level, const char *fmt, ...)
+sayf(int level, const char *fmt, ...)
 {
     va_list vl;
     va_start(vl, fmt);
-    common_vlogf(level, NULL, fmt, vl);
+    common_vsayf(level, NULL, fmt, vl);
     va_end(vl);
 }
 

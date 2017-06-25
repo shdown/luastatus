@@ -1,5 +1,5 @@
 #include "include/plugin.h"
-#include "include/plugin_logf_macros.h"
+#include "include/sayf_macros.h"
 #include "include/plugin_utils.h"
 
 #include <lua.h>
@@ -38,7 +38,7 @@ destroy(LuastatusPluginData *pd)
 }
 
 static
-LuastatusPluginInitResult
+int
 init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
@@ -55,11 +55,11 @@ init(LuastatusPluginData *pd, lua_State *L)
         p->visible = b;
     );
 
-    return LUASTATUS_PLUGIN_INIT_RESULT_OK;
+    return LUASTATUS_RES_OK;
 
 error:
     destroy(pd);
-    return LUASTATUS_PLUGIN_INIT_RESULT_ERR;
+    return LUASTATUS_RES_ERR;
 }
 
 typedef struct {
@@ -191,7 +191,7 @@ run(
     do { \
         int ErrCodeVarName_ = xcb_connection_has_error(d.conn); \
         if (ErrCodeVarName_) { \
-            LUASTATUS_FATALF(pd, __VA_ARGS__); \
+            LS_FATALF(pd, __VA_ARGS__); \
             goto error; \
         } \
     } while (0)
@@ -206,7 +206,7 @@ run(
     d.root = iter.data->root;
 
     if (xcb_ewmh_init_atoms_replies(d.ewmh, xcb_ewmh_init_atoms(d.conn, d.ewmh), NULL) == 0) {
-        LUASTATUS_FATALF(pd, "xcb_ewmh_init_atoms_replies failed");
+        LS_FATALF(pd, "xcb_ewmh_init_atoms_replies failed");
         goto error;
     }
     ewmh_inited = true;
@@ -223,7 +223,7 @@ run(
     sigset_t allsigs;
     if (sigfillset(&allsigs) < 0) {
         LS_WITH_ERRSTR(s, errno,
-            LUASTATUS_FATALF(pd, "sigfillset: %s", s);
+            LS_FATALF(pd, "sigfillset: %s", s);
         );
         goto error;
     }
@@ -238,7 +238,7 @@ run(
         int nfds = pselect(fd + 1, &fds, NULL, NULL, NULL, &allsigs);
         if (nfds < 0) {
             LS_WITH_ERRSTR(s, errno,
-                LUASTATUS_FATALF(pd, "pselect: %s", s);
+                LS_FATALF(pd, "pselect: %s", s);
             );
             goto error;
         } else if (nfds > 0) {

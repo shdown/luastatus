@@ -1,5 +1,5 @@
 #include "include/plugin.h"
-#include "include/plugin_logf_macros.h"
+#include "include/sayf_macros.h"
 #include "include/plugin_utils.h"
 
 #include <lua.h>
@@ -32,7 +32,7 @@ destroy(LuastatusPluginData *pd)
     free(p);
 }
 
-LuastatusPluginInitResult
+int
 init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
@@ -42,30 +42,30 @@ init(LuastatusPluginData *pd, lua_State *L)
     };
 
     PU_TRAVERSE_TABLE("args",
-        PU_CHECK_TYPE_AT(LS_LUA_TRAVERSE_KEY, "'args' key", LUA_TNUMBER);
-        PU_VISIT_STR_AT(LS_LUA_TRAVERSE_VALUE, "'args' element", s,
+        PU_CHECK_TYPE_AT(LS_LUA_KEY, "'args' key", LUA_TNUMBER);
+        PU_VISIT_STR_AT(LS_LUA_VALUE, "'args' element", s,
             LS_VECTOR_PUSH(p->args, ls_xstrdup(s));
         );
     );
     if (!p->args.size) {
-        LUASTATUS_FATALF(pd, "args are empty");
+        LS_FATALF(pd, "args are empty");
         goto error;
     }
     LS_VECTOR_PUSH(p->args, NULL);
 
     PU_MAYBE_VISIT_LSTR("delimiter", s, n,
         if (n != 1) {
-            LUASTATUS_FATALF(pd, n ? "delimiter is longer than one symbol" : "delimiter is empty");
+            LS_FATALF(pd, n ? "delimiter is longer than one symbol" : "delimiter is empty");
             goto error;
         }
         p->delim = s[0];
     );
 
-    return LUASTATUS_PLUGIN_INIT_RESULT_OK;
+    return LUASTATUS_RES_OK;
 
 error:
     destroy(pd);
-    return LUASTATUS_PLUGIN_INIT_RESULT_ERR;
+    return LUASTATUS_RES_ERR;
 }
 
 void
@@ -84,7 +84,7 @@ run(
 
     if ((pid = ls_spawnp_pipe(p->args.data[0], &fd, p->args.data)) < 0) {
         LS_WITH_ERRSTR(s, errno,
-            LUASTATUS_FATALF(pd, "spawn failed: %s", s);
+            LS_FATALF(pd, "spawn failed: %s", s);
         );
         fd = -1;
         goto error;
@@ -92,7 +92,7 @@ run(
 
     if (!(f = fdopen(fd, "r"))) {
         LS_WITH_ERRSTR(s, errno,
-            LUASTATUS_FATALF(pd, "fdopen: %s", s);
+            LS_FATALF(pd, "fdopen: %s", s);
         );
         goto error;
     }
@@ -104,10 +104,10 @@ run(
         const ssize_t r = getdelim(&buf, &nbuf, idelim, f);
         if (r < 0) {
             if (feof(f)) {
-                LUASTATUS_FATALF(pd, "child process closed its stdout");
+                LS_FATALF(pd, "child process closed its stdout");
             } else {
                 LS_WITH_ERRSTR(s, errno,
-                    LUASTATUS_FATALF(pd, "read error: %s", s);
+                    LS_FATALF(pd, "read error: %s", s);
                 );
             }
             goto error;

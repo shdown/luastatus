@@ -1,7 +1,13 @@
-#ifndef luastatus_include_loglevel_h_
-#define luastatus_include_loglevel_h_
+#ifndef luastatus_include_common_h_
+#define luastatus_include_common_h_
 
-typedef enum {
+enum {
+    LUASTATUS_RES_OK,
+    LUASTATUS_RES_ERR,
+    LUASTATUS_RES_NONFATAL_ERR,
+};
+
+enum {
     LUASTATUS_FATAL,
     LUASTATUS_ERR,
     LUASTATUS_WARN,
@@ -11,6 +17,6 @@ typedef enum {
     LUASTATUS_TRACE,
 
     LUASTATUS_LOGLEVEL_LAST,
-} LuastatusLogLevel;
+};
 
 #endif

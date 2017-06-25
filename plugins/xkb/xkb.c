@@ -1,5 +1,5 @@
 #include "include/plugin.h"
-#include "include/plugin_logf_macros.h"
+#include "include/sayf_macros.h"
 #include "include/plugin_utils.h"
 
 #include <lua.h>
@@ -35,7 +35,7 @@ destroy(LuastatusPluginData *pd)
 }
 
 static
-LuastatusPluginInitResult
+int
 init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
@@ -50,21 +50,21 @@ init(LuastatusPluginData *pd, lua_State *L)
 
     PU_MAYBE_VISIT_NUM("device_id", n,
         if (n < 0) {
-            LUASTATUS_FATALF(pd, "device_id < 0");
+            LS_FATALF(pd, "device_id < 0");
             goto error;
         }
         if (n > UINT_MAX) {
-            LUASTATUS_FATALF(pd, "device_id > UINT_MAX");
+            LS_FATALF(pd, "device_id > UINT_MAX");
             goto error;
         }
         p->deviceid = n;
     );
 
-    return LUASTATUS_PLUGIN_INIT_RESULT_OK;
+    return LUASTATUS_RES_OK;
 
 error:
     destroy(pd);
-    return LUASTATUS_PLUGIN_INIT_RESULT_ERR;
+    return LUASTATUS_RES_ERR;
 }
 
 Display *
@@ -99,7 +99,7 @@ open_dpy(LuastatusPluginData *pd, char *dpyname)
         msg = "unknown error";
         break;
     }
-    LUASTATUS_FATALF(pd, "XkbOpenDisplay failed: %s", msg);
+    LS_FATALF(pd, "XkbOpenDisplay failed: %s", msg);
     return NULL;
 }
 
@@ -127,7 +127,7 @@ static jmp_buf global_jmpbuf;
 int
 x11_io_error_handler(LS_ATTR_UNUSED_ARG Display *dpy)
 {
-    LUASTATUS_FATALF(global_pd, "X11 I/O error occurred");
+    LS_FATALF(global_pd, "X11 I/O error occurred");
     longjmp(global_jmpbuf, 1);
 }
 
@@ -138,9 +138,8 @@ x11_io_error_handler(LS_ATTR_UNUSED_ARG Display *dpy)
 int
 x11_error_handler(LS_ATTR_UNUSED_ARG Display *dpy, XErrorEvent *ev)
 {
-    LUASTATUS_ERRF(global_pd,
-                   "X11 error: serial=%ld, error_code=%d, request_code=%d, minor_code=%d",
-                   ev->serial, ev->error_code, ev->request_code, ev->minor_code);
+    LS_ERRF(global_pd, "X11 error: serial=%ld, error_code=%d, request_code=%d, minor_code=%d",
+        ev->serial, ev->error_code, ev->request_code, ev->minor_code);
     return 0;
 }
 
@@ -171,29 +170,29 @@ run(
     }
 
     if (!query_groups(dpy, &groups)) {
-        LUASTATUS_FATALF(pd, "query_groups failed");
+        LS_FATALF(pd, "query_groups failed");
         goto error;
     }
     while (1) {
         // query current state
         XkbStateRec state;
         if (XkbGetState(dpy, p->deviceid, &state) != Success) {
-            LUASTATUS_FATALF(pd, "XkbGetState failed");
+            LS_FATALF(pd, "XkbGetState failed");
             goto error;
         }
 
         // check if group is valid and possibly requery
         int group = state.group;
         if (group < 0) {
-            LUASTATUS_WARNF(pd, "group ID is negative (%d)", group);
+            LS_WARNF(pd, "group ID is negative (%d)", group);
         } else if ((size_t) group >= ls_strarr_size(groups)) {
-            LUASTATUS_WARNF(pd, "group ID (%d) is too large, requerying", group);
+            LS_WARNF(pd, "group ID (%d) is too large, requerying", group);
             if (!query_groups(dpy, &groups)) {
-                LUASTATUS_FATALF(pd, "query_groups failed");
+                LS_FATALF(pd, "query_groups failed");
                 goto error;
             }
             if ((size_t) group >= ls_strarr_size(groups)) {
-                LUASTATUS_WARNF(pd, "group ID is still too large");
+                LS_WARNF(pd, "group ID is still too large");
             }
         }
 
@@ -215,7 +214,7 @@ run(
                                   XkbGroupStateMask)
             == False)
         {
-            LUASTATUS_FATALF(pd, "XkbSelectEventDetails failed");
+            LS_FATALF(pd, "XkbSelectEventDetails failed");
             goto error;
         }
         XEvent event;

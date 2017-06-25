@@ -10,20 +10,20 @@
 //
 // If an overflow happens, -ERANGE is returned.
 int
-ls_parse_uint(const char *s, size_t ns, char const **endptr);
+ls_parse_uint_b(const char *s, size_t ns, char const **endptr);
 
 // Parses (locale-independently) a decimal unsigned integer using first ns characters of s.
 //
 // If a non-digit character is found among them, -EINVAL is returned.
 // If an overflow happens, -ERANGE is returned.
 int
-ls_full_parse_uint(const char *s, size_t ns);
+ls_full_parse_uint_b(const char *s, size_t ns);
 
 // Parses (locale-independently) a decimal unsigned integer using zero-terminated string s.
 //
 // If a non-digit character is found in s, -EINVAL is returned.
 // If an overflow happens, -ERANGE is returned.
 int
-ls_full_parse_uint_cstr(const char *s);
+ls_full_parse_uint_s(const char *s);
 
 #endif

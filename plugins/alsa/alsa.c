@@ -6,7 +6,7 @@
 #include <alsa/asoundlib.h>
 
 #include "include/plugin.h"
-#include "include/plugin_logf_macros.h"
+#include "include/sayf_macros.h"
 #include "include/plugin_utils.h"
 
 #include "libls/alloc_utils.h"
@@ -26,7 +26,7 @@ destroy(LuastatusPluginData *pd)
     free(p);
 }
 
-LuastatusPluginInitResult
+int
 init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
@@ -49,11 +49,11 @@ init(LuastatusPluginData *pd, lua_State *L)
         p->channel = ls_xstrdup("Master");
     }
 
-    return LUASTATUS_PLUGIN_INIT_RESULT_OK;
+    return LUASTATUS_RES_OK;
 
 error:
     destroy(pd);
-    return LUASTATUS_PLUGIN_INIT_RESULT_ERR;
+    return LUASTATUS_RES_ERR;
 }
 
 bool
@@ -130,7 +130,7 @@ run(
         int r_; \
         while ((r_ = Func_(__VA_ARGS__)) == -EINTR) {} \
         if (r_ < 0) { \
-            LUASTATUS_FATALF(pd, "%s: %s", #Func_, snd_strerror(r_)); \
+            LS_FATALF(pd, "%s: %s", #Func_, snd_strerror(r_)); \
             goto error; \
         } \
     } while (0)
@@ -148,7 +148,7 @@ run(
     snd_mixer_selem_id_set_name(sid, p->channel);
     snd_mixer_elem_t *elem = snd_mixer_find_selem(mixer, sid);
     if (!elem) {
-        LUASTATUS_FATALF(pd, "can't find channel '%s'", p->channel);
+        LS_FATALF(pd, "can't find channel '%s'", p->channel);
         goto error;
     }
     while (1) {

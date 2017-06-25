@@ -11,7 +11,7 @@
 #include <errno.h>
 #include <signal.h>
 #include <pthread.h>
-#include "include/loglevel.h"
+#include "include/common.h"
 #include "include/barlib_data.h"
 #include "include/plugin_data.h"
 #include "libls/sprintf_utils.h"
@@ -53,7 +53,7 @@ fatal_error_reported(void)
 }
 
 void
-external_logf(void *userdata, LuastatusLogLevel level, const char *fmt, ...)
+external_sayf(void *userdata, int level, const char *fmt, ...)
 {
     va_list vl;
     va_start(vl, fmt);
@@ -61,9 +61,9 @@ external_logf(void *userdata, LuastatusLogLevel level, const char *fmt, ...)
         Widget *w = userdata; // w->state == WIDGET_STATE_INITED
         char who[1024];
         ls_ssnprintf(who, sizeof(who), "%s@%s", w->plugin.name, w->filename);
-        common_vlogf(level, who, fmt, vl);
+        common_vsayf(level, who, fmt, vl);
     } else {
-        common_vlogf(level, "barlib", fmt, vl);
+        common_vsayf(level, "barlib", fmt, vl);
     }
     va_end(vl);
 }
@@ -72,10 +72,10 @@ void
 set_error_unlocked(size_t widget_idx)
 {
     switch (barlib.iface.set_error(&barlib.data, widget_idx)) {
-    case LUASTATUS_BARLIB_SET_ERROR_RESULT_OK:
+    case LUASTATUS_RES_OK:
         break;
-    case LUASTATUS_BARLIB_SET_ERROR_RESULT_FATAL_ERR:
-        internal_logf(LUASTATUS_FATAL, "barlib's set_error() reported fatal error");
+    case LUASTATUS_RES_ERR:
+        sayf(LUASTATUS_FATAL, "barlib's set_error() reported fatal error");
         fatal_error_reported();
         break;
     }
@@ -112,16 +112,16 @@ plugin_call_end(void *userdata)
     } else {
         // L: result
         switch (barlib.iface.set(&barlib.data, L, widget_idx)) {
-        case LUASTATUS_BARLIB_SET_RESULT_OK:
+        case LUASTATUS_RES_OK:
             // L: result
             break;
-        case LUASTATUS_BARLIB_SET_RESULT_NONFATAL_ERR:
+        case LUASTATUS_RES_NONFATAL_ERR:
             // L: ?
             set_error_unlocked(widget_idx);
             break;
-        case LUASTATUS_BARLIB_SET_RESULT_FATAL_ERR:
+        case LUASTATUS_RES_ERR:
             // L: ?
-            internal_logf(LUASTATUS_FATAL, "barlib's set() reported fatal error");
+            sayf(LUASTATUS_FATAL, "barlib's set() reported fatal error");
             fatal_error_reported();
             break;
         }
@@ -138,8 +138,8 @@ widget_thread(void *userdata)
     Widget *w = userdata; // w->state == WIDGET_STATE_INITED
 
     w->plugin.iface.run(&w->data, plugin_call_begin, plugin_call_end);
-    internal_logf(LUASTATUS_WARN, "plugin's (%s) run() for widget '%s' has returned",
-                  w->plugin.name, w->filename);
+    sayf(LUASTATUS_WARN, "plugin's (%s) run() for widget '%s' has returned",
+         w->plugin.name, w->filename);
 
     LOCK_B();
     set_error_unlocked(WIDGET_INDEX(w));
@@ -272,9 +272,9 @@ void
 print_usage(void)
 {
     fprintf(stderr, "USAGE: luastatus -b barlib [-B barlib_option [-B ...]] [-l loglevel] [-e] "
-                    "widget.lua [widget2.lua ...]\n");
-    fprintf(stderr, "       luastatus -v\n");
-    fprintf(stderr, "See luastatus(1) for more information.\n");
+                    "widget.lua [widget2.lua ...]\n"
+                    "       luastatus -v\n"
+                    "See luastatus(1) for more information.\n");
 }
 
 void
@@ -288,11 +288,11 @@ init_or_make_dummy(Widget *w)
 {
     assert(w->state == WIDGET_STATE_LOADED);
 
-    if (widget_init(w, (LuastatusPluginData) {.userdata = w, .logf = external_logf})) {
+    if (widget_init(w, (LuastatusPluginData) {.userdata = w, .sayf = external_sayf})) {
         lualibs_register_funcs(w, &barlib);
         return true;
     } else {
-        internal_logf(LUASTATUS_ERR, "can't init widget '%s'", w->filename);
+        sayf(LUASTATUS_ERR, "can't init widget '%s'", w->filename);
         widget_unload(w);
         widget_load_dummy(w);
         return false;
@@ -345,7 +345,7 @@ main(int argc, char **argv)
     }
 
     if (!barlib_name) {
-        internal_logf(LUASTATUS_FATAL, "barlib not specified");
+        sayf(LUASTATUS_FATAL, "barlib not specified");
         print_usage();
         goto cleanup;
     }
@@ -356,31 +356,31 @@ main(int argc, char **argv)
         Widget *w = &widgets[i];
         const char *filename = argv[optind + i];
         if (!widget_load(w, filename)) {
-            internal_logf(LUASTATUS_ERR, "can't load widget '%s'", filename);
+            sayf(LUASTATUS_ERR, "can't load widget '%s'", filename);
             widget_load_dummy(w);
         }
     }
 
     if (!nwidgets) {
-        internal_logf(LUASTATUS_WARN, "no widgets specified (see luastatus(1) for usage info)");
+        sayf(LUASTATUS_WARN, "no widgets specified (see luastatus(1) for usage info)");
     }
 
     if (!load_barlib_by_name(&barlib, barlib_name)) {
-        internal_logf(LUASTATUS_FATAL, "can't load barlib '%s'", barlib_name);
+        sayf(LUASTATUS_FATAL, "can't load barlib '%s'", barlib_name);
         goto cleanup;
     }
     barlib_loaded = true;
 
     if (!check_taints(&barlib, widgets, nwidgets)) {
-        internal_logf(LUASTATUS_FATAL, "entities that share the same taint have been found");
+        sayf(LUASTATUS_FATAL, "entities that share the same taint have been found");
         goto cleanup;
     }
 
     LS_VECTOR_PUSH(barlib_args, NULL);
-    if (!barlib_init(&barlib, (LuastatusBarlibData) {.userdata = NULL, .logf = external_logf},
+    if (!barlib_init(&barlib, (LuastatusBarlibData) {.userdata = NULL, .sayf = external_sayf},
                      (const char *const *) barlib_args.data, nwidgets))
     {
-        internal_logf(LUASTATUS_FATAL, "can't init the barlib");
+        sayf(LUASTATUS_FATAL, "can't init the barlib");
         goto cleanup;
     }
 
@@ -400,10 +400,10 @@ main(int argc, char **argv)
 
     if (barlib.iface.event_watcher) {
         switch (barlib.iface.event_watcher(&barlib.data, ew_call_begin, ew_call_end)) {
-        case LUASTATUS_BARLIB_EW_RESULT_NO_MORE_EVENTS:
+        case LUASTATUS_RES_NONFATAL_ERR:
             break;
-        case LUASTATUS_BARLIB_EW_RESULT_FATAL_ERR:
-            internal_logf(LUASTATUS_FATAL, "barlib's event_watcher() reported fatal error");
+        case LUASTATUS_RES_ERR:
+            sayf(LUASTATUS_FATAL, "barlib's event_watcher() reported fatal error");
             fatal_error_reported();
             break;
         }
@@ -413,12 +413,12 @@ main(int argc, char **argv)
         PTH_CHECK(pthread_join(threads.data[i], NULL));
     }
 
-    internal_logf(LUASTATUS_WARN, "all plugins' run() and barlib's event_watcher() have returned");
+    sayf(LUASTATUS_WARN, "all plugins' run() and barlib's event_watcher() have returned");
     if (no_hang) {
-        internal_logf(LUASTATUS_INFO, "-e passed, exiting");
+        sayf(LUASTATUS_INFO, "-e passed, exiting");
         ret = EXIT_SUCCESS;
     } else {
-        internal_logf(LUASTATUS_INFO, "since -e not passed, will hang now");
+        sayf(LUASTATUS_INFO, "since -e not passed, will hang now");
         while (1) {
             pause();
         }

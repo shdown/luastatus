@@ -6,7 +6,7 @@
 #include "libls/sprintf_utils.h"
 #include "libls/compdep.h"
 
-LuastatusLogLevel global_loglevel = DEFAULT_LOGLEVEL;
+int global_loglevel = DEFAULT_LOGLEVEL;
 
 #define EXPAND_LOGLEVELS() \
     X(LUASTATUS_FATAL,   "fatal") \
@@ -18,7 +18,7 @@ LuastatusLogLevel global_loglevel = DEFAULT_LOGLEVEL;
     X(LUASTATUS_TRACE,   "trace")
 
 const char *
-loglevel_tostr(LuastatusLogLevel level)
+loglevel_tostr(int level)
 {
     switch (level) {
 #define X(Level_, Name_) case Level_: return Name_;
@@ -30,7 +30,7 @@ loglevel_tostr(LuastatusLogLevel level)
     LS_UNREACHABLE();
 }
 
-LuastatusLogLevel
+int
 loglevel_fromstr(const char *s)
 {
 #define X(Level_, Name_) \
@@ -45,7 +45,7 @@ loglevel_fromstr(const char *s)
 #undef EXPAND_LOGLEVELS
 
 void
-common_vlogf(LuastatusLogLevel level, const char *subsystem, const char *fmt, va_list vl)
+common_vsayf(int level, const char *subsystem, const char *fmt, va_list vl)
 {
     if (level > global_loglevel) {
         return;

@@ -2,7 +2,7 @@
 #define markup_utils_h_
 
 #include <stddef.h>
-#include "libls/string.h"
+#include "libls/string_.h"
 
 void
 lemonbar_ls_string_append_escaped_b(LSString *buf, const char *s, size_t ns);

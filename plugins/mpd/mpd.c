@@ -1,5 +1,5 @@
 #include "include/plugin.h"
-#include "include/plugin_logf_macros.h"
+#include "include/sayf_macros.h"
 #include "include/plugin_utils.h"
 
 #include <lua.h>
@@ -41,7 +41,7 @@ destroy(LuastatusPluginData *pd)
     free(p);
 }
 
-LuastatusPluginInitResult
+int
 init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
@@ -60,7 +60,7 @@ init(LuastatusPluginData *pd, lua_State *L)
 
     PU_MAYBE_VISIT_NUM("port", n,
         if (n < 0 || n > 65535) {
-            LUASTATUS_FATALF(pd, "port (%g) is not a valid port number", (double) n);
+            LS_FATALF(pd, "port (%g) is not a valid port number", (double) n);
             goto error;
         }
         p->port = n;
@@ -68,7 +68,7 @@ init(LuastatusPluginData *pd, lua_State *L)
 
     PU_MAYBE_VISIT_STR("password", s,
         if ((strchr(s, '\n'))) {
-            LUASTATUS_FATALF(pd, "password contains a line break");
+            LS_FATALF(pd, "password contains a line break");
             goto error;
         }
         p->password = ls_xstrdup(s);
@@ -76,14 +76,14 @@ init(LuastatusPluginData *pd, lua_State *L)
 
     PU_MAYBE_VISIT_NUM("timeout", n,
         if (ls_timespec_is_invalid(p->timeout = ls_timespec_from_seconds(n)) && n >= 0) {
-            LUASTATUS_FATALF(pd, "'timeout' is invalid");
+            LS_FATALF(pd, "'timeout' is invalid");
             goto error;
         }
     );
 
     PU_MAYBE_VISIT_NUM("retry_in", n,
         if (ls_timespec_is_invalid(p->retry_in = ls_timespec_from_seconds(n)) && n >= 0) {
-            LUASTATUS_FATALF(pd, "'retry_in' is invalid");
+            LS_FATALF(pd, "'retry_in' is invalid");
             goto error;
         }
     );
@@ -92,11 +92,11 @@ init(LuastatusPluginData *pd, lua_State *L)
         p->retry_fifo = ls_xstrdup(s);
     );
 
-    return LUASTATUS_PLUGIN_INIT_RESULT_OK;
+    return LUASTATUS_RES_OK;
 
 error:
     destroy(pd);
-    return LUASTATUS_PLUGIN_INIT_RESULT_ERR;
+    return LUASTATUS_RES_ERR;
 }
 
 // string length without trailing newlines
@@ -190,7 +190,7 @@ interact(int fd, LuastatusPluginData *pd,
         if (rt_ == MPDPROTO_RESP_TYPE_OK) { \
             break; \
         } else if (rt_ == MPDPROTO_RESP_TYPE_ACK) { \
-            LUASTATUS_ERRF(pd, "server said: %.*s", (int) dollar_strlen(buf), buf); \
+            LS_ERRF(pd, "server said: %.*s", (int) dollar_strlen(buf), buf); \
             goto error; \
         } else { \
             __VA_ARGS__ \
@@ -199,7 +199,7 @@ interact(int fd, LuastatusPluginData *pd,
 
     if (!(f = fdopen(fd, "r+"))) {
         LS_WITH_ERRSTR(str, errno,
-            LUASTATUS_ERRF(pd, "fdopen: %s", str);
+            LS_ERRF(pd, "fdopen: %s", str);
         );
         goto error;
     }
@@ -208,7 +208,7 @@ interact(int fd, LuastatusPluginData *pd,
     // read and check the greeting
     GETLINE();
     if (strncmp(buf, "OK MPD ", 7) != 0) {
-        LUASTATUS_ERRF(pd, "bad greeting: %.*s", (int) dollar_strlen(buf), buf);
+        LS_ERRF(pd, "bad greeting: %.*s", (int) dollar_strlen(buf), buf);
         goto error;
     }
 
@@ -223,7 +223,7 @@ interact(int fd, LuastatusPluginData *pd,
         }
         GETLINE();
         if (mpdproto_response_type(buf) != MPDPROTO_RESP_TYPE_OK) {
-            LUASTATUS_ERRF(pd, "(password) server said: %.*s", (int) dollar_strlen(buf), buf);
+            LS_ERRF(pd, "(password) server said: %.*s", (int) dollar_strlen(buf), buf);
             goto error;
         }
     }
@@ -231,13 +231,13 @@ interact(int fd, LuastatusPluginData *pd,
     sigset_t allsigs;
     if (sigfillset(&allsigs) < 0) {
         LS_WITH_ERRSTR(str, errno,
-            LUASTATUS_ERRF(pd, "sigfillset: %s", str);
+            LS_ERRF(pd, "sigfillset: %s", str);
         );
         goto error;
     }
 
     if (fd >= FD_SETSIZE && !ls_timespec_is_invalid(p->timeout)) {
-        LUASTATUS_WARNF(pd, "connection file descriptor is too large, will not report time outs");
+        LS_WARNF(pd, "connection file descriptor is too large, will not report time outs");
     }
 
     fd_set fds;
@@ -280,7 +280,7 @@ interact(int fd, LuastatusPluginData *pd,
                 int r = pselect(fd + 1, &fds, NULL, NULL, &p->timeout, &allsigs);
                 if (r < 0) {
                     LS_WITH_ERRSTR(str, errno,
-                        LUASTATUS_ERRF(pd, "pselect (on connection file descriptor): %s", str);
+                        LS_ERRF(pd, "pselect (on connection file descriptor): %s", str);
                     );
                     goto error;
                 } else if (r == 0) {
@@ -301,10 +301,10 @@ interact(int fd, LuastatusPluginData *pd,
 
 io_error:
     if (feof(f)) {
-        LUASTATUS_ERRF(pd, "server closed the connection");
+        LS_ERRF(pd, "server closed the connection");
     } else {
         LS_WITH_ERRSTR(str, errno,
-            LUASTATUS_ERRF(pd, "I/O error: %s", str);
+            LS_ERRF(pd, "I/O error: %s", str);
         );
     }
 
@@ -326,7 +326,7 @@ run(LuastatusPluginData *pd, LuastatusPluginCallBegin call_begin, LuastatusPlugi
 
     if (ls_wakeup_fifo_init(&w) < 0) {
         LS_WITH_ERRSTR(s, errno,
-            LUASTATUS_FATALF(pd, "ls_wakeup_fifo_init: %s", s);
+            LS_FATALF(pd, "ls_wakeup_fifo_init: %s", s);
         );
         goto error;
     }
@@ -347,7 +347,7 @@ run(LuastatusPluginData *pd, LuastatusPluginCallBegin call_begin, LuastatusPlugi
         }
 
         if (ls_timespec_is_invalid(p->retry_in)) {
-            LUASTATUS_FATALF(pd, "an error occurred; not retrying as requested");
+            LS_FATALF(pd, "an error occurred; not retrying as requested");
             goto error;
         }
 
@@ -355,12 +355,12 @@ run(LuastatusPluginData *pd, LuastatusPluginCallBegin call_begin, LuastatusPlugi
 
         if (ls_wakeup_fifo_open(&w) < 0) {
             LS_WITH_ERRSTR(s, errno,
-                LUASTATUS_WARNF(pd, "ls_wakeup_fifo_open: %s: %s", p->retry_fifo, s);
+                LS_WARNF(pd, "ls_wakeup_fifo_open: %s: %s", p->retry_fifo, s);
             );
         }
         if (ls_wakeup_fifo_wait(&w) < 0) {
             LS_WITH_ERRSTR(s, errno,
-                LUASTATUS_FATALF(pd, "ls_wakeup_fifo_wait: %s", s);
+                LS_FATALF(pd, "ls_wakeup_fifo_wait: %s", s);
             );
             goto error;
         }

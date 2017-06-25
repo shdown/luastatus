@@ -4,33 +4,28 @@
 #include <lua.h>
 #include <stddef.h>
 
-#include "loglevel.h"
+#include "common.h"
 
-#ifndef LUASTATUS_PLUGIN_LOGF_ATTRIBUTE
+#ifndef LUASTATUS_PLUGIN_SAYF_ATTRIBUTE
 #   ifdef __GNUC__
-#       define LUASTATUS_PLUGIN_LOGF_ATTRIBUTE __attribute__((format(printf, 3, 4)))
+#       define LUASTATUS_PLUGIN_SAYF_ATTRIBUTE __attribute__((format(printf, 3, 4)))
 #   else
-#       define LUASTATUS_PLUGIN_LOGF_ATTRIBUTE /*nothing*/
+#       define LUASTATUS_PLUGIN_SAYF_ATTRIBUTE /*nothing*/
 #   endif
 #endif
 
-typedef LUASTATUS_PLUGIN_LOGF_ATTRIBUTE void LuastatusPluginLogf(void *userdata,
-                                                                 LuastatusLogLevel level,
+typedef LUASTATUS_PLUGIN_SAYF_ATTRIBUTE void LuastatusPluginSayf(void *userdata,
+                                                                 int level,
                                                                  const char *fmt, ...);
 
 typedef struct {
     void *priv;
     void *userdata;
-    LuastatusPluginLogf *logf;
+    LuastatusPluginSayf *sayf;
 } LuastatusPluginData;
 
 typedef lua_State *LuastatusPluginCallBegin(void *userdata);
 typedef void       LuastatusPluginCallEnd(void *userdata);
-
-typedef enum {
-    LUASTATUS_PLUGIN_INIT_RESULT_OK,
-    LUASTATUS_PLUGIN_INIT_RESULT_ERR,
-} LuastatusPluginInitResult;
 
 typedef struct {
     // This function must initialize a widget by assigning something to pd->priv.
@@ -56,13 +51,13 @@ typedef struct {
     //
     // It must return:
     //
-    //   LUASTATUS_PLUGIN_INIT_RESULT_OK on success.
+    //   LUASTATUS_RES_OK on success.
     //     In this case, L's stack must not contain any extra elements pushed onto it;
     //
-    //   LUASTATUS_PLUGIN_INIT_RESULT_ERR on failure.
+    //   LUASTATUS_RES_ERR on failure.
     //     In this case, L's stack may contain extra elements pushed onto it.
     //
-    LuastatusPluginInitResult (*init)(LuastatusPluginData *pd, lua_State *L);
+    int (*init)(LuastatusPluginData *pd, lua_State *L);
 
     // This function must assign Lua functions that the plugin provides to the table on the top of
     // L's stack.

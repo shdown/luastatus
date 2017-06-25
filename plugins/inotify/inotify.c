@@ -8,7 +8,7 @@
 #include <errno.h>
 #include <sys/inotify.h>
 #include "include/plugin.h"
-#include "include/plugin_logf_macros.h"
+#include "include/sayf_macros.h"
 #include "include/plugin_utils.h"
 #include "libls/alloc_utils.h"
 #include "libls/vector.h"
@@ -99,7 +99,7 @@ parse_mask(LuastatusPluginData *pd, const char *buf)
             }
         }
         if (!v) {
-            LUASTATUS_FATALF(pd, "can't parse mask segment starting from: '%s'", buf);
+            LS_FATALF(pd, "can't parse mask segment starting from: '%s'", buf);
             return 0;
         }
         if (*v == '\0') {
@@ -111,7 +111,7 @@ parse_mask(LuastatusPluginData *pd, const char *buf)
     return mask;
 }
 
-LuastatusPluginInitResult
+int
 init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
@@ -122,27 +122,27 @@ init(LuastatusPluginData *pd, lua_State *L)
 
     if ((p->fd = compat_inotify_init(false, true)) < 0) {
         LS_WITH_ERRSTR(s, errno,
-            LUASTATUS_FATALF(pd, "inotify_init: %s", s);
+            LS_FATALF(pd, "inotify_init: %s", s);
         );
         goto error;
     }
 
     PU_TRAVERSE_TABLE("watch",
         uint32_t mask;
-        PU_VISIT_STR_AT(LS_LUA_TRAVERSE_VALUE, "'watch' value", s,
+        PU_VISIT_STR_AT(LS_LUA_VALUE, "'watch' value", s,
             if (!(mask = parse_mask(pd, s))) {
                 goto error;
             }
         );
-        PU_VISIT_LSTR_AT(LS_LUA_TRAVERSE_KEY, "'watch' key", path, npath,
+        PU_VISIT_LSTR_AT(LS_LUA_KEY, "'watch' key", path, npath,
             if (strlen(path) != npath) {
-                LUASTATUS_FATALF(pd, "'watch' key contains a NIL character");
+                LS_FATALF(pd, "'watch' key contains a NIL character");
                 goto error;
             }
             int wd = inotify_add_watch(p->fd, path, mask);
             if (wd < 0) {
                 LS_WITH_ERRSTR(s, errno,
-                    LUASTATUS_FATALF(pd, "inotify_add_watch: %s: %s", path, s);
+                    LS_FATALF(pd, "inotify_add_watch: %s: %s", path, s);
                 );
                 goto error;
             }
@@ -153,14 +153,14 @@ init(LuastatusPluginData *pd, lua_State *L)
         );
     );
     if (!p->watches.size) {
-        LUASTATUS_WARNF(pd, "nothing to watch");
+        LS_WARNF(pd, "nothing to watch");
     }
 
-    return LUASTATUS_PLUGIN_INIT_RESULT_OK;
+    return LUASTATUS_RES_OK;
 
 error:
     destroy(pd);
-    return LUASTATUS_PLUGIN_INIT_RESULT_ERR;
+    return LUASTATUS_RES_ERR;
 }
 
 static
@@ -214,11 +214,11 @@ run(
                 continue;
             }
             LS_WITH_ERRSTR(s, errno,
-                LUASTATUS_FATALF(pd, "read: %s", s);
+                LS_FATALF(pd, "read: %s", s);
             );
             break;
         } else if (r == 0) {
-            LUASTATUS_FATALF(pd, "read() returned 0 (no more events?)");
+            LS_FATALF(pd, "read() returned 0 (no more events?)");
             break;
         }
         const struct inotify_event *event;
@@ -238,7 +238,7 @@ run(
                 push_event(call_begin(pd->userdata), event, path);
                 call_end(pd->userdata);
             } else {
-                LUASTATUS_WARNF(pd, "event with unknown watch descriptor has been read");
+                LS_WARNF(pd, "event with unknown watch descriptor has been read");
             }
         }
     }

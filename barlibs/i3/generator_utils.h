@@ -1,7 +1,7 @@
 #ifndef generator_utils_h_
 #define generator_utils_h_
 
-#include "libls/string.h"
+#include "libls/string_.h"
 #include <stddef.h>
 #include <stdbool.h>
 

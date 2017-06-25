@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include "include/loglevel.h"
+#include "include/common.h"
 #include "libls/vector.h"
 #include "libls/compdep.h"
 #include "log.h"
@@ -43,14 +43,14 @@ static inline
 void
 log_taint_block_begin(const char *id)
 {
-    internal_logf(LUASTATUS_INFO, "the following entities share taint '%s':", id);
+    sayf(LUASTATUS_INFO, "the following entities share taint '%s':", id);
 }
 
 static inline
 void
 log_taint_owner_barlib(LS_ATTR_UNUSED_ARG Barlib *b)
 {
-    internal_logf(LUASTATUS_INFO, "  * the barlib");
+    sayf(LUASTATUS_INFO, "  * the barlib");
 }
 
 static inline
@@ -59,8 +59,7 @@ log_taint_owner_widget(Widget *w)
 {
     assert(w->state != WIDGET_STATE_DUMMY);
 
-    internal_logf(LUASTATUS_INFO, "  * plugin '%s' requested by widget '%s'", w->plugin.name,
-                  w->filename);
+    sayf(LUASTATUS_INFO, "  * plugin '%s' requested by widget '%s'", w->plugin.name, w->filename);
 }
 
 bool

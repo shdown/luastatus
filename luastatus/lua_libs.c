@@ -14,13 +14,13 @@
 #include "libls/getenv_r.h"
 #include "libls/alloc_utils.h"
 #include "libls/vector.h"
-#include "libls/string.h"
+#include "libls/string_.h"
 #include "libls/io_utils.h"
 #include "libls/sprintf_utils.h"
 #include "libls/errno_utils.h"
 #include "libls/osdep.h"
 #include "libls/io_utils.h"
-#include "include/loglevel.h"
+#include "include/common.h"
 #include "log.h"
 #include "config.generated.h"
 #include "barlib.h"
@@ -138,14 +138,14 @@ lspawn_func(lua_State *L, const char *funcname, bool return_output, bool return_
     }
     size_t nrealargs = 0;
     LS_LUA_TRAVERSE(L, 1) {
-        if (!lua_isnumber(L, LS_LUA_TRAVERSE_KEY)) {
+        if (!lua_isnumber(L, LS_LUA_KEY)) {
             USAGE_ERR("%s: table key: expected number, found %s", funcname, luaL_typename(L, -2));
         }
-        if (!lua_isstring(L, LS_LUA_TRAVERSE_VALUE)) {
+        if (!lua_isstring(L, LS_LUA_VALUE)) {
             USAGE_ERR("%s: table element: expected string, found %s", funcname,
-                      luaL_typename(L, LS_LUA_TRAVERSE_VALUE));
+                      luaL_typename(L, LS_LUA_VALUE));
         }
-        LS_VECTOR_PUSH(argv, ls_xstrdup(lua_tostring(L, LS_LUA_TRAVERSE_VALUE)));
+        LS_VECTOR_PUSH(argv, ls_xstrdup(lua_tostring(L, LS_LUA_VALUE)));
         ++nrealargs;
     }
     if (!nrealargs) {
@@ -157,7 +157,7 @@ lspawn_func(lua_State *L, const char *funcname, bool return_output, bool return_
     if ((pid = ls_spawnp_pipe(argv.data[0], return_output ? &pipe_fd : NULL, argv.data)) < 0) {
         pipe_fd = -1;
         LS_WITH_ERRSTR(s, errno,
-            internal_logf(LUASTATUS_ERR, "%s: can't spawn child process: %s", funcname, s);
+            sayf(LUASTATUS_ERR, "%s: can't spawn child process: %s", funcname, s);
         );
         SPAWN_ERR();
     }
@@ -168,7 +168,7 @@ lspawn_func(lua_State *L, const char *funcname, bool return_output, bool return_
                                 &output_buf.capacity) < 0)
         {
             LS_WITH_ERRSTR(s, errno,
-                internal_logf(LUASTATUS_ERR, "%s: read: %s", funcname, s);
+                sayf(LUASTATUS_ERR, "%s: read: %s", funcname, s);
             );
             SPAWN_ERR();
         }
@@ -181,7 +181,7 @@ lspawn_func(lua_State *L, const char *funcname, bool return_output, bool return_
         pid = -1;
         if (r < 0) {
             LS_WITH_ERRSTR(s, errno,
-                internal_logf(LUASTATUS_ERR, "%s: waitpid: %s", funcname, s);
+                sayf(LUASTATUS_ERR, "%s: waitpid: %s", funcname, s);
             );
             SPAWN_ERR();
         }
@@ -229,7 +229,7 @@ l_spawn(lua_State *L)
 void
 lualibs_inject(lua_State *L)
 {
-    ls_lua_pushglobaltable(L); // L: _G
+    ls_lua_pushg(L); // L: _G
     ls_lua_rawgetf(L, "os"); // L: _G os
 
     lua_pushcfunction(L, l_os_execute); // L: _G os l_os_execute
@@ -267,7 +267,7 @@ lualibs_register_funcs(Widget *w, Barlib *barlib)
     assert(barlib->state == BARLIB_STATE_INITED);
 
     lua_State *L = w->L; // L: -
-    ls_lua_pushglobaltable(L); // L: _G
+    ls_lua_pushg(L); // L: _G
     ls_lua_rawgetf(L, "luastatus"); // L: _G luastatus
 
     // Consider the following widget:
@@ -278,9 +278,8 @@ lualibs_register_funcs(Widget *w, Barlib *barlib)
     // Unlike the widget code, all our C code runs "unprotected", so without this check, Lua would
     // just panic on attempt to index a non-table value.
     if (!lua_istable(L, -1)) {
-        internal_logf(LUASTATUS_WARN,
-                      "widget '%s': 'luastatus' is not a table anymore, will not register "
-                      "plugin/barlib functions", w->filename);
+        sayf(LUASTATUS_WARN, "widget '%s': 'luastatus' is not a table anymore, will not register "
+                             "plugin/barlib functions", w->filename);
         goto done;
     }
 

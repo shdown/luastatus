@@ -2,7 +2,7 @@
 #define ls_strarr_h_
 
 #include <stddef.h>
-#include "string.h"
+#include "string_.h"
 #include "vector.h"
 
 // An array of constant strings on a single buffer. Panics on allocation failure.

@@ -7,8 +7,8 @@
 #include <lua.h>
 #include <lauxlib.h>
 #include "include/barlib.h"
-#include "include/barlib_logf_macros.h"
-#include "libls/string.h"
+#include "include/sayf_macros.h"
+#include "libls/string_.h"
 #include "libls/vector.h"
 #include "libls/alloc_utils.h"
 #include "libls/parse_int.h"
@@ -37,7 +37,7 @@ destroy(LuastatusBarlibData *bd)
     free(p);
 }
 
-LuastatusBarlibInitResult
+int
 init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
 {
     Priv *p = bd->priv = LS_XNEW(Priv, 1);
@@ -61,13 +61,13 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
     for (const char *const *s = opts; *s; ++s) {
         const char *v;
         if ((v = ls_strfollow(*s, "in_fd="))) {
-            if ((in_fd = ls_full_parse_uint_cstr(v)) < 0) {
-                LUASTATUS_FATALF(bd, "in_fd value is not a valid unsigned integer");
+            if ((in_fd = ls_full_parse_uint_s(v)) < 0) {
+                LS_FATALF(bd, "in_fd value is not a valid unsigned integer");
                 goto error;
             }
         } else if ((v = ls_strfollow(*s, "out_fd="))) {
-            if ((out_fd = ls_full_parse_uint_cstr(v)) < 0) {
-                LUASTATUS_FATALF(bd, "out_fd value is not a valid unsigned integer");
+            if ((out_fd = ls_full_parse_uint_s(v)) < 0) {
+                LS_FATALF(bd, "out_fd value is not a valid unsigned integer");
                 goto error;
             }
         } else if (strcmp(*s, "no_click_events") == 0) {
@@ -77,7 +77,7 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
         } else if (strcmp(*s, "allow_stopping") == 0) {
             allow_stopping = true;
         } else {
-            LUASTATUS_FATALF(bd, "unknown option '%s'", *s);
+            LS_FATALF(bd, "unknown option '%s'", *s);
             goto error;
         }
     }
@@ -86,11 +86,11 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
     // we require in_fd/out_fd to be not less that 3 because making stdin/stdout/stderr CLOEXEC has
     // very bad consequences, and we just don't want to complicate the logic.
     if (in_fd < 3) {
-        LUASTATUS_FATALF(bd, "in_fd is not specified or less than 3");
+        LS_FATALF(bd, "in_fd is not specified or less than 3");
         goto error;
     }
     if (out_fd < 3) {
-        LUASTATUS_FATALF(bd, "out_fd is not specified or less than 3");
+        LS_FATALF(bd, "out_fd is not specified or less than 3");
         goto error;
     }
 
@@ -98,7 +98,7 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
     p->in_fd = in_fd;
     if (!(p->out = fdopen(out_fd, "w"))) {
         LS_WITH_ERRSTR(s, errno,
-            LUASTATUS_FATALF(bd, "can't fdopen %d: %s", out_fd, s);
+            LS_FATALF(bd, "can't fdopen %d: %s", out_fd, s);
         );
         goto error;
     }
@@ -106,13 +106,13 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
     // make CLOEXEC
     if (ls_make_cloexec(in_fd) < 0) {
         LS_WITH_ERRSTR(s, errno,
-            LUASTATUS_FATALF(bd, "can't make fd %d CLOEXEC: %s", in_fd, s);
+            LS_FATALF(bd, "can't make fd %d CLOEXEC: %s", in_fd, s);
         );
         goto error;
     }
     if (ls_make_cloexec(out_fd) < 0) {
         LS_WITH_ERRSTR(s, errno,
-            LUASTATUS_FATALF(bd, "can't make fd %d CLOEXEC: %s", out_fd, s);
+            LS_FATALF(bd, "can't make fd %d CLOEXEC: %s", out_fd, s);
         );
         goto error;
     }
@@ -126,16 +126,16 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
     fflush(p->out);
     if (ferror(p->out)) {
         LS_WITH_ERRSTR(s, errno,
-            LUASTATUS_FATALF(bd, "write error: %s", s);
+            LS_FATALF(bd, "write error: %s", s);
         );
         goto error;
     }
 
-    return LUASTATUS_BARLIB_INIT_RESULT_OK;
+    return LUASTATUS_RES_OK;
 
 error:
     destroy(bd);
-    return LUASTATUS_BARLIB_INIT_RESULT_ERR;
+    return LUASTATUS_RES_ERR;
 }
 
 bool
@@ -162,7 +162,7 @@ redraw(LuastatusBarlibData *bd)
     fflush(out);
     if (ferror(out)) {
         LS_WITH_ERRSTR(s, errno,
-            LUASTATUS_FATALF(bd, "write error: %s", s);
+            LS_FATALF(bd, "write error: %s", s);
         );
         return false;
     }
@@ -210,14 +210,14 @@ append_segment(LuastatusBarlibData *bd, lua_State *L, int table_pos, size_t widg
     ls_string_append_f(s, "{\"name\":\"%zu\"", widget_idx);
     bool separator_key_found = false;
     LS_LUA_TRAVERSE(L, table_pos) {
-        if (!lua_isstring(L, LS_LUA_TRAVERSE_KEY)) {
-            LUASTATUS_ERRF(bd, "segment key: expected string, found %s", luaL_typename(L, -2));
+        if (!lua_isstring(L, LS_LUA_KEY)) {
+            LS_ERRF(bd, "segment key: expected string, found %s", luaL_typename(L, -2));
             return false;
         }
-        const char *key = lua_tostring(L, LS_LUA_TRAVERSE_KEY);
+        const char *key = lua_tostring(L, LS_LUA_KEY);
         if (strcmp(key, "name") == 0) {
-            LUASTATUS_WARNF(bd, "segment: ignoring 'name', it is set automatically; use 'instance' "
-                                "instead");
+            LS_WARNF(bd, "segment: ignoring 'name', it is set automatically; use 'instance' "
+                         "instead");
             continue;
         } else if (strcmp(key, "separator") == 0) {
             separator_key_found = true;
@@ -225,22 +225,22 @@ append_segment(LuastatusBarlibData *bd, lua_State *L, int table_pos, size_t widg
         ls_string_append_c(s, ',');
         json_ls_string_append_escaped_s(s, key);
         ls_string_append_c(s, ':');
-        switch (lua_type(L, LS_LUA_TRAVERSE_VALUE)) {
+        switch (lua_type(L, LS_LUA_VALUE)) {
         case LUA_TNUMBER:
-            if (!json_ls_string_append_number(s, lua_tonumber(L, LS_LUA_TRAVERSE_VALUE))) {
-                LUASTATUS_ERRF(bd, "segment entry '%s': invalid number (NaN/Inf)", key);
+            if (!json_ls_string_append_number(s, lua_tonumber(L, LS_LUA_VALUE))) {
+                LS_ERRF(bd, "segment entry '%s': invalid number (NaN/Inf)", key);
                 return false;
             }
             break;
         case LUA_TSTRING:
-            json_ls_string_append_escaped_s(s, lua_tostring(L, LS_LUA_TRAVERSE_VALUE));
+            json_ls_string_append_escaped_s(s, lua_tostring(L, LS_LUA_VALUE));
             break;
         case LUA_TBOOLEAN:
-            ls_string_append_s(s, lua_toboolean(L, LS_LUA_TRAVERSE_VALUE) ? "true" : "false");
+            ls_string_append_s(s, lua_toboolean(L, LS_LUA_VALUE) ? "true" : "false");
             break;
         default:
-            LUASTATUS_ERRF(bd, "segment entry '%s': expected string, number or boolean, found %s",
-                           key, luaL_typename(L, LS_LUA_TRAVERSE_VALUE));
+            LS_ERRF(bd, "segment entry '%s': expected string, number or boolean, found %s",
+                key, luaL_typename(L, LS_LUA_VALUE));
             return false;
         }
     }
@@ -251,7 +251,7 @@ append_segment(LuastatusBarlibData *bd, lua_State *L, int table_pos, size_t widg
     return true;
 }
 
-LuastatusBarlibSetResult
+int
 set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
 {
     Priv *p = bd->priv;
@@ -270,12 +270,12 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
             lua_pop(L, 2); // L: table
             if (is_array) {
                 LS_LUA_TRAVERSE(L, -1) {
-                    if (!lua_istable(L, LS_LUA_TRAVERSE_VALUE)) {
-                        LUASTATUS_ERRF(bd, "array value: expected table, found %s",
-                                       luaL_typename(L, LS_LUA_TRAVERSE_VALUE));
+                    if (!lua_istable(L, LS_LUA_VALUE)) {
+                        LS_ERRF(bd, "array value: expected table, found %s",
+                            luaL_typename(L, LS_LUA_VALUE));
                         goto invalid_data;
                     }
-                    if (!append_segment(bd, L, LS_LUA_TRAVERSE_VALUE, widget_idx)) {
+                    if (!append_segment(bd, L, LS_LUA_VALUE, widget_idx)) {
                         goto invalid_data;
                     }
                 }
@@ -287,22 +287,22 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
         } // else: L: table
         break;
     default:
-        LUASTATUS_ERRF(bd, "expected table or nil, found %s", luaL_typename(L, -1));
+        LS_ERRF(bd, "expected table or nil, found %s", luaL_typename(L, -1));
         goto invalid_data;
     }
 
     if (!redraw(bd)) {
-        return LUASTATUS_BARLIB_SET_RESULT_FATAL_ERR;
+        return LUASTATUS_RES_ERR;
     }
-    return LUASTATUS_BARLIB_SET_RESULT_OK;
+    return LUASTATUS_RES_OK;
 
 invalid_data:
     // the buffer may contain an invalid JSON at this point; just clear it.
     LS_VECTOR_CLEAR(p->bufs[widget_idx]);
-    return LUASTATUS_BARLIB_SET_RESULT_NONFATAL_ERR;
+    return LUASTATUS_RES_NONFATAL_ERR;
 }
 
-LuastatusBarlibSetErrorResult
+int
 set_error(LuastatusBarlibData *bd, size_t widget_idx)
 {
     Priv *p = bd->priv;
@@ -315,9 +315,9 @@ set_error(LuastatusBarlibData *bd, size_t widget_idx)
     ls_string_append_c(s, '}');
 
     if (!redraw(bd)) {
-        return LUASTATUS_BARLIB_SET_ERROR_RESULT_FATAL_ERR;
+        return LUASTATUS_RES_ERR;
     }
-    return LUASTATUS_BARLIB_SET_ERROR_RESULT_OK;
+    return LUASTATUS_RES_OK;
 }
 
 LuastatusBarlibIface luastatus_barlib_iface = {

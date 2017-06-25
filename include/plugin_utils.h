@@ -6,18 +6,18 @@
 #include <lua.h>
 #include <lauxlib.h>
 #include "libls/lua_utils.h"
-#include "include/loglevel.h"
+#include "common.h"
 
 #ifndef PU_L_NAME
-#define PU_L_NAME L
+#   define PU_L_NAME L
 #endif
 
 #ifndef PU_PD_NAME
-#define PU_PD_NAME pd
+#   define PU_PD_NAME pd
 #endif
 
 #ifndef PU_ON_ERROR
-#define PU_ON_ERROR goto error;
+#   define PU_ON_ERROR goto error;
 #endif
 
 //------------------------------------------------------------------------------
@@ -25,7 +25,7 @@
 #define PU_CHECK_TYPE_AT(StackIndex_, StringRepr_, LuaType_) \
     do { \
         if (lua_type(PU_L_NAME, StackIndex_) != LuaType_) { \
-            PU_PD_NAME->logf(PU_PD_NAME->userdata, LUASTATUS_FATAL, "%s: expected %s, found %s", \
+            PU_PD_NAME->sayf(PU_PD_NAME->userdata, LUASTATUS_FATAL, "%s: expected %s, found %s", \
                              StringRepr_, lua_typename(PU_L_NAME, LuaType_), \
                              luaL_typename(PU_L_NAME, StackIndex_)); \
             PU_ON_ERROR \

@@ -8,9 +8,9 @@
 #include <math.h>
 #include "libls/errno_utils.h"
 #include "libls/parse_int.h"
-#include "libls/string.h"
+#include "libls/string_.h"
 #include "libls/vector.h"
-#include "include/barlib_logf_macros.h"
+#include "include/sayf_macros.h"
 #include "priv.h"
 
 typedef struct {
@@ -66,18 +66,18 @@ int
 callback_value_helper(EventWatcherCtx *ctx, EventWatcherValue value)
 {
     if (ctx->state != EVENT_WATCHER_STATE_INSIDE_MAP) {
-        LUASTATUS_ERRF(ctx->bd, "(event watcher) unexpected JSON value");
+        LS_ERRF(ctx->bd, "(event watcher) unexpected JSON value");
         return 0;
     }
     if (ctx->last_key.size == 4 &&
         memcmp("name", ctx->buf.data + ctx->last_key.offset, 4) == 0)
     {
         if (value.type != EVENT_WATCHER_VALUE_TYPE_STRING) {
-            LUASTATUS_ERRF(ctx->bd, "(event watcher) 'name' is not a string");
+            LS_ERRF(ctx->bd, "(event watcher) 'name' is not a string");
             return 0;
         }
         // parse error is OK here, widget_idx is checked later
-        ctx->widget_idx = ls_full_parse_uint(ctx->buf.data + value.u.s.offset, value.u.s.size);
+        ctx->widget_idx = ls_full_parse_uint_b(ctx->buf.data + value.u.s.offset, value.u.s.size);
     } else {
         LS_VECTOR_PUSH(ctx->params, ((EventWatcherKeyValue) {
             .key = ctx->last_key,
@@ -93,7 +93,7 @@ callback_null(void *vctx)
 {
     EventWatcherCtx *ctx = vctx;
     if (ctx->state != EVENT_WATCHER_STATE_INSIDE_MAP) {
-        LUASTATUS_ERRF(ctx->bd, "(event watcher) unexpected null");
+        LS_ERRF(ctx->bd, "(event watcher) unexpected null");
         return 0;
     }
     // nothing to do: Lua tables can't have nil values
@@ -146,7 +146,7 @@ callback_start_map(void *vctx)
 {
     EventWatcherCtx *ctx = vctx;
     if (ctx->state != EVENT_WATCHER_STATE_EXPECTING_MAP_BEGIN) {
-        LUASTATUS_ERRF(ctx->bd, "(event watcher) unexpected {");
+        LS_ERRF(ctx->bd, "(event watcher) unexpected {");
         return 0;
     }
     ctx->state = EVENT_WATCHER_STATE_INSIDE_MAP;
@@ -162,7 +162,7 @@ callback_map_key(void *vctx, const unsigned char *buf, size_t nbuf)
 {
     EventWatcherCtx *ctx = vctx;
     if (ctx->state != EVENT_WATCHER_STATE_INSIDE_MAP) {
-        LUASTATUS_ERRF(ctx->bd, "(event watcher) unexpected map key");
+        LS_ERRF(ctx->bd, "(event watcher) unexpected map key");
         return 0;
     }
     ctx->last_key = append_to_buf(vctx, (const char *) buf, nbuf);
@@ -175,7 +175,7 @@ callback_end_map(void *vctx)
 {
     EventWatcherCtx *ctx = vctx;
     if (ctx->state != EVENT_WATCHER_STATE_INSIDE_MAP) {
-        LUASTATUS_ERRF(ctx->bd, "(event watcher) unexpected }");
+        LS_ERRF(ctx->bd, "(event watcher) unexpected }");
         return 0;
     }
     ctx->state = EVENT_WATCHER_STATE_EXPECTING_MAP_BEGIN;
@@ -214,7 +214,7 @@ callback_start_array(void *vctx)
 {
     EventWatcherCtx *ctx = vctx;
     if (ctx->state != EVENT_WATCHER_STATE_EXPECTING_ARRAY_BEGIN) {
-        LUASTATUS_ERRF(ctx->bd, "(event watcher) unexpected [");
+        LS_ERRF(ctx->bd, "(event watcher) unexpected [");
         return 0;
     }
     ctx->state = EVENT_WATCHER_STATE_EXPECTING_MAP_BEGIN;
@@ -226,18 +226,18 @@ int
 callback_end_array(void *vctx)
 {
     EventWatcherCtx *ctx = vctx;
-    LUASTATUS_ERRF(ctx->bd, "(event watcher) unexpected ]");
+    LS_ERRF(ctx->bd, "(event watcher) unexpected ]");
     return 0;
 }
 
-LuastatusBarlibEWResult
+int
 event_watcher(LuastatusBarlibData *bd,
               LuastatusBarlibEWCallBegin call_begin,
               LuastatusBarlibEWCallEnd call_end)
 {
     Priv *p = bd->priv;
     if (p->noclickev) {
-        return LUASTATUS_BARLIB_EW_RESULT_NO_MORE_EVENTS;
+        return LUASTATUS_RES_NONFATAL_ERR;
     }
 
     EventWatcherCtx ctx = {
@@ -271,11 +271,11 @@ event_watcher(LuastatusBarlibData *bd,
         ssize_t nread = read(p->in_fd, buf, sizeof(buf));
         if (nread < 0) {
             LS_WITH_ERRSTR(s, errno,
-                LUASTATUS_ERRF(bd, "(event watcher) read error: %s", s);
+                LS_ERRF(bd, "(event watcher) read error: %s", s);
             );
             goto error;
         } else if (nread == 0) {
-            LUASTATUS_ERRF(bd, "(event watcher) i3bar closed its end of the pipe");
+            LS_ERRF(bd, "(event watcher) i3bar closed its end of the pipe");
             goto error;
         }
         switch (yajl_parse(hand, buf, nread)) {
@@ -286,7 +286,7 @@ event_watcher(LuastatusBarlibData *bd,
         case yajl_status_error:
             {
                 unsigned char *descr = yajl_get_error(hand, /*verbose*/ 1, buf, nread);
-                LUASTATUS_ERRF(bd, "(event watcher) yajl parse error: %s", (char *) descr);
+                LS_ERRF(bd, "(event watcher) yajl parse error: %s", (char *) descr);
                 yajl_free_error(hand, descr);
             }
             goto error;
@@ -297,5 +297,5 @@ error:
     LS_VECTOR_FREE(ctx.buf);
     LS_VECTOR_FREE(ctx.params);
     yajl_free(hand);
-    return LUASTATUS_BARLIB_EW_RESULT_FATAL_ERR;
+    return LUASTATUS_RES_ERR;
 }
