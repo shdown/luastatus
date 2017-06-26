@@ -29,6 +29,7 @@ typedef struct {
     bool visible;
 } Priv;
 
+static
 void
 destroy(LuastatusPluginData *pd)
 {
@@ -89,6 +90,7 @@ get_active_window(Data *d, xcb_window_t *win)
         d->ewmh,xcb_ewmh_get_active_window(d->ewmh, d->screenp), win, NULL) == 1;
 }
 
+static
 bool
 push_window_title(Data *d, lua_State *L, xcb_window_t win)
 {
@@ -131,6 +133,7 @@ push_window_title(Data *d, lua_State *L, xcb_window_t win)
     return false;
 }
 
+static
 void
 push_arg(Data *d, lua_State *L, xcb_window_t win)
 {
@@ -140,6 +143,7 @@ push_arg(Data *d, lua_State *L, xcb_window_t win)
 }
 
 // updates *win and *last_win if the active window was changed
+static
 bool
 title_changed(Data *d, xcb_generic_event_t *evt, xcb_window_t *win, xcb_window_t *last_win)
 {

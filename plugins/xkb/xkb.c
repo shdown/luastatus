@@ -67,6 +67,7 @@ error:
     return LUASTATUS_RES_ERR;
 }
 
+static
 Display *
 open_dpy(LuastatusPluginData *pd, char *dpyname)
 {
@@ -103,6 +104,7 @@ open_dpy(LuastatusPluginData *pd, char *dpyname)
     return NULL;
 }
 
+static
 bool
 query_groups(Display *dpy, LSStringArray *groups)
 {
@@ -124,6 +126,7 @@ static jmp_buf global_jmpbuf;
 // > error occurs (for example, the connection to the server was lost). This is
 // > assumed to be a fatal condition, and the called routine should not return.
 // > If the I/O error handler does return, the client process exits.
+static
 int
 x11_io_error_handler(LS_ATTR_UNUSED_ARG Display *dpy)
 {
@@ -135,6 +138,7 @@ x11_io_error_handler(LS_ATTR_UNUSED_ARG Display *dpy)
 //
 // > Because this condition is not assumed to be fatal, it is acceptable for
 // > your error handler to return; the returned value is ignored.
+static
 int
 x11_error_handler(LS_ATTR_UNUSED_ARG Display *dpy, XErrorEvent *ev)
 {

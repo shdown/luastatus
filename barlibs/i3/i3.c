@@ -21,6 +21,7 @@
 #include "generator_utils.h"
 #include "event_watcher.h"
 
+static
 void
 destroy(LuastatusBarlibData *bd)
 {
@@ -37,6 +38,7 @@ destroy(LuastatusBarlibData *bd)
     free(p);
 }
 
+static
 int
 init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
 {
@@ -138,6 +140,7 @@ error:
     return LUASTATUS_RES_ERR;
 }
 
+static
 bool
 redraw(LuastatusBarlibData *bd)
 {
@@ -169,6 +172,7 @@ redraw(LuastatusBarlibData *bd)
     return true;
 }
 
+static
 int
 l_pango_escape(lua_State *L)
 {
@@ -187,6 +191,7 @@ l_pango_escape(lua_State *L)
     return 1;
 }
 
+static
 void
 register_funcs(LuastatusBarlibData *bd, lua_State *L)
 {
@@ -198,6 +203,7 @@ register_funcs(LuastatusBarlibData *bd, lua_State *L)
 
 // Appends a JSON segment to ((Priv *) bd->priv)->bufs[widget_idx] from the table at position
 // table_pos on L's stack.
+static
 bool
 append_segment(LuastatusBarlibData *bd, lua_State *L, int table_pos, size_t widget_idx)
 {
@@ -251,6 +257,7 @@ append_segment(LuastatusBarlibData *bd, lua_State *L, int table_pos, size_t widg
     return true;
 }
 
+static
 int
 set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
 {
@@ -302,6 +309,7 @@ invalid_data:
     return LUASTATUS_RES_NONFATAL_ERR;
 }
 
+static
 int
 set_error(LuastatusBarlibData *bd, size_t widget_idx)
 {

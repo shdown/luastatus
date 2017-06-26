@@ -27,6 +27,7 @@ typedef struct {
     LSString luabuf;
 } Priv;
 
+static
 void
 destroy(LuastatusBarlibData *bd)
 {
@@ -46,6 +47,7 @@ destroy(LuastatusBarlibData *bd)
     free(p);
 }
 
+static
 int
 init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
 {
@@ -134,6 +136,7 @@ error:
     return LUASTATUS_RES_ERR;
 }
 
+static
 int
 l_escape(lua_State *L)
 {
@@ -154,6 +157,7 @@ l_escape(lua_State *L)
     return 1;
 }
 
+static
 void
 register_funcs(LuastatusBarlibData *bd, lua_State *L)
 {
@@ -163,6 +167,7 @@ register_funcs(LuastatusBarlibData *bd, lua_State *L)
     ls_lua_rawsetf(L, "escape"); // L: table
 }
 
+static
 bool
 redraw(LuastatusBarlibData *bd)
 {
@@ -193,6 +198,7 @@ redraw(LuastatusBarlibData *bd)
     return true;
 }
 
+static
 int
 set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
 {
@@ -244,6 +250,7 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
     return LUASTATUS_RES_OK;
 }
 
+static
 int
 set_error(LuastatusBarlibData *bd, size_t widget_idx)
 {
@@ -255,6 +262,7 @@ set_error(LuastatusBarlibData *bd, size_t widget_idx)
     return LUASTATUS_RES_OK;
 }
 
+static
 int
 event_watcher(LuastatusBarlibData *bd,
               LuastatusBarlibEWCallBegin call_begin,

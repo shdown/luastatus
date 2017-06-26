@@ -27,6 +27,7 @@ typedef struct {
     LS_VECTOR_OF(Watch) watches;
 } Priv;
 
+static
 void
 destroy(LuastatusPluginData *pd)
 {
@@ -111,6 +112,7 @@ parse_mask(LuastatusPluginData *pd, const char *buf)
     return mask;
 }
 
+static
 int
 init(LuastatusPluginData *pd, lua_State *L)
 {
@@ -191,6 +193,7 @@ push_event(lua_State *L, const struct inotify_event *event, const char *path)
     }
 }
 
+static
 void
 run(
     LuastatusPluginData *pd,

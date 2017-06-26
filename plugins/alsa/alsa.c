@@ -17,6 +17,7 @@ typedef struct {
     char *channel;
 } Priv;
 
+static
 void
 destroy(LuastatusPluginData *pd)
 {
@@ -26,6 +27,7 @@ destroy(LuastatusPluginData *pd)
     free(p);
 }
 
+static
 int
 init(LuastatusPluginData *pd, lua_State *L)
 {
@@ -56,6 +58,7 @@ error:
     return LUASTATUS_RES_ERR;
 }
 
+static
 bool
 card_has_nicename(const char *realname, snd_ctl_card_info_t *info, const char *nicename)
 {
@@ -69,6 +72,7 @@ card_has_nicename(const char *realname, snd_ctl_card_info_t *info, const char *n
     return r;
 }
 
+static
 char *
 xalloc_card_realname(const char *nicename)
 {

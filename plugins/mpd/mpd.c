@@ -31,6 +31,7 @@ typedef struct {
     char *retry_fifo;
 } Priv;
 
+static
 void
 destroy(LuastatusPluginData *pd)
 {
@@ -41,6 +42,7 @@ destroy(LuastatusPluginData *pd)
     free(p);
 }
 
+static
 int
 init(LuastatusPluginData *pd, lua_State *L)
 {
@@ -112,6 +114,7 @@ dollar_strlen(const char *s)
 }
 
 // If line is of form "<key>: <value>\n", appends <key> and <value> to sa.
+static
 void
 kv_strarr_line_append(LSStringArray *sa, const char *line)
 {
@@ -124,6 +127,7 @@ kv_strarr_line_append(LSStringArray *sa, const char *line)
     ls_strarr_append(sa, value_pos, dollar_strlen(value_pos));
 }
 
+static
 void
 kv_strarr_table_assign(LSStringArray sa, lua_State *L)
 {
@@ -154,6 +158,7 @@ report_status(LuastatusPluginData *pd,
 }
 
 // Code below is pretty ugly and spaghetti-like. Rewrite it if you can.
+static
 void
 interact(int fd, LuastatusPluginData *pd,
          LuastatusPluginCallBegin call_begin, LuastatusPluginCallEnd call_end)
@@ -318,6 +323,7 @@ error:
     ls_strarr_destroy(kv_status);
 }
 
+static
 void
 run(LuastatusPluginData *pd, LuastatusPluginCallBegin call_begin, LuastatusPluginCallEnd call_end)
 {

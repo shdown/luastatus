@@ -21,6 +21,7 @@ typedef struct {
     char *fifo;
 } Priv;
 
+static
 void
 destroy(LuastatusPluginData *pd)
 {
@@ -33,6 +34,7 @@ destroy(LuastatusPluginData *pd)
     free(p);
 }
 
+static
 int
 init(LuastatusPluginData *pd, lua_State *L)
 {
@@ -71,6 +73,7 @@ error:
     return LUASTATUS_RES_ERR;
 }
 
+static
 bool
 push_for(LuastatusPluginData *pd, lua_State *L, const char *path)
 {
@@ -91,6 +94,7 @@ push_for(LuastatusPluginData *pd, lua_State *L, const char *path)
     return true;
 }
 
+static
 void
 run(
     LuastatusPluginData *pd,

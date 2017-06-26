@@ -45,13 +45,14 @@ size_t nwidgets;
 
 #define WIDGET_INDEX(W_) ((W_) - widgets)
 
-LS_ATTR_NORETURN
+static LS_ATTR_NORETURN
 void
 fatal_error_reported(void)
 {
     _exit(EXIT_FAILURE);
 }
 
+static
 void
 external_sayf(void *userdata, int level, const char *fmt, ...)
 {
@@ -68,6 +69,7 @@ external_sayf(void *userdata, int level, const char *fmt, ...)
     va_end(vl);
 }
 
+static
 void
 set_error_unlocked(size_t widget_idx)
 {
@@ -81,6 +83,7 @@ set_error_unlocked(size_t widget_idx)
     }
 }
 
+static
 lua_State *
 plugin_call_begin(void *userdata)
 {
@@ -93,6 +96,7 @@ plugin_call_begin(void *userdata)
     return w->L;
 }
 
+static
 void
 plugin_call_end(void *userdata)
 {
@@ -132,6 +136,7 @@ plugin_call_end(void *userdata)
     UNLOCK_L(w);
 }
 
+static
 void *
 widget_thread(void *userdata)
 {
@@ -152,6 +157,7 @@ widget_thread(void *userdata)
     return NULL;
 }
 
+static
 lua_State *
 ew_call_begin(LS_ATTR_UNUSED_ARG void *userdata, size_t widget_idx)
 {
@@ -167,6 +173,7 @@ ew_call_begin(LS_ATTR_UNUSED_ARG void *userdata, size_t widget_idx)
     return L;
 }
 
+static
 void
 ew_call_end(LS_ATTR_UNUSED_ARG void *userdata, size_t widget_idx)
 {
@@ -191,6 +198,7 @@ ew_call_end(LS_ATTR_UNUSED_ARG void *userdata, size_t widget_idx)
     UNLOCK_L_OR_S(w);
 }
 
+static
 bool
 prepare_stdio(void)
 {
@@ -207,11 +215,13 @@ prepare_stdio(void)
     return true;
 }
 
+static
 void
 ignore_signal(LS_ATTR_UNUSED_ARG int signo)
 {
 }
 
+static
 bool
 prepare_signals(void)
 {
@@ -262,12 +272,14 @@ prepare_signals(void)
     return true;
 }
 
+static
 bool
 prepare(void)
 {
     return prepare_stdio() && prepare_signals();
 }
 
+static
 void
 print_usage(void)
 {
@@ -277,12 +289,14 @@ print_usage(void)
                     "See luastatus(1) for more information.\n");
 }
 
+static
 void
 print_version(void)
 {
     fprintf(stderr, "This is luastatus %s.\n", LUASTATUS_VERSION);
 }
 
+static
 bool
 init_or_make_dummy(Widget *w)
 {
