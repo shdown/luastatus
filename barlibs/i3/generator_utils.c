@@ -24,7 +24,6 @@ json_ls_string_append_escaped_s(LSString *s, const char *zts)
     ls_string_append_c(s, '"');
 }
 
-
 bool
 json_ls_string_append_number(LSString *s, double value)
 {
@@ -33,7 +32,6 @@ json_ls_string_append_number(LSString *s, double value)
     }
     return ls_string_append_f(s, "%.20g", value);
 }
-
 
 void
 pango_ls_string_append_escaped_b(LSString *s, const char *buf, size_t nbuf)
