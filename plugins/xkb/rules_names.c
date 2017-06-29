@@ -16,7 +16,7 @@ rules_names_load(Display *dpy, RulesNames *out)
     out->model = NULL;
     out->layout = NULL;
     out->options = NULL;
-    out->_data = NULL;
+    out->data_ = NULL;
 
     bool ret = false;
 
@@ -28,7 +28,7 @@ rules_names_load(Display *dpy, RulesNames *out)
     int fmt;
     unsigned long ndata, bytes_after;
     if (XGetWindowProperty(dpy, DefaultRootWindow(dpy), rules_atom, 0L, NAMES_PROP_MAXLEN,
-                           False, XA_STRING, &actual_type, &fmt, &ndata, &bytes_after, &out->_data)
+                           False, XA_STRING, &actual_type, &fmt, &ndata, &bytes_after, &out->data_)
         != Success)
     {
         goto done;
@@ -37,8 +37,8 @@ rules_names_load(Display *dpy, RulesNames *out)
         goto done;
     }
 
-    const char *ptr = (const char *) out->_data;
-    const char *end = (const char *) out->_data + ndata;
+    const char *ptr = (const char *) out->data_;
+    const char *end = (const char *) out->data_ + ndata;
 
     if (ptr != end) {
         out->rules = ptr;
@@ -69,7 +69,7 @@ done:
 void
 rules_names_destroy(const RulesNames *rn)
 {
-    if (rn->_data) {
-        XFree(rn->_data);
+    if (rn->data_) {
+        XFree(rn->data_);
     }
 }
