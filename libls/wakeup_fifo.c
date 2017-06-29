@@ -25,7 +25,7 @@ int
 ls_wakeup_fifo_open(LSWakeupFifo *w)
 {
     if (w->fd_ < 0 && w->fifo) {
-        w->fd_ = open(w->fifo, O_RDONLY | O_CLOEXEC);
+        w->fd_ = open(w->fifo, O_RDONLY | O_CLOEXEC | O_NONBLOCK);
         if (w->fd_ < 0) {
             return -1;
         }
