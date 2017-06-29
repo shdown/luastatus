@@ -8,79 +8,77 @@
 #include <math.h>
 #include "libls/errno_utils.h"
 #include "libls/parse_int.h"
-#include "libls/string_.h"
+#include "libls/strarr.h"
 #include "libls/vector.h"
 #include "include/sayf_macros.h"
 #include "priv.h"
 
-typedef struct {
-    size_t offset, size;
-} EventWatcherString;
+typedef size_t StringIndex;
 
 typedef struct {
     enum {
-        EVENT_WATCHER_VALUE_TYPE_STRING,
-        EVENT_WATCHER_VALUE_TYPE_DOUBLE,
-        EVENT_WATCHER_VALUE_TYPE_BOOL,
+        TYPE_STRING,
+        TYPE_DOUBLE,
+        TYPE_BOOL,
     } type;
     union {
-        EventWatcherString s;
+        StringIndex s_idx;
         double d;
         bool b;
     } u;
-} EventWatcherValue;
+} Value;
 
 typedef struct {
-    EventWatcherString key;
-    EventWatcherValue value;
-} EventWatcherKeyValue;
+    StringIndex key_idx;
+    Value value;
+} KeyValue;
 
 typedef struct {
+    enum {
+        STATE_EXPECTING_ARRAY_BEGIN,
+        STATE_EXPECTING_MAP_BEGIN,
+        STATE_INSIDE_MAP,
+    } state;
+    LSStringArray strs;
+    LS_VECTOR_OF(KeyValue) params;
+    StringIndex last_key_idx;
+    int widget;
+
     LuastatusBarlibData *bd;
     LuastatusBarlibEWCallBegin *call_begin;
     LuastatusBarlibEWCallEnd *call_end;
-
-    enum {
-        EVENT_WATCHER_STATE_EXPECTING_ARRAY_BEGIN,
-        EVENT_WATCHER_STATE_EXPECTING_MAP_BEGIN,
-        EVENT_WATCHER_STATE_INSIDE_MAP,
-    } state;
-
-    LSString buf;
-    EventWatcherString last_key;
-    LS_VECTOR_OF(EventWatcherKeyValue) params;
-    int widget_idx;
-} EventWatcherCtx;
+} Context;
 
 static inline
-EventWatcherString
-append_to_buf(EventWatcherCtx *ctx, const char *buf, size_t nbuf)
+StringIndex
+append_to_strs(Context *ctx, const char *buf, size_t nbuf)
 {
-    size_t offset = ctx->buf.size;
-    ls_string_append_b(&ctx->buf, buf, nbuf);
-    return (EventWatcherString) {.offset = offset, .size = nbuf};
+    ls_strarr_append(&ctx->strs, buf, nbuf);
+    return ls_strarr_size(ctx->strs) - 1;
 }
 
 static
 int
-callback_value_helper(EventWatcherCtx *ctx, EventWatcherValue value)
+value_helper(Context *ctx, Value value)
 {
-    if (ctx->state != EVENT_WATCHER_STATE_INSIDE_MAP) {
+    if (ctx->state != STATE_INSIDE_MAP) {
         LS_ERRF(ctx->bd, "(event watcher) unexpected JSON value");
         return 0;
     }
-    if (ctx->last_key.size == 4 &&
-        memcmp("name", ctx->buf.data + ctx->last_key.offset, 4) == 0)
-    {
-        if (value.type != EVENT_WATCHER_VALUE_TYPE_STRING) {
+    size_t nkey;
+    const char *key = ls_strarr_at(ctx->strs, ctx->last_key_idx, &nkey);
+    if (nkey == 4 && memcmp("name", key, 4) == 0) {
+        if (value.type != TYPE_STRING) {
             LS_ERRF(ctx->bd, "(event watcher) 'name' is not a string");
             return 0;
         }
-        // parse error is OK here, widget_idx is checked later
-        ctx->widget_idx = ls_full_parse_uint_b(ctx->buf.data + value.u.s.offset, value.u.s.size);
+        size_t nname;
+        const char *name = ls_strarr_at(ctx->strs, value.u.s_idx, &nname);
+        // parse error is OK here, ctx->widget is checked later
+        ctx->widget = ls_full_parse_uint_b(name, nname);
     } else {
-        LS_VECTOR_PUSH(ctx->params, ((EventWatcherKeyValue) {
-            .key = ctx->last_key,
+        LS_VECTOR_PUSH(ctx->params, ((KeyValue) {
+            .key_idx = ctx->last_key_idx,
             .value = value,
         }));
     }
@@ -91,8 +89,8 @@ static
 int
 callback_null(void *vctx)
 {
-    EventWatcherCtx *ctx = vctx;
-    if (ctx->state != EVENT_WATCHER_STATE_INSIDE_MAP) {
+    Context *ctx = vctx;
+    if (ctx->state != STATE_INSIDE_MAP) {
         LS_ERRF(ctx->bd, "(event watcher) unexpected null");
         return 0;
     }
@@ -104,8 +102,8 @@ static
 int
 callback_boolean(void *vctx, int value)
 {
-    return callback_value_helper(vctx, (EventWatcherValue) {
-        .type = EVENT_WATCHER_VALUE_TYPE_BOOL,
+    return value_helper(vctx, (Value) {
+        .type = TYPE_BOOL,
         .u = { .b = value },
     });
 }
@@ -114,8 +112,8 @@ static
 int
 callback_integer(void *vctx, long long value)
 {
-    return callback_value_helper(vctx, (EventWatcherValue) {
-        .type = EVENT_WATCHER_VALUE_TYPE_DOUBLE,
+    return value_helper(vctx, (Value) {
+        .type = TYPE_DOUBLE,
         .u = { .d = value },
     });
 }
@@ -124,8 +122,8 @@ static
 int
 callback_double(void *vctx, double value)
 {
-    return callback_value_helper(vctx, (EventWatcherValue) {
-        .type = EVENT_WATCHER_VALUE_TYPE_DOUBLE,
+    return value_helper(vctx, (Value) {
+        .type = TYPE_DOUBLE,
         .u = { .d = value },
     });
 }
@@ -134,9 +132,9 @@ static
 int
 callback_string(void *vctx, const unsigned char *buf, size_t nbuf)
 {
-    return callback_value_helper(vctx, (EventWatcherValue) {
-        .type = EVENT_WATCHER_VALUE_TYPE_STRING,
-        .u = { .s = append_to_buf(vctx, (const char *) buf, nbuf) },
+    return value_helper(vctx, (Value) {
+        .type = TYPE_STRING,
+        .u = { .s_idx = append_to_strs(vctx, (const char *) buf, nbuf) },
     });
 }
 
@@ -144,15 +142,15 @@ static
 int
 callback_start_map(void *vctx)
 {
-    EventWatcherCtx *ctx = vctx;
-    if (ctx->state != EVENT_WATCHER_STATE_EXPECTING_MAP_BEGIN) {
+    Context *ctx = vctx;
+    if (ctx->state != STATE_EXPECTING_MAP_BEGIN) {
         LS_ERRF(ctx->bd, "(event watcher) unexpected {");
         return 0;
     }
-    ctx->state = EVENT_WATCHER_STATE_INSIDE_MAP;
-    LS_VECTOR_CLEAR(ctx->buf);
+    ctx->state = STATE_INSIDE_MAP;
+    ls_strarr_clear(&ctx->strs);
     LS_VECTOR_CLEAR(ctx->params);
-    ctx->widget_idx = -1;
+    ctx->widget = -1;
     return 1;
 }
 
@@ -160,12 +158,12 @@ static
 int
 callback_map_key(void *vctx, const unsigned char *buf, size_t nbuf)
 {
-    EventWatcherCtx *ctx = vctx;
-    if (ctx->state != EVENT_WATCHER_STATE_INSIDE_MAP) {
+    Context *ctx = vctx;
+    if (ctx->state != STATE_INSIDE_MAP) {
         LS_ERRF(ctx->bd, "(event watcher) unexpected map key");
         return 0;
     }
-    ctx->last_key = append_to_buf(vctx, (const char *) buf, nbuf);
+    ctx->last_key_idx = append_to_strs(vctx, (const char *) buf, nbuf);
     return 1;
 }
 
@@ -173,37 +171,42 @@ static
 int
 callback_end_map(void *vctx)
 {
-    EventWatcherCtx *ctx = vctx;
-    if (ctx->state != EVENT_WATCHER_STATE_INSIDE_MAP) {
+    Context *ctx = vctx;
+    if (ctx->state != STATE_INSIDE_MAP) {
         LS_ERRF(ctx->bd, "(event watcher) unexpected }");
         return 0;
     }
-    ctx->state = EVENT_WATCHER_STATE_EXPECTING_MAP_BEGIN;
+    ctx->state = STATE_EXPECTING_MAP_BEGIN;
 
-    if (ctx->widget_idx >= 0) {
-        lua_State *L = ctx->call_begin(ctx->bd->userdata, ctx->widget_idx);
+#define PUSH_STRS_ELEM(Idx_) \
+    do { \
+        size_t ns_; \
+        const char *s_ = ls_strarr_at(ctx->strs, Idx_, &ns_); \
+        lua_pushlstring(L, s_, ns_); \
+    } while (0)
+
+    if (ctx->widget >= 0) {
+        lua_State *L = ctx->call_begin(ctx->bd->userdata, ctx->widget);
         // L: -
         lua_newtable(L); // L: table
         for (size_t i = 0; i < ctx->params.size; ++i) {
             // L: table
-            EventWatcherKeyValue kv = ctx->params.data[i];
-#define PUSH_EW_STR(S_) \
-    lua_pushlstring(L, ctx->buf.data + (S_).offset, (S_).size)
-            PUSH_EW_STR(kv.key); // L: table key
+            KeyValue kv = ctx->params.data[i];
+            PUSH_STRS_ELEM(kv.key_idx); // L: table key
             switch (kv.value.type) {
-            case EVENT_WATCHER_VALUE_TYPE_STRING:
-                PUSH_EW_STR(kv.value.u.s); // L: table key value
+            case TYPE_STRING:
+                PUSH_STRS_ELEM(kv.value.u.s_idx); // L: table key value
                 break;
-            case EVENT_WATCHER_VALUE_TYPE_DOUBLE:
+            case TYPE_DOUBLE:
                 lua_pushnumber(L, kv.value.u.d); // L: table key value
                 break;
-            case EVENT_WATCHER_VALUE_TYPE_BOOL:
+            case TYPE_BOOL:
                 lua_pushboolean(L, kv.value.u.b); // L: table key value
             }
             lua_rawset(L, -3); // L: table
         }
-        ctx->call_end(ctx->bd->userdata, ctx->widget_idx);
-#undef PUSH_EW_STR
+        ctx->call_end(ctx->bd->userdata, ctx->widget);
+#undef PUSH_STRS_ELEM
     }
     return 1;
 }
@@ -212,12 +215,12 @@ static
 int
 callback_start_array(void *vctx)
 {
-    EventWatcherCtx *ctx = vctx;
-    if (ctx->state != EVENT_WATCHER_STATE_EXPECTING_ARRAY_BEGIN) {
+    Context *ctx = vctx;
+    if (ctx->state != STATE_EXPECTING_ARRAY_BEGIN) {
         LS_ERRF(ctx->bd, "(event watcher) unexpected [");
         return 0;
     }
-    ctx->state = EVENT_WATCHER_STATE_EXPECTING_MAP_BEGIN;
+    ctx->state = STATE_EXPECTING_MAP_BEGIN;
     return 1;
 }
 
@@ -225,7 +228,7 @@ static
 int
 callback_end_array(void *vctx)
 {
-    EventWatcherCtx *ctx = vctx;
+    Context *ctx = vctx;
     LS_ERRF(ctx->bd, "(event watcher) unexpected ]");
     return 0;
 }
@@ -240,14 +243,14 @@ event_watcher(LuastatusBarlibData *bd,
         return LUASTATUS_RES_NONFATAL_ERR;
     }
 
-    EventWatcherCtx ctx = {
+    Context ctx = {
+        .state = STATE_EXPECTING_ARRAY_BEGIN,
+        .strs = ls_strarr_new(),
+        .params = LS_VECTOR_NEW(),
+        .widget = -1,
         .bd = bd,
         .call_begin = call_begin,
         .call_end = call_end,
-        .state = EVENT_WATCHER_STATE_EXPECTING_ARRAY_BEGIN,
-        .buf = LS_VECTOR_NEW(),
-        .params = LS_VECTOR_NEW(),
-        .widget_idx = -1,
     };
     yajl_handle hand = yajl_alloc(
         &(yajl_callbacks) {
@@ -294,7 +297,7 @@ event_watcher(LuastatusBarlibData *bd,
     }
 
 error:
-    LS_VECTOR_FREE(ctx.buf);
+    ls_strarr_destroy(ctx.strs);
     LS_VECTOR_FREE(ctx.params);
     yajl_free(hand);
     return LUASTATUS_RES_ERR;
