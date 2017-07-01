@@ -1,31 +1,17 @@
 #ifndef ls_osdep_h_
 #define ls_osdep_h_
 
-// In no event should _GNU_SOURCE or something similar be defined here!
-
-#include <unistd.h>
-#include <errno.h>
-#include "compdep.h"
-#include "probes.generated.h"
+// We can't define _GNU_SOURCE here, nor can we include "probes.generated.h", as
+// it may be located outside of the source tree: libls is built with libls's
+// binary dir included, unlike everything that includes its headers.
+// So no in-header functions, unfortunately.
 
 // EINTR-safe (as possible) close(). Please read:
 // 1. http://www.daemonology.net/blog/2011-12-17-POSIX-close-is-broken.html
 // 2. https://news.ycombinator.com/item?id=3363819
 // 3. https://sourceware.org/bugzilla/show_bug.cgi?id=16302
-#if LS_HAVE_POSIX_CLOSE
-#   define ls_close(FD_) posix_close(FD_, 0)
-#elif defined (__hpux)
-LS_INHEADER
 int
-ls_close(int fd)
-{
-    int r;
-    while ((r = close(fd)) < 0 && errno == EINTR) {}
-    return r;
-}
-#else
-#   define ls_close close
-#endif
+ls_close(int fd);
 
 // The behaviour is same as calling pipe(pipefd), except that both file descriptors are made
 // CLOEXEC. If the latter fails, the pipe is destroyed, -1 is returned and errno is set.

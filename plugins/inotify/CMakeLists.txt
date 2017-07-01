@@ -7,4 +7,4 @@ configure_file ("probes.in.h" "probes.generated.h")
 
 target_compile_definitions (inotify PUBLIC -D_POSIX_C_SOURCE=200809L)
 luastatus_target_compile_with (inotify LUA)
-target_include_directories (inotify PUBLIC "${PROJECT_SOURCE_DIR}")
+target_include_directories (inotify PUBLIC "${PROJECT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}")
