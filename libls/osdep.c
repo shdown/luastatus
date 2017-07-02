@@ -12,13 +12,13 @@ int
 ls_close(int fd)
 {
 #if LS_HAVE_POSIX_CLOSE
-	return posix_close(fd, 0);
+    return posix_close(fd, 0);
 #elif defined(__hpux)
-	int r;
-	while ((r = close(fd)) < 0 && errno == EINTR) {}
-	return r;
+    int r;
+    while ((r = close(fd)) < 0 && errno == EINTR) {}
+    return r;
 #else
-	return close(fd);
+    return close(fd);
 #endif
 }
 
