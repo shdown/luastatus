@@ -30,9 +30,9 @@
 #include "config.generated.h"
 #include "version.generated.h"
 
-Barlib barlib;
-Widget *widgets;
-size_t nwidgets;
+static Barlib barlib;
+static Widget *widgets;
+static size_t nwidgets;
 
 #define LOCK_B()   PTH_CHECK(pthread_mutex_lock(&barlib.set_mtx))
 #define UNLOCK_B() PTH_CHECK(pthread_mutex_unlock(&barlib.set_mtx))
