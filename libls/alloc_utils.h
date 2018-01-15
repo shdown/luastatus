@@ -8,13 +8,15 @@
 
 #include "compdep.h"
 
-// The behaviour is same as casting the result of ls_xmalloc(NElems_, sizeof(Type_)) to pointer to
-// Type_.
-#define LS_XNEW(Type_, NElems_)  ((Type_*) ls_xmalloc(NElems_, sizeof(Type_)))
+// The behaviour is same as casting the result of
+//     ls_xmalloc(NElems_, sizeof(Type_))
+// to a pointer to @Type_.
+#define LS_XNEW(Type_, NElems_)  ((Type_ *) ls_xmalloc(NElems_, sizeof(Type_)))
 
-// The behaviour is same as casting the result of ls_xcalloc(NElems_, sizeof(Type_)) to pointer to
-// Type_.
-#define LS_XNEW0(Type_, NElems_) ((Type_*) ls_xcalloc(NElems_, sizeof(Type_)))
+// The behaviour is same as casting the result of
+//     ls_xcalloc(NElems_, sizeof(Type_))
+// to a pointer to @Type_.
+#define LS_XNEW0(Type_, NElems_) ((Type_ *) ls_xcalloc(NElems_, sizeof(Type_)))
 
 // Out-of-memory handler, called when allocation fails.
 //
@@ -23,10 +25,10 @@ LS_ATTR_NORETURN
 void
 ls_oom(void);
 
-// The behaviour is same as calling malloc(nelems * elemsz), except when:
-//     1. multiplication overflows, or;
-//     2. allocation fails.
-// In these cases, this function panics.
+// The behaviour is same as calling
+//     malloc(nelems * elemsz),
+// except when the multiplication overflows, or the allocation fails. In these cases, this function
+// panics.
 LS_INHEADER LS_ATTR_MALLOC LS_ATTR_ALLOC_SIZE2(1, 2)
 void *
 ls_xmalloc(size_t nelems, size_t elemsz)
@@ -52,8 +54,9 @@ oom:
     ls_oom();
 }
 
-// The behaviour is same as calling calloc(nelems, elemsz), except when allocation fails. In that
-// case, this function panics.
+// The behaviour is same as calling
+//     calloc(nelems, elemsz),
+// except when the allocation fails. In that case, this function panics.
 LS_INHEADER LS_ATTR_MALLOC LS_ATTR_ALLOC_SIZE2(1, 2)
 void *
 ls_xcalloc(size_t nelems, size_t elemsz)
@@ -65,10 +68,10 @@ ls_xcalloc(size_t nelems, size_t elemsz)
     return r;
 }
 
-// The behaviour is same as calling realloc(p, nelems * elemsz), except when:
-//     1. multiplication overflows, or;
-//     2. reallocation fails.
-// In these cases, this function panics.
+// The behaviour is same as calling
+//     realloc(p, nelems * elemsz),
+// except when the multiplication overflows, or the reallocation fails. In these cases, this
+// function panics.
 LS_INHEADER LS_ATTR_ALLOC_SIZE2(2, 3)
 void *
 ls_xrealloc(void *p, size_t nelems, size_t elemsz)
@@ -96,10 +99,10 @@ oom:
 
 // The behaviour is same as calling
 //     realloc(p, (*pnelems = F(*pnelems)) * elemsz),
-// where F(n) = max(1, 2*n), except when:
-//     1. multiplication overflows, or;
-//     2. reallocation fails.
-// In these cases, this function panics.
+// where
+//     F(n) = max(1, 2*n),
+// except when the multiplication overflows, or the reallocation fails. In these cases, this
+// function panics.
 LS_INHEADER
 void *
 ls_x2realloc(void *p, size_t *pnelems, size_t elemsz)
@@ -140,8 +143,24 @@ oom:
     ls_oom();
 }
 
-// The behaviour is same as calling strdup(s), except when allocation fails. In that case, this
-// function panics.
+// Duplicates (as if with malloc) @n bytes of memory at address @p. Panics on failure.
+LS_INHEADER LS_ATTR_MALLOC
+void *
+ls_xmemdup(const void *p, size_t n)
+{
+    void *r = malloc(n);
+    if (n) {
+        if (!r) {
+            ls_oom();
+        }
+        memcpy(r, p, n);
+    }
+    return r;
+}
+
+// The behaviour is same as calling
+//     strdup(s),
+// except when the allocation fails. In that case, this function panics.
 LS_INHEADER LS_ATTR_MALLOC
 char *
 ls_xstrdup(const char *s)

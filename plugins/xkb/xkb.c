@@ -1,17 +1,15 @@
-#include "include/plugin.h"
-#include "include/plugin_logf_macros.h"
-#include "include/plugin_utils.h"
-
-#include <lua.h>
-
 #include <X11/X.h>
 #include <X11/Xlib.h>
 #include <X11/XKBlib.h>
-
 #include <limits.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <setjmp.h>
+#include <lua.h>
+
+#include "include/plugin_v1.h"
+#include "include/sayf_macros.h"
+#include "include/plugin_utils.h"
 
 #include "libls/alloc_utils.h"
 #include "libls/compdep.h"
@@ -27,13 +25,15 @@ typedef struct {
 
 static
 void
-priv_destroy(Priv *p)
+destroy(LuastatusPluginData *pd)
 {
+    Priv *p = pd->priv;
     free(p->dpyname);
+    free(p);
 }
 
 static
-LuastatusPluginInitResult
+int
 init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
@@ -48,24 +48,33 @@ init(LuastatusPluginData *pd, lua_State *L)
 
     PU_MAYBE_VISIT_NUM("device_id", n,
         if (n < 0) {
-            LUASTATUS_FATALF(pd, "device_id < 0");
+            LS_FATALF(pd, "device_id < 0");
             goto error;
         }
         if (n > UINT_MAX) {
-            LUASTATUS_FATALF(pd, "device_id > UINT_MAX");
+            LS_FATALF(pd, "device_id > UINT_MAX");
             goto error;
         }
         p->deviceid = n;
     );
 
-    return LUASTATUS_PLUGIN_INIT_RESULT_OK;
+    void **ptr = pd->map_get(pd->userdata, "flag:library_used:x11");
+    if (!*ptr) {
+        if (!XInitThreads()) {
+            LS_FATALF(pd, "XInitThreads failed");
+            goto error;
+        }
+        *ptr = p;
+    }
+
+    return LUASTATUS_OK;
 
 error:
-    priv_destroy(p);
-    free(p);
-    return LUASTATUS_PLUGIN_INIT_RESULT_ERR;
+    destroy(pd);
+    return LUASTATUS_ERR;
 }
 
+static
 Display *
 open_dpy(LuastatusPluginData *pd, char *dpyname)
 {
@@ -98,10 +107,11 @@ open_dpy(LuastatusPluginData *pd, char *dpyname)
         msg = "unknown error";
         break;
     }
-    LUASTATUS_FATALF(pd, "XkbOpenDisplay failed: %s", msg);
+    LS_FATALF(pd, "XkbOpenDisplay failed: %s", msg);
     return NULL;
 }
 
+static
 bool
 query_groups(Display *dpy, LSStringArray *groups)
 {
@@ -123,10 +133,11 @@ static jmp_buf global_jmpbuf;
 // > error occurs (for example, the connection to the server was lost). This is
 // > assumed to be a fatal condition, and the called routine should not return.
 // > If the I/O error handler does return, the client process exits.
+static
 int
 x11_io_error_handler(LS_ATTR_UNUSED_ARG Display *dpy)
 {
-    LUASTATUS_FATALF(global_pd, "X11 I/O error occurred");
+    LS_FATALF(global_pd, "X11 I/O error occurred");
     longjmp(global_jmpbuf, 1);
 }
 
@@ -134,24 +145,21 @@ x11_io_error_handler(LS_ATTR_UNUSED_ARG Display *dpy)
 //
 // > Because this condition is not assumed to be fatal, it is acceptable for
 // > your error handler to return; the returned value is ignored.
+static
 int
 x11_error_handler(LS_ATTR_UNUSED_ARG Display *dpy, XErrorEvent *ev)
 {
-    LUASTATUS_ERRF(global_pd,
-                   "X11 error: serial=%ld, error_code=%d, request_code=%d, minor_code=%d",
-                   ev->serial, ev->error_code, ev->request_code, ev->minor_code);
+    LS_ERRF(global_pd, "X11 error: serial=%ld, error_code=%d, request_code=%d, minor_code=%d",
+        ev->serial, ev->error_code, ev->request_code, ev->minor_code);
     return 0;
 }
 
 static
 void
-run(
-    LuastatusPluginData *pd,
-    LuastatusPluginCallBegin call_begin,
-    LuastatusPluginCallEnd call_end)
+run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
-    LSStringArray groups = LS_STRARR_INITIALIZER;
+    LSStringArray groups = ls_strarr_new();
     Display *dpy = NULL;
 
     global_pd = pd;
@@ -170,34 +178,34 @@ run(
     }
 
     if (!query_groups(dpy, &groups)) {
-        LUASTATUS_FATALF(pd, "query_groups failed");
+        LS_FATALF(pd, "query_groups failed");
         goto error;
     }
     while (1) {
         // query current state
         XkbStateRec state;
         if (XkbGetState(dpy, p->deviceid, &state) != Success) {
-            LUASTATUS_FATALF(pd, "XkbGetState failed");
+            LS_FATALF(pd, "XkbGetState failed");
             goto error;
         }
 
         // check if group is valid and possibly requery
         int group = state.group;
         if (group < 0) {
-            LUASTATUS_WARNF(pd, "group ID is negative (%d)", group);
+            LS_WARNF(pd, "group ID is negative (%d)", group);
         } else if ((size_t) group >= ls_strarr_size(groups)) {
-            LUASTATUS_WARNF(pd, "group ID (%d) is too large, requerying", group);
+            LS_WARNF(pd, "group ID (%d) is too large, requerying", group);
             if (!query_groups(dpy, &groups)) {
-                LUASTATUS_FATALF(pd, "query_groups failed");
+                LS_FATALF(pd, "query_groups failed");
                 goto error;
             }
             if ((size_t) group >= ls_strarr_size(groups)) {
-                LUASTATUS_WARNF(pd, "group ID is still too large");
+                LS_WARNF(pd, "group ID is still too large");
             }
         }
 
         // make a call
-        lua_State *L = call_begin(pd->userdata); // L: -
+        lua_State *L = funcs.call_begin(pd->userdata); // L: -
         lua_newtable(L); // L: table
         lua_pushinteger(L, group); // L: table n
         lua_setfield(L, -2, "id"); // L: table
@@ -207,14 +215,14 @@ run(
             lua_pushlstring(L, buf, nbuf); // L: table group
             lua_setfield(L, -2, "name"); // L: table
         }
-        call_end(pd->userdata);
+        funcs.call_end(pd->userdata);
 
         // wait for next event
         if (XkbSelectEventDetails(dpy, p->deviceid, XkbStateNotify, XkbAllStateComponentsMask,
                                   XkbGroupStateMask)
             == False)
         {
-            LUASTATUS_FATALF(pd, "XkbSelectEventDetails failed");
+            LS_FATALF(pd, "XkbSelectEventDetails failed");
             goto error;
         }
         XEvent event;
@@ -231,17 +239,8 @@ error:
     ls_strarr_destroy(groups);
 }
 
-static
-void
-destroy(LuastatusPluginData *pd)
-{
-    priv_destroy(pd->priv);
-    free(pd->priv);
-}
-
-LuastatusPluginIface luastatus_plugin_iface = {
+LuastatusPluginIface luastatus_plugin_iface_v1 = {
     .init = init,
     .run = run,
     .destroy = destroy,
-    .taints = (const char *[]) {"libx11", NULL},
 };

@@ -13,6 +13,7 @@
 #define LS_ATTR_MALLOC                          /*nothing*/
 #define LS_ATTR_ALLOC_SIZE1(ArgN_)              /*nothing*/
 #define LS_ATTR_ALLOC_SIZE2(Arg1N_, Arg2N_)     /*nothing*/
+#define LS_ATTR_SENTINEL(Arg_)                  /*nothing*/
 #define LS_HAS_BUILTIN_UNREACHABLE              (0)
 #define LS_HAS_BUILTIN_OVERFLOW(BuiltIn_)       (0)
 
@@ -37,6 +38,9 @@
 
 #   undef  LS_ATTR_ALLOC_SIZE2
 #   define LS_ATTR_ALLOC_SIZE2(Arg1N_, Arg2N_) __attribute__((alloc_size(Arg1N_, Arg2N_)))
+
+#   undef  LS_ATTR_SENTINEL
+#   define LS_ATTR_SENTINEL(Arg_) __attribute__((sentinel(Arg_)))
 #endif
 
 #if __GNUC__ >= 3

@@ -44,14 +44,15 @@ else ()
             lua53 lua-5.3 lua5.3
             lua52 lua-5.2 lua5.2
             lua51 lua-5.1 lua5.1
-            luajit)
+            luajit
+            lua)
     endif ()
 endif ()
 
 function (luastatus_target_compile_with target var)
     target_include_directories (${target} SYSTEM PUBLIC
         ${${var}_INCLUDE_DIRS})
-    target_compile_definitions (${target} PUBLIC
+    target_compile_options (${target} PUBLIC
         ${${var}_CFLAGS_OTHER})
 endfunction ()
 
@@ -62,16 +63,19 @@ function (luastatus_target_build_with target var)
 endfunction ()
 
 #------------------------------------------------------------------------------
+include(GNUInstallDirs)
 
-set (BARLIBS_DIR "${CMAKE_INSTALL_PREFIX}/lib/luastatus/barlibs")
-set (PLUGINS_DIR "${CMAKE_INSTALL_PREFIX}/lib/luastatus/plugins")
+set (BARLIBS_DIR "${CMAKE_INSTALL_FULL_LIBDIR}/luastatus/barlibs")
+set (PLUGINS_DIR "${CMAKE_INSTALL_FULL_LIBDIR}/luastatus/plugins")
 
 function (luastatus_add_barlib_or_plugin destdir name)
     set (sources ${ARGV})
     list (REMOVE_AT sources 0 1)
     add_library ("${name}" MODULE ${sources})
     set_target_properties ("${name}" PROPERTIES PREFIX "")
-    install (TARGETS "${name}" DESTINATION "${destdir}")
+    if (destdir)
+        install (TARGETS "${name}" DESTINATION "${destdir}")
+    endif ()
 endfunction ()
 
 function (luastatus_add_barlib)
@@ -82,15 +86,24 @@ function (luastatus_add_plugin)
     luastatus_add_barlib_or_plugin ("${PLUGINS_DIR}" ${ARGV})
 endfunction ()
 
+function (luastatus_add_barlib_noinstall)
+    luastatus_add_barlib_or_plugin ("" ${ARGV})
+endfunction ()
+
+function (luastatus_add_plugin_noinstall)
+    luastatus_add_barlib_or_plugin ("" ${ARGV})
+endfunction ()
+
 #------------------------------------------------------------------------------
 
 option (BUILD_BARLIB_DWM "build barlibs/dwm" ON)
 option (BUILD_BARLIB_I3 "build barlibs/i3" ON)
+option (BUILD_BARLIB_LEMONBAR "build barlibs/lemonbar" ON)
 
 option (BUILD_PLUGIN_ALSA "build plugins/alsa" ON)
 option (BUILD_PLUGIN_FS "build plugins/fs" ON)
+option (BUILD_PLUGIN_INOTIFY "build plugins/inotify" ON)
 option (BUILD_PLUGIN_MPD "build plugins/mpd" ON)
-option (BUILD_PLUGIN_PIPE "build plugins/pipe" ON)
 option (BUILD_PLUGIN_TIMER "build plugins/timer" ON)
 option (BUILD_PLUGIN_XKB "build plugins/xkb" ON)
 option (BUILD_PLUGIN_XTITLE "build plugins/xtitle" ON)
@@ -99,6 +112,7 @@ option (BUILD_PLUGIN_XTITLE "build plugins/xtitle" ON)
 
 add_subdirectory (libls)
 add_subdirectory (luastatus)
+add_subdirectory (tests)
 
 if (BUILD_BARLIB_DWM)
     add_subdirectory (barlibs/dwm)
@@ -106,6 +120,10 @@ endif ()
 
 if (BUILD_BARLIB_I3)
     add_subdirectory (barlibs/i3)
+endif ()
+
+if (BUILD_BARLIB_LEMONBAR)
+    add_subdirectory (barlibs/lemonbar)
 endif ()
 
 if (BUILD_PLUGIN_ALSA)
@@ -116,12 +134,12 @@ if (BUILD_PLUGIN_FS)
     add_subdirectory (plugins/fs)
 endif ()
 
-if (BUILD_PLUGIN_MPD)
-    add_subdirectory (plugins/mpd)
+if (BUILD_PLUGIN_INOTIFY)
+    add_subdirectory (plugins/inotify)
 endif ()
 
-if (BUILD_PLUGIN_PIPE)
-    add_subdirectory (plugins/pipe)
+if (BUILD_PLUGIN_MPD)
+    add_subdirectory (plugins/mpd)
 endif ()
 
 if (BUILD_PLUGIN_TIMER)

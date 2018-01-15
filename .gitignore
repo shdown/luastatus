@@ -1,6 +1,5 @@
 *.o
 *.so
-/luastatus/luastatus
 /_gitignored/
 # CMake
 CMakeCache.txt
@@ -12,6 +11,4 @@ install_manifest.txt
 CTestTestfile.cmake
 build/
 # generated headers
-/config.h
-/version.h
-/probes.h
+*.generated.[ch]

@@ -62,7 +62,7 @@ else
     T ${EDITOR:-edit} RELEASE_NOTES
     ask 'Commit and push?'
     T git add VERSION RELEASE_NOTES
-    T git commit -m "Release $NEW_VERSION"
+    T git commit -m "$release_msg"
 fi
 
 T git tag --force v$NEW_VERSION

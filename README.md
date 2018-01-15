@@ -3,7 +3,7 @@ configure the way the data from plugins is processed and shown with Lua.
 
 Its main feature is that the content can be updated immediately as some event
 occurs, be it a change of keyboard layout, active window title, volume or a song
-in your favourite player (if there is a plugin for it, of course) — a thing
+in your favorite player (if there is a plugin for it, of course) — a thing
 rather uncommon for tiling window managers.
 
 Its motto is:
@@ -16,8 +16,7 @@ Screenshot
 ![...](https://cloud.githubusercontent.com/assets/22565120/19625163/fecb2310-9921-11e6-90f3-17d291278531.gif)
 
 Above is i3bar with luastatus with time, battery, volume and keyboard layout
-widgets. Widgets and i3bar configuration are
-[here](https://github.com/shdown/luastatus/tree/master/contrib/widget-examples).
+widgets.
 
 Widgets
 ===
@@ -30,7 +29,7 @@ The `widget` table **must** contain the following entries:
   receive data from. If it contains a slash, it is treated as a path to a shared
   library. If it does not, luastatus tries to load `<plugin>.so` from the
   directory configured at the build time (CMake `PLUGINS_DIR` variable, defaults
-  to `${CMAKE_INSTALL_PREFIX}/lib/luastatus/plugins`).
+  to `${CMAKE_INSTALL_FULL_LIBDIR}/luastatus/plugins`).
 
   * `cb`: a function that converts the data received from a *plugin* to the
   format a *barlib* (see below) understands. It should take exactly one
@@ -41,9 +40,20 @@ The `widget` table **may** contain the following entries:
   * `opts`: a table with plugin’s options. If undefined, an empty table will be
   substituted.
 
-  * `event`: a function. If defined, it will be called by the *barlib* when some
-  event with the widget occurs (typically a click). It should take exactly one
-  argument and not return anything.
+  * `event`: a function or a string.
+    - If is a function, it is called by the *barlib* when some event with the
+     widget occurs (typically a click). It should take exactly one argument and
+     not return anything;
+    - if is a string, it is compiled as a function in a *separate state*, and
+     when some event with the widget occurs, the compiled function is called in
+     that state (not in the widget’s state, in which `cb` gets called). This may
+     be useful for widgets that want not to receive data from plugin, but to
+     generate it themselves (possibly using some external modules). Such a
+     widget may want to specify `plugin = 'timer', opts = {period = 0}` and
+     block in `cb` until it wants to update. The problem is that in this case,
+     widget’s Lua mutex is almost always being acquired by `cb`, and there is
+     very little chance for `event` to get called. A separate-state `event`
+     function solves that.
 
 Plugins
 ===
@@ -51,7 +61,7 @@ A plugin is a thing that knows when to call the `cb` function and what to pass
 to.
 
 Plugins are shared libraries. For how to write them, see
-`WRITING_BARLIB_OR_PLUGIN.md`.
+`DOCS/WRITING_BARLIB_OR_PLUGIN.md`.
 
 Barlibs
 ===
@@ -64,11 +74,11 @@ A barlib (**bar** **lib**rary) is a thing that knows:
   * how to indicate an error, should one happen.
 
 Barlibs are shared libraries, too. For how to write them, see
-`WRITING_BARLIB_OR_PLUGIN.md`.
+`DOCS/WRITING_BARLIB_OR_PLUGIN.md`.
 
 Barlibs are capable of taking options.
 
-The event loop
+The mechanism
 ===
 Each widget runs in its own thread and has its own Lua interpreter instance.
 
@@ -81,39 +91,14 @@ Also, due to luastatus’ architecture, no two `event()` functions, even from
 different widgets, can overlap. (Note that `cb()` functions from different
 widgets can overlap.)
 
-Lua libraries
+Plugins’ and barlib’s Lua functions
 ===
-luastatus provides the `luastatus` module, which contains the following
-functions:
-
-* `luastatus.rc(args)`
-
-  Spawns a process, waits for its termination, and returns its exit status if it
-  exited normally, 128+**n** if it was killed by a signal with number **n**, or
-  127 if there was an error spawning the process.
-
-* `luastatus.dollar(args)`
-
-  Spawns a process with stdout redirected to an internal buffer, waits for its
-  termination, and returns output and exit status (rules for `luastatus.rc`
-  apply). Note that it drops all trailing newlines, as all shells do, so that
-  `luastatus.dollar{"echo", "hello"} == "hello"` (not `"hello\n"`).
-
-  It is named so because of its similarity to the `$(...)` shell construct.
-
-* `luastatus.spawn(args)`
-
-  Spawns a process, does **not** wait for its termination, and does not return
-  anything.
-
-Plugins and barlibs can also register Lua functions. They appear in
-`luastatus.plugin` and `luastatus.barlib` submodules correspondingly.
+Plugins and barlibs can register Lua functions. They appear in
+`luastatus.plugin` and `luastatus.barlib` submodules, correspondingly.
 
 Lua limitations
 ===
-luastatus prohibits `os.execute`, `os.setlocale`, and `os.exit` as they are not
-thread-safe. It’s pretty easy to implement `os.execute` in terms of
-`luastatus.rc`, and two other just shouldn’t be used in widgets.
+In luastatus, `os.setlocale` always fails as it is inherently not thread-safe.
 
 Supported Lua versions
 ===
@@ -122,30 +107,45 @@ Supported Lua versions
 * 5.2
 * 5.3
 
-Usage
+Getting started
 ===
+First, find your barlib’s subdirectory in the `barlibs/` directory. Then read
+its `README.md` file for detailed instructions and documentation.
+
+Similary, for plugins’ documentation, see `README.md` files in the
+subdirectories of `plugins/`.
+
+Finally, widget examples are in `contrib/widget-examples`.
+
+Using luastatus binary
+===
+Note that some barlibs can provide their own wrappers for luastatus; that’s why
+you should consult your barlib’s `README.md` first.
+
 Pass a barlib with `-b`, then (optionally) its options with `-B`, then widget
 files.
 
 If `-b` argument contains a slash, it is treated as a path to a shared library.
 If it does not, luastatus tries to load `<argument>.so` from the directory
 configured at the build time (CMake `BARLIBS_DIR` variable, defaults to
-`${CMAKE_INSTALL_PREFIX}/lib/luastatus/barlibs`).
+`${CMAKE_INSTALL_FULL_LIBDIR}/luastatus/barlibs`).
 
 Example:
 
     luastatus -b dwm -B display=:0 -B separator=' ' widget1.lua widget2.lua
 
-Note that some barlibs can provide their own wrappers for luastatus.
-
 Installation
 ===
-`cmake . && make && make install`
+`cmake . && make && sudo make install`
 
-You can specify a Lua library to build with: `cmake -DWITH_LUA_LIBRARY=luajit .`.
+You can specify a Lua library to build with: `cmake -DWITH_LUA_LIBRARY=luajit .`
 
-You can disable building certain barlibs and plugins, e.g. `cmake -DBUILD_PLUGIN_XTITLE=OFF .`.
+You can disable building certain barlibs and plugins, e.g. `cmake -DBUILD_PLUGIN_XTITLE=OFF .`
 
 Reporting bugs, requesting features, suggesting patches
 ===
 Feel free to open an issue or a pull request.
+
+Migrating from older versions
+===
+See `DOCS/MIGRATION_GUIDE.md`.

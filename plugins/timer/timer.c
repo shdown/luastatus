@@ -8,9 +8,11 @@
 #include <sys/select.h>
 #include <unistd.h>
 #include <signal.h>
-#include "include/plugin.h"
-#include "include/plugin_logf_macros.h"
+
+#include "include/plugin_v1.h"
+#include "include/sayf_macros.h"
 #include "include/plugin_utils.h"
+
 #include "libls/alloc_utils.h"
 #include "libls/lua_utils.h"
 #include "libls/osdep.h"
@@ -24,13 +26,17 @@ typedef struct {
     char *fifo;
 } Priv;
 
+static
 void
-priv_destroy(Priv *p)
+destroy(LuastatusPluginData *pd)
 {
+    Priv *p = pd->priv;
     free(p->fifo);
+    free(p);
 }
 
-LuastatusPluginInitResult
+static
+int
 init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
@@ -41,7 +47,7 @@ init(LuastatusPluginData *pd, lua_State *L)
 
     PU_MAYBE_VISIT_NUM("period", n,
         if (ls_timespec_is_invalid(p->period = ls_timespec_from_seconds(n))) {
-            LUASTATUS_FATALF(pd, "invalid 'period' value");
+            LS_FATALF(pd, "invalid 'period' value");
             goto error;
         }
     );
@@ -50,53 +56,43 @@ init(LuastatusPluginData *pd, lua_State *L)
         p->fifo = ls_xstrdup(s);
     );
 
-    return LUASTATUS_PLUGIN_INIT_RESULT_OK;
+    return LUASTATUS_OK;
 
 error:
-    priv_destroy(p);
-    free(p);
-    return LUASTATUS_PLUGIN_INIT_RESULT_ERR;
+    destroy(pd);
+    return LUASTATUS_ERR;
 }
 
+static
 void
-run(
-    LuastatusPluginData *pd,
-    LuastatusPluginCallBegin call_begin,
-    LuastatusPluginCallEnd call_end)
+run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
-
     LSWakeupFifo w;
-    ls_wakeup_fifo_init(&w);
-
-    sigset_t allsigs;
-    if (sigfillset(&allsigs) < 0) {
+    if (ls_wakeup_fifo_init(&w, p->fifo, p->period, NULL) < 0) {
         LS_WITH_ERRSTR(s, errno,
-            LUASTATUS_FATALF(pd, "sigfillset: %s", s);
+            LS_WARNF(pd, "ls_wakeup_fifo_init: %s", s);
         );
         goto error;
     }
-    w.fifo = p->fifo;
-    w.timeout = &p->period;
-    w.sigmask = &allsigs;
 
     const char *what = "hello";
 
     while (1) {
         // make a call
-        lua_State *L = call_begin(pd->userdata);
+        lua_State *L = funcs.call_begin(pd->userdata);
         lua_pushstring(L, what);
-        call_end(pd->userdata);
+        funcs.call_end(pd->userdata);
         // wait
         if (ls_wakeup_fifo_open(&w) < 0) {
             LS_WITH_ERRSTR(s, errno,
-                LUASTATUS_WARNF(pd, "open: %s: %s", p->fifo, s);
+                LS_WARNF(pd, "ls_wakeup_fifo_open: %s: %s", p->fifo, s);
             );
         }
-        int r = ls_wakeup_fifo_pselect(&w);
+        int r = ls_wakeup_fifo_wait(&w);
         if (r < 0) {
             LS_WITH_ERRSTR(s, errno,
-                LUASTATUS_FATALF(pd, "pselect: %s", s);
+                LS_FATALF(pd, "ls_wakeup_fifo_wait: %s", s);
             );
             goto error;
         } else if (r == 0) {
@@ -110,14 +106,7 @@ error:
     ls_wakeup_fifo_destroy(&w);
 }
 
-void
-destroy(LuastatusPluginData *pd)
-{
-    priv_destroy(pd->priv);
-    free(pd->priv);
-}
-
-LuastatusPluginIface luastatus_plugin_iface = {
+LuastatusPluginIface luastatus_plugin_iface_v1 = {
     .init = init,
     .run = run,
     .destroy = destroy,

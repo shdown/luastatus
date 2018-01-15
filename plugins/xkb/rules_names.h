@@ -9,7 +9,7 @@ typedef struct {
     const char *model;
     const char *layout;
     const char *options;
-    unsigned char *_data;
+    unsigned char *data_;
 } RulesNames;
 
 bool

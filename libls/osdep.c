@@ -5,8 +5,23 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/socket.h>
+
 #include "io_utils.h"
-#include "probes.h"
+#include "probes.generated.h"
+
+int
+ls_close(int fd)
+{
+#if LS_HAVE_POSIX_CLOSE
+    return posix_close(fd, 0);
+#elif defined(__hpux)
+    int r;
+    while ((r = close(fd)) < 0 && errno == EINTR) {}
+    return r;
+#else
+    return close(fd);
+#endif
+}
 
 int
 ls_cloexec_pipe(int pipefd[2])

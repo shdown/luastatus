@@ -4,6 +4,6 @@
 #include "libls/strarr.h"
 
 void
-parse_groups(LSStringArray *gb, const char *layout);
+parse_groups(LSStringArray *groups, const char *layout);
 
 #endif

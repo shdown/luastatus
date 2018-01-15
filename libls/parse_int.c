@@ -5,7 +5,7 @@
 #include <string.h>
 
 int
-ls_parse_uint(const char *s, size_t ns, char const **endptr)
+ls_parse_uint_b(const char *s, size_t ns, char const **endptr)
 {
     int ret = 0;
     size_t i = 0;
@@ -33,13 +33,13 @@ done:
 }
 
 int
-ls_full_parse_uint(const char *s, size_t ns)
+ls_full_parse_uint_b(const char *s, size_t ns)
 {
     if (!ns) {
         return -EINVAL;
     }
     const char *endptr;
-    int r = ls_parse_uint(s, ns, &endptr);
+    int r = ls_parse_uint_b(s, ns, &endptr);
     if (r < 0) {
         return r;
     }
@@ -50,7 +50,7 @@ ls_full_parse_uint(const char *s, size_t ns)
 }
 
 int
-ls_full_parse_uint_cstr(const char *s)
+ls_full_parse_uint_s(const char *s)
 {
-    return ls_full_parse_uint(s, strlen(s));
+    return ls_full_parse_uint_b(s, strlen(s));
 }

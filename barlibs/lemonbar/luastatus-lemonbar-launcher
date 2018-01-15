@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+if (( BASH_VERSINFO[0] < 4 )); then
+    echo >&2 "bash 4.0 or higher is required (this one is $BASH_VERSION)."
+    exit 1
+fi
+
+usage() {
+    echo >&2 "$*
+USAGE: ${0##*/} [-p lemonbar_argument [-p ...]] -- [luastatus_argument [...]]
+Note that '--' is mandatory."
+    exit 2
+}
+
+lemonbar_args=()
+# There is no easy way to require '--' with getopts, so we parse $@ manually.
+while true; do
+    (( $# == 0 )) && usage "'--' argument not found."
+    case "$1" in
+    --)
+        shift
+        break
+        ;;
+    -p)
+        (( $# == 1 )) && usage "'-p' option requires an argument."
+        shift
+        lemonbar_args+=("$1")
+        ;;
+    -p*)
+        lemonbar_args+=("${1:2}")
+        ;;
+    *)
+        usage "Unexpected argument '$1' found before '--'."
+        ;;
+    esac
+    shift
+done
+
+coproc ${LEMONBAR:-lemonbar} "${lemonbar_args[@]}"
+eval "exec <&${COPROC[0]} >&${COPROC[1]}"
+exec ${LUASTATUS:-luastatus} -b ${LUASTATUS_LEMONBAR_BARLIB:-lemonbar} 3<&0 0</dev/null -B in_fd=3 4>&1 1>&2 -B out_fd=4 "$@"

@@ -1,9 +1,10 @@
 #include "sprintf_utils.h"
 
 #include <assert.h>
+#include <stdio.h>
 #include <stdarg.h>
 
-char*
+char *
 ls_vasprintf(const char *fmt, va_list vl)
 {
     char *ret = NULL;

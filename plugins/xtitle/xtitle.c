@@ -1,22 +1,19 @@
-#include "include/plugin.h"
-#include "include/plugin_logf_macros.h"
-#include "include/plugin_utils.h"
-
-#include <lua.h>
-#include <errno.h>
-
 #include <xcb/xproto.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_event.h>
 #include <xcb/xcb_icccm.h>
 #include <xcb/xcb_ewmh.h>
-
+#include <errno.h>
 #include <signal.h>
 #include <sys/select.h>
-
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <lua.h>
+
+#include "include/plugin_v1.h"
+#include "include/sayf_macros.h"
+#include "include/plugin_utils.h"
 
 #include "libls/alloc_utils.h"
 #include "libls/errno_utils.h"
@@ -31,13 +28,15 @@ typedef struct {
 
 static
 void
-priv_destroy(Priv *p)
+destroy(LuastatusPluginData *pd)
 {
+    Priv *p = pd->priv;
     free(p->dpyname);
+    free(p);
 }
 
 static
-LuastatusPluginInitResult
+int
 init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
@@ -54,12 +53,11 @@ init(LuastatusPluginData *pd, lua_State *L)
         p->visible = b;
     );
 
-    return LUASTATUS_PLUGIN_INIT_RESULT_OK;
+    return LUASTATUS_OK;
 
 error:
-    priv_destroy(p);
-    free(p);
-    return LUASTATUS_PLUGIN_INIT_RESULT_ERR;
+    destroy(pd);
+    return LUASTATUS_ERR;
 }
 
 typedef struct {
@@ -89,6 +87,7 @@ get_active_window(Data *d, xcb_window_t *win)
         d->ewmh,xcb_ewmh_get_active_window(d->ewmh, d->screenp), win, NULL) == 1;
 }
 
+static
 bool
 push_window_title(Data *d, lua_State *L, xcb_window_t win)
 {
@@ -101,8 +100,8 @@ push_window_title(Data *d, lua_State *L, xcb_window_t win)
     icccm_txt_prop.name = NULL;
 
     if (d->visible &&
-        xcb_ewmh_get_wm_visible_name_reply(d->ewmh, xcb_ewmh_get_wm_visible_name(d->ewmh, win),
-                                           &ewmh_txt_prop, NULL) == 1 &&
+        xcb_ewmh_get_wm_visible_name_reply(
+            d->ewmh, xcb_ewmh_get_wm_visible_name(d->ewmh, win), &ewmh_txt_prop, NULL) == 1 &&
         ewmh_txt_prop.strings)
     {
         lua_pushlstring(L, ewmh_txt_prop.strings, ewmh_txt_prop.strings_len);
@@ -110,8 +109,8 @@ push_window_title(Data *d, lua_State *L, xcb_window_t win)
         return true;
     }
 
-    if (xcb_ewmh_get_wm_name_reply(d->ewmh, xcb_ewmh_get_wm_name(d->ewmh, win), &ewmh_txt_prop,
-                                   NULL) == 1 &&
+    if (xcb_ewmh_get_wm_name_reply(
+            d->ewmh, xcb_ewmh_get_wm_name(d->ewmh, win), &ewmh_txt_prop, NULL) == 1 &&
         ewmh_txt_prop.strings)
     {
         lua_pushlstring(L, ewmh_txt_prop.strings, ewmh_txt_prop.strings_len);
@@ -119,8 +118,8 @@ push_window_title(Data *d, lua_State *L, xcb_window_t win)
         return true;
     }
 
-    if (xcb_icccm_get_wm_name_reply(d->conn, xcb_icccm_get_wm_name(d->conn, win), &icccm_txt_prop,
-                                    NULL) == 1 &&
+    if (xcb_icccm_get_wm_name_reply(
+            d->conn, xcb_icccm_get_wm_name(d->conn, win), &icccm_txt_prop, NULL) == 1 &&
         icccm_txt_prop.name)
     {
         lua_pushlstring(L, icccm_txt_prop.name, icccm_txt_prop.name_len);
@@ -131,6 +130,7 @@ push_window_title(Data *d, lua_State *L, xcb_window_t win)
     return false;
 }
 
+static
 void
 push_arg(Data *d, lua_State *L, xcb_window_t win)
 {
@@ -140,13 +140,14 @@ push_arg(Data *d, lua_State *L, xcb_window_t win)
 }
 
 // updates *win and *last_win if the active window was changed
+static
 bool
 title_changed(Data *d, xcb_generic_event_t *evt, xcb_window_t *win, xcb_window_t *last_win)
 {
     if (XCB_EVENT_RESPONSE_TYPE(evt) != XCB_PROPERTY_NOTIFY) {
         return false;
     }
-    xcb_property_notify_event_t *pne = (xcb_property_notify_event_t*) evt;
+    xcb_property_notify_event_t *pne = (xcb_property_notify_event_t *) evt;
 
     if (pne->atom == d->ewmh->_NET_ACTIVE_WINDOW) {
         watch(d, *last_win, false);
@@ -172,10 +173,7 @@ title_changed(Data *d, xcb_generic_event_t *evt, xcb_window_t *win, xcb_window_t
 
 static
 void
-run(
-    LuastatusPluginData *pd,
-    LuastatusPluginCallBegin call_begin,
-    LuastatusPluginCallEnd call_end)
+run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
 
@@ -191,7 +189,7 @@ run(
     do { \
         int ErrCodeVarName_ = xcb_connection_has_error(d.conn); \
         if (ErrCodeVarName_) { \
-            LUASTATUS_FATALF(pd, __VA_ARGS__); \
+            LS_FATALF(pd, __VA_ARGS__); \
             goto error; \
         } \
     } while (0)
@@ -206,15 +204,15 @@ run(
     d.root = iter.data->root;
 
     if (xcb_ewmh_init_atoms_replies(d.ewmh, xcb_ewmh_init_atoms(d.conn, d.ewmh), NULL) == 0) {
-        LUASTATUS_FATALF(pd, "xcb_ewmh_init_atoms_replies failed");
+        LS_FATALF(pd, "xcb_ewmh_init_atoms_replies failed");
         goto error;
     }
     ewmh_inited = true;
 
     xcb_window_t win = XCB_NONE;
     if (get_active_window(&d, &win)) {
-        push_arg(&d, call_begin(pd->userdata), win);
-        call_end(pd->userdata);
+        push_arg(&d, funcs.call_begin(pd->userdata), win);
+        funcs.call_end(pd->userdata);
     }
     watch(&d, d.root, true);
     watch(&d, win, true);
@@ -223,7 +221,7 @@ run(
     sigset_t allsigs;
     if (sigfillset(&allsigs) < 0) {
         LS_WITH_ERRSTR(s, errno,
-            LUASTATUS_FATALF(pd, "sigfillset: %s", s);
+            LS_FATALF(pd, "sigfillset: %s", s);
         );
         goto error;
     }
@@ -238,15 +236,15 @@ run(
         int nfds = pselect(fd + 1, &fds, NULL, NULL, NULL, &allsigs);
         if (nfds < 0) {
             LS_WITH_ERRSTR(s, errno,
-                LUASTATUS_FATALF(pd, "pselect: %s", s);
+                LS_FATALF(pd, "pselect: %s", s);
             );
             goto error;
         } else if (nfds > 0) {
             xcb_generic_event_t *evt;
             while ((evt = xcb_poll_for_event(d.conn))) {
                 if (title_changed(&d, evt, &win, &last_win)) {
-                    push_arg(&d, call_begin(pd->userdata), win);
-                    call_end(pd->userdata);
+                    push_arg(&d, funcs.call_begin(pd->userdata), win);
+                    funcs.call_end(pd->userdata);
                 }
                 free(evt);
             }
@@ -264,15 +262,7 @@ error:
     free(d.ewmh);
 }
 
-static
-void
-destroy(LuastatusPluginData *pd)
-{
-    priv_destroy(pd->priv);
-    free(pd->priv);
-}
-
-LuastatusPluginIface luastatus_plugin_iface = {
+LuastatusPluginIface luastatus_plugin_iface_v1 = {
     .init = init,
     .run = run,
     .destroy = destroy,

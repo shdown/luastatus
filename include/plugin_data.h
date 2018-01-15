@@ -4,36 +4,41 @@
 #include <lua.h>
 #include <stddef.h>
 
-#include "loglevel.h"
+#include "common.h"
 
-#ifndef LUASTATUS_PLUGIN_LOGF_ATTRIBUTE
+#ifndef LUASTATUS_PLUGIN_SAYF_ATTRIBUTE
 #   ifdef __GNUC__
-#       define LUASTATUS_PLUGIN_LOGF_ATTRIBUTE __attribute__((format(printf, 3, 4)))
+#       define LUASTATUS_PLUGIN_SAYF_ATTRIBUTE __attribute__((format(printf, 3, 4)))
 #   else
-#       define LUASTATUS_PLUGIN_LOGF_ATTRIBUTE /*nothing*/
+#       define LUASTATUS_PLUGIN_SAYF_ATTRIBUTE /*nothing*/
 #   endif
 #endif
 
-typedef LUASTATUS_PLUGIN_LOGF_ATTRIBUTE void LuastatusPluginLogf(void *userdata,
-                                                                 LuastatusLogLevel level,
-                                                                 const char *fmt, ...);
+typedef LUASTATUS_PLUGIN_SAYF_ATTRIBUTE void LuastatusPluginSayf_v1(
+    void *userdata, int level, const char *fmt, ...);
 
 typedef struct {
+    // This widget's private data.
     void *priv;
+
+    // A black-box user data.
     void *userdata;
-    LuastatusPluginLogf *logf;
-} LuastatusPluginData;
 
-typedef lua_State *LuastatusPluginCallBegin(void *userdata);
-typedef void       LuastatusPluginCallEnd(void *userdata);
+    // Should be used for logging.
+    LuastatusPluginSayf_v1 *sayf;
 
-typedef enum {
-    LUASTATUS_PLUGIN_INIT_RESULT_OK,
-    LUASTATUS_PLUGIN_INIT_RESULT_ERR,
-} LuastatusPluginInitResult;
+    // See DOCS/design/map_get.md.
+    void ** (*map_get)(void *userdata, const char *key);
+} LuastatusPluginData_v1;
 
 typedef struct {
-    // This function must initialize a widget by assigning something to pd->priv.
+    lua_State *(*call_begin) (void *userdata);
+    void       (*call_end)   (void *userdata);
+    void       (*call_cancel)(void *userdata);
+} LuastatusPluginRunFuncs_v1;
+
+typedef struct {
+    // This function should initialize a widget by assigning something to pd->priv.
     // You would typically do:
     //
     //     typedef struct {
@@ -41,56 +46,51 @@ typedef struct {
     //     } Priv;
     //     ...
     //     static
-    //     LuastatusPluginInitResult
+    //     int
     //     init(LuastatusPluginData *pd, lua_State *L) {
-    //         Priv *p = pd->priv = LS_NEW(Priv, 1);
+    //         Priv *p = pd->priv = LS_XNEW(Priv, 1);
     //         ...
     //
     // The options table is on the top of L's stack.
     //
-    // This function is allowed to push elements onto L's stack to iterate over tables, but is not
-    // allowed to modify stack elements, read elements below the initial top, or interact with L in
-    // any other way.
+    // This function may push elements onto L's stack to iterate over tables, but should not modify
+    // elements below the initial top, or interact with L in any other way.
     //
     // It is guaranteed that L's stack has at least 15 free slots.
     //
-    // It must return:
+    // It should return:
     //
-    //   LUASTATUS_PLUGIN_INIT_RESULT_OK on success.
-    //     In this case, L's stack must not contain any extra elements pushed onto it;
+    //   LUASTATUS_RES_OK on success.
+    //     In this case, L's stack should not contain any extra elements pushed onto it;
     //
-    //   LUASTATUS_PLUGIN_INIT_RESULT_ERR on failure.
+    //   LUASTATUS_RES_ERR on failure.
     //     In this case, L's stack may contain extra elements pushed onto it.
     //
-    LuastatusPluginInitResult (*init)(LuastatusPluginData *pd, lua_State *L);
+    int (*init)(LuastatusPluginData_v1 *pd, lua_State *L);
 
-    // This function must assign Lua functions that the plugin provides to the table on the top of
-    // L's stack.
+    // This function should register Lua functions provided by the plugin into table on top of L's
+    // stack.
     //
     // It is guaranteed that L's stack has at least 15 free slots.
     //
     // May be NULL.
-    void (*register_funcs)(LuastatusPluginData *pd, lua_State *L);
+    void (*register_funcs)(LuastatusPluginData_v1 *pd, lua_State *L);
 
-    // This function must launch a widget. Once the plugin wants to update the widget, it must
-    // call call_begin(pd->userdata), thus obtaining a lua_State* object (it is guaranteed that its
-    // stack has at least 15 free slots).
-    // Then it must push exactly one value onto its stack and call call_end(pd->userdata).
+    // This function should run a widget. Once the plugin wants to update the widget, it should call
+    // call_begin(pd->userdata), thus obtaining a lua_State* object (let's call it L). Then it
+    // should push exactly one value onto L's stack and call call_end(pd->userdata).
     //
-    // It must not call_begin() and return without calling call_end().
+    // It is guaranteed that L's stack has at least 15 free slots.
     //
-    // It must only return on an unrecoverable failure.
+    // It should only return on an unrecoverable failure.
     //
-    void (*run)(LuastatusPluginData *pd, LuastatusPluginCallBegin call_begin,
-                LuastatusPluginCallEnd call_end);
+    // It is explicitly allowed to call call_begin() and return without calling call_end(), leaving
+    // arbitrary number of extra elements on L's stack.
+    //
+    void (*run)(LuastatusPluginData_v1 *pd, LuastatusPluginRunFuncs_v1 funcs);
 
-    // This function must destroy a previously successfully initialized widget.
-    void (*destroy)(LuastatusPluginData *pd);
-
-    // See ../WRITING_BARLIB_OR_PLUGIN.md.
-    //
-    // May be NULL.
-    const char *const *taints;
-} LuastatusPluginIface;
+    // This function should destroy a previously successfully initialized widget.
+    void (*destroy)(LuastatusPluginData_v1 *pd);
+} LuastatusPluginIface_v1;
 
 #endif
