@@ -1,7 +1,3 @@
-#include "include/plugin.h"
-#include "include/sayf_macros.h"
-#include "include/plugin_utils.h"
-
 #include <lua.h>
 #include <errno.h>
 #include <stdlib.h>
@@ -10,6 +6,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/select.h>
+
+#include "include/plugin_v1.h"
+#include "include/sayf_macros.h"
+#include "include/plugin_utils.h"
 
 #include "libls/alloc_utils.h"
 #include "libls/errno_utils.h"
@@ -29,6 +29,7 @@ typedef struct {
     struct timespec timeout;
     struct timespec retry_in;
     char *retry_fifo;
+    char *idle_str;
 } Priv;
 
 static
@@ -39,6 +40,7 @@ destroy(LuastatusPluginData *pd)
     free(p->hostname);
     free(p->password);
     free(p->retry_fifo);
+    free(p->idle_str);
     free(p);
 }
 
@@ -54,7 +56,9 @@ init(LuastatusPluginData *pd, lua_State *L)
         .timeout = ls_timespec_invalid,
         .retry_in = (struct timespec) {10, 0},
         .retry_fifo = NULL,
+        .idle_str = NULL,
     };
+    LSString idle_str = ls_string_new_from_s("idle");
 
     PU_MAYBE_VISIT_STR("hostname", s,
         p->hostname = ls_xstrdup(s);
@@ -94,14 +98,30 @@ init(LuastatusPluginData *pd, lua_State *L)
         p->retry_fifo = ls_xstrdup(s);
     );
 
-    return LUASTATUS_RES_OK;
+    bool has_events = false;
+    PU_MAYBE_TRAVERSE_TABLE("events",
+        has_events = true;
+        PU_CHECK_TYPE_AT(LS_LUA_KEY, "'events' key", LUA_TNUMBER);
+        PU_VISIT_STR_AT(LS_LUA_VALUE, "'events' element", s,
+            ls_string_append_c(&idle_str, ' ');
+            ls_string_append_s(&idle_str, s);
+        );
+    );
+    if (!has_events) {
+        ls_string_append_s(&idle_str, " mixer player");
+    }
+    ls_string_append_b(&idle_str, "\n", 2); // append '\n' and '\0'
+    p->idle_str = idle_str.data;
+
+    return LUASTATUS_OK;
 
 error:
+    LS_VECTOR_FREE(idle_str);
     destroy(pd);
-    return LUASTATUS_RES_ERR;
+    return LUASTATUS_ERR;
 }
 
-// string length without trailing newlines
+// Returns the length of /s/ without trailing newlines.
 static inline
 size_t
 dollar_strlen(const char *s)
@@ -113,7 +133,7 @@ dollar_strlen(const char *s)
     return len;
 }
 
-// If line is of form "<key>: <value>\n", appends <key> and <value> to sa.
+// If /line/ is of form "key: value\n", appends /key/ and /value/ to /sa/.
 static
 void
 kv_strarr_line_append(LSStringArray *sa, const char *line)
@@ -146,22 +166,19 @@ kv_strarr_table_assign(LSStringArray sa, lua_State *L)
 
 static inline
 void
-report_status(LuastatusPluginData *pd,
-              LuastatusPluginCallBegin call_begin, LuastatusPluginCallEnd call_end,
-              const char *what)
+report_status(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, const char *what)
 {
-    lua_State *L = call_begin(pd->userdata);
+    lua_State *L = funcs.call_begin(pd->userdata);
     lua_newtable(L); // L: table
     lua_pushstring(L, what); // L: table what
     lua_setfield(L, -2, "what"); // L: table
-    call_end(pd->userdata);
+    funcs.call_end(pd->userdata);
 }
 
 // Code below is pretty ugly and spaghetti-like. Rewrite it if you can.
 static
 void
-interact(int fd, LuastatusPluginData *pd,
-         LuastatusPluginCallBegin call_begin, LuastatusPluginCallEnd call_end)
+interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, int fd)
 {
     Priv *p = pd->priv;
 
@@ -259,7 +276,7 @@ interact(int fd, LuastatusPluginData *pd,
             kv_strarr_line_append(&kv_status, buf);
         );
 
-        lua_State *L = call_begin(pd->userdata);
+        lua_State *L = funcs.call_begin(pd->userdata);
         lua_newtable(L); // L: table
 
         lua_pushstring(L, "update"); // L: table "update"
@@ -275,9 +292,9 @@ interact(int fd, LuastatusPluginData *pd,
         ls_strarr_clear(&kv_status);
         lua_setfield(L, -2, "status"); // L: table
 
-        call_end(pd->userdata);
+        funcs.call_end(pd->userdata);
 
-        WRITE("idle player mixer\n");
+        WRITE(p->idle_str);
 
         if (fd < FD_SETSIZE && !ls_timespec_is_invalid(p->timeout)) {
             while (1) {
@@ -289,7 +306,7 @@ interact(int fd, LuastatusPluginData *pd,
                     );
                     goto error;
                 } else if (r == 0) {
-                    report_status(pd, call_begin, call_end, "timeout");
+                    report_status(pd, funcs, "timeout");
                 } else {
                     break;
                 }
@@ -325,12 +342,12 @@ error:
 
 static
 void
-run(LuastatusPluginData *pd, LuastatusPluginCallBegin call_begin, LuastatusPluginCallEnd call_end)
+run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
     LSWakeupFifo w;
 
-    if (ls_wakeup_fifo_init(&w) < 0) {
+    if (ls_wakeup_fifo_init(&w, p->retry_fifo, p->retry_in, NULL) < 0) {
         LS_WITH_ERRSTR(s, errno,
             LS_FATALF(pd, "ls_wakeup_fifo_init: %s", s);
         );
@@ -340,16 +357,16 @@ run(LuastatusPluginData *pd, LuastatusPluginCallBegin call_begin, LuastatusPlugi
     w.timeout = p->retry_in;
 
     char portstr[8];
-    ls_xsnprintf(portstr, sizeof(portstr), "%d", p->port);
+    snprintf(portstr, sizeof(portstr), "%d", p->port);
 
     while (1) {
-        report_status(pd, call_begin, call_end, "connecting");
+        report_status(pd, funcs, "connecting");
 
         int fd = (p->hostname && p->hostname[0] == '/')
             ? socket_open(pd, p->hostname)
             : tcp_open(pd, p->hostname, portstr);
         if (fd >= 0) {
-            interact(fd, pd, call_begin, call_end);
+            interact(pd, funcs, fd);
         }
 
         if (ls_timespec_is_invalid(p->retry_in)) {
@@ -357,7 +374,7 @@ run(LuastatusPluginData *pd, LuastatusPluginCallBegin call_begin, LuastatusPlugi
             goto error;
         }
 
-        report_status(pd, call_begin, call_end, "error");
+        report_status(pd, funcs, "error");
 
         if (ls_wakeup_fifo_open(&w) < 0) {
             LS_WITH_ERRSTR(s, errno,
@@ -366,7 +383,7 @@ run(LuastatusPluginData *pd, LuastatusPluginCallBegin call_begin, LuastatusPlugi
         }
         if (ls_wakeup_fifo_wait(&w) < 0) {
             LS_WITH_ERRSTR(s, errno,
-                LS_FATALF(pd, "ls_wakeup_fifo_wait: %s", s);
+                LS_FATALF(pd, "ls_wakeup_fifo_wait: %s: %s", p->retry_fifo, s);
             );
             goto error;
         }
@@ -376,7 +393,7 @@ error:
     ls_wakeup_fifo_destroy(&w);
 }
 
-LuastatusPluginIface luastatus_plugin_iface = {
+LuastatusPluginIface luastatus_plugin_iface_v1 = {
     .init = init,
     .run = run,
     .destroy = destroy,

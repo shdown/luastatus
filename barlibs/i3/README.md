@@ -21,7 +21,9 @@ See http://i3wm.org/docs/i3bar-protocol.html#_click_events.
 
 Functions
 ===
-`pango_escape` escapes text for Pango markup.
+* `escaped_str = luastatus.plugin.pango_escape(str)`
+
+  Escapes text for Pango markup.
 
 Example
 ===

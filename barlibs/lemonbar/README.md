@@ -20,7 +20,9 @@ A string with lemonbar markup, an array (that is, a table with numeric keys) of 
 
 Functions
 ===
-`escape` escapes text for lemonbar markup.
+* `escaped_str = luastatus.plugin.escape(str)`
+
+  Escapes text for lemonbar markup.
 
 `event` argument
 ===

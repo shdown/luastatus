@@ -1,17 +1,18 @@
 #include "markup_utils.h"
 
+#include "libls/string_.h"
+#include "libls/parse_int.h"
+
 #include <stddef.h>
 #include <string.h>
 #include <stdbool.h>
-#include "libls/string_.h"
-#include "libls/parse_int.h"
 
 void
 lemonbar_ls_string_append_escaped_b(LSString *buf, const char *s, size_t ns)
 {
     // just replace all "%"s with "%%"
 
-    // we have to check ns before calling memchr, see ../../DOCS/empty-ranges-and-c-stdlib.md
+    // we have to check ns before calling memchr, see DOCS/c_notes/empty-ranges-and-c-stdlib.md
     for (const char *t; ns && (t = memchr(s, '%', ns));) {
         const size_t nseg = t - s + 1;
         ls_string_append_b(buf, s, nseg);

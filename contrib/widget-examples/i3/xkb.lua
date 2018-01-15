@@ -6,7 +6,7 @@ widget = {
         elseif t.name == 'ru(winkeys)' then
             return {full_text = '[Ru]', color = '#eab93d'}
         else
-            return {full_text = '[' .. t.id .. ']'}
+            return {full_text = '[' .. (t.name or '? ID ' .. t.id) .. ']'}
         end
     end,
 }

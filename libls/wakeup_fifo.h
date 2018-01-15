@@ -52,13 +52,12 @@ typedef struct {
     const char *fifo;
     struct timespec timeout;
     sigset_t sigmask;
-
     fd_set fds_;
     int fd_;
 } LSWakeupFifo;
 
 int
-ls_wakeup_fifo_init(LSWakeupFifo *w);
+ls_wakeup_fifo_init(LSWakeupFifo *w, const char *fifo, struct timespec timeout, sigset_t *sigmask);
 
 int
 ls_wakeup_fifo_open(LSWakeupFifo *w);

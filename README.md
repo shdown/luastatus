@@ -16,8 +16,7 @@ Screenshot
 ![...](https://cloud.githubusercontent.com/assets/22565120/19625163/fecb2310-9921-11e6-90f3-17d291278531.gif)
 
 Above is i3bar with luastatus with time, battery, volume and keyboard layout
-widgets. Widgets and i3bar configuration are
-[here](https://github.com/shdown/luastatus/tree/master/contrib/widget-examples).
+widgets.
 
 Widgets
 ===
@@ -79,7 +78,7 @@ Barlibs are shared libraries, too. For how to write them, see
 
 Barlibs are capable of taking options.
 
-The event loop
+The mechanism
 ===
 Each widget runs in its own thread and has its own Lua interpreter instance.
 
@@ -92,39 +91,14 @@ Also, due to luastatus’ architecture, no two `event()` functions, even from
 different widgets, can overlap. (Note that `cb()` functions from different
 widgets can overlap.)
 
-Lua libraries
+Plugins’ and barlib’s Lua functions
 ===
-luastatus provides the `luastatus` module, which contains the following
-functions:
-
-* `luastatus.rc(args)`
-
-  Spawns a process, waits for its termination, and returns its exit status if it
-  exited normally, 128+**n** if it was killed by a signal with number **n**, or
-  127 if there was an error spawning the process.
-
-* `luastatus.dollar(args)`
-
-  Spawns a process with stdout redirected to an internal buffer, waits for its
-  termination, and returns output and exit status (rules for `luastatus.rc`
-  apply). Note that it drops all trailing newlines, as all shells do, so that
-  `luastatus.dollar{"echo", "hello"} == "hello"` (not `"hello\n"`).
-
-  It is named so because of its similarity to the `$(...)` shell construct.
-
-* `luastatus.spawn(args)`
-
-  Spawns a process, does **not** wait for its termination, and does not return
-  anything.
-
-Plugins and barlibs can also register Lua functions. They appear in
-`luastatus.plugin` and `luastatus.barlib` submodules correspondingly.
+Plugins and barlibs can register Lua functions. They appear in
+`luastatus.plugin` and `luastatus.barlib` submodules, correspondingly.
 
 Lua limitations
 ===
-luastatus prohibits `os.execute` and `os.setlocale` as they are not thread-safe.
-It’s pretty easy to implement `os.execute` in terms of `luastatus.rc`, and
-`os.setlocale` just shouldn’t be used in widgets.
+In luastatus, `os.setlocale` always fails as it is inherently not thread-safe.
 
 Supported Lua versions
 ===
@@ -133,8 +107,21 @@ Supported Lua versions
 * 5.2
 * 5.3
 
-Usage
+Getting started
 ===
+First, find your barlib’s subdirectory in the `barlibs/` directory. Then read
+its `README.md` file for detailed instructions and documentation.
+
+Similary, for plugins’ documentation, see `README.md` files in the
+subdirectories of `plugins/`.
+
+Finally, widget examples are in `contrib/widget-examples`.
+
+Using luastatus binary
+===
+Note that some barlibs can provide their own wrappers for luastatus; that’s why
+you should consult your barlib’s `README.md` first.
+
 Pass a barlib with `-b`, then (optionally) its options with `-B`, then widget
 files.
 
@@ -147,16 +134,18 @@ Example:
 
     luastatus -b dwm -B display=:0 -B separator=' ' widget1.lua widget2.lua
 
-Note that some barlibs can provide their own wrappers for luastatus.
-
 Installation
 ===
 `cmake . && make && sudo make install`
 
-You can specify a Lua library to build with: `cmake -DWITH_LUA_LIBRARY=luajit .`.
+You can specify a Lua library to build with: `cmake -DWITH_LUA_LIBRARY=luajit .`
 
-You can disable building certain barlibs and plugins, e.g. `cmake -DBUILD_PLUGIN_XTITLE=OFF .`.
+You can disable building certain barlibs and plugins, e.g. `cmake -DBUILD_PLUGIN_XTITLE=OFF .`
 
 Reporting bugs, requesting features, suggesting patches
 ===
 Feel free to open an issue or a pull request.
+
+Migrating from older versions
+===
+See `DOCS/MIGRATION_GUIDE.md`.

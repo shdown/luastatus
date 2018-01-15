@@ -4,6 +4,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <stdbool.h>
+
 #include "compdep.h"
 
 static const struct timespec ls_timespec_invalid = {0, -1};

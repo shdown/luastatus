@@ -5,16 +5,17 @@
 #include <string.h>
 #include <alsa/asoundlib.h>
 
-#include "include/plugin.h"
+#include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
 #include "include/plugin_utils.h"
 
 #include "libls/alloc_utils.h"
-#include "libls/sprintf_utils.h"
 
 typedef struct {
     char *card;
     char *channel;
+    bool capture;
+    bool in_db;
 } Priv;
 
 static
@@ -35,6 +36,8 @@ init(LuastatusPluginData *pd, lua_State *L)
     *p = (Priv) {
         .card = NULL,
         .channel = NULL,
+        .capture = false,
+        .in_db = false,
     };
 
     PU_MAYBE_VISIT_STR("card", s,
@@ -51,11 +54,19 @@ init(LuastatusPluginData *pd, lua_State *L)
         p->channel = ls_xstrdup("Master");
     }
 
-    return LUASTATUS_RES_OK;
+    PU_MAYBE_VISIT_BOOL("capture", b,
+        p->capture = b;
+    );
+
+    PU_MAYBE_VISIT_BOOL("in_db", b,
+        p->in_db = b;
+    );
+
+    return LUASTATUS_OK;
 
 error:
     destroy(pd);
-    return LUASTATUS_RES_ERR;
+    return LUASTATUS_ERR;
 }
 
 static
@@ -80,12 +91,12 @@ xalloc_card_realname(const char *nicename)
     if (snd_ctl_card_info_malloc(&info) < 0) {
         ls_oom();
     }
-    static const size_t BUF_SZ = 16;
+    static const size_t BUF_SZ = 32;
     char *buf = LS_XNEW(char, BUF_SZ);
 
     int rcard = -1;
     while (snd_card_next(&rcard) >= 0 && rcard >= 0) {
-        ls_xsnprintf(buf, BUF_SZ, "hw:%d", rcard);
+        snprintf(buf, BUF_SZ, "hw:%d", rcard);
         if (card_has_nicename(buf, info, nicename)) {
             goto cleanup;
         }
@@ -101,10 +112,7 @@ cleanup:
 
 static
 void
-run(
-    LuastatusPluginData *pd,
-    LuastatusPluginCallBegin call_begin,
-    LuastatusPluginCallEnd call_end)
+run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
 
@@ -155,29 +163,46 @@ run(
         LS_FATALF(pd, "can't find channel '%s'", p->channel);
         goto error;
     }
+
+    int (*get_range)(snd_mixer_elem_t *, long *, long *) =
+        p->capture ? (p->in_db ? snd_mixer_selem_get_capture_dB_range
+                               : snd_mixer_selem_get_capture_volume_range)
+                   : (p->in_db ? snd_mixer_selem_get_playback_dB_range
+                               : snd_mixer_selem_get_playback_volume_range);
+
+    int (*get_cur)(snd_mixer_elem_t *, snd_mixer_selem_channel_id_t, long *) =
+        p->capture ? (p->in_db ? snd_mixer_selem_get_capture_dB
+                               : snd_mixer_selem_get_capture_volume)
+                   : (p->in_db ? snd_mixer_selem_get_playback_dB
+                               : snd_mixer_selem_get_playback_volume);
+
+    int (*get_switch)(snd_mixer_elem_t *, snd_mixer_selem_channel_id_t, int *) =
+        p->capture ? snd_mixer_selem_get_capture_switch
+                   : snd_mixer_selem_get_playback_switch;
+
     while (1) {
-        lua_State *L = call_begin(pd->userdata);
+        lua_State *L = funcs.call_begin(pd->userdata);
         lua_newtable(L); // L: table
         lua_newtable(L); // L: table table
         long pmin, pmax;
-        if (snd_mixer_selem_get_playback_volume_range(elem, &pmin, &pmax) >= 0) {
+        if (get_range(elem, &pmin, &pmax) >= 0) {
             lua_pushnumber(L, pmin); // L: table table pmin
             lua_setfield(L, -2, "min"); // L: table table
             lua_pushnumber(L, pmax); // L: table table pmax
             lua_setfield(L, -2, "max"); // L: table table
         }
         long pcur;
-        if (snd_mixer_selem_get_playback_volume(elem, 0, &pcur) >= 0) {
+        if (get_cur(elem, 0, &pcur) >= 0) {
             lua_pushnumber(L, pcur); // L: table table pcur
             lua_setfield(L, -2, "cur"); // L: table table
         }
         lua_setfield(L, -2, "vol"); // L: table
-        int pswitch;
-        if (snd_mixer_selem_get_playback_switch(elem, 0, &pswitch) >= 0) {
-            lua_pushboolean(L, !pswitch); // L: table !pswitch
+        int notmute;
+        if (get_switch(elem, 0, &notmute) >= 0) {
+            lua_pushboolean(L, !notmute); // L: table !notmute
             lua_setfield(L, -2, "mute"); // L: table
         }
-        call_end(pd->userdata);
+        funcs.call_end(pd->userdata);
         ALSA_CALL(snd_mixer_wait, mixer, -1);
         ALSA_CALL(snd_mixer_handle_events, mixer);
     }
@@ -192,7 +217,7 @@ error:
     free(realname);
 }
 
-LuastatusPluginIface luastatus_plugin_iface = {
+LuastatusPluginIface luastatus_plugin_iface_v1 = {
     .init = init,
     .run = run,
     .destroy = destroy,

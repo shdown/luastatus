@@ -1,16 +1,19 @@
 #include "event_watcher.h"
+
 #include <stdbool.h>
 #include <lua.h>
 #include <yajl/yajl_parse.h>
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
-#include <math.h>
+
+#include "include/sayf_macros.h"
+
 #include "libls/errno_utils.h"
 #include "libls/parse_int.h"
 #include "libls/strarr.h"
 #include "libls/vector.h"
-#include "include/sayf_macros.h"
+
 #include "priv.h"
 
 typedef size_t StringIndex;
@@ -45,8 +48,7 @@ typedef struct {
     int widget;
 
     LuastatusBarlibData *bd;
-    LuastatusBarlibEWCallBegin *call_begin;
-    LuastatusBarlibEWCallEnd *call_end;
+    LuastatusBarlibEWFuncs funcs;
 } Context;
 
 static inline
@@ -185,8 +187,9 @@ callback_end_map(void *vctx)
         lua_pushlstring(L, s_, ns_); \
     } while (0)
 
-    if (ctx->widget >= 0) {
-        lua_State *L = ctx->call_begin(ctx->bd->userdata, ctx->widget);
+    Priv *p = ctx->bd->priv;
+    if (ctx->widget >= 0 || (size_t) ctx->widget < p->nwidgets) {
+        lua_State *L = ctx->funcs.call_begin(ctx->bd->userdata, ctx->widget);
         // L: -
         lua_newtable(L); // L: table
         for (size_t i = 0; i < ctx->params.size; ++i) {
@@ -205,7 +208,7 @@ callback_end_map(void *vctx)
             }
             lua_rawset(L, -3); // L: table
         }
-        ctx->call_end(ctx->bd->userdata, ctx->widget);
+        ctx->funcs.call_end(ctx->bd->userdata, ctx->widget);
 #undef PUSH_STRS_ELEM
     }
     return 1;
@@ -234,13 +237,11 @@ callback_end_array(void *vctx)
 }
 
 int
-event_watcher(LuastatusBarlibData *bd,
-              LuastatusBarlibEWCallBegin call_begin,
-              LuastatusBarlibEWCallEnd call_end)
+event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
 {
     Priv *p = bd->priv;
     if (p->noclickev) {
-        return LUASTATUS_RES_NONFATAL_ERR;
+        return LUASTATUS_NONFATAL_ERR;
     }
 
     Context ctx = {
@@ -249,8 +250,7 @@ event_watcher(LuastatusBarlibData *bd,
         .params = LS_VECTOR_NEW(),
         .widget = -1,
         .bd = bd,
-        .call_begin = call_begin,
-        .call_end = call_end,
+        .funcs = funcs,
     };
     yajl_handle hand = yajl_alloc(
         &(yajl_callbacks) {
@@ -300,5 +300,5 @@ error:
     ls_strarr_destroy(ctx.strs);
     LS_VECTOR_FREE(ctx.params);
     yajl_free(hand);
-    return LUASTATUS_RES_ERR;
+    return LUASTATUS_ERR;
 }

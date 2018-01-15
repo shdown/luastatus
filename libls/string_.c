@@ -3,10 +3,10 @@
 #include <assert.h>
 #include <stdio.h>
 #include <errno.h>
-
-#include "libls/vector.h"
 #include <stdarg.h>
 #include <stdbool.h>
+
+#include "libls/vector.h"
 
 bool
 ls_string_append_vf(LSString *s, const char *fmt, va_list vl)

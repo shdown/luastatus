@@ -1,4 +1,4 @@
-#include "include/barlib.h"
+#include "include/barlib_v1.h"
 #include "include/sayf_macros.h"
 
 #include <xcb/xcb.h>
@@ -15,18 +15,24 @@
 #include "libls/vector.h"
 #include "libls/lua_utils.h"
 
+// Barlib's private data
 typedef struct {
-    // number of widgets
+    // Number of widgets.
     size_t nwidgets;
-    // content of widgets
+
+    // Content of the widgets.
     LSString *bufs;
-    // buffer for joining content of widgets
-    LSString glued;
-    // zero-terminated separator
+
+    // Buffer for the content of the widgets joined by /sep/.
+    LSString joined;
+
+    // A zero-terminated separator string.
     char *sep;
-    // XCB connection
+
+    // The XCB connection.
     xcb_connection_t *conn;
-    // root window
+
+    // The root window.
     xcb_window_t root;
 } Priv;
 
@@ -39,7 +45,7 @@ destroy(LuastatusBarlibData *bd)
         LS_VECTOR_FREE(p->bufs[i]);
     }
     free(p->bufs);
-    LS_VECTOR_FREE(p->glued);
+    LS_VECTOR_FREE(p->joined);
     free(p->sep);
     if (p->conn) {
         xcb_disconnect(p->conn);
@@ -53,24 +59,25 @@ redraw(LuastatusBarlibData *bd)
 {
     Priv *p = bd->priv;
 
-    LSString *glued = &p->glued;
+    LSString *joined = &p->joined;
     size_t n = p->nwidgets;
     LSString *bufs = p->bufs;
     const char *sep = p->sep;
 
-    LS_VECTOR_CLEAR(*glued);
+    LS_VECTOR_CLEAR(*joined);
     for (size_t i = 0; i < n; ++i) {
         if (bufs[i].size) {
-            if (glued->size) {
-                ls_string_append_s(glued, sep);
+            if (joined->size) {
+                ls_string_append_s(joined, sep);
             }
-            ls_string_append_b(glued, bufs[i].data, bufs[i].size);
+            ls_string_append_b(joined, bufs[i].data, bufs[i].size);
         }
     }
+
     xcb_generic_error_t *err = xcb_request_check(
         p->conn,
         xcb_change_property_checked(p->conn, XCB_PROP_MODE_REPLACE, p->root, XCB_ATOM_WM_NAME,
-            XCB_ATOM_STRING, /*apparently, UTF-8*/ 8, glued->size, glued->data));
+            XCB_ATOM_STRING, 8, joined->size, joined->data));
     if (err) {
         LS_FATALF(bd, "XCB error %d occured", err->error_code);
         free(err);
@@ -87,7 +94,7 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
     *p = (Priv) {
         .nwidgets = nwidgets,
         .bufs = LS_XNEW(LSString, nwidgets),
-        .glued = LS_VECTOR_NEW_RESERVE(char, 1024),
+        .joined = LS_VECTOR_NEW_RESERVE(char, 1024),
         .sep = NULL,
         .conn = NULL,
     };
@@ -110,6 +117,7 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
     }
     p->sep = ls_xstrdup(sep ? sep : " | ");
 
+    // Initialize /p->conn/ and /p->root/.
     int screenp;
     p->conn = xcb_connect(dpyname, &screenp);
     int r = xcb_connection_has_error(p->conn);
@@ -123,15 +131,17 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
         xcb_screen_next(&iter);
     }
     p->root = iter.data->root;
-    // clear the current name
+
+    // Clear the current name.
     if (!redraw(bd)) {
         goto error;
     }
-    return LUASTATUS_RES_OK;
+
+    return LUASTATUS_OK;
 
 error:
     destroy(bd);
-    return LUASTATUS_RES_ERR;
+    return LUASTATUS_ERR;
 }
 
 static
@@ -160,12 +170,12 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
                 if (!lua_isnumber(L, LS_LUA_KEY)) {
                     LS_ERRF(bd, "table key: expected number, found %s",
                         luaL_typename(L, LS_LUA_KEY));
-                    return LUASTATUS_RES_NONFATAL_ERR;
+                    return LUASTATUS_NONFATAL_ERR;
                 }
                 if (!lua_isstring(L, LS_LUA_VALUE)) {
                     LS_ERRF(bd, "table value: expected string, found %s",
                         luaL_typename(L, LS_LUA_VALUE));
-                    return LUASTATUS_RES_NONFATAL_ERR;
+                    return LUASTATUS_NONFATAL_ERR;
                 }
                 size_t ns;
                 const char *s = lua_tolstring(L, LS_LUA_VALUE, &ns);
@@ -178,13 +188,13 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
         break;
     default:
         LS_ERRF(bd, "expected table, string or nil, found %s", luaL_typename(L, -1));
-        return LUASTATUS_RES_NONFATAL_ERR;
+        return LUASTATUS_NONFATAL_ERR;
     }
 
     if (!redraw(bd)) {
-        return LUASTATUS_RES_ERR;
+        return LUASTATUS_ERR;
     }
-    return LUASTATUS_RES_OK;
+    return LUASTATUS_OK;
 }
 
 static
@@ -194,12 +204,12 @@ set_error(LuastatusBarlibData *bd, size_t widget_idx)
     Priv *p = bd->priv;
     ls_string_assign_s(&p->bufs[widget_idx], "(Error)");
     if (!redraw(bd)) {
-        return LUASTATUS_RES_ERR;
+        return LUASTATUS_ERR;
     }
-    return LUASTATUS_RES_OK;
+    return LUASTATUS_OK;
 }
 
-LuastatusBarlibIface luastatus_barlib_iface = {
+LuastatusBarlibIface luastatus_barlib_iface_v1 = {
     .init = init,
     .set = set,
     .set_error = set_error,

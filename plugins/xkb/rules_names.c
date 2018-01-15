@@ -18,11 +18,9 @@ rules_names_load(Display *dpy, RulesNames *out)
     out->options = NULL;
     out->data_ = NULL;
 
-    bool ret = false;
-
     Atom rules_atom = XInternAtom(dpy, NAMES_PROP_ATOM, True);
     if (rules_atom == None) {
-        goto done;
+        goto error;
     }
     Atom actual_type;
     int fmt;
@@ -31,39 +29,35 @@ rules_names_load(Display *dpy, RulesNames *out)
                            False, XA_STRING, &actual_type, &fmt, &ndata, &bytes_after, &out->data_)
         != Success)
     {
-        goto done;
+        goto error;
     }
     if (bytes_after || actual_type != XA_STRING || fmt != 8) {
-        goto done;
+        goto error;
     }
 
     const char *ptr = (const char *) out->data_;
-    const char *end = (const char *) out->data_ + ndata;
+    const char *end = ptr + ndata;
 
-    if (ptr != end) {
-        out->rules = ptr;
-        ptr += strlen(ptr) + 1;
-    }
-    if (ptr != end) {
-        out->model = ptr;
-        ptr += strlen(ptr) + 1;
-    }
-    if (ptr != end) {
-        out->layout = ptr;
-        ptr += strlen(ptr) + 1;
-    }
-    if (ptr != end) {
-        out->options = ptr;
-        ptr += strlen(ptr) + 1;
-    }
+#define NEXTSTR(Dest_) \
+    do { \
+        if (ptr != end) { \
+            Dest_ = ptr; \
+            ptr += strlen(ptr) + 1; \
+        } \
+    } while (0)
 
-    ret = true;
+    NEXTSTR(out->rules);
+    NEXTSTR(out->model);
+    NEXTSTR(out->layout);
+    NEXTSTR(out->options);
 
-done:
-    if (!ret) {
-        rules_names_destroy(out);
-    }
-    return ret;
+#undef NEXTSTR
+
+    return true;
+
+error:
+    rules_names_destroy(out);
+    return false;
 }
 
 void

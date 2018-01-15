@@ -1,15 +1,14 @@
 #include "connect.h"
 
-#include "include/plugin_data.h"
-#include "include/sayf_macros.h"
-
 #include <stddef.h>
 #include <string.h>
-
 #include <sys/un.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <errno.h>
+
+#include "include/plugin_data_v1.h"
+#include "include/sayf_macros.h"
 
 #include "libls/errno_utils.h"
 #include "libls/osdep.h"
@@ -20,7 +19,7 @@ socket_open(LuastatusPluginData *pd, const char *path)
     struct sockaddr_un saun;
     const size_t npath = strlen(path);
     if (npath + 1 > sizeof(saun.sun_path)) {
-        LS_ERRF(pd, "socket path is too long");
+        LS_ERRF(pd, "socket path is too long: %s", path);
         return -1;
     }
     saun.sun_family = AF_UNIX;
@@ -34,7 +33,7 @@ socket_open(LuastatusPluginData *pd, const char *path)
     }
     if (connect(fd, (const struct sockaddr *) &saun, sizeof(saun)) < 0) {
         LS_WITH_ERRSTR(s, errno,
-            LS_ERRF(pd, "connect: %s", s);
+            LS_ERRF(pd, "connect: %s: %s", path, s);
         );
         ls_close(fd);
         return -1;

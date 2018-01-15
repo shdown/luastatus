@@ -1,17 +1,15 @@
-#include "include/plugin.h"
-#include "include/sayf_macros.h"
-#include "include/plugin_utils.h"
-
-#include <lua.h>
-
 #include <X11/X.h>
 #include <X11/Xlib.h>
 #include <X11/XKBlib.h>
-
 #include <limits.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <setjmp.h>
+#include <lua.h>
+
+#include "include/plugin_v1.h"
+#include "include/sayf_macros.h"
+#include "include/plugin_utils.h"
 
 #include "libls/alloc_utils.h"
 #include "libls/compdep.h"
@@ -60,11 +58,20 @@ init(LuastatusPluginData *pd, lua_State *L)
         p->deviceid = n;
     );
 
-    return LUASTATUS_RES_OK;
+    void **ptr = pd->map_get(pd->userdata, "flag:library_used:x11");
+    if (!*ptr) {
+        if (!XInitThreads()) {
+            LS_FATALF(pd, "XInitThreads failed");
+            goto error;
+        }
+        *ptr = p;
+    }
+
+    return LUASTATUS_OK;
 
 error:
     destroy(pd);
-    return LUASTATUS_RES_ERR;
+    return LUASTATUS_ERR;
 }
 
 static
@@ -149,10 +156,7 @@ x11_error_handler(LS_ATTR_UNUSED_ARG Display *dpy, XErrorEvent *ev)
 
 static
 void
-run(
-    LuastatusPluginData *pd,
-    LuastatusPluginCallBegin call_begin,
-    LuastatusPluginCallEnd call_end)
+run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
     LSStringArray groups = ls_strarr_new();
@@ -201,7 +205,7 @@ run(
         }
 
         // make a call
-        lua_State *L = call_begin(pd->userdata); // L: -
+        lua_State *L = funcs.call_begin(pd->userdata); // L: -
         lua_newtable(L); // L: table
         lua_pushinteger(L, group); // L: table n
         lua_setfield(L, -2, "id"); // L: table
@@ -211,7 +215,7 @@ run(
             lua_pushlstring(L, buf, nbuf); // L: table group
             lua_setfield(L, -2, "name"); // L: table
         }
-        call_end(pd->userdata);
+        funcs.call_end(pd->userdata);
 
         // wait for next event
         if (XkbSelectEventDetails(dpy, p->deviceid, XkbStateNotify, XkbAllStateComponentsMask,
@@ -235,9 +239,8 @@ error:
     ls_strarr_destroy(groups);
 }
 
-LuastatusPluginIface luastatus_plugin_iface = {
+LuastatusPluginIface luastatus_plugin_iface_v1 = {
     .init = init,
     .run = run,
     .destroy = destroy,
-    .taints = (const char *[]) {"libx11", NULL},
 };

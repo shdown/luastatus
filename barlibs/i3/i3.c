@@ -6,8 +6,10 @@
 #include <errno.h>
 #include <lua.h>
 #include <lauxlib.h>
-#include "include/barlib.h"
+
+#include "include/barlib_v1.h"
 #include "include/sayf_macros.h"
+
 #include "libls/string_.h"
 #include "libls/vector.h"
 #include "libls/alloc_utils.h"
@@ -17,6 +19,7 @@
 #include "libls/io_utils.h"
 #include "libls/osdep.h"
 #include "libls/lua_utils.h"
+
 #include "priv.h"
 #include "generator_utils.h"
 #include "event_watcher.h"
@@ -133,11 +136,11 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
         goto error;
     }
 
-    return LUASTATUS_RES_OK;
+    return LUASTATUS_OK;
 
 error:
     destroy(bd);
-    return LUASTATUS_RES_ERR;
+    return LUASTATUS_ERR;
 }
 
 static
@@ -299,14 +302,14 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
     }
 
     if (!redraw(bd)) {
-        return LUASTATUS_RES_ERR;
+        return LUASTATUS_ERR;
     }
-    return LUASTATUS_RES_OK;
+    return LUASTATUS_OK;
 
 invalid_data:
     // the buffer may contain an invalid JSON at this point; just clear it.
     LS_VECTOR_CLEAR(p->bufs[widget_idx]);
-    return LUASTATUS_RES_NONFATAL_ERR;
+    return LUASTATUS_NONFATAL_ERR;
 }
 
 static
@@ -316,19 +319,20 @@ set_error(LuastatusBarlibData *bd, size_t widget_idx)
     Priv *p = bd->priv;
     LSString *s = &p->bufs[widget_idx];
 
-    ls_string_assign_s(s, "{\"full_text\":\"(Error)\",\"color\":\"#ff0000\"");
+    ls_string_assign_s(s, "{\"full_text\":\"(Error)\",\"color\":\"#ff0000\""
+        ",\"background\":\"#000000\"");
     if (p->noseps) {
         ls_string_append_s(s, ",\"separator\":false");
     }
     ls_string_append_c(s, '}');
 
     if (!redraw(bd)) {
-        return LUASTATUS_RES_ERR;
+        return LUASTATUS_ERR;
     }
-    return LUASTATUS_RES_OK;
+    return LUASTATUS_OK;
 }
 
-LuastatusBarlibIface luastatus_barlib_iface = {
+LuastatusBarlibIface luastatus_barlib_iface_v1 = {
     .init = init,
     .register_funcs = register_funcs,
     .set = set,

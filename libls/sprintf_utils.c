@@ -1,6 +1,7 @@
 #include "sprintf_utils.h"
 
 #include <assert.h>
+#include <stdio.h>
 #include <stdarg.h>
 
 char *

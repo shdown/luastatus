@@ -11,4 +11,4 @@ install_manifest.txt
 CTestTestfile.cmake
 build/
 # generated headers
-*.generated.h
+*.generated.[ch]

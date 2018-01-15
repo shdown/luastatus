@@ -5,15 +5,17 @@
 #include <stdbool.h>
 #include <lua.h>
 #include <lauxlib.h>
+
 #include "libls/lua_utils.h"
+
 #include "common.h"
 
-#ifndef PU_L_NAME
-#   define PU_L_NAME L
+#ifndef PU_L
+#   define PU_L L
 #endif
 
-#ifndef PU_PD_NAME
-#   define PU_PD_NAME pd
+#ifndef PU_PD
+#   define PU_PD pd
 #endif
 
 #ifndef PU_ON_ERROR
@@ -24,10 +26,10 @@
 
 #define PU_CHECK_TYPE_AT(StackIndex_, StringRepr_, LuaType_) \
     do { \
-        if (lua_type(PU_L_NAME, StackIndex_) != LuaType_) { \
-            PU_PD_NAME->sayf(PU_PD_NAME->userdata, LUASTATUS_FATAL, "%s: expected %s, found %s", \
-                             StringRepr_, lua_typename(PU_L_NAME, LuaType_), \
-                             luaL_typename(PU_L_NAME, StackIndex_)); \
+        if (lua_type(PU_L, StackIndex_) != LuaType_) { \
+            PU_PD->sayf(PU_PD->userdata, LUASTATUS_LOG_FATAL, "%s: expected %s, found %s", \
+                        StringRepr_, lua_typename(PU_L, LuaType_), \
+                        luaL_typename(PU_L, StackIndex_)); \
             PU_ON_ERROR \
         } \
     } while (0)
@@ -37,7 +39,7 @@
 #define PU_VISIT_STR_AT(StackIndex_, StringRepr_, Var_, ...) \
     do { \
         PU_CHECK_TYPE_AT(StackIndex_, StringRepr_, LUA_TSTRING); \
-        const char *Var_ = lua_tostring(PU_L_NAME, StackIndex_); \
+        const char *Var_ = lua_tostring(PU_L, StackIndex_); \
         __VA_ARGS__ \
     } while (0)
 
@@ -45,36 +47,35 @@
     do { \
         PU_CHECK_TYPE_AT(StackIndex_, StringRepr_, LUA_TSTRING); \
         size_t NVar_; \
-        const char *SVar_ = lua_tolstring(PU_L_NAME, StackIndex_, &NVar_); \
+        const char *SVar_ = lua_tolstring(PU_L, StackIndex_, &NVar_); \
         __VA_ARGS__ \
     } while (0)
 
 #define PU_VISIT_NUM_AT(StackIndex_, StringRepr_, Var_, ...) \
     do { \
         PU_CHECK_TYPE_AT(StackIndex_, StringRepr_, LUA_TNUMBER); \
-        lua_Number Var_ = lua_tonumber(PU_L_NAME, StackIndex_); \
+        lua_Number Var_ = lua_tonumber(PU_L, StackIndex_); \
         __VA_ARGS__ \
     } while (0)
 
 #define PU_VISIT_BOOL_AT(StackIndex_, StringRepr_, Var_, ...) \
     do { \
         PU_CHECK_TYPE_AT(StackIndex_, StringRepr_, LUA_TBOOLEAN); \
-        bool Var_ = lua_toboolean(PU_L_NAME, StackIndex_); \
+        bool Var_ = lua_toboolean(PU_L, StackIndex_); \
         __VA_ARGS__ \
     } while (0)
 
 // May be useful when you want not to just traverse a table. Dunno.
-#define PU_VISIT_TABLE_AT(StackIndex_, StringRepr_, IndexVar_, ...) \
+#define PU_VISIT_TABLE_AT(StackIndex_, StringRepr_, ...) \
     do { \
         PU_CHECK_TYPE_AT(StackIndex_, StringRepr_, LUA_TTABLE); \
-        int IndexVar_ = (StackIndex_); \
         __VA_ARGS__ \
     } while (0)
 
 #define PU_TRAVERSE_TABLE_AT(StackIndex_, StringRepr_, ...) \
     do { \
         PU_CHECK_TYPE_AT(StackIndex_, StringRepr_, LUA_TTABLE); \
-        LS_LUA_TRAVERSE(PU_L_NAME, StackIndex_) { \
+        LS_LUA_TRAVERSE(PU_L, StackIndex_) { \
             __VA_ARGS__ \
         } \
     } while (0)
@@ -84,19 +85,19 @@
 // do not use directly.
 #define PU__EXPAND_AT_KEY(Key_, AtMacro_, ...) \
     do { \
-        ls_lua_rawgetf(PU_L_NAME, Key_); \
+        ls_lua_rawgetf(PU_L, Key_); \
         AtMacro_(-1, Key_, __VA_ARGS__); \
-        lua_pop(PU_L_NAME, 1); \
+        lua_pop(PU_L, 1); \
     } while (0)
 
 // do not use directly.
 #define PU__MAYBE_EXPAND_AT_KEY(Key_, AtMacro_, ...) \
     do { \
-        ls_lua_rawgetf(PU_L_NAME, Key_); \
-        if (!lua_isnil(PU_L_NAME, -1)) { \
+        ls_lua_rawgetf(PU_L, Key_); \
+        if (!lua_isnil(PU_L, -1)) { \
             AtMacro_(-1, Key_, __VA_ARGS__); \
         } \
-        lua_pop(PU_L_NAME, 1); \
+        lua_pop(PU_L, 1); \
     } while (0)
 
 //------------------------------------------------------------------------------

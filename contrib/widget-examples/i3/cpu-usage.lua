@@ -1,16 +1,6 @@
-f = assert(io.open('/proc/stat', 'r'))
-f:setvbuf('no')
+cur, priv = {}, nil
 
-cur = {}
-prev = nil
-
-function upd_cur()
-    f:seek('set', 0)
-    cur.user, cur.nice, cur.system, cur.idle, cur.iowait, cur.irq, cur.softirq, cur.steal, cur.guest, cur.guest_nice =
-        string.match(f:read('*line'), 'cpu +(.*) +(.*) +(.*) +(.*) +(.*) +(.*) +(.*) +(.*) +(.*) +(.*)')
-end
-
-function wrapz(x)
+function wrap0(x)
     return x < 0 and 0 or x
 end
 
@@ -18,7 +8,12 @@ widget = {
     plugin = 'timer',
     opts = {period = 1},
     cb = function()
-        upd_cur()
+        local f = assert(io.open('/proc/stat', 'r'))
+        cur.user, cur.nice, cur.system, cur.idle, cur.iowait, cur.irq, cur.softirq, cur.steal,
+            cur.guest, cur.guest_nice = string.match(f:read('*line'),
+                'cpu +(.*) +(.*) +(.*) +(.*) +(.*) +(.*) +(.*) +(.*) +(.*) +(.*)')
+        f:close()
+
         cur.user = cur.user - cur.guest
         cur.nice = cur.nice - cur.guest_nice
 
@@ -29,16 +24,15 @@ widget = {
 
         local num, denom = 0, 0
         if prev then
-            num = wrapz(cur.user - prev.user)
-                + wrapz(cur.nice - prev.nice)
-                + wrapz(cur.SysAll - prev.SysAll)
-                + wrapz(cur.steal - prev.steal)
-                + wrapz(cur.guest - prev.guest)
-            denom = wrapz(cur.Total - prev.Total)
+            num = wrap0(cur.user - prev.user)
+                + wrap0(cur.nice - prev.nice)
+                + wrap0(cur.SysAll - prev.SysAll)
+                + wrap0(cur.steal - prev.steal)
+                + wrap0(cur.guest - prev.guest)
+            denom = wrap0(cur.Total - prev.Total)
         end
 
-        prev = cur
-        cur = {}
+        prev, cur = cur, {}
 
         if denom ~= 0 then
             return {full_text = string.format('[%5.1f%%]', num / denom * 100)}

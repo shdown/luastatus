@@ -1,13 +1,15 @@
 #include <stddef.h>
+#include <sys/types.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <lua.h>
 #include <lauxlib.h>
 #include <errno.h>
 #include <stdbool.h>
-#include <string.h>
-#include "include/barlib.h"
+
+#include "include/barlib_v1.h"
 #include "include/sayf_macros.h"
+
 #include "libls/string_.h"
 #include "libls/vector.h"
 #include "libls/cstring_utils.h"
@@ -16,14 +18,27 @@
 #include "libls/io_utils.h"
 #include "libls/lua_utils.h"
 #include "libls/alloc_utils.h"
+
 #include "markup_utils.h"
 
+// Barlib's private data
 typedef struct {
+    // Number of widgets.
     size_t nwidgets;
+
+    // Content of the widgets.
     LSString *bufs;
+
+    // A zero-terminated separator string.
     char *sep;
+
+    // /fdopen/'ed input file descriptor.
     FILE *in;
+
+    // /fdopen/'ed output file descriptor.
     FILE *out;
+
+    // Buffer for the /escape/ Lua function.
     LSString luabuf;
 } Priv;
 
@@ -129,11 +144,11 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
         goto error;
     }
 
-    return LUASTATUS_RES_OK;
+    return LUASTATUS_OK;
 
 error:
     destroy(bd);
-    return LUASTATUS_RES_ERR;
+    return LUASTATUS_ERR;
 }
 
 static
@@ -141,7 +156,7 @@ int
 l_escape(lua_State *L)
 {
     size_t ns;
-    // WARNING: luaL_check*() functions do a long jump on error!
+    // WARNING: /luaL_check*()/ functions do a long jump on error!
     const char *s = luaL_checklstring(L, 1, &ns);
 
     LuastatusBarlibData *bd = lua_touserdata(L, lua_upvalueindex(1));
@@ -223,12 +238,12 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
                 if (!lua_isnumber(L, LS_LUA_KEY)) {
                     LS_ERRF(bd, "table key: expected number, found %s",
                         luaL_typename(L, LS_LUA_KEY));
-                    return LUASTATUS_RES_NONFATAL_ERR;
+                    return LUASTATUS_NONFATAL_ERR;
                 }
                 if (!lua_isstring(L, LS_LUA_VALUE)) {
                     LS_ERRF(bd, "table value: expected string, found %s",
                         luaL_typename(L, LS_LUA_VALUE));
-                    return LUASTATUS_RES_NONFATAL_ERR;
+                    return LUASTATUS_NONFATAL_ERR;
                 }
                 size_t ns;
                 const char *s = lua_tolstring(L, LS_LUA_VALUE, &ns);
@@ -241,13 +256,13 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
         break;
     default:
         LS_ERRF(bd, "expected string or nil, found %s", luaL_typename(L, -1));
-        return LUASTATUS_RES_NONFATAL_ERR;
+        return LUASTATUS_NONFATAL_ERR;
     }
 
     if (!redraw(bd)) {
-        return LUASTATUS_RES_ERR;
+        return LUASTATUS_ERR;
     }
-    return LUASTATUS_RES_OK;
+    return LUASTATUS_OK;
 }
 
 static
@@ -257,16 +272,14 @@ set_error(LuastatusBarlibData *bd, size_t widget_idx)
     Priv *p = bd->priv;
     ls_string_assign_s(&p->bufs[widget_idx], "%{B#f00}%{F#fff}(Error)%{B-}%{F-}");
     if (!redraw(bd)) {
-        return LUASTATUS_RES_ERR;
+        return LUASTATUS_ERR;
     }
-    return LUASTATUS_RES_OK;
+    return LUASTATUS_OK;
 }
 
 static
 int
-event_watcher(LuastatusBarlibData *bd,
-              LuastatusBarlibEWCallBegin call_begin,
-              LuastatusBarlibEWCallEnd call_end)
+event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
 {
     Priv *p = bd->priv;
 
@@ -283,9 +296,9 @@ event_watcher(LuastatusBarlibData *bd,
         if (!command) {
             continue;
         }
-        lua_State *L = call_begin(bd->userdata, widget_idx);
+        lua_State *L = funcs.call_begin(bd->userdata, widget_idx);
         lua_pushlstring(L, command, ncommand);
-        call_end(bd->userdata, widget_idx);
+        funcs.call_end(bd->userdata, widget_idx);
     }
 
     if (feof(p->in)) {
@@ -298,10 +311,10 @@ event_watcher(LuastatusBarlibData *bd,
 
     free(buf);
 
-    return LUASTATUS_RES_ERR;
+    return LUASTATUS_ERR;
 }
 
-LuastatusBarlibIface luastatus_barlib_iface = {
+LuastatusBarlibIface luastatus_barlib_iface_v1 = {
     .init = init,
     .register_funcs = register_funcs,
     .set = set,

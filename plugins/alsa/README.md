@@ -10,6 +10,14 @@ Options
 
   Channel name, defaults to `Master`.
 
+* `in_db`: boolean
+
+  Whether or not to report normalized volume (in dBs).
+
+* `capture`: boolean
+
+  Whether or not this is a capture stream, as opposed to a playback one. Defaults to false.
+
 `cb` argument
 ===
 A table with the following entries:

@@ -73,7 +73,9 @@ function (luastatus_add_barlib_or_plugin destdir name)
     list (REMOVE_AT sources 0 1)
     add_library ("${name}" MODULE ${sources})
     set_target_properties ("${name}" PROPERTIES PREFIX "")
-    install (TARGETS "${name}" DESTINATION "${destdir}")
+    if (destdir)
+        install (TARGETS "${name}" DESTINATION "${destdir}")
+    endif ()
 endfunction ()
 
 function (luastatus_add_barlib)
@@ -82,6 +84,14 @@ endfunction ()
 
 function (luastatus_add_plugin)
     luastatus_add_barlib_or_plugin ("${PLUGINS_DIR}" ${ARGV})
+endfunction ()
+
+function (luastatus_add_barlib_noinstall)
+    luastatus_add_barlib_or_plugin ("" ${ARGV})
+endfunction ()
+
+function (luastatus_add_plugin_noinstall)
+    luastatus_add_barlib_or_plugin ("" ${ARGV})
 endfunction ()
 
 #------------------------------------------------------------------------------
@@ -94,7 +104,6 @@ option (BUILD_PLUGIN_ALSA "build plugins/alsa" ON)
 option (BUILD_PLUGIN_FS "build plugins/fs" ON)
 option (BUILD_PLUGIN_INOTIFY "build plugins/inotify" ON)
 option (BUILD_PLUGIN_MPD "build plugins/mpd" ON)
-option (BUILD_PLUGIN_PIPE "build plugins/pipe" ON)
 option (BUILD_PLUGIN_TIMER "build plugins/timer" ON)
 option (BUILD_PLUGIN_XKB "build plugins/xkb" ON)
 option (BUILD_PLUGIN_XTITLE "build plugins/xtitle" ON)
@@ -103,6 +112,7 @@ option (BUILD_PLUGIN_XTITLE "build plugins/xtitle" ON)
 
 add_subdirectory (libls)
 add_subdirectory (luastatus)
+add_subdirectory (tests)
 
 if (BUILD_BARLIB_DWM)
     add_subdirectory (barlibs/dwm)
@@ -130,10 +140,6 @@ endif ()
 
 if (BUILD_PLUGIN_MPD)
     add_subdirectory (plugins/mpd)
-endif ()
-
-if (BUILD_PLUGIN_PIPE)
-    add_subdirectory (plugins/pipe)
 endif ()
 
 if (BUILD_PLUGIN_TIMER)

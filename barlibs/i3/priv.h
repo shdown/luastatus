@@ -1,25 +1,32 @@
 #ifndef priv_h_
 #define priv_h_
 
-#include "libls/string_.h"
 #include <stdio.h>
 #include <stdbool.h>
 #include <stddef.h>
 
+#include "libls/string_.h"
+
+// Barlib's private data
 typedef struct {
-    // number of widgets
+    // Number of widgets.
     size_t nwidgets;
-    // content of widgets
+
+    // Content of the widgets.
     LSString *bufs;
-    // input file descriptor
+    // Input file descriptor number.
     int in_fd;
-    // fdopen'ed output file descritor
+
+    // /fdopen/'ed output file descritor.
     FILE *out;
-    // whether no_click_events option was specified
+
+    // Whether or not the /no_click_events/ option was specified.
     bool noclickev;
-    // whether no_separators option was specified
+
+    // Whether or not the /no_separators/ option was specified
     bool noseps;
-    // buffer for pango_escape Lua function
+
+    // The buffer for the /pango_escape/ Lua function.
     LSString luabuf;
 } Priv;
 

@@ -22,20 +22,14 @@ compat_inotify_init(bool nonblock, bool cloexec)
 #else
     int saved_errno;
     int fd = inotify_init();
-
     if (fd < 0) {
         goto error;
     }
-    if (nonblock) {
-        int fl = fcntl(fd, F_GETFL);
-        if (fl < 0 || fcntl(fd, F_SETFL, fl | O_NONBLOCK) < 0) {
-            goto error;
-        }
+    if (nonblock && ls_make_nonblock(fd) < 0) {
+        goto error;
     }
-    if (cloexec) {
-        if (ls_make_cloexec(fd) < 0) {
-            goto error;
-        }
+    if (cloexec && ls_make_cloexec(fd) < 0) {
+        goto error;
     }
     return fd;
 
