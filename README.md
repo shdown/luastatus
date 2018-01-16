@@ -78,7 +78,7 @@ Barlibs are shared libraries, too. For how to write them, see
 
 Barlibs are capable of taking options.
 
-The mechanism
+How it works
 ===
 Each widget runs in its own thread and has its own Lua interpreter instance.
 
