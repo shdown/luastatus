@@ -34,11 +34,19 @@ Otherwise, it is a table with the following entries:
 
 Functions
 ===
+Each file being watched is assigned a *watch descriptor*, which is a non-negative integer.
+
 * `wds = luastatus.plugin.get_initial_wds()`
+
+Returns a table that maps *initial* paths to their watch descriptors.
 
 * `wd = luastatus.plugin.add_watch(path, events)`
 
+Add a new file to watch. Returns a watch descriptor on success, or `nil` on failure.
+
 * `is_ok = luastatus.plugin.remove_watch(wd)`
+
+Removes a watch by its watch descriptor. Returns `true` on success, `false,` on failure.
 
 Events and flags names
 ===

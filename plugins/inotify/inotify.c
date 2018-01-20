@@ -18,8 +18,13 @@
 #include "inotify_compat.h"
 
 typedef struct {
+    char *path;
+    int wd;
+} Watch;
+
+typedef struct {
     int fd;
-    LS_VECTOR_OF(int) wds;
+    LS_VECTOR_OF(Watch) init_watch;
     bool greet;
 } Priv;
 
@@ -29,7 +34,10 @@ destroy(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
     ls_close(p->fd);
-    LS_VECTOR_FREE(p->wds);
+    for (size_t i = 0; i < p->init_watch.size; ++i) {
+        free(p->init_watch.data[i].path);
+    }
+    LS_VECTOR_FREE(p->init_watch);
     free(p);
 }
 
@@ -94,7 +102,7 @@ init(LuastatusPluginData *pd, lua_State *L)
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
         .fd = -1,
-        .wds = LS_VECTOR_NEW(),
+        .init_watch = LS_VECTOR_NEW(),
         .greet = false,
     };
 
@@ -144,10 +152,13 @@ init(LuastatusPluginData *pd, lua_State *L)
                 LS_ERRF(pd, "inotify_add_watch: %s: %s", path, s);
             );
         } else {
-            LS_VECTOR_PUSH(p->wds, wd);
+            LS_VECTOR_PUSH(p->init_watch, ((Watch) {
+                .path = ls_xstrdup(path),
+                .wd = wd,
+            }));
         }
     );
-    if (!p->wds.size) {
+    if (!p->init_watch.size) {
         LS_WARNF(pd, "nothing to watch for");
     }
 
@@ -232,10 +243,10 @@ l_get_initial_wds(lua_State *L)
     LuastatusPluginData *pd = lua_touserdata(L, lua_upvalueindex(1));
     Priv *p = pd->priv;
 
-    lua_createtable(L, p->wds.size, 0); // L: table
-    for (size_t i = 0; i < p->wds.size; ++i) {
-        lua_pushinteger(L, p->wds.data[i]); // L: table wd
-        lua_rawseti(L, -1, i + 1); // L: table
+    lua_createtable(L, 0, p->init_watch.size); // L: table
+    for (size_t i = 0; i < p->init_watch.size; ++i) {
+        lua_pushinteger(L, p->init_watch.data[i].wd); // L: table wd
+        lua_setfield(L, -2, p->init_watch.data[i].path); // L: table
     }
     return 1;
 }
