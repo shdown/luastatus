@@ -1,6 +1,5 @@
 # Copyright 1999-2017 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Id$
 
 EAPI=6
 CMAKE_IN_SOURCE_BUILD=1
@@ -29,7 +28,6 @@ PLUGINS="
     +${PN}_plugins_alsa
     +${PN}_plugins_fs
     +${PN}_plugins_mpd
-    +${PN}_plugins_pipe
     +${PN}_plugins_timer
     +${PN}_plugins_xkb
     +${PN}_plugins_xtitle
@@ -60,7 +58,6 @@ src_configure() {
         -DBUILD_PLUGIN_ALSA=$(usex ${PN}_plugins_alsa)
         -DBUILD_PLUGIN_FS=$(usex ${PN}_plugins_fs)
         -DBUILD_PLUGIN_MPD=$(usex ${PN}_plugins_mpd)
-        -DBUILD_PLUGIN_PIPE=$(usex ${PN}_plugins_pipe)
         -DBUILD_PLUGIN_TIMER=$(usex ${PN}_plugins_timer)
         -DBUILD_PLUGIN_XKB=$(usex ${PN}_plugins_xkb)
         -DBUILD_PLUGIN_XTITLE=$(usex ${PN}_plugins_xtitle)
