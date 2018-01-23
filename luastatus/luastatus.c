@@ -502,14 +502,14 @@ plugin_unload(Plugin *p)
 // Checks a /lua_*/ call that returns a /LUA_*/ error code, performed on a Lua interpreter instance
 // /L/. /ret/ is the return value of the call.
 //
-// If /ret/ is /LUA_OK/, returns /true/; otherwise, logs the error and returns /false/.
+// If /ret/ is /0/, returns /true/; otherwise, logs the error and returns /false/.
 static
 bool
 check_lua_call(lua_State *L, int ret)
 {
     const char *prefix;
     switch (ret) {
-    case LUA_OK:
+    case 0:
         return true;
     case LUA_ERRRUN:
     case LUA_ERRSYNTAX:
