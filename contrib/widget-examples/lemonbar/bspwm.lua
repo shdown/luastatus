@@ -1,11 +1,10 @@
 lib = require 'lib'
 
+f = io.popen('exec bspc control --subscribe', 'r')
+
 widget = {
-    plugin = 'pipe',
-    opts = {
-        args = {'bspc', 'control', '--subscribe'},
-    },
-    cb = function(t)
-        return lib.pager(t)
+    plugin = 'timer',
+    cb = function()
+        return lib.pager(f:read('*line'))
     end,
 }
