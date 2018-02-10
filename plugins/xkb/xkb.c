@@ -165,7 +165,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     global_pd = pd;
     if (setjmp(global_jmpbuf) != 0) {
         // We have jumped here.
-        // We don't bother to clean up because we could not call XCloseDisplay(dpy) anyway.
+        // We don't bother to clean up because we could not call /XCloseDisplay(dpy)/ anyway.
         // Since we have a taint and there can't be multiple xkb widgets, the amount of leaked
         // memory is constant.
         return;
@@ -226,8 +226,8 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
             goto error;
         }
         XEvent event;
-        // XXX should we block all signals here to ensure XNextEvent will not
-        // fail with EINTR? Apparently not: XNextEvent is untimed, so there is
+        // XXX should we block all signals here to ensure /XNextEvent/ will not
+        // fail with /EINTR/? Apparently not: /XNextEvent/ is untimed, so there is
         // no sense for it to use a multiplexing interface.
         XNextEvent(dpy, &event);
     }

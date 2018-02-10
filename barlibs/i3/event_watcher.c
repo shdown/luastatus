@@ -76,7 +76,7 @@ value_helper(Context *ctx, Value value)
         }
         size_t nname;
         const char *name = ls_strarr_at(ctx->strs, value.u.s_idx, &nname);
-        // parse error is OK here, ctx->widget is checked later
+        // parse error is OK here, /ctx->widget/ is checked later
         ctx->widget = ls_full_parse_uint_b(name, nname);
     } else {
         LS_VECTOR_PUSH(ctx->params, ((KeyValue) {

@@ -126,7 +126,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         realname = ls_xstrdup(p->card);
     }
 
-    // Actually, the only function that can return -EINTR is snd_mixer_wait,
+    // Actually, the only function that can return /-EINTR/ is /snd_mixer_wait/,
     // because it uses one of the multiplexing interfaces mentioned below:
     //
     // http://man7.org/linux/man-pages/man7/signal.7.html

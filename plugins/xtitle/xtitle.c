@@ -139,7 +139,7 @@ push_arg(Data *d, lua_State *L, xcb_window_t win)
     }
 }
 
-// updates *win and *last_win if the active window was changed
+// updates /*win/ and /*last_win/ if the active window was changed
 static
 bool
 title_changed(Data *d, xcb_generic_event_t *evt, xcb_window_t *win, xcb_window_t *last_win)
@@ -182,7 +182,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         .ewmh = LS_XNEW(xcb_ewmh_connection_t, 1),
         .visible = p->visible,
     };
-    // xcb_disconnect should be called even if xcb_connection_has_error returns non-zero!
+    // /xcb_disconnect/ should be called even if /xcb_connection_has_error/ returns non-zero!
     d.conn = xcb_connect(p->dpyname, &d.screenp);
 
 #define CHECK_CONN_ERR(ErrCodeVarName_, ...) \

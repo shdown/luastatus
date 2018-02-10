@@ -256,10 +256,12 @@ void
 register_funcs(LuastatusPluginData *pd, lua_State *L)
 {
 #define REG_CLOSURE(Func_, Name_) \
-    /* L: table */ \
-    lua_pushlightuserdata(L, pd); /* L: table bd */ \
-    lua_pushcclosure(L, Func_, 1); /* L: table bd Func_ */ \
-    ls_lua_rawsetf(L, Name_); /* L: table */
+    do { \
+        /* L: table */ \
+        lua_pushlightuserdata(L, pd); /* L: table bd */ \
+        lua_pushcclosure(L, Func_, 1); /* L: table bd Func_ */ \
+        ls_lua_rawsetf(L, Name_); /* L: table */ \
+    } while (0)
 
     REG_CLOSURE(l_add_watch, "add_watch");
     REG_CLOSURE(l_remove_watch, "remove_watch");

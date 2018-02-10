@@ -104,9 +104,8 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
     }
     p->sep = ls_xstrdup(sep ? sep : " | ");
 
-    // check
-    // we require in_fd/out_fd to be not less that 3 because making stdin/stdout/stderr CLOEXEC has
-    // very bad consequences, and we just don't want to complicate the logic.
+    // we require /in_fd/ and /out_fd/ to be >=3 because making stdin/stdout/stderr CLOEXEC has very
+    // bad consequences, and we just don't want to complicate the logic.
     if (in_fd < 3) {
         LS_FATALF(bd, "in_fd is not specified or less than 3");
         goto error;

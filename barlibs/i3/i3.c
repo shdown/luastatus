@@ -87,9 +87,8 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
         }
     }
 
-    // check
-    // we require in_fd/out_fd to be not less that 3 because making stdin/stdout/stderr CLOEXEC has
-    // very bad consequences, and we just don't want to complicate the logic.
+    // we require /in_fd/ and /out_fd/ to >=3 because making stdin/stdout/stderr CLOEXEC has very
+    // bad consequences, and we just don't want to complicate the logic.
     if (in_fd < 3) {
         LS_FATALF(bd, "in_fd is not specified or less than 3");
         goto error;
@@ -204,8 +203,9 @@ register_funcs(LuastatusBarlibData *bd, lua_State *L)
     ls_lua_rawsetf(L, "pango_escape"); // L: table
 }
 
-// Appends a JSON segment to ((Priv *) bd->priv)->bufs[widget_idx] from the table at position
-// table_pos on L's stack.
+// Appends a JSON segment to
+//     /((Priv *) bd->priv)->bufs[widget_idx]/
+// from the table at position /table_pos/ on /L/'s stack.
 static
 bool
 append_segment(LuastatusBarlibData *bd, lua_State *L, int table_pos, size_t widget_idx)
