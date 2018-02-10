@@ -124,7 +124,7 @@ error:
 // Returns the length of /s/ without trailing newlines.
 static inline
 size_t
-dollar_strlen(const char *s)
+rstrip_nl_strlen(const char *s)
 {
     size_t len = strlen(s);
     while (len && s[len - 1] == '\n') {
@@ -144,7 +144,7 @@ kv_strarr_line_append(LSStringArray *sa, const char *line)
     }
     const char *value_pos = colon_pos + 2;
     ls_strarr_append(sa, line, colon_pos - line);
-    ls_strarr_append(sa, value_pos, dollar_strlen(value_pos));
+    ls_strarr_append(sa, value_pos, rstrip_nl_strlen(value_pos));
 }
 
 static
@@ -212,7 +212,7 @@ interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, int fd)
         if (rt_ == MPDPROTO_RESP_TYPE_OK) { \
             break; \
         } else if (rt_ == MPDPROTO_RESP_TYPE_ACK) { \
-            LS_ERRF(pd, "server said: %.*s", (int) dollar_strlen(buf), buf); \
+            LS_ERRF(pd, "server said: %.*s", (int) rstrip_nl_strlen(buf), buf); \
             goto error; \
         } else { \
             __VA_ARGS__ \
@@ -230,7 +230,7 @@ interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, int fd)
     // read and check the greeting
     GETLINE();
     if (strncmp(buf, "OK MPD ", 7) != 0) {
-        LS_ERRF(pd, "bad greeting: %.*s", (int) dollar_strlen(buf), buf);
+        LS_ERRF(pd, "bad greeting: %.*s", (int) rstrip_nl_strlen(buf), buf);
         goto error;
     }
 
@@ -245,7 +245,7 @@ interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, int fd)
         }
         GETLINE();
         if (mpdproto_response_type(buf) != MPDPROTO_RESP_TYPE_OK) {
-            LS_ERRF(pd, "(password) server said: %.*s", (int) dollar_strlen(buf), buf);
+            LS_ERRF(pd, "(password) server said: %.*s", (int) rstrip_nl_strlen(buf), buf);
             goto error;
         }
     }
