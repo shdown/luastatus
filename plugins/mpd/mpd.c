@@ -1,4 +1,5 @@
 #include <lua.h>
+#include <assert.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <time.h>
@@ -153,6 +154,7 @@ kv_strarr_table_assign(LSStringArray sa, lua_State *L)
 {
     // L: table
     const size_t n = ls_strarr_size(sa);
+    assert(n % 2 == 0);
     for (size_t i = 0; i < n; i += 2) {
         size_t nkey;
         const char *key = ls_strarr_at(sa, i, &nkey);
