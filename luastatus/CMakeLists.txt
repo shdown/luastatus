@@ -1,7 +1,3 @@
-if (NOT luastatus_POSIX_SH_PATH)
-    set (luastatus_POSIX_SH_PATH "/bin/sh")
-endif ()
-
 execute_process (
     COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/version.sh" "${PROJECT_SOURCE_DIR}"
     OUTPUT_VARIABLE luastatus_VERSION
