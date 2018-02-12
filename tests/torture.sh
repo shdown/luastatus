@@ -30,13 +30,13 @@ widget = {
     cb = function()
         n = n + 1
         if n % 10000 == 0 then
-            print('--- n = ' .. n .. ' ---')
+            --print('--- n = ' .. n .. ' ---')
         end
     end,
     event = $event_beg
         m = (m or 0) + 1
         if m % 10000 == 0 then
-            print('--- m = ' .. m .. ' ---')
+            --print('--- m = ' .. m .. ' ---')
         end
     $event_end,
 }
