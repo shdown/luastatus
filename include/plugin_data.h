@@ -60,10 +60,10 @@ typedef struct {
     //
     // It should return:
     //
-    //     /LUASTATUS_RES_OK/ on success.
+    //     /LUASTATUS_OK/ on success.
     //     In this case, /L/'s stack should not contain any extra elements pushed onto it;
     //
-    //     /LUASTATUS_RES_ERR/ on failure.
+    //     /LUASTATUS_ERR/ on failure.
     //     In this case, /L/'s stack may contain extra elements pushed onto it.
     //
     int (*init)(LuastatusPluginData_v1 *pd, lua_State *L);
