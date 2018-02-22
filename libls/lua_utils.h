@@ -14,11 +14,11 @@
          lua_next(L_, (StackIndex_) < 0 ? (StackIndex_) - 1 : (StackIndex_)); \
          lua_pop(L_, 1))
 
-// Stack index of the key when in a LS_LUA_TRAVERSE cycle.
+// Stack index of the key when in a /LS_LUA_TRAVERSE/ cycle.
 #define LS_LUA_KEY   (-2)
-// Stack index of the value when in a LS_LUA_TRAVERSE cycle.
+// Stack index of the value when in a /LS_LUA_TRAVERSE/ cycle.
 #define LS_LUA_VALUE (-1)
-// Call before using /break/ to leave a LS_LUA_TRAVERSE cycle.
+// Call before using /break/ to leave a /LS_LUA_TRAVERSE/ cycle.
 #define LS_LUA_BREAK(L_) lua_pop(L_, 2)
 
 // The behaviour is same as calling /lua_getfield(L, -1, key)/, except that it does not invoke
