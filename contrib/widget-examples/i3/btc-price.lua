@@ -7,6 +7,7 @@ local https = require 'ssl.https'
 local ltn12 = require 'ltn12'
 local json = require 'json'
 
+-- All the arguments except for 'url' may be absent or nil; default method is GET.
 function request(url, headers, method, body)
     local resp_body = {}
     local is_ok, code_or_errmsg, resp_headers, _ = https.request(
