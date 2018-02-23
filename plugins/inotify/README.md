@@ -46,7 +46,7 @@ Add a new file to watch. Returns a watch descriptor on success, or `nil` on fail
 
 * `is_ok = luastatus.plugin.remove_watch(wd)`
 
-Removes a watch by its watch descriptor. Returns `true` on success, `false,` on failure.
+Removes a watch by its watch descriptor. Returns `true` on success, `false` on failure.
 
 Events and flags names
 ===
