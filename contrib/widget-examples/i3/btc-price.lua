@@ -8,12 +8,13 @@ local ltn12 = require 'ltn12'
 local json = require 'json'
 
 -- All the arguments except for 'url' may be absent or nil; default method is GET.
+-- Returns: code (integer), body (string), headers (table), status (string).
 function request(url, headers, method, body)
-    local resp_body = {}
-    local is_ok, code_or_errmsg, resp_headers, _ = https.request(
+    local out_body = {}
+    local is_ok, code_or_errmsg, out_headers, status = https.request(
         {
             url = url,
-            sink = ltn12.sink.table(resp_body),
+            sink = ltn12.sink.table(out_body),
             redirect = false,
             cafile = '/etc/ssl/certs/ca-certificates.crt',
             verify = 'peer',
@@ -22,12 +23,14 @@ function request(url, headers, method, body)
         },
         body)
     assert(is_ok, code_or_errmsg)
-    return code_or_errmsg, table.concat(resp_body), resp_headers
+    return code_or_errmsg, table.concat(out_body), out_headers, status
 end
 
+-- Arguments are the same to those of 'request'.
+-- Returns: body (string), headers (table).
 function request_assert_code(...)
-    local code, body, headers = request(...)
-    assert(code == 200, 'HTTP ' .. code)
+    local code, body, headers, status = request(...)
+    assert(code == 200, string.format('HTTP %s %s', code, status))
     return body, headers
 end
 
