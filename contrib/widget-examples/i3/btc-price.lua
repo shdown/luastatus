@@ -3,9 +3,9 @@
 -- Requires:
 --     * luasec
 --     * this JSON library (you can simply copy json.lua to your widgets directory): https://github.com/rxi/json.lua
-local https = require 'ssl.https'
-local ltn12 = require 'ltn12'
-local json = require 'json'
+https = require 'ssl.https'
+ltn12 = require 'ltn12'
+json = require 'json'
 
 -- All the arguments except for 'url' may be absent or nil; default method is GET.
 -- Returns: code (integer), body (string), headers (table), status (string).
