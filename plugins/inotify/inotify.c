@@ -309,11 +309,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         funcs.call_end(pd->userdata);
     }
 
-#if defined(NAME_MAX) && NAME_MAX < 4096
-    char buf[sizeof(struct inotify_event) + NAME_MAX + 1]
-#else
-    char buf[sizeof(struct inotify_event) + 4096]
-#endif
+    char buf[sizeof(struct inotify_event) + NAME_MAX + 2]
         __attribute__ ((aligned(__alignof__(struct inotify_event))));
 
     const int fd = p->fd;
@@ -329,6 +325,9 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
             return;
         } else if (r == 0) {
             LS_FATALF(pd, "read() from the inotify file descriptor returned 0");
+            return;
+        } else if ((size_t) r == sizeof(buf)) {
+            LS_FATALF(pd, "got an event with filename length > NAME_MAX+1");
             return;
         }
         const struct inotify_event *event;
