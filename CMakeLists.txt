@@ -63,7 +63,7 @@ function (luastatus_target_build_with target var)
 endfunction ()
 
 #------------------------------------------------------------------------------
-include(GNUInstallDirs)
+include (GNUInstallDirs)
 
 set (BARLIBS_DIR "${CMAKE_INSTALL_FULL_LIBDIR}/luastatus/barlibs")
 set (PLUGINS_DIR "${CMAKE_INSTALL_FULL_LIBDIR}/luastatus/plugins")
