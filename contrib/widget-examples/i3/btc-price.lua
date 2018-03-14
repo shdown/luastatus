@@ -28,7 +28,7 @@ end
 
 -- Arguments are the same to those of 'request'.
 -- Returns: body (string), headers (table).
-function request_assert_code(...)
+function request_check_code(...)
     local code, body, headers, status = request(...)
     assert(code == 200, string.format('HTTP %s %s', code, status))
     return body, headers
@@ -45,7 +45,7 @@ widget = {
         fifo = fifo_path,
     },
     cb = function()
-        local is_ok, body = pcall(request_assert_code, 'https://api.coindesk.com/v1/bpi/currentprice/USD.json')
+        local is_ok, body = pcall(request_check_code, 'https://api.coindesk.com/v1/bpi/currentprice/USD.json')
         local text
         if is_ok then
             text = json.decode(body).bpi.USD.rate:match('[^.]+')
