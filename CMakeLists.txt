@@ -41,6 +41,7 @@ else ()
         pkg_search_module (LUA REQUIRED "${WITH_LUA_LIBRARY}")
     else ()
         pkg_search_module (LUA REQUIRED
+            lua54 lua-5.4 lua5.4
             lua53 lua-5.3 lua5.3
             lua52 lua-5.2 lua5.2
             lua51 lua-5.1 lua5.1

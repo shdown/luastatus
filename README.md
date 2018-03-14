@@ -106,6 +106,7 @@ Supported Lua versions
 * LuaJIT, which is currently 5.1-compatible with “some language and library extensions from Lua 5.2”
 * 5.2
 * 5.3
+* 5.4 (`work1` pre-release version)
 
 Getting started
 ===
