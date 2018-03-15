@@ -1205,7 +1205,7 @@ main(int argc, char **argv)
     }
 
     if (!barlib_name) {
-        fprintf(stderr, "Barlib was not specified.");
+        fprintf(stderr, "Barlib was not specified.\n");
         print_usage();
         goto cleanup;
     }
