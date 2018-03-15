@@ -499,6 +499,15 @@ plugin_unload(Plugin *p)
     dlclose(p->dlhandle);
 }
 
+// Returns a string representation of an error object located at the position /pos/ of /L/'s stack.
+static inline
+const char *
+get_lua_error_msg(lua_State *L, int pos)
+{
+    const char *msg = lua_tostring(L, pos);
+    return msg ? msg : "(error object cannot be converted to string)";
+}
+
 // Checks a /lua_*/ call that returns a /LUA_*/ error code, performed on a Lua interpreter instance
 // /L/. /ret/ is the return value of the call.
 //
@@ -529,13 +538,43 @@ check_lua_call(lua_State *L, int ret)
     default:
         prefix = "unknown Lua error code (please report!), message is: ";
     }
-    const char *msg = lua_tostring(L, -1);
-    if (!msg) {
-        msg = "(error object can't be converted to string)";
-    }
-    ERRF("%s%s", prefix, msg);
+    // L: ? error
+    ERRF("%s%s", prefix, get_lua_error_msg(L, -1));
     lua_pop(L, 1);
+    // L: ?
     return false;
+}
+
+// The Lua error handler that gets called whenever an error occurs inside a chunk called with
+// /do_lua_call/.
+//
+// Currently, it returns (to /check_lua_call/) the traceback of the error.
+static
+int
+l_error_handler(lua_State *L)
+{
+    // L: error
+    lua_getglobal(L, LUA_DBLIBNAME); // L: error debug
+    lua_getfield(L, -1, "traceback"); // L: error debug traceback
+    lua_pushstring(L, get_lua_error_msg(L, 1)); // L: error debug traceback msg
+
+    lua_remove(L, 1); // L: debug traceback msg
+    lua_remove(L, 1); // L: traceback msg
+
+    lua_pushinteger(L, 2); // L: traceback msg level
+    lua_call(L, 2, 1); // L: result
+    return 1;
+}
+
+// Similar to /lua_call/, but expects an error handler to be at the bottom of /L/'s stack, runs the
+// chunk with that error handler, and logs the error message, if any.
+//
+// Returns /true/ on success, /false/ on failure.
+static inline
+bool
+do_lua_call(lua_State *L, int nargs, int nresults)
+{
+    return check_lua_call(L, lua_pcall(L, nargs, nresults, 1));
 }
 
 // Replacement for Lua's /os.exit()/: a simple /exit()/ used by Lua is not thread-safe in Linux.
@@ -578,16 +617,16 @@ inject_libs(lua_State *L)
 {
 #define REG(Name_, Ptr_) \
     do { \
-        /* L: table */ \
-        lua_pushcfunction(L, Ptr_); /* L: table ptr */ \
-        ls_lua_rawsetf(L, Name_); /* L: table */ \
+        /* L: ? table */ \
+        lua_pushcfunction(L, Ptr_); /* L: ? table ptr */ \
+        ls_lua_rawsetf(L, Name_); /* L: ? table */ \
     } while (0)
 
-    lua_getglobal(L, "os"); // L: os
+    lua_getglobal(L, "os"); // L: ? os
     REG("exit", l_os_exit);
     REG("getenv", l_os_getenv);
     REG("setlocale", l_os_setlocale);
-    lua_pop(L, 1); // L: -
+    lua_pop(L, 1); // L: ?
 #undef REG
 }
 
@@ -597,20 +636,20 @@ static
 void
 register_funcs(lua_State *L, Widget *w)
 {
-    lua_newtable(L); // L: table
+    lua_newtable(L); // L: ? table
     if (barlib.iface.register_funcs) {
-        lua_newtable(L); // L: table table
-        barlib.iface.register_funcs(&barlib.data, L); // L: table table
+        lua_newtable(L); // L: ? table table
+        barlib.iface.register_funcs(&barlib.data, L); // L: ? table table
         assert(lua_gettop(L) == 2);
-        ls_lua_rawsetf(L, "barlib"); // L: table
+        ls_lua_rawsetf(L, "barlib"); // L: ? table
     }
     if (w && w->plugin.iface.register_funcs) {
-        lua_newtable(L); // L: table table
-        w->plugin.iface.register_funcs(&w->data, L); // L: table table
+        lua_newtable(L); // L: ? table table
+        w->plugin.iface.register_funcs(&w->data, L); // L: ? table table
         assert(lua_gettop(L) == 2);
-        ls_lua_rawsetf(L, "plugin"); // L: table
+        ls_lua_rawsetf(L, "plugin"); // L: ? table
     }
-    lua_setglobal(L, "luastatus"); // L: -
+    lua_setglobal(L, "luastatus"); // L: ?
 }
 
 // Initializes, if not already initialized, the separate state.
@@ -627,6 +666,7 @@ sepstate_maybe_init(void)
     }
     luaL_openlibs(sepstate.L);
     inject_libs(sepstate.L);
+    lua_pushcfunction(sepstate.L, l_error_handler); // sepstate.L: l_error_handler
     PTH_ASSERT(pthread_mutex_init(&sepstate.L_mtx, NULL));
 }
 
@@ -650,8 +690,8 @@ bool
 widget_init_inspect_plugin(Widget *w)
 {
     lua_State *L = w->L;
-    // L: widget
-    ls_lua_rawgetf(L, "plugin"); // L: widget plugin
+    // L: ? widget
+    ls_lua_rawgetf(L, "plugin"); // L: ? widget plugin
     if (!lua_isstring(L, -1)) {
         ERRF("'widget.plugin': expected string, found %s", luaL_typename(L, -1));
         return false;
@@ -660,7 +700,7 @@ widget_init_inspect_plugin(Widget *w)
         ERRF("cannot load plugin '%s'", lua_tostring(L, -1));
         return false;
     }
-    lua_pop(L, 1); // L: widget
+    lua_pop(L, 1); // L: ? widget
     return true;
 }
 
@@ -670,13 +710,13 @@ bool
 widget_init_inspect_cb(Widget *w)
 {
     lua_State *L = w->L;
-    // L: widget
-    ls_lua_rawgetf(L, "cb"); // L: widget plugin
+    // L: ? widget
+    ls_lua_rawgetf(L, "cb"); // L: ? widget plugin
     if (!lua_isfunction(L, -1)) {
         ERRF("'widget.cb': expected function, found %s", luaL_typename(L, -1));
         return false;
     }
-    w->lref_cb = luaL_ref(L, LUA_REGISTRYINDEX); // L: widget
+    w->lref_cb = luaL_ref(L, LUA_REGISTRYINDEX); // L: ? widget
     return true;
 }
 
@@ -686,12 +726,12 @@ bool
 widget_init_inspect_event(Widget *w, const char *filename)
 {
     lua_State *L = w->L;
-    // L: widget
-    ls_lua_rawgetf(L, "event"); // L: widget event
+    // L: ? widget
+    ls_lua_rawgetf(L, "event"); // L: ? widget event
     switch (lua_type(L, -1)) {
     case LUA_TNIL:
     case LUA_TFUNCTION:
-        w->lref_event = luaL_ref(L, LUA_REGISTRYINDEX); // L: widget
+        w->lref_event = luaL_ref(L, LUA_REGISTRYINDEX); // L: ? widget
         w->sepstate_event = false;
         return true;
     case LUA_TSTRING:
@@ -706,10 +746,10 @@ widget_init_inspect_event(Widget *w, const char *filename)
             if (!r) {
                 return false;
             }
-            // sepstate.L: chunk
-            w->lref_event = luaL_ref(sepstate.L, LUA_REGISTRYINDEX); // sepstate.L: -
+            // sepstate.L: ? chunk
+            w->lref_event = luaL_ref(sepstate.L, LUA_REGISTRYINDEX); // sepstate.L: ?
             w->sepstate_event = true;
-            lua_pop(L, 1); // L: widget
+            lua_pop(L, 1); // L: ? widget
             return true;
         }
     default:
@@ -726,13 +766,13 @@ bool
 widget_init_inspect_keep_opts(Widget *w)
 {
     lua_State *L = w->L;
-    ls_lua_rawgetf(L, "opts"); // L: widget opts
+    ls_lua_rawgetf(L, "opts"); // L: ? widget opts
     switch (lua_type(L, -1)) {
     case LUA_TTABLE:
         return true;
     case LUA_TNIL:
-        lua_pop(L, 1); // L: widget
-        lua_newtable(L); // L: widget table
+        lua_pop(L, 1); // L: ? widget
+        lua_newtable(L); // L: ? widget table
         return true;
     default:
         ERRF("'widget.opts': expected function or nil, found %s", luaL_typename(L, -1));
@@ -759,16 +799,19 @@ widget_init(Widget *w, const char *filename)
     luaL_openlibs(L);
     // L: -
     inject_libs(L); // L: -
+    lua_pushcfunction(L, l_error_handler); // L: l_error_handler
 
     DEBUGF("running file '%s'", filename);
-    if (!check_lua_call(L, luaL_loadfile(L, filename)) || // L: chunk
-        !check_lua_call(L, lua_pcall(L, 0, 0, 0)))
-    {
+    if (!check_lua_call(L, luaL_loadfile(L, filename))) {
         goto error;
     }
-    // L: -
+    // L: l_error_handler chunk
+    if (!do_lua_call(L, 0, 0)) {
+        goto error;
+    }
+    // L: l_error_handler
 
-    lua_getglobal(L, "widget"); // L: widget
+    lua_getglobal(L, "widget"); // L: l_error_handler widget
     if (!lua_istable(L, -1)) {
         ERRF("'widget': expected table, found %s", luaL_typename(L, -1));
         goto error;
@@ -784,7 +827,7 @@ widget_init(Widget *w, const char *filename)
     {
         goto error;
     }
-    // L: widget opts
+    // L: l_error_handler widget opts
 
     w->data = (LuastatusPluginData_v1) {
         .userdata = w,
@@ -796,8 +839,8 @@ widget_init(Widget *w, const char *filename)
         ERRF("plugin's init() failed");
         goto error;
     }
-    assert(lua_gettop(L) == 2); // L: widget opts
-    lua_pop(L, 2); // L: -
+    assert(lua_gettop(L) == 2); // L: l_error_handler widget opts
+    lua_pop(L, 2); // L: l_error_handler
 
     DEBUGF("widget successfully initialized");
     return true;
@@ -931,8 +974,8 @@ plugin_call_begin(void *userdata)
     LOCK_L(w);
 
     lua_State *L = w->L;
-    assert(lua_gettop(L) == 0); // w->L: -
-    lua_rawgeti(L, LUA_REGISTRYINDEX, w->lref_cb); // w->L: cb
+    assert(lua_gettop(L) == 1); // w->L: l_error_handler
+    lua_rawgeti(L, LUA_REGISTRYINDEX, w->lref_cb); // w->L: l_error_handler cb
     return L;
 }
 
@@ -944,29 +987,29 @@ plugin_call_end(void *userdata)
 
     Widget *w = userdata;
     lua_State *L = w->L;
-    assert(lua_gettop(L) == 2); // L: cb data
-    bool r = check_lua_call(L, lua_pcall(L, 1, 1, 0));
+    assert(lua_gettop(L) == 3); // L: l_error_handler cb data
+    bool r = do_lua_call(L, 1, 1);
     LOCK_B();
     size_t widget_idx = widget_index(w);
     if (r) {
-        // L: result
+        // L: l_error_handler result
         switch (barlib.iface.set(&barlib.data, L, widget_idx)) {
         case LUASTATUS_OK:
-            // L: result
+            // L: l_error_handler result
             break;
         case LUASTATUS_NONFATAL_ERR:
-            // L: ?
+            // L: l_error_handler ?
             set_error_unlocked(widget_idx);
             break;
         case LUASTATUS_ERR:
-            // L: ?
+            // L: l_error_handler ?
             FATALF("barlib's set() reported fatal error");
             fatal_error_reported();
             break;
         }
-        lua_settop(L, 0); // L: -
+        lua_settop(L, 1); // L: l_error_handler
     } else {
-        // L: -
+        // L: l_error_handler
         set_error_unlocked(widget_idx);
     }
     UNLOCK_B();
@@ -980,7 +1023,7 @@ plugin_call_cancel(void *userdata)
     TRACEF("plugin_call_cancel(userdata=%p)", userdata);
 
     Widget *w = userdata;
-    lua_settop(w->L, 0); // w->L: -
+    lua_settop(w->L, 1); // w->L: l_error_handler
     UNLOCK_L(w);
 }
 
@@ -995,8 +1038,8 @@ ew_call_begin(LS_ATTR_UNUSED_ARG void *userdata, size_t widget_idx)
     LOCK_E(w);
 
     lua_State *L = widget_event_lua_state(w);
-    assert(lua_gettop(L) == 0); // L: -
-    lua_rawgeti(L, LUA_REGISTRYINDEX, w->lref_event); // L: event
+    assert(lua_gettop(L) == 1); // L: l_error_handler
+    lua_rawgeti(L, LUA_REGISTRYINDEX, w->lref_event); // L: l_error_handler event
     return L;
 }
 
@@ -1009,17 +1052,17 @@ ew_call_end(void *userdata, size_t widget_idx)
     assert(widget_idx < nwidgets);
     Widget *w = &widgets[widget_idx];
     lua_State *L = widget_event_lua_state(w);
-    assert(lua_gettop(L) == 2); // L: event arg
+    assert(lua_gettop(L) == 3); // L: l_error_handler event arg
     if (w->lref_event == LUA_REFNIL) {
-        lua_pop(L, 2); // L: -
+        lua_pop(L, 2); // L: l_error_handler
     } else {
-        if (!check_lua_call(L, lua_pcall(L, 1, 0, 0))) {
-            // L: -
+        if (!do_lua_call(L, 1, 0)) {
+            // L: l_error_handler
             LOCK_B();
             set_error_unlocked(widget_idx);
             UNLOCK_B();
         }
-        // L: -
+        // L: l_error_handler
     }
     UNLOCK_E(w);
 }
@@ -1033,7 +1076,7 @@ ew_call_cancel(void *userdata, size_t widget_idx)
     assert(widget_idx < nwidgets);
     Widget *w = &widgets[widget_idx];
     lua_State *L = widget_event_lua_state(w);
-    lua_settop(L, 0); // L: -
+    lua_settop(L, 1); // L: l_error_handler
     UNLOCK_E(w);
 }
 
