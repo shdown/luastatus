@@ -23,6 +23,7 @@ typedef struct {
         TYPE_STRING,
         TYPE_DOUBLE,
         TYPE_BOOL,
+        TYPE_NULL,
     } type;
     union {
         StringIndex s_idx;
@@ -91,13 +92,9 @@ static
 int
 callback_null(void *vctx)
 {
-    Context *ctx = vctx;
-    if (ctx->state != STATE_INSIDE_MAP) {
-        LS_ERRF(ctx->bd, "(event watcher) unexpected null");
-        return 0;
-    }
-    // nothing to do: Lua tables can't have nil values
-    return 1;
+    return value_helper(vctx, (Value) {
+        .type = TYPE_NULL,
+    });
 }
 
 static
@@ -205,6 +202,10 @@ callback_end_map(void *vctx)
                 break;
             case TYPE_BOOL:
                 lua_pushboolean(L, kv.value.u.b); // L: table key value
+                break;
+            case TYPE_NULL:
+                lua_pushnil(L); // L: table key value
+                break;
             }
             lua_rawset(L, -3); // L: table
         }
