@@ -557,12 +557,8 @@ l_error_handler(lua_State *L)
     lua_getglobal(L, LUA_DBLIBNAME); // L: error debug
     lua_getfield(L, -1, "traceback"); // L: error debug traceback
     lua_pushstring(L, get_lua_error_msg(L, 1)); // L: error debug traceback msg
-
-    lua_remove(L, 1); // L: debug traceback msg
-    lua_remove(L, 1); // L: traceback msg
-
-    lua_pushinteger(L, 2); // L: traceback msg level
-    lua_call(L, 2, 1); // L: result
+    lua_pushinteger(L, 2); // L: error debug traceback msg level
+    lua_call(L, 2, 1); // L: error debug result
     return 1;
 }
 
