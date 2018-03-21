@@ -166,8 +166,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     if (setjmp(global_jmpbuf) != 0) {
         // We have jumped here.
         // We don't bother to clean up because we could not call /XCloseDisplay(dpy)/ anyway.
-        // Since we have a taint and there can't be multiple xkb widgets, the amount of leaked
-        // memory is constant.
+        // The amount of leaked memory is constant, and nobody cares.
         return;
     }
     XSetIOErrorHandler(x11_io_error_handler);
