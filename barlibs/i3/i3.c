@@ -247,8 +247,11 @@ append_segment(LuastatusBarlibData *bd, lua_State *L, int table_pos, size_t widg
         case LUA_TBOOLEAN:
             ls_string_append_s(s, lua_toboolean(L, LS_LUA_VALUE) ? "true" : "false");
             break;
+        case LUA_TNIL:
+            ls_string_append_s(s, "null");
+            break;
         default:
-            LS_ERRF(bd, "segment entry '%s': expected string, number or boolean, found %s",
+            LS_ERRF(bd, "segment entry '%s': expected string, number, boolean or nil, found %s",
                 key, luaL_typename(L, LS_LUA_VALUE));
             return false;
         }
@@ -280,12 +283,17 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
             lua_pop(L, 2); // L: table
             if (is_array) {
                 LS_LUA_TRAVERSE(L, -1) {
-                    if (!lua_istable(L, LS_LUA_VALUE)) {
-                        LS_ERRF(bd, "array value: expected table, found %s",
+                    switch (lua_type(L, LS_LUA_VALUE)) {
+                    case LUA_TTABLE:
+                        if (!append_segment(bd, L, LS_LUA_VALUE, widget_idx)) {
+                            goto invalid_data;
+                        }
+                        break;
+                    case LUA_TNIL:
+                        break;
+                    default:
+                        LS_ERRF(bd, "array value: expected table or nil, found %s",
                             luaL_typename(L, LS_LUA_VALUE));
-                        goto invalid_data;
-                    }
-                    if (!append_segment(bd, L, LS_LUA_VALUE, widget_idx)) {
                         goto invalid_data;
                     }
                 }
