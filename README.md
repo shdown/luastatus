@@ -13,10 +13,10 @@ Its motto is:
 Screenshot
 ===
 
-![...](https://cloud.githubusercontent.com/assets/22565120/19625163/fecb2310-9921-11e6-90f3-17d291278531.gif)
+![...](https://user-images.githubusercontent.com/5462697/39099519-092459aa-4685-11e8-94fe-0ac1cf706d82.gif)
 
-Above is i3bar with luastatus with time, battery, volume and keyboard layout
-widgets.
+Above is i3bar with luastatus with Bitcoin price, time, battery, volume and
+keyboard layout widgets.
 
 Widgets
 ===
