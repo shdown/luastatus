@@ -8,11 +8,19 @@ Options
 
 * `greet`: boolean
 
-   Whether or not a first call to `cb` with a `nil` argument should be made as soon as the widget starts. Defaults to false.
+    Whether or not a first call to `cb` with `nil` argument should be made as soon as the widget starts. Defaults to false.
+
+* `timeout`: number
+
+    If specified and not negative, this plugin calls `cb` with `nil` argument if no event has occured in `timeout` seconds.
 
 `cb` argument
 ===
-If the `greet` option has been set to `true`, the first call is made with a `nil` argument.
+The argument is `nil` if:
+
+    * this is the first call, and `greet` has been set to `true`;
+
+    * no event has occured in `timeout` seconds.
 
 Otherwise, it is a table with the following entries:
 
