@@ -316,10 +316,8 @@ map_entry_cmp(const void *a, const void *b)
 // Returns a pointer to the value of the entry with key /key/.
 static
 void **
-map_get(void *userdata, const char *key)
+map_do_get(const char *key)
 {
-    TRACEF("map_get(userdata=%p, key='%s')", userdata, key);
-
     const size_t nkey = strlen(key);
     MapEntry *alloc = ls_xmalloc(sizeof(MapEntry) + nkey + 1, 1);
     alloc->value = NULL;
@@ -334,6 +332,14 @@ map_get(void *userdata, const char *key)
         free(alloc);
     }
     return &in_tree->value;
+}
+
+static
+void **
+map_get(void *userdata, const char *key)
+{
+    TRACEF("map_get(userdata=%p, key='%s')", userdata, key);
+    return map_do_get(key);
 }
 
 // Destroys the map.
@@ -607,6 +613,72 @@ l_os_setlocale(lua_State *L)
     return 1;
 }
 
+static
+int
+l_map_get_handle(lua_State *L)
+{
+    const char *arg = luaL_checkstring(L, 1);
+    lua_pushlightuserdata(L, map_do_get(arg)); // L: ? key
+    lua_pushvalue(L, lua_upvalueindex(1)); // L: ? key metatable
+    lua_setmetatable(L, -2); // L: ? key
+    return 1;
+}
+
+static
+int
+l_map_handle_read(lua_State *L)
+{
+    luaL_checktype(L, 1, LUA_TLIGHTUSERDATA);
+    void * volatile *handle = lua_touserdata(L, 1);
+    void *content = *handle;
+    if (content) {
+        lua_pushstring(L, (const char *) content);
+    } else {
+        lua_pushnil(L);
+    }
+    return 1;
+}
+
+static
+int
+l_map_handle_write(lua_State *L)
+{
+    luaL_checktype(L, 1, LUA_TLIGHTUSERDATA);
+    const char *key = luaL_optstring(L, 2, NULL);
+    void* volatile *handle = lua_touserdata(L, 1);
+    *handle = key ? ls_xstrdup(key) : NULL;
+    return 0;
+}
+
+static
+int
+l_require_plugin(lua_State *L)
+{
+    const char *arg = luaL_checkstring(L, 1);
+    if ((strchr(arg, '/'))) {
+        return luaL_error(L, "plugin name contains a slash");
+    }
+    lua_pushvalue(L, lua_upvalueindex(1)); // L: ? table
+    lua_getfield(L, -1, arg); // L: ? table value
+    if (!lua_isnil(L, -1)) {
+        return 1;
+    }
+    lua_pop(L, 1); // L: ? table
+
+    char *filename = ls_xasprintf("%s/%s.lua", LUASTATUS_PLUGINS_DIR, arg);
+    int r = luaL_loadfile(L, filename);
+    free(filename);
+    if (r != 0) {
+        return lua_error(L);
+    }
+
+    // L: ? table chunk
+    lua_call(L, 0, 1); // L: ? table result
+    lua_pushvalue(L, -1); // L: ? table result result
+    lua_setfield(L, -3, arg); // L: ? table result
+    return 1;
+}
+
 // Replaces some of the functions in /L/'s Lua libraries with their thread-safe counterparts.
 void
 inject_libs(lua_State *L)
@@ -623,6 +695,22 @@ inject_libs(lua_State *L)
     REG("getenv", l_os_getenv);
     REG("setlocale", l_os_setlocale);
     lua_pop(L, 1); // L: ?
+
+    lua_newtable(L); // L: ? table
+
+    lua_newtable(L); // L: ? table table
+    lua_pushcclosure(L, l_require_plugin, 1); // L: ? table l_require_plugin
+    lua_setfield(L, -2, "require_plugin"); // L: ? table
+
+    lua_newtable(L); // L: ? table metatable
+    lua_pushvalue(L, -1); // L: ? table metatable metatable
+    lua_setfield(L, -2, "__index") ; // L: ? table metatable
+    REG("read", l_map_handle_read);
+    REG("write", l_map_handle_write);
+    lua_pushcclosure(L, l_map_get_handle, 1); // L: ? table l_map_get_handle
+    lua_setfield(L, -2, "map_get_handle"); // L: ? table
+
+    lua_setglobal(L, "luastatus"); // L: ?
 #undef REG
 }
 
@@ -632,20 +720,38 @@ static
 void
 register_funcs(lua_State *L, Widget *w)
 {
-    lua_newtable(L); // L: ? table
+    lua_getglobal(L, "luastatus"); // L: ? table
+
+    if (!lua_istable(L, -1)) {
+        assert(w);
+        WARNF("widget '%s': 'luastatus' is not a table anymore, will not register "
+              "barlib/plugin functions",
+              w->filename);
+        goto done;
+    }
     if (barlib.iface.register_funcs) {
         lua_newtable(L); // L: ? table table
+
+        int old_top = lua_gettop(L);
+        (void) old_top;
         barlib.iface.register_funcs(&barlib.data, L); // L: ? table table
-        assert(lua_gettop(L) == 2);
+        assert(lua_gettop(L) == old_top);
+
         ls_lua_rawsetf(L, "barlib"); // L: ? table
     }
     if (w && w->plugin.iface.register_funcs) {
         lua_newtable(L); // L: ? table table
+
+        int old_top = lua_gettop(L);
+        (void) old_top;
         w->plugin.iface.register_funcs(&w->data, L); // L: ? table table
-        assert(lua_gettop(L) == 2);
+        assert(lua_gettop(L) == old_top);
+
         ls_lua_rawsetf(L, "plugin"); // L: ? table
     }
-    lua_setglobal(L, "luastatus"); // L: ?
+
+done:
+    lua_pop(L, 1); // L: ?
 }
 
 // Initializes, if not already initialized, the separate state.
@@ -835,7 +941,7 @@ widget_init(Widget *w, const char *filename)
         ERRF("plugin's init() failed");
         goto error;
     }
-    assert(lua_gettop(L) == 2); // L: l_error_handler widget opts
+    assert(lua_gettop(L) == 3); // L: l_error_handler widget opts
     lua_pop(L, 2); // L: l_error_handler
 
     DEBUGF("widget successfully initialized");
