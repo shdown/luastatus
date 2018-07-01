@@ -4,9 +4,9 @@
 #include "include/plugin_data_v1.h"
 
 int
-socket_open(LuastatusPluginData *pd, const char *path);
+unixdom_open(LuastatusPluginData *pd, const char *path);
 
 int
-tcp_open(LuastatusPluginData *pd, const char *hostname, const char *service);
+inetdom_open(LuastatusPluginData *pd, const char *hostname, const char *service);
 
 #endif

@@ -365,8 +365,8 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         report_status(pd, funcs, "connecting");
 
         int fd = (p->hostname && p->hostname[0] == '/')
-            ? socket_open(pd, p->hostname)
-            : tcp_open(pd, p->hostname, portstr);
+            ? unixdom_open(pd, p->hostname)
+            : inetdom_open(pd, p->hostname, portstr);
         if (fd >= 0) {
             interact(pd, funcs, fd);
         }
