@@ -104,6 +104,7 @@ option (BUILD_BARLIB_LEMONBAR "build barlibs/lemonbar" ON)
 option (BUILD_PLUGIN_ALSA "build plugins/alsa" ON)
 option (BUILD_PLUGIN_FS "build plugins/fs" ON)
 option (BUILD_PLUGIN_INOTIFY "build plugins/inotify" ON)
+option (BUILD_PLUGIN_IMAP "build plugins/imap" ON)
 option (BUILD_PLUGIN_MPD "build plugins/mpd" ON)
 option (BUILD_PLUGIN_TIMER "build plugins/timer" ON)
 option (BUILD_PLUGIN_XKB "build plugins/xkb" ON)
@@ -133,6 +134,10 @@ endif ()
 
 if (BUILD_PLUGIN_FS)
     add_subdirectory (plugins/fs)
+endif ()
+
+if (BUILD_PLUGIN_IMAP)
+    add_subdirectory (plugins/imap)
 endif ()
 
 if (BUILD_PLUGIN_INOTIFY)
