@@ -1,36 +1,34 @@
 -- This widget displays the first line of a file and updates as it gets changed.
 
 filename = os.getenv('HOME') .. '/status'
-
-function signal_error()
-    os.execute[[
-notify-send -u critical \
-    'luastatus inotify widget' \
-    'Something went wrong; widget content may be outdated.'
-]]
+flags = {'close_write', 'delete_self', 'oneshot'}
+function content(f)
+    return f:read('*line')
 end
 
-function add_watch()
-    return luastatus.plugin.add_watch(filename, {'close_write','delete_self','oneshot'})
-end
-
+state = 'waitgreet'
+last_content = nil
 widget = {
     plugin = 'inotify',
     opts = {
         watch = {},
+        timeout = 5,
         greet = true,
     },
-    cb = function()
-        if not add_watch() then
-            signal_error()
-            repeat
-                os.execute('sleep 1')
-            until add_watch()
+    cb = function(ev)
+        if state == 'waitgreet' or state == 'error' then
+            if not luastatus.plugin.add_watch(filename, flags) then
+                state = 'error'
+                error('add_watch() failed')
+            end
         end
-
-        local f = assert(io.open(filename, 'r'))
-        local text = f:read('*line')
-        f:close()
-        return {full_text = text, markup = 'pango'}
+        local is_timeout = (ev == nil and state ~= 'waitgreet')
+        state = 'ok'
+        if not is_timeout then
+            local f = assert(io.open(filename, 'r'))
+            last_content = content(f)
+            f:close()
+        end
+        return last_content
     end,
 }
