@@ -102,6 +102,7 @@ option (BUILD_BARLIB_I3 "build barlibs/i3" ON)
 option (BUILD_BARLIB_LEMONBAR "build barlibs/lemonbar" ON)
 
 option (BUILD_PLUGIN_ALSA "build plugins/alsa" ON)
+option (BUILD_PLUGIN_DBUS "build plugins/dbus" ON)
 option (BUILD_PLUGIN_FS "build plugins/fs" ON)
 option (BUILD_PLUGIN_INOTIFY "build plugins/inotify" ON)
 option (BUILD_PLUGIN_IMAP "build plugins/imap" ON)
@@ -130,6 +131,10 @@ endif ()
 
 if (BUILD_PLUGIN_ALSA)
     add_subdirectory (plugins/alsa)
+endif ()
+
+if (BUILD_PLUGIN_DBUS)
+    add_subdirectory (plugins/dbus)
 endif ()
 
 if (BUILD_PLUGIN_FS)
