@@ -24,8 +24,26 @@ typedef struct {
     GDBusSignalFlags flags;
 } SignalSub;
 
+typedef LS_VECTOR_OF(SignalSub) SubList;
+
+static
+void
+sub_list_free(SubList sl)
+{
+    for (size_t i = 0; i < sl.size; ++i) {
+        SignalSub s = sl.data[i];
+        free(s.sender);
+        free(s.interface);
+        free(s.signal);
+        free(s.object_path);
+        free(s.arg0);
+    }
+    LS_VECTOR_FREE(sl);
+}
+
 typedef struct {
-    LS_VECTOR_OF(SignalSub) signal_subs;
+    SubList session_subs;
+    SubList system_subs;
     int timeout_ms;
     bool greet;
 } Priv;
@@ -40,15 +58,8 @@ void
 destroy(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
-    for (size_t i = 0; i < p->signal_subs.size; ++i) {
-        SignalSub s = p->signal_subs.data[i];
-        free(s.sender);
-        free(s.interface);
-        free(s.signal);
-        free(s.object_path);
-        free(s.arg0);
-    }
-    LS_VECTOR_FREE(p->signal_subs);
+    sub_list_free(p->session_subs);
+    sub_list_free(p->system_subs);
     free(p);
 }
 
@@ -58,7 +69,8 @@ init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
-        .signal_subs = LS_VECTOR_NEW(),
+        .session_subs = LS_VECTOR_NEW(),
+        .system_subs = LS_VECTOR_NEW(),
         .timeout_ms = -1,
         .greet = false,
     };
@@ -80,24 +92,36 @@ init(LuastatusPluginData *pd, lua_State *L)
 
     PU_TRAVERSE_TABLE("signals",
         SignalSub sub = {.flags = G_DBUS_SIGNAL_FLAGS_NONE};
-        PU_TRAVERSE_TABLE_AT(LS_LUA_VALUE, "'signals' value",
-            PU_MAYBE_VISIT_STR("sender",      s, sub.sender         = ls_xstrdup(s););
-            PU_MAYBE_VISIT_STR("interface",   s, sub.interface      = ls_xstrdup(s););
-            PU_MAYBE_VISIT_STR("signal",      s, sub.signal         = ls_xstrdup(s););
-            PU_MAYBE_VISIT_STR("object_path", s, sub.object_path    = ls_xstrdup(s););
-            PU_MAYBE_VISIT_STR("arg0",        s, sub.arg0           = ls_xstrdup(s););
-            PU_MAYBE_VISIT_BOOL("arg0_match_namespace", b,
-                if (b) {
-                    sub.flags |= G_DBUS_SIGNAL_FLAGS_MATCH_ARG0_NAMESPACE;
-                }
-            );
-            PU_MAYBE_VISIT_BOOL("arg0_match_path", b,
-                if (b) {
-                    sub.flags |= G_DBUS_SIGNAL_FLAGS_MATCH_ARG0_PATH;
-                }
-            );
+        SubList *dest = &p->session_subs;
+
+        lua_pushvalue(L, LS_LUA_VALUE);
+        PU_MAYBE_VISIT_STR("sender",      s, sub.sender         = ls_xstrdup(s););
+        PU_MAYBE_VISIT_STR("interface",   s, sub.interface      = ls_xstrdup(s););
+        PU_MAYBE_VISIT_STR("signal",      s, sub.signal         = ls_xstrdup(s););
+        PU_MAYBE_VISIT_STR("object_path", s, sub.object_path    = ls_xstrdup(s););
+        PU_MAYBE_VISIT_STR("arg0",        s, sub.arg0           = ls_xstrdup(s););
+        PU_MAYBE_VISIT_BOOL("arg0_match_namespace", b,
+            if (b) {
+                sub.flags |= G_DBUS_SIGNAL_FLAGS_MATCH_ARG0_NAMESPACE;
+            }
         );
-        LS_VECTOR_PUSH(p->signal_subs, sub);
+        PU_MAYBE_VISIT_BOOL("arg0_match_path", b,
+            if (b) {
+                sub.flags |= G_DBUS_SIGNAL_FLAGS_MATCH_ARG0_PATH;
+            }
+        );
+        PU_MAYBE_VISIT_STR("bus", s,
+            if (strcmp(s, "session") == 0) {
+                dest = &p->session_subs;
+            } else if (strcmp(s, "system") == 0) {
+                dest = &p->system_subs;
+            } else {
+                LS_FATALF(pd, "'bus' value is invalid: expected either 'session or 'system'");
+                goto error;
+            }
+        );
+        lua_pop(L, 1);
+        LS_VECTOR_PUSH(*dest, sub);
     );
 
     return LUASTATUS_OK;
@@ -116,7 +140,7 @@ static
 void
 on_recur_lim(lua_State *L)
 {
-    lua_pushstring(L, "recursion limit reached");
+    lua_pushstring(L, "(recursion limit reached)");
 }
 
 static
@@ -167,7 +191,9 @@ push_gvariant(lua_State *L, GVariant *var, unsigned recurlim)
 
 #define ALTSTR(GType_, LuaType_, CastTo_, Fmt_) \
     do { \
-        lua_pushfstring(L, Fmt_, (CastTo_) g_variant_get_ ## GType_(var)); /* L: ? table str */ \
+        char buf_[32]; \
+        snprintf(buf_, sizeof(buf_), Fmt_, (CastTo_) g_variant_get_ ## GType_(var)); \
+        lua_pushstring(L, buf_); /* L: ? table str */ \
         lua_setfield(L, -2, "as_string"); /* L: ? table */ \
         lua_push ## LuaType_(L, g_variant_get_ ## GType_(var)); /* L: ? table value */ \
     } while (0)
@@ -243,7 +269,23 @@ push_gvariant(lua_State *L, GVariant *var, unsigned recurlim)
             break;
         case G_VARIANT_CLASS_DICT_ENTRY:
             kind = "dict_entry";
-            push_gvariant_iterable(L, var, recurlim);
+            {
+                GVariantIter iter;
+                if (g_variant_iter_init(&iter, var) == 2) {
+                    GVariant *key = g_variant_iter_next_value(&iter);
+                    // L: ? table
+                    push_gvariant(L, key, recurlim); // L: ? table key
+                    lua_setfield(L, -2, "key"); // L: ? table
+                    g_variant_unref(key);
+
+                    GVariant *value = g_variant_iter_next_value(&iter);
+                    push_gvariant(L, value, recurlim);
+                    g_variant_unref(value);
+                } else {
+                    // Not sure if this is possible, but whatever.
+                    push_gvariant_iterable(L, var, recurlim);
+                }
+            }
             break;
     }
     // L: ? table value
@@ -277,7 +319,7 @@ callback_signal(
     lua_setfield(L, -2, "interface"); // L: table
     lua_pushstring(L, signal_name); // L: table string
     lua_setfield(L, -2, "signal"); // L: table
-    push_gvariant(L, parameters, 5000); // L: table value
+    push_gvariant(L, parameters, 1000); // L: table value
     lua_setfield(L, -2, "parameters"); // L: table
     args.funcs.call_end(args.pd->userdata);
 }
@@ -296,26 +338,19 @@ callback_timeout(gpointer user_data)
 }
 
 static
-void
-run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
+GDBusConnection *
+maybe_connect_and_subscribe(GBusType bus_type, SubList sl, gpointer userdata, GError **err)
 {
-    Priv *p = pd->priv;
-
-    GError *err = NULL;
-    GDBusConnection *conn = NULL;
-    GMainLoop *mainloop = NULL;
-    GMainContext *context = g_main_context_get_thread_default();
-    GSource *source = NULL;
-
-    conn = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, &err);
-    if (err) {
-        LS_FATALF(pd, "g_bus_get_sync: %s", err->message);
-        goto error;
+    if (!sl.size) {
+        return NULL;
+    }
+    GDBusConnection *conn = g_bus_get_sync(bus_type, NULL, err);
+    if (*err) {
+        return NULL;
     }
     assert(conn);
-    PluginRunArgs user_data = {.pd = pd, .funcs = funcs};
-    for (size_t i = 0; i < p->signal_subs.size; ++i) {
-        SignalSub s = p->signal_subs.data[i];
+    for (size_t i = 0; i < sl.size; ++i) {
+        SignalSub s = sl.data[i];
         g_dbus_connection_signal_subscribe(
             conn,
             s.sender,
@@ -325,12 +360,40 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
             s.arg0,
             s.flags,
             callback_signal,
-            &user_data,
+            userdata,
             NULL);
     }
+    return conn;
+}
+
+static
+void
+run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
+{
+    Priv *p = pd->priv;
+
+    GError *err = NULL;
+    GDBusConnection *session_bus = NULL;
+    GDBusConnection *system_bus = NULL;
+    GMainLoop *mainloop = NULL;
+    GMainContext *context = g_main_context_get_thread_default();
+    GSource *source = NULL;
+
+    PluginRunArgs userdata = {.pd = pd, .funcs = funcs};
+    session_bus = maybe_connect_and_subscribe(G_BUS_TYPE_SESSION, p->session_subs, &userdata, &err);
+    if (err) {
+        LS_FATALF(pd, "cannot connect to the session bus: %s", err->message);
+        goto error;
+    }
+    system_bus = maybe_connect_and_subscribe(G_BUS_TYPE_SYSTEM, p->system_subs, &userdata, &err);
+    if (err) {
+        LS_FATALF(pd, "cannot connect to the system bus: %s", err->message);
+        goto error;
+    }
+
     if (p->timeout_ms >= 0) {
         source = g_timeout_source_new(p->timeout_ms);
-        g_source_set_callback(source, callback_timeout, &user_data, NULL);
+        g_source_set_callback(source, callback_timeout, &userdata, NULL);
         if (g_source_attach(source, context) == 0) {
             LS_FATALF(pd, "g_source_attach failed\n");
             goto error;
@@ -357,9 +420,13 @@ error:
     if (mainloop) {
         g_main_loop_unref(mainloop);
     }
-    if (conn) {
-        g_dbus_connection_close_sync(conn, NULL, NULL);
-        g_object_unref(conn);
+    if (session_bus) {
+        g_dbus_connection_close_sync(session_bus, NULL, NULL);
+        g_object_unref(session_bus);
+    }
+    if (system_bus) {
+        g_dbus_connection_close_sync(system_bus, NULL, NULL);
+        g_object_unref(system_bus);
     }
     if (err) {
         g_error_free(err);
