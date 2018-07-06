@@ -1,0 +1,12 @@
+months = {'января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентрября',
+    'октября', 'ноября', 'декабря'}
+widget = {
+    plugin = 'timer',
+    cb = function()
+        local d = os.date('*t')
+        return {
+            string.format('%d %s', d.day, months[d.month]),
+            string.format('%d:%02d', d.hour, d.min),
+        }
+    end,
+}

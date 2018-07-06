@@ -1,10 +1,6 @@
 lib = require 'lib'
 
-f = io.popen('exec bspc control --subscribe', 'r')
-
-widget = {
-    plugin = 'timer',
-    cb = function()
-        return lib.pager(f:read('*line'))
-    end,
+widget = luastatus.require_plugin('pipe').widget{
+    command = 'exec bspc control --subscribe',
+    cb = lib.pager,
 }

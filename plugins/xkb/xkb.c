@@ -42,11 +42,11 @@ init(LuastatusPluginData *pd, lua_State *L)
         .deviceid = XkbUseCoreKbd,
     };
 
-    PU_MAYBE_VISIT_STR("display", s,
+    PU_MAYBE_VISIT_STR("display", NULL, s,
         p->dpyname = ls_xstrdup(s);
     );
 
-    PU_MAYBE_VISIT_NUM("device_id", n,
+    PU_MAYBE_VISIT_NUM("device_id", NULL, n,
         if (n < 0) {
             LS_FATALF(pd, "device_id < 0");
             goto error;

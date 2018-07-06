@@ -75,11 +75,11 @@ init(LuastatusPluginData *pd, lua_State *L)
         .greet = false,
     };
 
-    PU_MAYBE_VISIT_BOOL("greet", b,
+    PU_MAYBE_VISIT_BOOL("greet", NULL, b,
         p->greet = b;
     );
 
-    PU_MAYBE_VISIT_NUM("timeout", nsec,
+    PU_MAYBE_VISIT_NUM("timeout", NULL, nsec,
         if (nsec >= 0) {
             double nmillis = nsec * 1000;
             if (nmillis > INT_MAX) {
@@ -90,37 +90,54 @@ init(LuastatusPluginData *pd, lua_State *L)
         }
     );
 
-    PU_TRAVERSE_TABLE("signals",
+    PU_TRAVERSE_TABLE("signals", NULL,
         SignalSub sub = {.flags = G_DBUS_SIGNAL_FLAGS_NONE};
         SubList *dest = &p->session_subs;
 
-        lua_pushvalue(L, LS_LUA_VALUE);
-        PU_MAYBE_VISIT_STR("sender",      s, sub.sender         = ls_xstrdup(s););
-        PU_MAYBE_VISIT_STR("interface",   s, sub.interface      = ls_xstrdup(s););
-        PU_MAYBE_VISIT_STR("signal",      s, sub.signal         = ls_xstrdup(s););
-        PU_MAYBE_VISIT_STR("object_path", s, sub.object_path    = ls_xstrdup(s););
-        PU_MAYBE_VISIT_STR("arg0",        s, sub.arg0           = ls_xstrdup(s););
-        PU_MAYBE_VISIT_BOOL("arg0_match_namespace", b,
-            if (b) {
-                sub.flags |= G_DBUS_SIGNAL_FLAGS_MATCH_ARG0_NAMESPACE;
-            }
+        PU_MAYBE_VISIT_STR("sender", "'signals' element, 'sender' value", s,
+            sub.sender = ls_xstrdup(s);
         );
-        PU_MAYBE_VISIT_BOOL("arg0_match_path", b,
-            if (b) {
-                sub.flags |= G_DBUS_SIGNAL_FLAGS_MATCH_ARG0_PATH;
-            }
+
+        PU_MAYBE_VISIT_STR("interface", "'signals' element, 'interface' value", s,
+            sub.interface = ls_xstrdup(s);
         );
-        PU_MAYBE_VISIT_STR("bus", s,
+
+        PU_MAYBE_VISIT_STR("signal", "'signals' element, 'signal' value", s,
+            sub.signal = ls_xstrdup(s);
+        );
+
+        PU_MAYBE_VISIT_STR("object_path", "'signals' element, 'object_path' value", s,
+            sub.object_path = ls_xstrdup(s);
+        );
+
+        PU_MAYBE_VISIT_STR("arg0", "'signals' element', 'arg0' value", s,
+            sub.arg0 = ls_xstrdup(s);
+        );
+
+        PU_MAYBE_TRAVERSE_TABLE("flags", "'signals' element, 'flags' value",
+            PU_VISIT_STR_AT(LS_LUA_VALUE, "'signals' element, 'flags'", s,
+                if (strcmp(s, "match_arg0_namespace") == 0) {
+                    sub.flags |= G_DBUS_SIGNAL_FLAGS_MATCH_ARG0_NAMESPACE;
+                } else if (strcmp(s, "match_arg0_path") == 0) {
+                    sub.flags |= G_DBUS_SIGNAL_FLAGS_MATCH_ARG0_PATH;
+                } else {
+                    LS_FATALF(pd, "'signals' element, 'flags': unknown flag: '%s'", s);
+                    goto error;
+                }
+            );
+        );
+
+        PU_MAYBE_VISIT_STR("bus", "'signals' element, 'bus' value", s,
             if (strcmp(s, "session") == 0) {
                 dest = &p->session_subs;
             } else if (strcmp(s, "system") == 0) {
                 dest = &p->system_subs;
             } else {
-                LS_FATALF(pd, "'bus' value is invalid: expected either 'session or 'system'");
+                LS_FATALF(pd, "'signals' element, 'bus' value: unknown bus: '%s'", s);
                 goto error;
             }
         );
-        lua_pop(L, 1);
+
         LS_VECTOR_PUSH(*dest, sub);
     );
 
@@ -319,8 +336,14 @@ callback_signal(
     lua_setfield(L, -2, "interface"); // L: table
     lua_pushstring(L, signal_name); // L: table string
     lua_setfield(L, -2, "signal"); // L: table
-    push_gvariant(L, parameters, 1000); // L: table value
-    lua_setfield(L, -2, "parameters"); // L: table
+
+    if (lua_checkstack(L, 510)) {
+        push_gvariant(L, parameters, 500); // L: table value
+        lua_setfield(L, -2, "parameters"); // L: table
+    } else {
+        LS_WARNF(args.pd, "lua_checkstack() failed (out of memory?)");
+    }
+
     args.funcs.call_end(args.pd->userdata);
 }
 

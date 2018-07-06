@@ -82,62 +82,61 @@
 
 //------------------------------------------------------------------------------
 
-// do not use directly.
-#define PU__EXPAND_AT_KEY(Key_, AtMacro_, ...) \
+#define PU__MAYBE_EXPAND_AT(StackIndex_, StringRepr_, AtMacro_, ...) \
     do { \
-        ls_lua_rawgetf(PU_L, Key_); \
-        AtMacro_(-1, Key_, __VA_ARGS__); \
-        lua_pop(PU_L, 1); \
-    } while (0)
-
-// do not use directly.
-#define PU__MAYBE_EXPAND_AT_KEY(Key_, AtMacro_, ...) \
-    do { \
-        ls_lua_rawgetf(PU_L, Key_); \
-        if (!lua_isnil(PU_L, -1)) { \
-            AtMacro_(-1, Key_, __VA_ARGS__); \
+        if (!lua_isnil(PU_L, StackIndex_)) { \
+            AtMacro_(StackIndex_, StringRepr_, __VA_ARGS__); \
         } \
+    } while (0)
+
+#define PU__EXPAND_AT_KEY(Key_, StringRepr_, AtMacro_, ...) \
+    do { \
+        ls_lua_rawgetf(PU_L, Key_); \
+        AtMacro_(-1, StringRepr_ ? StringRepr_ : Key_, __VA_ARGS__); \
         lua_pop(PU_L, 1); \
     } while (0)
 
-//------------------------------------------------------------------------------
-
-#define PU_MAYBE_VISIT_STR(Key_, Var_, ...) \
-    PU__MAYBE_EXPAND_AT_KEY(Key_, PU_VISIT_STR_AT, Var_, __VA_ARGS__)
-
-#define PU_MAYBE_VISIT_LSTR(Key_, SVar_, NVar_, ...) \
-    PU__MAYBE_EXPAND_AT_KEY(Key_, PU_VISIT_LSTR_AT, SVar_, NVar_, __VA_ARGS__)
-
-#define PU_MAYBE_VISIT_NUM(Key_, Var_, ...) \
-    PU__MAYBE_EXPAND_AT_KEY(Key_, PU_VISIT_NUM_AT, Var_, __VA_ARGS__)
-
-#define PU_MAYBE_VISIT_BOOL(Key_, Var_, ...) \
-    PU__MAYBE_EXPAND_AT_KEY(Key_, PU_VISIT_BOOL_AT, Var_, __VA_ARGS__)
-
-#define PU_MAYBE_VISIT_TABLE(Key_, IndexVar_, ...) \
-    PU__MAYBE_EXPAND_AT_KEY(Key_, PU_VISIT_TABLE_AT, IndexVar_, __VA_ARGS__)
-
-#define PU_MAYBE_TRAVERSE_TABLE(Key_, ...) \
-    PU__MAYBE_EXPAND_AT_KEY(Key_, PU_TRAVERSE_TABLE_AT, __VA_ARGS__)
+#define PU__MAYBE_EXPAND_AT_KEY(Key_, StringRepr_, AtMacro_, ...) \
+    PU__EXPAND_AT_KEY(Key_, StringRepr_, PU__MAYBE_EXPAND_AT, AtMacro_, __VA_ARGS__)
 
 //------------------------------------------------------------------------------
 
-#define PU_VISIT_STR(Key_, Var_, ...) \
-    PU__EXPAND_AT_KEY(Key_, PU_VISIT_STR_AT, Var_, __VA_ARGS__)
+#define PU_MAYBE_VISIT_STR(Key_, StringRepr_, Var_, ...) \
+    PU__MAYBE_EXPAND_AT_KEY(Key_, StringRepr_, PU_VISIT_STR_AT, Var_, __VA_ARGS__)
 
-#define PU_VISIT_LSTR(Key_, SVar_, NVar_, ...) \
-    PU__EXPAND_AT_KEY(Key_, PU_VISIT_LSTR_AT, SVar_, NVar_, __VA_ARGS__)
+#define PU_MAYBE_VISIT_LSTR(Key_, StringRepr_, SVar_, NVar_, ...) \
+    PU__MAYBE_EXPAND_AT_KEY(Key_, StringRepr_, PU_VISIT_LSTR_AT, SVar_, NVar_, __VA_ARGS__)
 
-#define PU_VISIT_NUM(Key_, Var_, ...) \
-    PU__EXPAND_AT_KEY(Key_, PU_VISIT_NUM_AT, Var_, __VA_ARGS__)
+#define PU_MAYBE_VISIT_NUM(Key_, StringRepr_, Var_, ...) \
+    PU__MAYBE_EXPAND_AT_KEY(Key_, StringRepr_, PU_VISIT_NUM_AT, Var_, __VA_ARGS__)
 
-#define PU_VISIT_BOOL(Key_, Var_, ...) \
-    PU__EXPAND_AT_KEY(Key_, PU_VISIT_BOOL_AT, Var_, __VA_ARGS__)
+#define PU_MAYBE_VISIT_BOOL(Key_, StringRepr_, Var_, ...) \
+    PU__MAYBE_EXPAND_AT_KEY(Key_, StringRepr_, PU_VISIT_BOOL_AT, Var_, __VA_ARGS__)
 
-#define PU_TRAVERSE_TABLE(Key_, ...) \
-    PU__EXPAND_AT_KEY(Key_, PU_TRAVERSE_TABLE_AT, __VA_ARGS__)
+#define PU_MAYBE_VISIT_TABLE(Key_, StringRepr_, IndexVar_, ...) \
+    PU__MAYBE_EXPAND_AT_KEY(Key_, StringRepr_, PU_VISIT_TABLE_AT, IndexVar_, __VA_ARGS__)
 
-#define PU_VISIT_TABLE(Key_, IndexVar_, ...) \
-    PU__EXPAND_AT_KEY(Key_, PU_VISIT_TABLE_AT, IndexVar_, __VA_ARGS__)
+#define PU_MAYBE_TRAVERSE_TABLE(Key_, StringRepr_, ...) \
+    PU__MAYBE_EXPAND_AT_KEY(Key_, StringRepr_, PU_TRAVERSE_TABLE_AT, __VA_ARGS__)
+
+//------------------------------------------------------------------------------
+
+#define PU_VISIT_STR(Key_, StringRepr_, Var_, ...) \
+    PU__EXPAND_AT_KEY(Key_, StringRepr_, PU_VISIT_STR_AT, Var_, __VA_ARGS__)
+
+#define PU_VISIT_LSTR(Key_, StringRepr_, SVar_, NVar_, ...) \
+    PU__EXPAND_AT_KEY(Key_, StringRepr_, PU_VISIT_LSTR_AT, SVar_, NVar_, __VA_ARGS__)
+
+#define PU_VISIT_NUM(Key_, StringRepr_, Var_, ...) \
+    PU__EXPAND_AT_KEY(Key_, StringRepr_, PU_VISIT_NUM_AT, Var_, __VA_ARGS__)
+
+#define PU_VISIT_BOOL(Key_, StringRepr_, Var_, ...) \
+    PU__EXPAND_AT_KEY(Key_, StringRepr_, PU_VISIT_BOOL_AT, Var_, __VA_ARGS__)
+
+#define PU_TRAVERSE_TABLE(Key_, StringRepr_, ...) \
+    PU__EXPAND_AT_KEY(Key_, StringRepr_, PU_TRAVERSE_TABLE_AT, __VA_ARGS__)
+
+#define PU_VISIT_TABLE(Key_, StringRepr_, IndexVar_, ...) \
+    PU__EXPAND_AT_KEY(Key_, StringRepr_, PU_VISIT_TABLE_AT, IndexVar_, __VA_ARGS__)
 
 #endif

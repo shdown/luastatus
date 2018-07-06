@@ -79,7 +79,9 @@ end
 
 ----------------------------------------------------------------------------------------------------
 
-local function widget(tbl)
+local P = {}
+
+function P.widget(tbl)
     local mbox = nil
 
     local function connect()
@@ -169,4 +171,4 @@ local function widget(tbl)
     }
 end
 
-return {widget = widget}
+return P

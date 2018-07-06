@@ -174,6 +174,14 @@ static struct {
 // We use the search tree interface from /<search.h>/, which, in any sane implementation, should be
 // of logarithmic time complexity for search, insert and delete operations.
 
+// The map itself.
+static struct {
+    // An (opaque) pointer to the root node of the search tree. A /NULL/ represents an empty tree.
+    void *root;
+    // Whether the map is frozen after all plugins and widgets have been initialized.
+    bool frozen;
+} map = {NULL, false};
+
 // A structure we store in the nodes of the tree.
 typedef struct {
     // The pointer value of this entry.
@@ -182,9 +190,6 @@ typedef struct {
     // A flexible array member containing the zero-terminated key string of this entry.
     char key[];
 } MapEntry;
-
-// An (opaque) pointer to the root node of the search tree. A /NULL/ represents an empty tree.
-static void *map_root = NULL;
 
 // An implementation part for the /PTH_ASSERT/ macro.
 static
@@ -318,12 +323,18 @@ static
 void **
 map_do_get(const char *key)
 {
+    if (map.frozen) {
+        FATALF("map_do_get is called after the map has been frozen. Aborting.");
+        fflush(NULL);
+        abort();
+    }
+
     const size_t nkey = strlen(key);
     MapEntry *alloc = ls_xmalloc(sizeof(MapEntry) + nkey + 1, 1);
     alloc->value = NULL;
     memcpy(alloc->key, key, nkey + 1);
 
-    void *node = tsearch(alloc, &map_root, map_entry_cmp);
+    void *node = tsearch(alloc, &map.root, map_entry_cmp);
     if (!node) {
         ls_oom();
     }
@@ -347,9 +358,9 @@ static
 void
 map_destroy(void)
 {
-    while (map_root) {
-        MapEntry *ent = *(MapEntry **) map_root;
-        tdelete(ent, &map_root, map_entry_cmp);
+    while (map.root) {
+        MapEntry *ent = *(MapEntry **) map.root;
+        tdelete(ent, &map.root, map_entry_cmp);
         free(ent);
     }
 }
@@ -560,11 +571,12 @@ int
 l_error_handler(lua_State *L)
 {
     // L: error
-    lua_getglobal(L, LUA_DBLIBNAME); // L: error debug
-    lua_getfield(L, -1, "traceback"); // L: error debug traceback
-    lua_pushstring(L, get_lua_error_msg(L, 1)); // L: error debug traceback msg
-    lua_pushinteger(L, 2); // L: error debug traceback msg level
-    lua_call(L, 2, 1); // L: error debug result
+    ls_lua_pushg(L); // L: error _G
+    ls_lua_rawgetf(L, LUA_DBLIBNAME); // L: error _G debug
+    lua_getfield(L, -1, "traceback"); // L: error _G debug traceback
+    lua_pushstring(L, get_lua_error_msg(L, 1)); // L: error _G debug traceback msg
+    lua_pushinteger(L, 2); // L: error _G debug traceback msg level
+    lua_call(L, 2, 1); // L: error _G debug result
     return 1;
 }
 
@@ -613,6 +625,8 @@ l_os_setlocale(lua_State *L)
     return 1;
 }
 
+// Implementation of /luastatus.map_get_handle()/. Expects a single upvalue: a metatable to equip
+// the resulting handle with.
 static
 int
 l_map_get_handle(lua_State *L)
@@ -624,6 +638,7 @@ l_map_get_handle(lua_State *L)
     return 1;
 }
 
+// Implementation of the /:read()/ method of a map handle object.
 static
 int
 l_map_handle_read(lua_State *L)
@@ -639,6 +654,7 @@ l_map_handle_read(lua_State *L)
     return 1;
 }
 
+// Implementation of the /:write()/ method of a map handle object.
 static
 int
 l_map_handle_write(lua_State *L)
@@ -650,6 +666,8 @@ l_map_handle_write(lua_State *L)
     return 0;
 }
 
+// Implementation of /luastatus.require_plugin()/. Expects a single upvalue: an initially empty
+// table that will be used as a registry of loaded Lua plugins.
 static
 int
 l_require_plugin(lua_State *L)
@@ -679,7 +697,9 @@ l_require_plugin(lua_State *L)
     return 1;
 }
 
-// Replaces some of the functions in /L/'s Lua libraries with their thread-safe counterparts.
+// 1. Replaces some of the functions in the standard library with our thread-safe counterparts.
+// 2. Registers the /luastatus/ module (just creates a global table actually) except for the
+//    /luastatus.plugin/ and /luastatus.barlib/ submodules (created later).
 void
 inject_libs(lua_State *L)
 {
@@ -702,11 +722,29 @@ inject_libs(lua_State *L)
     lua_pushcclosure(L, l_require_plugin, 1); // L: ? table l_require_plugin
     lua_setfield(L, -2, "require_plugin"); // L: ? table
 
+    // Quite a non-trivial thing here. So we are going to construct a metatable for our map handle
+    // objects. Basically, translated to Lua, the code fragment following this comment does this
+    // (leaving /mt/ on top of the stack):
+    //
+    //     local mt = {}
+    //     mt.__index = mt
+    //     mt.read = <C function l_map_handle_read>
+    //     mt.write = <C function l_map_handle_write>
+    //
+    // This trick is used to reduce the number of tabled needed, and is equivalent to:
+    //
+    //     local tmp = {}
+    //     tmp.read = <C function l_map_handle_read>
+    //     tmp.write = <C function l_map_handle_write>
+    //     local mt = {}
+    //     mt.__index = tmp
+    //
     lua_newtable(L); // L: ? table metatable
     lua_pushvalue(L, -1); // L: ? table metatable metatable
-    lua_setfield(L, -2, "__index") ; // L: ? table metatable
+    lua_setfield(L, -2, "__index"); // L: ? table metatable
     REG("read", l_map_handle_read);
     REG("write", l_map_handle_write);
+
     lua_pushcclosure(L, l_map_get_handle, 1); // L: ? table l_map_get_handle
     lua_setfield(L, -2, "map_get_handle"); // L: ? table
 
@@ -720,7 +758,9 @@ static
 void
 register_funcs(lua_State *L, Widget *w)
 {
-    lua_getglobal(L, "luastatus"); // L: ? table
+    // L: ?
+    ls_lua_pushg(L); // L: ? _G
+    ls_lua_rawgetf(L, "luastatus"); // L: ? _G luastatus
 
     if (!lua_istable(L, -1)) {
         assert(w);
@@ -730,28 +770,28 @@ register_funcs(lua_State *L, Widget *w)
         goto done;
     }
     if (barlib.iface.register_funcs) {
-        lua_newtable(L); // L: ? table table
+        lua_newtable(L); // L: ? _G luastatus table
 
         int old_top = lua_gettop(L);
         (void) old_top;
-        barlib.iface.register_funcs(&barlib.data, L); // L: ? table table
+        barlib.iface.register_funcs(&barlib.data, L); // L: ? _G luastatus table
         assert(lua_gettop(L) == old_top);
 
-        ls_lua_rawsetf(L, "barlib"); // L: ? table
+        ls_lua_rawsetf(L, "barlib"); // L: ? _G luastatus
     }
     if (w && w->plugin.iface.register_funcs) {
-        lua_newtable(L); // L: ? table table
+        lua_newtable(L); // L: ? _G luastatus table
 
         int old_top = lua_gettop(L);
         (void) old_top;
-        w->plugin.iface.register_funcs(&w->data, L); // L: ? table table
+        w->plugin.iface.register_funcs(&w->data, L); // L: ? _G luastatus table
         assert(lua_gettop(L) == old_top);
 
-        ls_lua_rawsetf(L, "plugin"); // L: ? table
+        ls_lua_rawsetf(L, "plugin"); // L: ? _G luastatus
     }
 
 done:
-    lua_pop(L, 1); // L: ?
+    lua_pop(L, 2); // L: ?
 }
 
 // Initializes, if not already initialized, the separate state.
@@ -913,7 +953,8 @@ widget_init(Widget *w, const char *filename)
     }
     // L: l_error_handler
 
-    lua_getglobal(L, "widget"); // L: l_error_handler widget
+    ls_lua_pushg(L); // L: l_error_handler _G
+    ls_lua_rawgetf(L, "widget"); // L: l_error_handler _G widget
     if (!lua_istable(L, -1)) {
         ERRF("'widget': expected table, found %s", luaL_typename(L, -1));
         goto error;
@@ -929,7 +970,7 @@ widget_init(Widget *w, const char *filename)
     {
         goto error;
     }
-    // L: l_error_handler widget opts
+    // L: l_error_handler _G widget opts
 
     w->data = (LuastatusPluginData_v1) {
         .userdata = w,
@@ -941,8 +982,8 @@ widget_init(Widget *w, const char *filename)
         ERRF("plugin's init() failed");
         goto error;
     }
-    assert(lua_gettop(L) == 3); // L: l_error_handler widget opts
-    lua_pop(L, 2); // L: l_error_handler
+    assert(lua_gettop(L) == 4); // L: l_error_handler _G widget opts
+    lua_pop(L, 3); // L: l_error_handler
 
     DEBUGF("widget successfully initialized");
     return true;
@@ -1342,6 +1383,9 @@ main(int argc, char **argv)
     if (sepstate.L) {
         register_funcs(sepstate.L, NULL);
     }
+
+    // Freeze the map.
+    map.frozen = true;
 
     // Spawn a thread for each successfully initialized widget, call /barlib/'s /set_error()/ method
     // on each widget whose initialization has failed.

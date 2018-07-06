@@ -162,11 +162,11 @@ init(LuastatusPluginData *pd, lua_State *L)
         goto error;
     }
 
-    PU_MAYBE_VISIT_BOOL("greet", b,
+    PU_MAYBE_VISIT_BOOL("greet", NULL, b,
         p->greet = b;
     );
 
-    PU_MAYBE_VISIT_NUM("timeout", n,
+    PU_MAYBE_VISIT_NUM("timeout", NULL, n,
         if (ls_timespec_is_invalid(p->timeout = ls_timespec_from_seconds(n)) && n >= 0) {
             LS_FATALF(pd, "'timeout' is invalid");
             goto error;
@@ -174,7 +174,7 @@ init(LuastatusPluginData *pd, lua_State *L)
     );
 
     char err[256];
-    PU_TRAVERSE_TABLE("watch",
+    PU_TRAVERSE_TABLE("watch", NULL,
         const char *path;
         uint32_t mask;
 
@@ -301,6 +301,9 @@ push_event(lua_State *L, const struct inotify_event *event)
     // L: -
     lua_newtable(L); // L: table
 
+    lua_pushstring(L, "event"); // L: table string
+    lua_setfield(L, -2, "what"); // L: table
+
     lua_pushinteger(L, event->wd); // L: table wd
     lua_setfield(L, -2, "wd"); // L: table
 
@@ -328,14 +331,12 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
 
-#define CALL_WITH_NIL() \
-    do { \
-        lua_pushnil(funcs.call_begin(pd->userdata)); \
-        funcs.call_end(pd->userdata); \
-    } while (0)
-
     if (p->greet) {
-        CALL_WITH_NIL();
+        lua_State *L = funcs.call_begin(pd->userdata);
+        lua_newtable(L); // L: table
+        lua_pushstring(L, "hello"); // L: table string
+        lua_setfield(L, -2, "what"); // L: table
+        funcs.call_end(pd->userdata);
     }
 
     char buf[sizeof(struct inotify_event) + NAME_MAX + 2]
@@ -366,7 +367,11 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
                 );
                 goto error;
             } else if (r == 0) {
-                CALL_WITH_NIL();
+                lua_State *L = funcs.call_begin(pd->userdata);
+                lua_newtable(L); // L: table
+                lua_pushstring(L, "timeout"); // L: table string
+                lua_setfield(L, -2, "what"); // L: table
+                funcs.call_end(pd->userdata);
                 continue;
             }
         }
@@ -400,7 +405,6 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 
 error:
     (void) 0;
-#undef CALL_WITH_NIL
 }
 
 LuastatusPluginIface luastatus_plugin_iface_v1 = {

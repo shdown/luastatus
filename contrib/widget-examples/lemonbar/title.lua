@@ -1,5 +1,6 @@
+-- you need to install 'utf8' module (e.g. with luarocks) if using Lua <=5.2.
+utf8 = require 'utf8'
 lib = require 'lib'
-utf8 = require 'utf8' -- git@github.com:Stepets/utf8.lua.git
 
 widget = {
     plugin = 'xtitle',

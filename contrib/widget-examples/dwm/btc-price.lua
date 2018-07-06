@@ -1,5 +1,5 @@
 -- Bitcoin price widget.
--- Updates on click and every 5 minutes.
+-- Updates every 5 minutes.
 -- Requires:
 --     * luasec
 --     * this JSON library (you can simply copy json.lua into your widgets directory):
@@ -54,15 +54,6 @@ widget = {
             text = '......'
             os.execute('{ sleep 2; exec ' .. upd_self_cmd .. '; }&')
         end
-        return {
-            full_text = string.format('[<span color="#C0863F">$</span>%s]', text),
-            color = '#586A4B',
-            markup = 'pango',
-        }
-    end,
-    event = function(t)
-        if t.button == 1 then
-            os.execute('exec ' .. upd_self_cmd .. '&')
-        end
+        return string.format('[$%s]', text)
     end,
 }

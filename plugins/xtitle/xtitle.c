@@ -45,11 +45,11 @@ init(LuastatusPluginData *pd, lua_State *L)
         .visible = false,
     };
 
-    PU_MAYBE_VISIT_STR("display", s,
+    PU_MAYBE_VISIT_STR("display", NULL, s,
         p->dpyname = ls_xstrdup(s);
     );
 
-    PU_MAYBE_VISIT_BOOL("visible", b,
+    PU_MAYBE_VISIT_BOOL("visible", NULL, b,
         p->visible = b;
     );
 
