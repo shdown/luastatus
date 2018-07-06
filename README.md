@@ -18,8 +18,13 @@ Screenshot
 Above is i3bar with luastatus with Bitcoin price, time, battery, volume and
 keyboard layout widgets.
 
-Widgets
+Key concepts
 ===
+
+![Explanation](https://user-images.githubusercontent.com/5462697/42376297-55efc328-8127-11e8-9352-c6f4a3493dd9.png)
+
+Widgets
+---
 A widget is a Lua program with a table named `widget` defined (except for
 `luastatus`, you can freely define and modify any other global variables).
 
@@ -56,7 +61,7 @@ The `widget` table **may** contain the following entries:
      function solves that.
 
 Plugins
-===
+---
 A plugin is a thing that knows when to call the `cb` function and what to pass
 to.
 
@@ -64,7 +69,7 @@ Plugins are shared libraries. For how to write them, see
 `DOCS/WRITING_BARLIB_OR_PLUGIN.md`.
 
 Barlibs
-===
+---
 A barlib (**bar** **lib**rary) is a thing that knows:
 
   * what to do with values the `cb` function returns;
@@ -78,6 +83,11 @@ Barlibs are shared libraries, too. For how to write them, see
 
 Barlibs are capable of taking options.
 
+Plugins’ and barlib’s Lua functions
+---
+Plugins and barlibs can register Lua functions. They appear in
+`luastatus.plugin` and `luastatus.barlib` submodules, correspondingly.
+
 How it works
 ===
 Each widget runs in its own thread and has its own Lua interpreter instance.
@@ -90,11 +100,6 @@ before calling any of these functions, and is released afterwards).
 Also, due to luastatus’ architecture, no two `event()` functions, even from
 different widgets, can overlap. (Note that `cb()` functions from different
 widgets can overlap.)
-
-Plugins’ and barlib’s Lua functions
-===
-Plugins and barlibs can register Lua functions. They appear in
-`luastatus.plugin` and `luastatus.barlib` submodules, correspondingly.
 
 Lua limitations
 ===
