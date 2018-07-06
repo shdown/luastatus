@@ -21,7 +21,7 @@ keyboard layout widgets.
 Key concepts
 ===
 
-![Explanation](https://user-images.githubusercontent.com/5462697/42376297-55efc328-8127-11e8-9352-c6f4a3493dd9.png)
+![Explanation](https://user-images.githubusercontent.com/5462697/42379741-606b6926-8134-11e8-8534-59c766aafe78.png)
 
 Widgets
 ---
