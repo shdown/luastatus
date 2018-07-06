@@ -16,7 +16,10 @@ Show me examples!
 <table>
 <tr> <th>What you write <th>What you get
 <tr>
- <td> <img src="https://user-images.githubusercontent.com/5462697/42401371-09058050-817e-11e8-8c49-b049832488d0.png" />
+ <td>
+  <img src="https://user-images.githubusercontent.com/5462697/42401371-09058050-817e-11e8-8c49-b049832488d0.png" />
+  <br/>
+  <a href="https://github.com/shdown/luastatus/blob/master/contrib/widget-examples/i3/alsa.lua">example file</a>
  <td> <img src="https://user-images.githubusercontent.com/5462697/42401715-9d4a6324-817f-11e8-99b4-78e8a6813218.gif" />
 </table>
 
