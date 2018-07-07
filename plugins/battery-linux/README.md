@@ -38,6 +38,7 @@ Functions
       Estimates the time in hours remaining to full charge/discharge.
       `props` is a table with following keys (assuming `S` is a table returned
       by `get_props_naming_scheme()`):
+
         * `"status"`;
         * `S.EF`;
         * `S.EN`;
