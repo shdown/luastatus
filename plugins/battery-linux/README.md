@@ -39,10 +39,10 @@ Functions
       `props` is a table with following keys (assuming `S` is a table returned
       by `get_props_naming_scheme()`):
 
-        * `"status"`;
-        * `S.EF`;
-        * `S.EN`;
-        * `S.PN`.
+      * `"status"`;
+      * `S.EF`;
+      * `S.EN`;
+      * `S.PN`.
 
   - `widget(tbl)`
 
