@@ -172,8 +172,8 @@ functions:
   - `luastatus.map_get_handle(key)` returns a handle object to the *map entry*
   with the key `key`. See `DOCS/design/MAP_GET.md` for overview; in short, this
   is a mechanism allowing plugins to synchronize thread-unsafe operations.
-  Unless you’re writing a derived plugin *and* working using thread-unsafe
-  stuff, you don’t need it.
+  Unless you’re writing a derived plugin *and* using thread-unsafe stuff, you
+  don’t need it.
 
 Plugins’ and barlib’s Lua functions
 ---
