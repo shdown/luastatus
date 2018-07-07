@@ -24,6 +24,19 @@ typedef struct {
     GDBusSignalFlags flags;
 } SignalSub;
 
+#define SIGNAL_SUB_NEW() {.flags = G_DBUS_SIGNAL_FLAGS_NONE}
+
+static
+void
+signal_sub_free(SignalSub s)
+{
+    free(s.sender);
+    free(s.interface);
+    free(s.signal);
+    free(s.object_path);
+    free(s.arg0);
+}
+
 typedef LS_VECTOR_OF(SignalSub) SubList;
 
 static
@@ -31,12 +44,7 @@ void
 sub_list_free(SubList sl)
 {
     for (size_t i = 0; i < sl.size; ++i) {
-        SignalSub s = sl.data[i];
-        free(s.sender);
-        free(s.interface);
-        free(s.signal);
-        free(s.object_path);
-        free(s.arg0);
+        signal_sub_free(sl.data[i]);
     }
     LS_VECTOR_FREE(sl);
 }
@@ -74,6 +82,7 @@ init(LuastatusPluginData *pd, lua_State *L)
         .timeout_ms = -1,
         .greet = false,
     };
+    SignalSub sub = SIGNAL_SUB_NEW();
 
     PU_MAYBE_VISIT_BOOL("greet", NULL, b,
         p->greet = b;
@@ -91,7 +100,6 @@ init(LuastatusPluginData *pd, lua_State *L)
     );
 
     PU_TRAVERSE_TABLE("signals", NULL,
-        SignalSub sub = {.flags = G_DBUS_SIGNAL_FLAGS_NONE};
         SubList *dest = &p->session_subs;
 
         PU_MAYBE_VISIT_STR("sender", "'signals' element, 'sender' value", s,
@@ -139,11 +147,13 @@ init(LuastatusPluginData *pd, lua_State *L)
         );
 
         LS_VECTOR_PUSH(*dest, sub);
+        sub = (SignalSub) SIGNAL_SUB_NEW();
     );
 
     return LUASTATUS_OK;
 
 error:
+    signal_sub_free(sub);
     destroy(pd);
     return LUASTATUS_ERR;
 }
