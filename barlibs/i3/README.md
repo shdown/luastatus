@@ -57,11 +57,11 @@ widget = {
         end
     end,
     event = function(t)
-        local r = 'properties:'
+        local r = {'properties:'}
         for k, v in pairs(t) do
             table.insert(r, k .. '=' .. v)
         end
-        assert(os.execute('notify-send "Click event!" \'' .. table.concat(r, ' ') .. '\''))
+        assert(os.execute('notify-send "Click event" \'' .. table.concat(r, ' ') .. '\''))
     end,
 }
 ````
