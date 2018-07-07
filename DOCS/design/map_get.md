@@ -23,7 +23,7 @@ luastatus also provides `luastatus.map_get_handle(key)` function that returns a 
   - `[str] = handle:read()`
 
       Reads the value, assuming it is either a null pointer or a C string. If it is neither, **the behaviour is undefined**.
-      If it is a null pointer, returns `nil`; otherwise return the string.
+      If it is a null pointer, returns `nil`; otherwise returns the string.
 
   - `handle:write([str])`
 
