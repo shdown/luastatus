@@ -2,6 +2,18 @@ This barlib talks with `lemonbar`.
 
 It joins all non-empty strings returned by widgets by a separator, which defaults to ` | `.
 
+Warning
+===
+`lemonbar` has a critical bug that will likely spoil your impression of using luastatus with it; its author does not seem to care. For details, please see:
+
+https://github.com/LemonBoy/bar/pull/198
+
+https://github.com/LemonBoy/bar/issues/107
+
+https://github.com/shdown/luastatus/issues/12#issuecomment-277616761 and down the thread.
+
+Please use `lemonbar` from https://github.com/shdown/bar/tree/buffer-bug-fix, or simply apply this patch: https://github.com/shdown/bar/commit/eb0e9e79b9a35c3093f6e2e90d9fbd175a2305ef.patch
+
 Redirections and `luastatus-lemonbar-launcher`
 ===
 `lemonbar` is not capable of creating a bidirectional pipe itself; instead, it requires all the data to be written to its stdin and read from its stdout.
