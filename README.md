@@ -15,7 +15,8 @@ Screenshot
 
 ![...](https://user-images.githubusercontent.com/5462697/39099519-092459aa-4685-11e8-94fe-0ac1cf706d82.gif)
 
-Above is i3bar with luastatus with Bitcoin price, time, volume and keyboard layout widgets.
+Above is i3bar with luastatus with Bitcoin price, time, volume, and keyboard
+layout widgets.
 
 Key concepts
 ===
@@ -36,8 +37,9 @@ The `widget` table **must** contain the following entries:
   to `${CMAKE_INSTALL_FULL_LIBDIR}/luastatus/plugins`).
 
   * `cb`: a function that converts the data received from a *plugin* to the
-  format a *barlib* (see below) understands. It should take exactly one
-  argument and return exactly one value.
+  format a *barlib* (see below) understands. It should take one argument (though
+  in Lua you can omit it if you don’t care about its value) and return one value
+  (`nil` is substituted if no values are returned).
 
 The `widget` table **may** contain the following entries:
 
@@ -45,27 +47,91 @@ The `widget` table **may** contain the following entries:
   substituted.
 
   * `event`: a function or a string.
-    - If is a function, it is called by the *barlib* when some event with the
-     widget occurs (typically a click). It should take exactly one argument and
-     not return anything;
-    - if is a string, it is compiled as a function in a *separate state*, and
-     when some event with the widget occurs, the compiled function is called in
-     that state (not in the widget’s state, in which `cb` gets called). This may
-     be useful for widgets that want not to receive data from plugin, but to
-     generate it themselves (possibly using some external modules). Such a
-     widget may want to specify `plugin = 'timer', opts = {period = 0}` and
-     block in `cb` until it wants to update. The problem is that in this case,
-     widget’s Lua mutex is almost always being acquired by `cb`, and there is
-     very little chance for `event` to get called. A separate-state `event`
-     function solves that.
+    - If is a function, it will be called by the *barlib* whenever some event
+      with the widget occurs (typically a click). It should take one argument
+      and not return anything;
+    - if is a string, it is compiled as a function in a *separate state*. See
+     `DOCS/design/separate_state.md` for overview.
 
 Plugins
 ---
-A plugin is a thing that knows when to call the `cb` function and what to pass
-to.
+A plugin is a thing that knows when to call the `cb` function and what
+to pass to.
 
 Plugins are shared libraries. For how to write them, see
 `DOCS/WRITING_BARLIB_OR_PLUGIN.md`.
+
+These plugins are also referred to as *proper plugins*, as opposed to
+*dervied plugins*.
+
+Following is an example of widget for the `i3` barlib that uses a (proper)
+plugin.
+
+```lua
+widget = {
+    plugin = 'alsa',
+    opts = {
+        channel = 'PCM'
+    },
+    cb = function(t)
+        if t.mute then
+            return {full_text = '[mute]', color = '#e03838'}
+        else
+            local percent = (t.vol.cur - t.vol.min)
+                          / (t.vol.max - t.vol.min)
+                          * 100
+            return {full_text = string.format(
+                        '[%3d%%]', math.floor(0.5 + percent)),
+                    color = '#718ba6'}
+        end
+    end,
+    event = function(t)
+        if t.button == 1 then     -- left mouse button
+            os.execute('urxvt -e alsamixer &')
+        end
+    end
+}
+```
+
+Derived plugins
+---
+Starting with version 0.3.0, luastatus features *derived plugins*, which are
+wrappers around proper plugins (or even other derived plugins) written in Lua.
+
+Derived plugins are loaded by calling `luastatus.require_plugin(name)`.
+
+Following is an example of widget for the `i3` barlib that uses a derived
+plugin.
+
+```lua
+credentials = require 'credentials'
+widget = luastatus.require_plugin('imap').widget{
+    host = 'imap.gmail.com',
+    port = 993,
+    mailbox = 'Inbox',
+    use_ssl = true,
+    timeout = 2 * 60,
+    handshake_timeout = 10,
+    login = credentials.gmail.login,
+    password = credentials.gmail.password,
+    sleep_on_error = function() os.execute('sleep 60') end,
+    cb = function(unseen)
+        if unseen == nil then
+            return nil
+        elseif unseen == 0 then
+            return {full_text = '[-]', color = '#595959'}
+        else
+            return {full_text = string.format('[%d unseen]', unseen)}
+        end
+    end,
+    event = [[                    -- separate-state event function
+        local t = ...
+        if t.button == 1 then     -- left mouse button
+            os.execute('xdg-open https://gmail.com &')
+        end
+    ]]
+}
+```
 
 Barlibs
 ---
@@ -82,11 +148,6 @@ Barlibs are shared libraries, too. For how to write them, see
 
 Barlibs are capable of taking options.
 
-Plugins’ and barlib’s Lua functions
----
-Plugins and barlibs can register Lua functions. They appear in
-`luastatus.plugin` and `luastatus.barlib` submodules, correspondingly.
-
 How it works
 ===
 Each widget runs in its own thread and has its own Lua interpreter instance.
@@ -100,8 +161,28 @@ Also, due to luastatus’ architecture, no two `event()` functions, even from
 different widgets, can overlap. (Note that `cb()` functions from different
 widgets can overlap.)
 
-Lua limitations
+Lua libraries
 ===
+
+The `luastatus` module
+---
+luastatus provides the `luastatus` module, which contains the following
+functions:
+  - `luastatus.require_plugin(name)` is like the `require` function, except that
+  it loads a file named `<name>.lua` from luastatus’ plugins directory.
+  - `luastatus.map_get_handle(key)` returns a handle object to the *map entry*
+  with the key `key`. See `DOCS/design/MAP_GET.md` for overview; in short, this
+  is a mechanism allowing plugins to synchronize thread-unsafe operations.
+  Unless you’re writing a derived plugin *and* working using thread-unsafe
+  stuff, you don’t need it.
+
+Plugins’ and barlib’s Lua functions
+---
+Plugins and barlibs can register Lua functions. They appear in
+`luastatus.plugin` and `luastatus.barlib` submodules, correspondingly.
+
+Limitations
+---
 In luastatus, `os.setlocale` always fails as it is inherently not thread-safe.
 
 Supported Lua versions
@@ -120,7 +201,7 @@ its `README.md` file for detailed instructions and documentation.
 Similary, for plugins’ documentation, see `README.md` files in the
 subdirectories of `plugins/`.
 
-Finally, widget examples are in `contrib/widget-examples`.
+You will find widget examples in `contrib/widget-examples`.
 
 Using luastatus binary
 ===
