@@ -147,6 +147,41 @@ Barlibs are shared libraries, too. For how to write them, see
 
 Barlibs are capable of taking options.
 
+Installation
+===
+`cmake . && make && sudo make install`
+
+You can specify a Lua library to build with: `cmake -DWITH_LUA_LIBRARY=luajit .`
+
+You can disable building certain barlibs and plugins, e.g. `cmake -DBUILD_PLUGIN_XTITLE=OFF .`
+
+Getting started
+===
+First, find your barlib’s subdirectory in the `barlibs/` directory. Then read
+its `README.md` file for detailed instructions and documentation.
+
+Similary, for plugins’ documentation, see `README.md` files in the
+subdirectories of `plugins/`.
+
+You will find widget examples in `contrib/widget-examples`.
+
+Using luastatus binary
+===
+Note that some barlibs can provide their own wrappers for luastatus; that’s why
+you should consult your barlib’s `README.md` first.
+
+Pass a barlib with `-b`, then (optionally) its options with `-B`, then widget
+files.
+
+If `-b` argument contains a slash, it is treated as a path to a shared library.
+If it does not, luastatus tries to load `<argument>.so` from the directory
+configured at the build time (CMake `BARLIBS_DIR` variable, defaults to
+`${CMAKE_INSTALL_FULL_LIBDIR}/luastatus/barlibs`).
+
+Example:
+
+    luastatus -b dwm -B display=:0 -B separator=' ' widget1.lua widget2.lua
+
 How it works
 ===
 Each widget runs in its own thread and has its own Lua interpreter instance.
@@ -191,41 +226,6 @@ Supported Lua versions
 * 5.2
 * 5.3
 * 5.4 (`work1` pre-release version)
-
-Getting started
-===
-First, find your barlib’s subdirectory in the `barlibs/` directory. Then read
-its `README.md` file for detailed instructions and documentation.
-
-Similary, for plugins’ documentation, see `README.md` files in the
-subdirectories of `plugins/`.
-
-You will find widget examples in `contrib/widget-examples`.
-
-Using luastatus binary
-===
-Note that some barlibs can provide their own wrappers for luastatus; that’s why
-you should consult your barlib’s `README.md` first.
-
-Pass a barlib with `-b`, then (optionally) its options with `-B`, then widget
-files.
-
-If `-b` argument contains a slash, it is treated as a path to a shared library.
-If it does not, luastatus tries to load `<argument>.so` from the directory
-configured at the build time (CMake `BARLIBS_DIR` variable, defaults to
-`${CMAKE_INSTALL_FULL_LIBDIR}/luastatus/barlibs`).
-
-Example:
-
-    luastatus -b dwm -B display=:0 -B separator=' ' widget1.lua widget2.lua
-
-Installation
-===
-`cmake . && make && sudo make install`
-
-You can specify a Lua library to build with: `cmake -DWITH_LUA_LIBRARY=luajit .`
-
-You can disable building certain barlibs and plugins, e.g. `cmake -DBUILD_PLUGIN_XTITLE=OFF .`
 
 Reporting bugs, requesting features, suggesting patches
 ===
