@@ -124,7 +124,7 @@ widget = luastatus.require_plugin('imap').widget{
         end
     end,
     event = [[                    -- separate-state event function
-        local t = ...
+        local t = ...             -- obtain argument of this implicit function
         if t.button == 1 then     -- left mouse button
             os.execute('xdg-open https://gmail.com &')
         end
