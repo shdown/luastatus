@@ -2,7 +2,9 @@ This barlib talks with `i3bar`.
 
 Redirections and `luastatus-i3-wrapper`
 ===
-`i3bar` requires all the data to be written to stdout and read from stdin. This makes it very easy to mess things up: Lua’s `print()` prints to stdout, processes spawned by widgets/plugins inherit our stdin and stdout, etc.
+`i3bar` requires all the data to be written to stdout and read from stdin. 
+This makes it very easy to mess things up: Lua’s `print()` prints to stdout, processes spawned by widgets/plugins inherit our stdin and stdout, etc.
+
 That’s why this barlib requires that stdin and stdout file descriptors are manually redirected. A shell wrapper, `luastatus-i3-wrapper`, is shipped with it; it does all the redirections and executes `luastatus` (or whatever is in `LUASTATUS` environment variable) with `-b i3` (or whatever is in `LUASTATUS_I3_BARLIB` environment variable), all the required `-B` options, and additional arguments passed by you.
 
 `cb` return value
@@ -33,7 +35,7 @@ widget = {
     plugin = 'timer',
     opts = {period = 2},
     cb = function(t)
-        i = i+1
+        i = i + 1
         if i == 1 then
             return {} -- hides widget; alternatively, you can return nil.
         elseif i == 2 then
@@ -55,11 +57,11 @@ widget = {
         end
     end,
     event = function(t)
-        local s = 'properties:'
+        local r = 'properties:'
         for k, v in pairs(t) do
-            s = s .. ' ' .. k .. '=' .. v
+            table.insert(r, k .. '=' .. v)
         end
-        assert(luastatus.rc{'notify-send', 'Click event!', s} == 0)
+        assert(os.execute('notify-send "Click event!" \'' .. table.concat(r, ' ') .. '\''))
     end,
 }
 ````
@@ -77,7 +79,7 @@ Options
 * `no_click_events`
 
   Tell `i3bar` we don’t want to receive click events. This changes `i3bar`
-  behaviour in that it will interpret ‘clicks’ on segments as if an empty space
+  behaviour in that it will interpret “clicks” on segments as if an empty space
   on the bar was clicked, particulary, will switch workspaces if you scroll
   on a segment.
 
