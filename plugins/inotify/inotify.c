@@ -152,6 +152,7 @@ init(LuastatusPluginData *pd, lua_State *L)
     *p = (Priv) {
         .fd = -1,
         .init_watch = LS_VECTOR_NEW(),
+        .timeout = ls_timespec_invalid,
         .greet = false,
     };
 

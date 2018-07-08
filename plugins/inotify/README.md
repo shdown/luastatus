@@ -8,21 +8,21 @@ Options
 
 * `greet`: boolean
 
-    Whether or not a first call to `cb` with `nil` argument should be made as soon as the widget starts. Defaults to false.
+    Whether or not to call `cb` with `what="hello"` as soon as the widget starts. Defaults to false.
 
 * `timeout`: number
 
-    If specified and not negative, this plugin calls `cb` with `nil` argument if no event has occured in `timeout` seconds.
+    If specified and not negative, this plugin calls `cb` with `what="timeout"` if no event has occured in `timeout` seconds.
 
 `cb` argument
 ===
-The argument is `nil` if:
+A table with `what` entry.
 
-    * this is the first call, and `greet` has been set to `true`;
+- If it is `"hello"`, the function is being called for the first time (and the `greet` option was set to `true`);
 
-    * no event has occured in `timeout` seconds.
+- if it is `"timeout"`, the function has not been called for the number of seconds specified as the `timeout` option;
 
-Otherwise, it is a table with the following entries:
+- if it is `"event"`, an inotify event has been read; in this case, the table has the following additional entries:
 
   * `wd`: integer
 

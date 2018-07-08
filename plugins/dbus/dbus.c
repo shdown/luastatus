@@ -428,7 +428,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         source = g_timeout_source_new(p->timeout_ms);
         g_source_set_callback(source, callback_timeout, &userdata, NULL);
         if (g_source_attach(source, context) == 0) {
-            LS_FATALF(pd, "g_source_attach failed\n");
+            LS_FATALF(pd, "g_source_attach failed");
             goto error;
         }
     }
