@@ -12,31 +12,31 @@ Options
 
   * `signals`: array (that is, a table with numeric keys)
 
-        Array of tables with the following entries (all are optional).
+       Array of tables with the following entries (all are optional).
 
-        * `sender`: string
+       * `sender`: string
 
-          Sender name to match on (unique or well-known name).
+         Sender name to match on (unique or well-known name).
 
-        * `interface`: string
+       * `interface`: string
 
-          D-Bus interface name to match on.
+         D-Bus interface name to match on.
 
-        * `signal`: string
+       * `signal`: string
 
-          D-Bus signal name to match on.
+         D-Bus signal name to match on.
 
-        * `object_path`: string
+       * `object_path`: string
 
-          Object path to match on.
+         Object path to match on.
 
-        * `arg0`: string
+       * `arg0`: string
 
           Contents of first string argument to match on.
 
-        * `flags`: array (that is, a table with numeric keys)
+       * `flags`: array (that is, a table with numeric keys)
 
-          Array of strings. The following are recognized:
+         Array of strings. The following are recognized:
 
           + `match_arg0_namespace`
 
@@ -46,9 +46,9 @@ Options
 
             Match first arguments that contain an object path that is either equivalent to the given path, or one of the paths is a subpath of the other.
 
-        * `bus`: string
+       * `bus`: string
 
-        Specify the bus to subscribe to the signal on: either `system` or `session`; default is `session`.
+         Specify the bus to subscribe to the signal on: either `system` or `session`; default is `session`.
 
 `cb` argument
 ===
