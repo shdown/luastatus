@@ -1,4 +1,4 @@
-luastatus is a universal status bar content generator. It allows you to
+**luastatus** is a universal status bar content generator. It allows you to
 configure the way the data from event sources is processed and shown, with Lua.
 
 Its main feature is that the content can be updated immediately as some event
