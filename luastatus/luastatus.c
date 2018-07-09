@@ -731,7 +731,7 @@ inject_libs(lua_State *L)
     //     mt.read = <C function l_map_handle_read>
     //     mt.write = <C function l_map_handle_write>
     //
-    // This trick is used to reduce the number of tabled needed, and is equivalent to:
+    // This trick is employed to reduce the number of tables needed, and is equivalent to:
     //
     //     local tmp = {}
     //     tmp.read = <C function l_map_handle_read>

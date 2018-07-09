@@ -16,6 +16,6 @@ Functions
 
       **(optional)**
 
-      * `timeout`, `flags`: better do not touch these — or see the code;
+      * `timeout`, `flags`: better do not touch — or see the code;
 
       * `event`: event entry of the resulting table.
