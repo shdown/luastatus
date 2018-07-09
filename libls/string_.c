@@ -6,7 +6,7 @@
 #include <stdarg.h>
 #include <stdbool.h>
 
-#include "libls/vector.h"
+#include "vector.h"
 
 bool
 ls_string_append_vf(LSString *s, const char *fmt, va_list vl)

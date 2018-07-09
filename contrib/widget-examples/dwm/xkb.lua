@@ -6,7 +6,7 @@ widget = {
         elseif t.name == 'ru(winkeys)' then
             return '[Ru]'
         else
-            return '[??]'
+            return '[' .. (t.name or '? ID ' .. t.id) .. ']'
         end
     end,
 }

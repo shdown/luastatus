@@ -7,6 +7,8 @@
 #include <stdint.h>
 #include <errno.h>
 #include <sys/inotify.h>
+#include <sys/select.h>
+#include <signal.h>
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
@@ -14,12 +16,19 @@
 
 #include "libls/errno_utils.h"
 #include "libls/vector.h"
+#include "libls/time_utils.h"
 
 #include "inotify_compat.h"
 
 typedef struct {
+    char *path;
+    int wd;
+} Watch;
+
+typedef struct {
     int fd;
-    LS_VECTOR_OF(int) wds;
+    LS_VECTOR_OF(Watch) init_watch;
+    struct timespec timeout;
     bool greet;
 } Priv;
 
@@ -29,7 +38,10 @@ destroy(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
     ls_close(p->fd);
-    LS_VECTOR_FREE(p->wds);
+    for (size_t i = 0; i < p->init_watch.size; ++i) {
+        free(p->init_watch.data[i].path);
+    }
+    LS_VECTOR_FREE(p->init_watch);
     free(p);
 }
 
@@ -88,13 +100,59 @@ parse_input_event_name(const char *name)
 }
 
 static
+bool
+process_path(lua_State *L, int pos, char const **ppath, char *errbuf, size_t nerrbuf)
+{
+    if (!lua_isstring(L, pos)) {
+        snprintf(errbuf, nerrbuf, "expected string, found %s", luaL_typename(L, pos));
+        return false;
+    }
+    size_t npath;
+    const char *path = lua_tolstring(L, pos, &npath);
+    if (strlen(path) != npath) {
+        snprintf(errbuf, nerrbuf, "contains a NUL character");
+        return false;
+    }
+    *ppath = path;
+    return true;
+}
+
+static
+bool
+process_evnames(lua_State *L, int pos, uint32_t *pmask, char *errbuf, size_t nerrbuf)
+{
+    if (!lua_istable(L, pos)) {
+        snprintf(errbuf, nerrbuf, "expected table, found %s", luaL_typename(L, pos));
+        return false;
+    }
+    uint32_t mask = 0;
+    LS_LUA_TRAVERSE(L, pos) {
+        if (!lua_isstring(L, LS_LUA_VALUE)) {
+            snprintf(errbuf, nerrbuf, "value: expected string, found %s",
+                     luaL_typename(L, LS_LUA_VALUE));
+            return false;
+        }
+        const char *evname = lua_tostring(L, LS_LUA_VALUE);
+        uint32_t r = parse_input_event_name(evname);
+        if (!r) {
+            snprintf(errbuf, nerrbuf, "unknown input event name '%s'", evname);
+            return false;
+        }
+        mask |= r;
+    }
+    *pmask = mask;
+    return true;
+}
+
+static
 int
 init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
         .fd = -1,
-        .wds = LS_VECTOR_NEW(),
+        .init_watch = LS_VECTOR_NEW(),
+        .timeout = ls_timespec_invalid,
         .greet = false,
     };
 
@@ -105,51 +163,43 @@ init(LuastatusPluginData *pd, lua_State *L)
         goto error;
     }
 
-    PU_MAYBE_VISIT_BOOL("greet", b,
+    PU_MAYBE_VISIT_BOOL("greet", NULL, b,
         p->greet = b;
     );
 
-    PU_TRAVERSE_TABLE("watch",
-        uint32_t mask = 0;
-        const char *path;
-
-        // Inspect the value
-        PU_TRAVERSE_TABLE_AT(LS_LUA_VALUE, "'watch' value",
-            PU_CHECK_TYPE_AT(LS_LUA_KEY, "key of 'watch' value", LUA_TNUMBER);
-            PU_VISIT_STR_AT(LS_LUA_VALUE, "element of 'watch' value", s,
-                uint32_t r = parse_input_event_name(s);
-                if (!r) {
-                    LS_FATALF(pd, "unknown input event type name '%s'", s);
-                    goto error;
-                }
-                mask |= r;
-            );
-        );
-
-        // Inspect the key
-        PU_VISIT_LSTR_AT(LS_LUA_KEY, "'watch' key", s, ns,
-            if (strlen(s) != ns) {
-                LS_FATALF(pd, "'watch' key contains a NIL character");
-                goto error;
-            }
-            path = s;
-        );
-
-        if (!mask) {
-            LS_WARNF(pd, "'watch' value for key '%s' an empty table", path);
+    PU_MAYBE_VISIT_NUM("timeout", NULL, n,
+        if (ls_timespec_is_invalid(p->timeout = ls_timespec_from_seconds(n)) && n >= 0) {
+            LS_FATALF(pd, "'timeout' is invalid");
+            goto error;
         }
+    );
+
+    char err[256];
+    PU_TRAVERSE_TABLE("watch", NULL,
+        const char *path;
+        uint32_t mask;
+
+        if (!process_path(L, LS_LUA_KEY, &path, err, sizeof(err))) {
+            LS_FATALF(pd, "'watch' key: %s", err);
+            goto error;
+        }
+        if (!process_evnames(L, LS_LUA_VALUE, &mask, err, sizeof(err))) {
+            LS_FATALF(pd, "'watch' value: %s", err);
+            goto error;
+        }
+
         int wd = inotify_add_watch(p->fd, path, mask);
         if (wd < 0) {
             LS_WITH_ERRSTR(s, errno,
                 LS_ERRF(pd, "inotify_add_watch: %s: %s", path, s);
             );
         } else {
-            LS_VECTOR_PUSH(p->wds, wd);
+            LS_VECTOR_PUSH(p->init_watch, ((Watch) {
+                .path = ls_xstrdup(path),
+                .wd = wd,
+            }));
         }
     );
-    if (!p->wds.size) {
-        LS_WARNF(pd, "nothing to watch for");
-    }
 
     return LUASTATUS_OK;
 
@@ -162,29 +212,15 @@ static
 int
 l_add_watch(lua_State *L)
 {
-    const char *path = luaL_checkstring(L, 1);
-    luaL_checktype(L, 2, LUA_TTABLE);
-    uint32_t mask = 0;
-    LS_LUA_TRAVERSE(L, 2) {
-        // Inspect the value
-        if (!lua_isnumber(L, LS_LUA_KEY)) {
-            return luaL_error(L, "second argument is not an array (has a non-numeric key)");
-        }
-        // Inspect the key
-        if (!lua_isstring(L, LS_LUA_VALUE)) {
-            return luaL_error(L, "array element: string expected, found %s",
-                luaL_typename(L, LS_LUA_VALUE));
-        }
-        size_t nevent;
-        const char *event = lua_tolstring(L, LS_LUA_VALUE, &nevent);
-        if (nevent != strlen(event)) {
-            return luaL_error(L, "array element contains a NIL character");
-        }
-        uint32_t r = parse_input_event_name(event);
-        if (!r) {
-            return luaL_error(L, "unknown input event type name '%s'", event);
-        }
-        mask |= r;
+    const char *path;
+    uint32_t mask;
+
+    char err[256];
+    if (!process_path(L, 1, &path, err, sizeof(err))) {
+        return luaL_error(L, "first argument: %s", err);
+    }
+    if (!process_evnames(L, 2, &mask, err, sizeof(err))) {
+        return luaL_error(L, "second argument: %s", err);
     }
 
     LuastatusPluginData *pd = lua_touserdata(L, lua_upvalueindex(1));
@@ -232,10 +268,10 @@ l_get_initial_wds(lua_State *L)
     LuastatusPluginData *pd = lua_touserdata(L, lua_upvalueindex(1));
     Priv *p = pd->priv;
 
-    lua_createtable(L, p->wds.size, 0); // L: table
-    for (size_t i = 0; i < p->wds.size; ++i) {
-        lua_pushinteger(L, p->wds.data[i]); // L: table wd
-        lua_rawseti(L, -1, i + 1); // L: table
+    lua_createtable(L, 0, p->init_watch.size); // L: table
+    for (size_t i = 0; i < p->init_watch.size; ++i) {
+        lua_pushinteger(L, p->init_watch.data[i].wd); // L: table wd
+        lua_setfield(L, -2, p->init_watch.data[i].path); // L: table
     }
     return 1;
 }
@@ -245,10 +281,12 @@ void
 register_funcs(LuastatusPluginData *pd, lua_State *L)
 {
 #define REG_CLOSURE(Func_, Name_) \
-    /* L: table */ \
-    lua_pushlightuserdata(L, pd); /* L: table bd */ \
-    lua_pushcclosure(L, Func_, 1); /* L: table bd Func_ */ \
-    ls_lua_rawsetf(L, Name_); /* L: table */
+    do { \
+        /* L: table */ \
+        lua_pushlightuserdata(L, pd); /* L: table bd */ \
+        lua_pushcclosure(L, Func_, 1); /* L: table bd Func_ */ \
+        ls_lua_rawsetf(L, Name_); /* L: table */ \
+    } while (0)
 
     REG_CLOSURE(l_add_watch, "add_watch");
     REG_CLOSURE(l_remove_watch, "remove_watch");
@@ -263,6 +301,9 @@ push_event(lua_State *L, const struct inotify_event *event)
 {
     // L: -
     lua_newtable(L); // L: table
+
+    lua_pushstring(L, "event"); // L: table string
+    lua_setfield(L, -2, "what"); // L: table
 
     lua_pushinteger(L, event->wd); // L: table wd
     lua_setfield(L, -2, "wd"); // L: table
@@ -292,20 +333,51 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     Priv *p = pd->priv;
 
     if (p->greet) {
-        lua_pushnil(funcs.call_begin(pd->userdata));
+        lua_State *L = funcs.call_begin(pd->userdata);
+        lua_newtable(L); // L: table
+        lua_pushstring(L, "hello"); // L: table string
+        lua_setfield(L, -2, "what"); // L: table
         funcs.call_end(pd->userdata);
     }
 
-#if defined(NAME_MAX) && NAME_MAX < 4096
-    char buf[sizeof(struct inotify_event) + NAME_MAX + 1]
-#else
-    char buf[sizeof(struct inotify_event) + 4096]
-#endif
+    char buf[sizeof(struct inotify_event) + NAME_MAX + 2]
         __attribute__ ((aligned(__alignof__(struct inotify_event))));
 
-    const int fd = p->fd;
+    fd_set fds;
+    FD_ZERO(&fds);
+    const int nfds = p->fd + 1;
+
+    const struct timespec *ptimeout =
+        ls_timespec_is_invalid(p->timeout) ? NULL : &p->timeout;
+
+    sigset_t allsigs;
+    if (sigfillset(&allsigs) < 0) {
+        LS_WITH_ERRSTR(str, errno,
+            LS_ERRF(pd, "sigfillset: %s", str);
+        );
+        goto error;
+    }
+
     while (1) {
-        ssize_t r = read(fd, buf, sizeof(buf));
+        {
+            FD_SET(p->fd, &fds);
+            int r = pselect(nfds, &fds, NULL, NULL, ptimeout, &allsigs);
+            if (r < 0) {
+                LS_WITH_ERRSTR(s, errno,
+                    LS_FATALF(pd, "pselect: %s", s);
+                );
+                goto error;
+            } else if (r == 0) {
+                lua_State *L = funcs.call_begin(pd->userdata);
+                lua_newtable(L); // L: table
+                lua_pushstring(L, "timeout"); // L: table string
+                lua_setfield(L, -2, "what"); // L: table
+                funcs.call_end(pd->userdata);
+                continue;
+            }
+        }
+
+        ssize_t r = read(p->fd, buf, sizeof(buf));
         if (r < 0) {
             if (errno == EINTR) {
                 continue;
@@ -313,10 +385,13 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
             LS_WITH_ERRSTR(s, errno,
                 LS_FATALF(pd, "read: %s", s);
             );
-            return;
+            goto error;
         } else if (r == 0) {
             LS_FATALF(pd, "read() from the inotify file descriptor returned 0");
-            return;
+            goto error;
+        } else if ((size_t) r == sizeof(buf)) {
+            LS_FATALF(pd, "got an event with filename length > NAME_MAX+1");
+            goto error;
         }
         const struct inotify_event *event;
         for (char *ptr = buf;
@@ -328,6 +403,9 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
             funcs.call_end(pd->userdata);
         }
     }
+
+error:
+    (void) 0;
 }
 
 LuastatusPluginIface luastatus_plugin_iface_v1 = {

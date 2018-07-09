@@ -1,11 +1,6 @@
 lib = require 'lib'
 
-widget = {
-    plugin = 'pipe',
-    opts = {
-        args = {'bspc', 'control', '--subscribe'},
-    },
-    cb = function(t)
-        return lib.pager(t)
-    end,
+widget = luastatus.require_plugin('pipe').widget{
+    command = 'exec bspc control --subscribe',
+    cb = lib.pager,
 }

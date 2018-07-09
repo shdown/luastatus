@@ -1,7 +1,7 @@
 Name:           luastatus
-Version:        0.1.0
+Version:        0.3.0
 Release:        1%{?dist}
-Summary:        Lua status
+Summary:        universal statusbar content generator
 
 License:        LGPL3+
 URL:            https://github.com/shdown/luastatus
@@ -14,16 +14,17 @@ BuildRequires:  yajl-devel
 BuildRequires:  alsa-lib-devel
 BuildRequires:  xcb-util-wm-devel
 BuildRequires:  xcb-util-devel
+BuildRequires:  glib2-devel
 
 %description
-Lua status daemon
+a universal status bar content generator
 
 %package plugins
-Summary:    Lua status plugins
+Summary:    luastatus plugins
 Requires:   %{name} = %{version}-%{release}
 
 %description plugins
-Lua status plugins
+luastatus plugins
 
 %prep
 %setup -q
@@ -40,11 +41,12 @@ Lua status plugins
 %doc LICENSE.txt README.md
 %{_bindir}/luastatus
 %{_bindir}/luastatus-i3-wrapper
+%{_bindir}/luastatus-lemonbar-launcher
 %{_mandir}/man1/luastatus.1*
-%{_libdir}/luastatus/barlibs/*.so
+%{_libdir}/luastatus/barlibs/*
 
 %files plugins
-%{_libdir}/luastatus/plugins/*.so
+%{_libdir}/luastatus/plugins/*
 
 %changelog
 

@@ -45,14 +45,14 @@ init(LuastatusPluginData *pd, lua_State *L)
         .fifo = NULL,
     };
 
-    PU_MAYBE_VISIT_NUM("period", n,
+    PU_MAYBE_VISIT_NUM("period", NULL, n,
         if (ls_timespec_is_invalid(p->period = ls_timespec_from_seconds(n))) {
             LS_FATALF(pd, "invalid 'period' value");
             goto error;
         }
     );
 
-    PU_MAYBE_VISIT_STR("fifo", s,
+    PU_MAYBE_VISIT_STR("fifo", NULL, s,
         p->fifo = ls_xstrdup(s);
     );
 

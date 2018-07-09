@@ -1,11 +1,9 @@
-if (NOT luastatus_POSIX_SH_PATH)
-    set (luastatus_POSIX_SH_PATH "/bin/sh")
-endif ()
-set (luastatus_VERSION "${CMAKE_CURRENT_SOURCE_DIR}/version.sh")
+execute_process (
+    COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/version.sh" "${PROJECT_SOURCE_DIR}"
+    OUTPUT_VARIABLE luastatus_VERSION
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
 configure_file ("config.in.h" "config.generated.h")
-
-#execute_process (COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/version_c_generate.sh" "${PROJECT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}")
-add_executable (luastatus $<TARGET_OBJECTS:ls> "luastatus.c") #"${CMAKE_CURRENT_BINARY_DIR}/version.generated.c")
+add_executable (luastatus $<TARGET_OBJECTS:ls> "luastatus.c")
 
 target_compile_definitions (luastatus PUBLIC -D_POSIX_C_SOURCE=200809L)
 luastatus_target_build_with (luastatus LUA)

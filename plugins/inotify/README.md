@@ -8,13 +8,21 @@ Options
 
 * `greet`: boolean
 
-   Whether or not a first call to `cb` with a `nil` argument should be made as soon as the widget starts. Defaults to false.
+    Whether or not to call `cb` with `what="hello"` as soon as the widget starts. Defaults to false.
+
+* `timeout`: number
+
+    If specified and not negative, this plugin calls `cb` with `what="timeout"` if no event has occured in `timeout` seconds.
 
 `cb` argument
 ===
-If the `greet` option has been set to `true`, the first call is made with a `nil` argument.
+A table with `what` entry.
 
-Otherwise, it is a table with the following entries:
+- If it is `"hello"`, the function is being called for the first time (and the `greet` option was set to `true`);
+
+- if it is `"timeout"`, the function has not been called for the number of seconds specified as the `timeout` option;
+
+- if it is `"event"`, an inotify event has been read; in this case, the table has the following additional entries:
 
   * `wd`: integer
 
@@ -34,11 +42,19 @@ Otherwise, it is a table with the following entries:
 
 Functions
 ===
+Each file being watched is assigned a *watch descriptor*, which is a non-negative integer.
+
 * `wds = luastatus.plugin.get_initial_wds()`
+
+Returns a table that maps *initial* paths to their watch descriptors.
 
 * `wd = luastatus.plugin.add_watch(path, events)`
 
+Add a new file to watch. Returns a watch descriptor on success, or `nil` on failure.
+
 * `is_ok = luastatus.plugin.remove_watch(wd)`
+
+Removes a watch by its watch descriptor. Returns `true` on success, `false` on failure.
 
 Events and flags names
 ===

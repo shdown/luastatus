@@ -38,7 +38,7 @@ typedef struct {
 } LuastatusPluginRunFuncs_v1;
 
 typedef struct {
-    // This function should initialize a widget by assigning something to pd->priv.
+    // This function should initialize a widget by assigning something to /pd->priv/.
     // You would typically do:
     //
     //     typedef struct {
@@ -51,42 +51,46 @@ typedef struct {
     //         Priv *p = pd->priv = LS_XNEW(Priv, 1);
     //         ...
     //
-    // The options table is on the top of L's stack.
+    // The options table is on the top of /L/'s stack.
     //
-    // This function may push elements onto L's stack to iterate over tables, but should not modify
-    // elements below the initial top, or interact with L in any other way.
+    // This function may push elements onto /L/'s stack to iterate over tables, but should not
+    // modify elements below the initial top, or interact with /L/ in any other way.
     //
-    // It is guaranteed that L's stack has at least 15 free slots.
+    // It is guaranteed that /L/'s stack has at least 15 free slots.
     //
     // It should return:
     //
-    //   LUASTATUS_RES_OK on success.
-    //     In this case, L's stack should not contain any extra elements pushed onto it;
+    //     /LUASTATUS_OK/ on success.
+    //     In this case, /L/'s stack should not contain any extra elements pushed onto it;
     //
-    //   LUASTATUS_RES_ERR on failure.
-    //     In this case, L's stack may contain extra elements pushed onto it.
+    //     /LUASTATUS_ERR/ on failure.
+    //     In this case, /L/'s stack may contain extra elements pushed onto it.
     //
     int (*init)(LuastatusPluginData_v1 *pd, lua_State *L);
 
-    // This function should register Lua functions provided by the plugin into table on top of L's
+    // This function should register Lua functions provided by the plugin into table on top of /L/'s
     // stack.
     //
-    // It is guaranteed that L's stack has at least 15 free slots.
+    // It is guaranteed that /L/'s stack has at least 15 free slots.
     //
-    // May be NULL.
+    // May be /NULL/.
     void (*register_funcs)(LuastatusPluginData_v1 *pd, lua_State *L);
 
     // This function should run a widget. Once the plugin wants to update the widget, it should call
-    // call_begin(pd->userdata), thus obtaining a lua_State* object (let's call it L). Then it
-    // should push exactly one value onto L's stack and call call_end(pd->userdata).
+    //     /lua_State *L = funcs.call_begin(pd->userdata)/,
+    // thus obtaining a /lua_State */ object /L/. Then it must either:
+    // 1.  make the following call, with exactly one additional value pushed onto /L/'s stack:
+    //         /funcs.call_end(bd->userdata)/,
+    //     or
+    // 2.  make the following call, with any number of additional values push onto /L/'s stack:
+    //         /funcs.call_cancel(bd->userdata)/.
     //
-    // It is guaranteed that L's stack has at least 15 free slots.
+    // Both /funcs.call_end/ and /funcs.call_cancel/ invalidate /L/ as a pointer.
+    //
+    // It is guaranteed that each /L/ object returned from /funcs.call_begin/ has at least 15 free
+    // stack slots.
     //
     // It should only return on an unrecoverable failure.
-    //
-    // It is explicitly allowed to call call_begin() and return without calling call_end(), leaving
-    // arbitrary number of extra elements on L's stack.
-    //
     void (*run)(LuastatusPluginData_v1 *pd, LuastatusPluginRunFuncs_v1 funcs);
 
     // This function should destroy a previously successfully initialized widget.

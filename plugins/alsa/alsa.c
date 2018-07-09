@@ -40,25 +40,25 @@ init(LuastatusPluginData *pd, lua_State *L)
         .in_db = false,
     };
 
-    PU_MAYBE_VISIT_STR("card", s,
+    PU_MAYBE_VISIT_STR("card", NULL, s,
         p->card = ls_xstrdup(s);
     );
     if (!p->card) {
         p->card = ls_xstrdup("default");
     }
 
-    PU_MAYBE_VISIT_STR("channel", s,
+    PU_MAYBE_VISIT_STR("channel", NULL, s,
         p->channel = ls_xstrdup(s);
     );
     if (!p->channel) {
         p->channel = ls_xstrdup("Master");
     }
 
-    PU_MAYBE_VISIT_BOOL("capture", b,
+    PU_MAYBE_VISIT_BOOL("capture", NULL, b,
         p->capture = b;
     );
 
-    PU_MAYBE_VISIT_BOOL("in_db", b,
+    PU_MAYBE_VISIT_BOOL("in_db", NULL, b,
         p->in_db = b;
     );
 
@@ -126,7 +126,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         realname = ls_xstrdup(p->card);
     }
 
-    // Actually, the only function that can return -EINTR is snd_mixer_wait,
+    // Actually, the only function that can return /-EINTR/ is /snd_mixer_wait/,
     // because it uses one of the multiplexing interfaces mentioned below:
     //
     // http://man7.org/linux/man-pages/man7/signal.7.html

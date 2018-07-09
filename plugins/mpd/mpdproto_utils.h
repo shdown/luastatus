@@ -1,5 +1,5 @@
-#ifndef proto_utils_h_
-#define proto_utils_h_
+#ifndef mpdproto_utils_h_
+#define mpdproto_utils_h_
 
 #include <string.h>
 #include <stdio.h>
@@ -14,12 +14,12 @@ typedef enum {
 
 LS_INHEADER
 MPDProtoResponseType
-mpdproto_response_type(const char *buf)
+mpdproto_response_type(const char *s)
 {
-    if (strcmp(buf, "OK\n") == 0) {
+    if (strcmp(s, "OK\n") == 0) {
         return MPDPROTO_RESP_TYPE_OK;
     }
-    if (strncmp(buf, "ACK ", 4) == 0) {
+    if (strncmp(s, "ACK ", 4) == 0) {
         return MPDPROTO_RESP_TYPE_ACK;
     }
     return MPDPROTO_RESP_TYPE_OTHER;

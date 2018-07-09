@@ -54,4 +54,4 @@ A table with `what` entry.
 
   * It it’s `"timeout"`, the server hasn’t changed its state for the number of seconds specified as the `timeout` option.
 
-  * If it’s `"error"`, the connection has been lost. The plugin is now going to sleep and try to reconnect, or to return.
+  * If it’s `"error"`, the connection has been lost; the plugin is now going to sleep and try to reconnect. This is only reported if `retry_in` is non-negative.

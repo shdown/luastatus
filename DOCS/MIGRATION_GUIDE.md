@@ -10,12 +10,12 @@
 
 * `pipe` plugin has been removed. Use the `timer` plugin and `io.open` instead:
     ````lua
+    f = io.popen('your command', 'r')
     wdiget = {
         plugin = 'timer',
         cb = function()
-            for line in assert(io.open('your command', 'r')):lines() do
-                -- blah-blah-blah
-            end
+            local line = f:read('*line')
+            -- ...
         end,
     }
     ````

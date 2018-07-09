@@ -14,7 +14,7 @@
 #include "libls/osdep.h"
 
 int
-socket_open(LuastatusPluginData *pd, const char *path)
+unixdom_open(LuastatusPluginData *pd, const char *path)
 {
     struct sockaddr_un saun;
     const size_t npath = strlen(path);
@@ -42,7 +42,7 @@ socket_open(LuastatusPluginData *pd, const char *path)
 }
 
 int
-tcp_open(LuastatusPluginData *pd, const char *hostname, const char *service)
+inetdom_open(LuastatusPluginData *pd, const char *hostname, const char *service)
 {
     struct addrinfo *ai = NULL;
     int fd = -1;

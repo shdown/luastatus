@@ -47,7 +47,7 @@ init(LuastatusPluginData *pd, lua_State *L)
         .fifo = NULL,
     };
 
-    PU_TRAVERSE_TABLE("paths",
+    PU_TRAVERSE_TABLE("paths", NULL,
         PU_CHECK_TYPE_AT(LS_LUA_KEY, "'paths' key", LUA_TNUMBER);
         PU_VISIT_STR_AT(LS_LUA_VALUE, "'paths' element", s,
             LS_VECTOR_PUSH(p->paths, ls_xstrdup(s));
@@ -57,14 +57,14 @@ init(LuastatusPluginData *pd, lua_State *L)
         LS_WARNF(pd, "paths are empty");
     }
 
-    PU_MAYBE_VISIT_NUM("period", n,
+    PU_MAYBE_VISIT_NUM("period", NULL, n,
         if (ls_timespec_is_invalid(p->period = ls_timespec_from_seconds(n))) {
             LS_FATALF(pd, "invalid 'period' value");
             goto error;
         }
     );
 
-    PU_MAYBE_VISIT_STR("fifo", s,
+    PU_MAYBE_VISIT_STR("fifo", NULL, s,
         p->fifo = ls_xstrdup(s);
     );
 

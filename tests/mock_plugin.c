@@ -27,7 +27,7 @@ init(LuastatusPluginData *pd, lua_State *L)
         .ncalls = 0,
     };
 
-    PU_MAYBE_VISIT_NUM("make_calls", n,
+    PU_MAYBE_VISIT_NUM("make_calls", NULL, n,
         p->ncalls = n;
     );
 
