@@ -1,3 +1,23 @@
+luastatus 0.3.0 (July 09, 2018)
+===
+- tracebacks are now printed for Lua errors
+- added support for derived plugins: new function “luastatus.require_plugin”
+- new function “luastatus.map_get_handle”
+- new plugin: “dbus”
+- new dervied plugin: “battery-linux”
+- new dervied plugin: “cpu-usage-linux”
+- new dervied plugin: “file-contents-linux”
+- new derived plugin: “imap”
+- new derived plugin: “mem-usage-linux”
+- new dervied plugin: “pipe”
+- new widget example: Bitcoin price (btc-price.lua)
+- new widget example: disk usage (fs.lua)
+- new widget example: GMail inbox (gmail.lua)
+- new widget example: mpd status (mpd.lua)
+- new widget example: mpd status with progressbar (mpd-progressbar.lua)
+- “inotify” plugin: changed semantics of `greet` option; new `timeout` option
+- added support for Lua 5.4 (pre-release work1 version)
+
 luastatus 0.0.2 (January 15, 2018)
 ===
 — “lemonbar” barlib: new barlib
