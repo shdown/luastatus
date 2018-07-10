@@ -1,5 +1,5 @@
 **luastatus** is a universal status bar content generator. It allows you to
-configure the way the data from event sources is processed and shown, with Lua.
+configure the way data from event sources is processed and shown, with Lua.
 
 Its main feature is that the content can be updated immediately as some event
 occurs, be it a change of keyboard layout, active window title, volume or a song
@@ -47,15 +47,15 @@ The `widget` table **may** contain the following entries:
   substituted.
 
   * `event`: a function or a string.
-    - If is a function, it will be called by the *barlib* whenever some event
+    - If it is a function, then it will be called by the *barlib* whenever some event
       with the widget occurs (typically a click). It should take one argument
-      and not return anything;
-    - if is a string, it is compiled as a function in a *separate state*. See
+      and not return anything.
+    - If it is a string, then it is compiled as a function in a *separate state*. See
      `DOCS/design/separate_state.md` for overview.
 
 Plugins
 ---
-A plugin is a thing that knows when to call the `cb` function and what
+A plugin knows when to call the `cb` function and what
 to pass to.
 
 Plugins are shared libraries. For how to write them, see
@@ -134,12 +134,12 @@ widget = luastatus.require_plugin('imap').widget{
 
 Barlibs
 ---
-A barlib (**bar** **lib**rary) is a thing that knows:
+A barlib (**bar** **lib**rary) knows:
 
   * what to do with values the `cb` function returns;
-
+  
   * when to call the `event` function and what to pass to;
-
+  
   * how to indicate an error, should one happen.
 
 Barlibs are shared libraries, too. For how to write them, see
@@ -187,7 +187,7 @@ How it works
 Each widget runs in its own thread and has its own Lua interpreter instance.
 
 While Lua does support multiple interpreters running in separate threads, it
-does not support multithreading within one interpreter, which means `cb()` and
+does not support multithreading within one interpreter. This means `cb()` and
 `event()` of the same widget never overlap (a widget-local mutex is acquired
 before calling any of these functions, and is released afterwards).
 
