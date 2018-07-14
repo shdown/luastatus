@@ -26,13 +26,19 @@ BARLIBS="
 
 PLUGINS="
     +${PN}_plugins_alsa
+    +${PN}_plugins_battery-linux
+    +${PN}_plugins_cpu-usage-linux
+    +${PN}_plugins_dbus
+    +${PN}_plugins_file-contents-linux
     +${PN}_plugins_fs
+    +${PN}_plugins_inotify
+    +${PN}_plugins_imap
+    +${PN}_plugins_mem-usage-linux
     +${PN}_plugins_mpd
+    +${PN}_plugins_pipe
     +${PN}_plugins_timer
     +${PN}_plugins_xkb
     +${PN}_plugins_xtitle
-    +${PN}_plugins_inotify
-    +${PN}_plugins_dbus
 "
 
 LICENSE="LGPL-3+"
@@ -58,13 +64,19 @@ src_configure() {
         -DBUILD_BARLIB_I3=$(usex ${PN}_barlibs_i3)
         -DBUILD_BARLIB_LEMONBAR=$(usex ${PN}_barlibs_lemonbar)
         -DBUILD_PLUGIN_ALSA=$(usex ${PN}_plugins_alsa)
+        -DBUILD_PLUGIN_BATTERY_LINUX=$(usex ${PN}_plugins_battery-linux)
+        -DBUILD_PLUGIN_CPU_USAGE_LINUX=$(usex ${PN}_plugins_cpu-usage-linux)
+        -DBUILD_PLUGIN_DBUS=$(usex ${PN}_plugins_dbus)
+        -DBUILD_PLUGIN_FILE_CONTENTS_LINUX=$(usex ${PN}_plugins_file-contents-linux)
         -DBUILD_PLUGIN_FS=$(usex ${PN}_plugins_fs)
+        -DBUILD_PLUGIN_INOTIFY=$(usex ${PN}_plugins_inotify)
+        -DBUILD_PLUGIN_IMAP=$(usex ${PN}_plugins_imap)
+        -DBUILD_PLUGIN_MEM_USAGE_LINUX=$(usex ${PN}_plugins_mem-usage-linux)
         -DBUILD_PLUGIN_MPD=$(usex ${PN}_plugins_mpd)
+        -DBUILD_PLUGIN_PIPE=$(usex ${PN}_plugins_pipe)
         -DBUILD_PLUGIN_TIMER=$(usex ${PN}_plugins_timer)
         -DBUILD_PLUGIN_XKB=$(usex ${PN}_plugins_xkb)
         -DBUILD_PLUGIN_XTITLE=$(usex ${PN}_plugins_xtitle)
-        -DBUILD_PLUGIN_INOTIFY=$(usex ${PN}_plugins_inotify)
-        -DBUILD_PLUGIN_DBUS=$(usex ${PN}_plugins_dbus)
     )
     cmake-utils_src_configure
 }
