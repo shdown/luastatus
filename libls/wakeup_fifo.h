@@ -9,13 +9,12 @@
 // Usage:
 //
 //     LSWakeupFifo w;
-//     if (ls_wakeup_fifo_init(&w) < 0) {
-//         /* ... (errno is set) */
-//         goto error;
-//     }
-//     w.fifo    = /* ... (NULL means don't wait for FIFO events) */;
-//     w.timeout = /* ... (ls_timespec_invalid means don't wait for timeout events) */;
-//     w.sigmask = /* ... (usually you don't need to do this) */;
+//     ls_wakeup_fifo_init(
+//         &w,
+//         fifo,       // /NULL/ means do not wait for FIFO events.
+//         timeout,    // /ls_timespec_invalid/ means do not wait for timeout events.
+//         sigmask     // /NULL/ means ignore all signals.
+//     );
 //
 //     /* ... */
 //
@@ -56,7 +55,7 @@ typedef struct {
     int fd_;
 } LSWakeupFifo;
 
-int
+void
 ls_wakeup_fifo_init(LSWakeupFifo *w, const char *fifo, struct timespec timeout, sigset_t *sigmask);
 
 int

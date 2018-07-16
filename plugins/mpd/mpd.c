@@ -19,6 +19,7 @@
 #include "libls/osdep.h"
 #include "libls/wakeup_fifo.h"
 #include "libls/strarr.h"
+#include "libls/sig_utils.h"
 
 #include "connect.h"
 #include "mpdproto_utils.h"
@@ -253,12 +254,7 @@ interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, int fd)
     }
 
     sigset_t allsigs;
-    if (sigfillset(&allsigs) < 0) {
-        LS_WITH_ERRSTR(str, errno,
-            LS_ERRF(pd, "sigfillset: %s", str);
-        );
-        goto error;
-    }
+    ls_xsigfillset(&allsigs);
 
     if (fd >= FD_SETSIZE && !ls_timespec_is_invalid(p->timeout)) {
         LS_WARNF(pd, "connection file descriptor is too large, will not report time outs");
@@ -347,16 +343,9 @@ void
 run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
-    LSWakeupFifo w;
 
-    if (ls_wakeup_fifo_init(&w, p->retry_fifo, p->retry_in, NULL) < 0) {
-        LS_WITH_ERRSTR(s, errno,
-            LS_FATALF(pd, "ls_wakeup_fifo_init: %s", s);
-        );
-        goto error;
-    }
-    w.fifo = p->retry_fifo;
-    w.timeout = p->retry_in;
+    LSWakeupFifo w;
+    ls_wakeup_fifo_init(&w, p->retry_fifo, p->retry_in, NULL);
 
     char portstr[8];
     snprintf(portstr, sizeof(portstr), "%d", p->port);

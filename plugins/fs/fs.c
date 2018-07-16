@@ -101,14 +101,9 @@ void
 run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
-    LSWakeupFifo w;
 
-    if (ls_wakeup_fifo_init(&w, p->fifo, p->period, NULL) < 0) {
-        LS_WITH_ERRSTR(s, errno,
-            LS_FATALF(pd, "ls_wakeup_fifo_init: %s", s);
-        );
-        goto error;
-    }
+    LSWakeupFifo w;
+    ls_wakeup_fifo_init(&w, p->fifo, p->period, NULL);
 
     while (1) {
         // make a call

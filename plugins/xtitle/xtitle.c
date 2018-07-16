@@ -17,6 +17,7 @@
 
 #include "libls/alloc_utils.h"
 #include "libls/errno_utils.h"
+#include "libls/sig_utils.h"
 
 // some parts of this file (including the name) are proudly stolen from
 // xtitle (https://github.com/baskerville/xtitle).
@@ -219,12 +220,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     xcb_window_t last_win = XCB_NONE;
 
     sigset_t allsigs;
-    if (sigfillset(&allsigs) < 0) {
-        LS_WITH_ERRSTR(s, errno,
-            LS_FATALF(pd, "sigfillset: %s", s);
-        );
-        goto error;
-    }
+    ls_xsigfillset(&allsigs);
 
     fd_set fds;
     FD_ZERO(&fds);

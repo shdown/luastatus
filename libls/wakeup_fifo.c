@@ -6,8 +6,9 @@
 
 #include "osdep.h"
 #include "time_utils.h"
+#include "sig_utils.h"
 
-int
+void
 ls_wakeup_fifo_init(LSWakeupFifo *w, const char *fifo, struct timespec timeout, sigset_t *sigmask)
 {
     w->fifo = fifo;
@@ -17,11 +18,8 @@ ls_wakeup_fifo_init(LSWakeupFifo *w, const char *fifo, struct timespec timeout, 
     if (sigmask) {
         w->sigmask = *sigmask;
     } else {
-        if (sigfillset(&w->sigmask) < 0) {
-            return -1;
-        }
+        ls_xsigfillset(&w->sigmask);
     }
-    return 0;
 }
 
 int

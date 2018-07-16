@@ -27,6 +27,7 @@
 #include "libls/sprintf_utils.h"
 #include "libls/cstring_utils.h"
 #include "libls/vector.h"
+#include "libls/sig_utils.h"
 
 #include "config.generated.h"
 
@@ -1268,12 +1269,7 @@ bool
 prepare_signals(void)
 {
     struct sigaction sa = {.sa_flags = SA_RESTART};
-    if (sigemptyset(&sa.sa_mask) < 0) {
-        LS_WITH_ERRSTR(s, errno,
-            fprintf(stderr, "luastatus: FATAL: sigemptyset: %s", s);
-        );
-        return false;
-    }
+    ls_xsigemptyset(&sa.sa_mask);
 #define HANDLE(SigNo_) \
     do { \
         if (sigaction(SigNo_, &sa, NULL) < 0) { \

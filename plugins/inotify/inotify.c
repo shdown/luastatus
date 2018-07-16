@@ -17,6 +17,7 @@
 #include "libls/errno_utils.h"
 #include "libls/vector.h"
 #include "libls/time_utils.h"
+#include "libls/sig_utils.h"
 
 #include "inotify_compat.h"
 
@@ -351,12 +352,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         ls_timespec_is_invalid(p->timeout) ? NULL : &p->timeout;
 
     sigset_t allsigs;
-    if (sigfillset(&allsigs) < 0) {
-        LS_WITH_ERRSTR(str, errno,
-            LS_ERRF(pd, "sigfillset: %s", str);
-        );
-        goto error;
-    }
+    ls_xsigfillset(&allsigs);
 
     while (1) {
         {
