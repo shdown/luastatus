@@ -24,26 +24,42 @@ BARLIBS="
     ${PN}_barlibs_lemonbar
 "
 
-PLUGINS="
+PROPER_PLUGINS="
     +${PN}_plugins_alsa
-    +${PN}_plugins_battery-linux
-    +${PN}_plugins_cpu-usage-linux
     +${PN}_plugins_dbus
-    +${PN}_plugins_file-contents-linux
     +${PN}_plugins_fs
     +${PN}_plugins_inotify
-    +${PN}_plugins_imap
-    +${PN}_plugins_mem-usage-linux
     +${PN}_plugins_mpd
-    +${PN}_plugins_pipe
     +${PN}_plugins_timer
     +${PN}_plugins_xkb
     +${PN}_plugins_xtitle
 "
 
+DERIVED_PLUGINS="
+    +${PN}_plugins_battery-linux
+    +${PN}_plugins_cpu-usage-linux
+    +${PN}_plugins_file-contents-linux
+    +${PN}_plugins_imap
+    +${PN}_plugins_mem-usage-linux
+    +${PN}_plugins_pipe
+"
+
+PLUGINS="
+    ${PROPER_PLUGINS}
+    ${DERIVED_PLUGINS}
+"
+
 LICENSE="LGPL-3+"
 SLOT="0"
 IUSE="doc examples luajit ${BARLIBS} ${PLUGINS}"
+REQUIRED_USE="
+    ${PN}_plugins_battery-linux? ( ${PN}_plugins_timer )
+    ${PN}_plugins_cpu-usage-linux? ( ${PN}_plugins_timer )
+    ${PN}_plugins_file-contents-linux? ( ${PN}_plugins_inotify )
+    ${PN}_plugins_imap? ( ${PN}_plugins_timer )
+    ${PN}_plugins_mem-usage-linux? ( ${PN}_plugins_timer )
+    ${PN}_plugins_pipe? ( ${PN}_plugins_timer )
+"
 
 DEPEND=""
 RDEPEND="${DEPEND}
