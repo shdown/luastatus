@@ -62,7 +62,7 @@ assert_fails -l -l
 assert_fails -ы
 assert_fails -v
 
-B='-b ./mock_barlib.so'
+B='-b ./barlib-mock.so'
 
 assert_succeeds $B -eeeeeeee -e
 
@@ -88,6 +88,6 @@ widget = setmetatable(
 EOF
 )
 
-assert_works $B <(echo 'widget = {plugin = "./mock_plugin.so", cb = function() end}')
+assert_works $B <(echo 'widget = {plugin = "./plugin-mock.so", cb = function() end}')
 
 echo >&2 "=== PASSED ==="

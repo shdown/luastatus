@@ -433,7 +433,7 @@ barlib_init_by_name(const char *name, const char *const *opts)
     if ((strchr(name, '/'))) {
         return barlib_init(name, opts);
     } else {
-        char *filename = ls_xasprintf("%s/%s.so", LUASTATUS_BARLIBS_DIR, name);
+        char *filename = ls_xasprintf("%s/barlib-%s.so", LUASTATUS_BARLIBS_DIR, name);
         bool r = barlib_init(filename, opts);
         free(filename);
         return r;
@@ -501,7 +501,7 @@ plugin_load_by_name(Plugin *p, const char *name)
     if ((strchr(name, '/'))) {
         return plugin_load(p, name, name);
     } else {
-        char *filename = ls_xasprintf("%s/%s.so", LUASTATUS_PLUGINS_DIR, name);
+        char *filename = ls_xasprintf("%s/plugin-%s.so", LUASTATUS_PLUGINS_DIR, name);
         bool r = plugin_load(p, filename, name);
         free(filename);
         return r;

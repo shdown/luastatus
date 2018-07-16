@@ -113,6 +113,7 @@ option (BUILD_PLUGIN_MEM_USAGE_LINUX "build plugins/mem-usage-linux" ON)
 option (BUILD_PLUGIN_MPD "build plugins/mpd" ON)
 option (BUILD_PLUGIN_PIPE "build plugins/pipe" ON)
 option (BUILD_PLUGIN_TIMER "build plugins/timer" ON)
+option (BUILD_PLUGIN_UDEV "build plugins/udev" ON)
 option (BUILD_PLUGIN_XKB "build plugins/xkb" ON)
 option (BUILD_PLUGIN_XTITLE "build plugins/xtitle" ON)
 
@@ -180,6 +181,10 @@ endif ()
 
 if (BUILD_PLUGIN_TIMER)
     add_subdirectory (plugins/timer)
+endif ()
+
+if (BUILD_PLUGIN_UDEV)
+    add_subdirectory (plugins/udev)
 endif ()
 
 if (BUILD_PLUGIN_XKB)
