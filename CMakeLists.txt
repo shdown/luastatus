@@ -102,6 +102,7 @@ option (BUILD_BARLIB_I3 "build barlibs/i3" ON)
 option (BUILD_BARLIB_LEMONBAR "build barlibs/lemonbar" ON)
 
 option (BUILD_PLUGIN_ALSA "build plugins/alsa" ON)
+option (BUILD_PLUGIN_BACKLIGHT_LINUX "build plugins/backlight-linux" ON)
 option (BUILD_PLUGIN_BATTERY_LINUX "build plugins/battery-linux" ON)
 option (BUILD_PLUGIN_CPU_USAGE_LINUX "build plugins/cpu-usage-linux" ON)
 option (BUILD_PLUGIN_DBUS "build plugins/dbus" ON)
@@ -137,6 +138,10 @@ endif ()
 
 if (BUILD_PLUGIN_ALSA)
     add_subdirectory (plugins/alsa)
+endif ()
+
+if (BUILD_PLUGIN_BACKLIGHT_LINUX)
+    add_subdirectory (plugins/backlight-linux)
 endif ()
 
 if (BUILD_PLUGIN_BATTERY_LINUX)
