@@ -31,12 +31,14 @@ PROPER_PLUGINS="
     +${PN}_plugins_inotify
     +${PN}_plugins_mpd
     +${PN}_plugins_timer
+    +${PN}_plugins_udev
     +${PN}_plugins_xkb
     +${PN}_plugins_xtitle
 "
 
 DERIVED_PLUGINS="
     +${PN}_plugins_battery-linux
+    +${PN}_plugins_backlight-linux
     +${PN}_plugins_cpu-usage-linux
     +${PN}_plugins_file-contents-linux
     +${PN}_plugins_imap
@@ -54,6 +56,7 @@ SLOT="0"
 IUSE="doc examples luajit ${BARLIBS} ${PLUGINS}"
 REQUIRED_USE="
     ${PN}_plugins_battery-linux? ( ${PN}_plugins_timer )
+    ${PN}_plugins_backlight-linux? ( ${PN}_plugins_udev )
     ${PN}_plugins_cpu-usage-linux? ( ${PN}_plugins_timer )
     ${PN}_plugins_file-contents-linux? ( ${PN}_plugins_inotify )
     ${PN}_plugins_imap? ( ${PN}_plugins_timer )
@@ -69,6 +72,7 @@ RDEPEND="${DEPEND}
     ${PN}_plugins_xkb? ( x11-libs/libX11 )
     ${PN}_plugins_alsa? ( media-libs/alsa-lib )
     ${PN}_plugins_dbus? ( dev-libs/glib )
+    ${PN}_plugins_udev? ( virtual/libudev )
     ${PN}_barlibs_dwm? ( x11-libs/libxcb )
     ${PN}_barlibs_i3? ( >=dev-libs/yajl-2.1.0 )
 "
@@ -80,6 +84,7 @@ src_configure() {
         -DBUILD_BARLIB_I3=$(usex ${PN}_barlibs_i3)
         -DBUILD_BARLIB_LEMONBAR=$(usex ${PN}_barlibs_lemonbar)
         -DBUILD_PLUGIN_ALSA=$(usex ${PN}_plugins_alsa)
+        -DBUILD_PLUGIN_BACKLIGHT_LINUX=$(usex ${PN}_plugins_backlight-linux)
         -DBUILD_PLUGIN_BATTERY_LINUX=$(usex ${PN}_plugins_battery-linux)
         -DBUILD_PLUGIN_CPU_USAGE_LINUX=$(usex ${PN}_plugins_cpu-usage-linux)
         -DBUILD_PLUGIN_DBUS=$(usex ${PN}_plugins_dbus)
@@ -91,6 +96,7 @@ src_configure() {
         -DBUILD_PLUGIN_MPD=$(usex ${PN}_plugins_mpd)
         -DBUILD_PLUGIN_PIPE=$(usex ${PN}_plugins_pipe)
         -DBUILD_PLUGIN_TIMER=$(usex ${PN}_plugins_timer)
+        -DBUILD_PLUGIN_UDEV=$(usex ${PN}_plugins_udev)
         -DBUILD_PLUGIN_XKB=$(usex ${PN}_plugins_xkb)
         -DBUILD_PLUGIN_XTITLE=$(usex ${PN}_plugins_xtitle)
     )

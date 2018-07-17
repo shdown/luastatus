@@ -8,6 +8,7 @@ local function read_all(path)
 end
 
 function P.widget(tbl)
+    local last_content
     return {
         plugin = 'udev',
         opts = {
@@ -16,11 +17,17 @@ function P.widget(tbl)
         },
         cb = function(t)
             if t.what ~= 'event' then
-                return nil
+                last_content = nil
+                return last_content
             end
-            local b = read_all(t.syspath .. '/brightness')
-            local mb = read_all(t.syspath .. '/max_brightness')
-            return tbl.cb(b / mb)
+            local s = t.syspath
+            if tbl.syspath and tbl.syspath ~= s then
+                return last_content
+            end
+            local b = read_all(s .. '/brightness')
+            local mb = read_all(s .. '/max_brightness')
+            last_content = tbl.cb(b / mb)
+            return last_content
         end,
         event = tbl.event,
     }
