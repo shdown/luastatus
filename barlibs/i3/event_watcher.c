@@ -185,7 +185,7 @@ callback_end_map(void *vctx)
     } while (0)
 
     Priv *p = ctx->bd->priv;
-    if (ctx->widget >= 0 || (size_t) ctx->widget < p->nwidgets) {
+    if (ctx->widget >= 0 && (size_t) ctx->widget < p->nwidgets) {
         lua_State *L = ctx->funcs.call_begin(ctx->bd->userdata, ctx->widget);
         // L: -
         lua_newtable(L); // L: table
