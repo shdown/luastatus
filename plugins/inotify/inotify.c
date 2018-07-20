@@ -213,6 +213,9 @@ static
 int
 l_add_watch(lua_State *L)
 {
+    if (lua_gettop(L) != 2) {
+        return luaL_error(L, "expected exactly 2 arguments");
+    }
     const char *path;
     uint32_t mask;
 
