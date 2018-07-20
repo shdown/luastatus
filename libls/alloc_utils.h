@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "panic.h"
 #include "compdep.h"
 
 // The behaviour is same as casting the result of
@@ -18,12 +19,10 @@
 // to a pointer to /Type_/.
 #define LS_XNEW0(Type_, NElems_) ((Type_ *) ls_xcalloc(NElems_, sizeof(Type_)))
 
-// Out-of-memory handler, called when allocation fails.
+// Out-of-memory handler; should be called when an allocation fails.
 //
 // Should not return.
-LS_ATTR_NORETURN
-void
-ls_oom(void);
+#define ls_oom() LS_PANIC("out of memory")
 
 // The behaviour is same as calling
 //     /malloc(nelems * elemsz)/,

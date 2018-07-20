@@ -325,9 +325,7 @@ void **
 map_do_get(const char *key)
 {
     if (map.frozen) {
-        FATALF("map_do_get is called after the map has been frozen. Aborting.");
-        fflush(NULL);
-        abort();
+        LS_PANIC("map_do_get is called after the map has been frozen");
     }
 
     const size_t nkey = strlen(key);
