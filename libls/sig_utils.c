@@ -12,7 +12,7 @@ ls_xsigfillset(sigset_t *set)
 {
     if (sigfillset(set) < 0) {
         LS_WITH_ERRSTR(s, errno,
-            fprintf(stderr, "Unexpected error: sigfillset: %s\n", s);
+            fprintf(stderr, "ls_xsigfillset: unexpected error: sigfillset: %s\n", s);
         );
         abort();
     }
@@ -23,7 +23,7 @@ ls_xsigemptyset(sigset_t *set)
 {
     if (sigemptyset(set) < 0) {
         LS_WITH_ERRSTR(s, errno,
-            fprintf(stderr, "Unexpected error: sigemptyset: %s\n", s);
+            fprintf(stderr, "ls_xsigemptyset: unexpected error: sigemptyset: %s\n", s);
         );
         abort();
     }
