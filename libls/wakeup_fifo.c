@@ -9,7 +9,11 @@
 #include "sig_utils.h"
 
 void
-ls_wakeup_fifo_init(LSWakeupFifo *w, const char *fifo, struct timespec timeout, sigset_t *sigmask)
+ls_wakeup_fifo_init(
+    LSWakeupFifo *w,
+    const char *fifo,
+    struct timespec timeout,
+    const sigset_t *sigmask)
 {
     w->fifo = fifo;
     w->timeout = timeout;
