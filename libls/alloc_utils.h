@@ -141,6 +141,32 @@ oom:
     ls_oom();
 }
 
+// Like /ls_xrealloc/, except that, if the resulting object is larger than the old one, zeroes the
+// new memory.
+LS_INHEADER LS_ATTR_ALLOC_SIZE2(3, 4)
+void *
+ls_xrealloc0(void *p, size_t oldnelems, size_t nelems, size_t elemsz)
+{
+    p = ls_xrealloc(p, nelems, elemsz);
+    if (elemsz && nelems > oldnelems) {
+        memset((char *) p + elemsz * oldnelems, 0, elemsz * (nelems - oldnelems));
+    }
+    return p;
+}
+
+// Like /ls_x2realloc/, except that it zeroes the new memory.
+LS_INHEADER
+void *
+ls_x2realloc0(void *p, size_t *pnelems, size_t elemsz)
+{
+    const size_t oldnelems = *pnelems;
+    p = ls_x2realloc(p, pnelems, elemsz);
+    if (elemsz) {
+        memset((char *) p + elemsz * oldnelems, 0, elemsz * (*pnelems - oldnelems));
+    }
+    return p;
+}
+
 // Duplicates (as if with /malloc/) /n/ bytes of memory at address /p/. Panics on failure.
 LS_INHEADER LS_ATTR_MALLOC
 void *
