@@ -763,6 +763,7 @@ register_funcs(lua_State *L, Widget *w)
 
     if (!lua_istable(L, -1)) {
         assert(w);
+        assert(!widget_is_stillborn(w));
         WARNF("widget '%s': 'luastatus' is not a table anymore, will not register "
               "barlib/plugin functions",
               w->filename);
