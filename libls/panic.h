@@ -6,6 +6,7 @@
 
 #define LS_PANIC__CAT(X_) #X_
 
+// ...because /LS_PANIC__CAT(__LINE__)/ would give "__LINE__".
 #define LS_PANIC__EVAL_CAT(X_) LS_PANIC__CAT(X_)
 
 #define LS_PANIC(Msg_) \
