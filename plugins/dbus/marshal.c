@@ -1,4 +1,7 @@
 #include "marshal.h"
+
+#include "libls/compdep.h"
+
 #include <stdio.h>
 #include <limits.h>
 #include <inttypes.h>
@@ -159,6 +162,8 @@ push_gvariant(lua_State *L, GVariant *var, unsigned recurlim)
                 }
             }
             break;
+        default:
+            LS_UNREACHABLE();
     }
     // L: ? table value
     lua_setfield(L, -2, "value"); // L: ? table
