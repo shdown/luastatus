@@ -14,8 +14,9 @@
 #define LS_ATTR_ALLOC_SIZE1(ArgN_)              /*nothing*/
 #define LS_ATTR_ALLOC_SIZE2(Arg1N_, Arg2N_)     /*nothing*/
 #define LS_ATTR_SENTINEL(Arg_)                  /*nothing*/
-#define LS_HAS_BUILTIN_UNREACHABLE              (0)
-#define LS_HAS_BUILTIN_OVERFLOW(BuiltIn_)       (0)
+#define LS_HAS_BUILTIN_UNREACHABLE              0
+#define LS_HAS_BUILTIN_ASSUME_ALIGNED           0
+#define LS_HAS_BUILTIN_OVERFLOW(BuiltIn_)       0
 
 #if __GNUC__ >= 2
 #   undef  LS_ATTR_UNUSED
@@ -50,17 +51,25 @@
 
 #if LS_GCC_VERSION >= 40500
 #   undef  LS_HAS_BUILTIN_UNREACHABLE
-#   define LS_HAS_BUILTIN_UNREACHABLE (1)
+#   define LS_HAS_BUILTIN_UNREACHABLE 1
+#endif
+
+#if LS_GCC_VERSION >= 40704
+#   undef  LS_HAS_BUILTIN_ASSUME_ALIGNED
+#   define LS_HAS_BUILTIN_ASSUME_ALIGNED 1
 #endif
 
 #if __GNUC__ >= 5
 #   undef  LS_HAS_BUILTIN_OVERFLOW
-#   define LS_HAS_BUILTIN_OVERFLOW(BuiltIn_) (1)
+#   define LS_HAS_BUILTIN_OVERFLOW(BuiltIn_) 1
 #endif
 
 #if defined(__has_builtin) /* clang */
 #   undef  LS_HAS_BUILTIN_OVERFLOW
 #   define LS_HAS_BUILTIN_OVERFLOW(BuiltIn_) __has_builtin(BuiltIn_)
+
+#   undef  LS_HAS_BUILTIN_ASSUME_ALIGNED
+#   define LS_HAS_BUILTIN_ASSUME_ALIGNED __has_builtin(__builtin_assume_aligned)
 
 #   undef  LS_HAS_BUILTIN_UNREACHABLE
 #   define LS_HAS_BUILTIN_UNREACHABLE __has_builtin(__builtin_unreachable)

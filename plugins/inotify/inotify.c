@@ -18,6 +18,7 @@
 #include "libls/vector.h"
 #include "libls/time_utils.h"
 #include "libls/sig_utils.h"
+#include "libls/compdep.h"
 
 #include "inotify_compat.h"
 
@@ -397,7 +398,12 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
              ptr < buf + r;
              ptr += sizeof(struct inotify_event) + event->len)
         {
-            event = (const struct inotify_event *) ptr;
+            event = (const struct inotify_event *)
+#if LS_HAS_BUILTIN_ASSUME_ALIGNED
+                __builtin_assume_aligned(ptr, __alignof__(struct inotify_event));
+#else
+                ptr;
+#endif
             push_event(funcs.call_begin(pd->userdata), event);
             funcs.call_end(pd->userdata);
         }
