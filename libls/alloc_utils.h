@@ -168,7 +168,7 @@ ls_x2realloc0(void *p, size_t *pnelems, size_t elemsz)
 }
 
 // Duplicates (as if with /malloc/) /n/ bytes of memory at address /p/. Panics on failure.
-LS_INHEADER LS_ATTR_MALLOC
+LS_INHEADER LS_ATTR_MALLOC LS_ATTR_ALLOC_SIZE1(2)
 void *
 ls_xmemdup(const void *p, size_t n)
 {
