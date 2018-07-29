@@ -28,6 +28,7 @@
 #include "libls/cstring_utils.h"
 #include "libls/vector.h"
 #include "libls/sig_utils.h"
+#include "libls/panic.h"
 
 #include "config.generated.h"
 

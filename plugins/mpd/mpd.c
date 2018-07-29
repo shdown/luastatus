@@ -6,13 +6,17 @@
 #include <signal.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 #include <sys/select.h>
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
 #include "include/plugin_utils.h"
 
+#include "libls/lua_utils.h"
+#include "libls/string_.h"
 #include "libls/alloc_utils.h"
+#include "libls/vector.h"
 #include "libls/errno_utils.h"
 #include "libls/time_utils.h"
 #include "libls/sprintf_utils.h"

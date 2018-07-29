@@ -1,13 +1,17 @@
 #include <lua.h>
-#include <glib.h>
-#include <gio/gio.h>
+#include <limits.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
+
+#include <glib.h>
+#include <gio/gio.h>
 
 #include "libls/vector.h"
 #include "libls/compdep.h"
 #include "libls/alloc_utils.h"
+#include "libls/lua_utils.h"
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"

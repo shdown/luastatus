@@ -1,6 +1,9 @@
 #include <sys/select.h>
 #include <errno.h>
 #include <signal.h>
+#include <stdbool.h>
+#include <lua.h>
+#include <stdlib.h>
 #include <libudev.h>
 
 #include "include/plugin_v1.h"

@@ -1,5 +1,7 @@
 #include <stdlib.h>
 
+#include <lua.h>
+
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
 #include "include/plugin_utils.h"

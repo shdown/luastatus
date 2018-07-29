@@ -1,4 +1,6 @@
 #include <lua.h>
+#include <lauxlib.h>
+#include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,6 +16,9 @@
 #include "include/sayf_macros.h"
 #include "include/plugin_utils.h"
 
+#include "libls/lua_utils.h"
+#include "libls/osdep.h"
+#include "libls/alloc_utils.h"
 #include "libls/errno_utils.h"
 #include "libls/vector.h"
 #include "libls/time_utils.h"
