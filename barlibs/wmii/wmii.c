@@ -130,6 +130,7 @@ clear_content(LuastatusBarlibData *bd, size_t widget_idx)
             LS_ERRF(bd, "ixp_remove: %s: %s", path, ixp_errbuf());
             return false;
         }
+        p->exists[widget_idx] = 0;
     }
 
     return true;
