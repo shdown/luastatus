@@ -58,8 +58,7 @@ Plugins
 A plugin is a thing that knows when to call the `cb` function and what
 to pass to.
 
-Plugins are shared libraries. For how to write them, see
-`DOCS/WRITING_BARLIB_OR_PLUGIN.md`.
+Plugins are shared libraries.
 
 These plugins are also referred to as *proper plugins*, as opposed to
 *dervied plugins*.
@@ -142,8 +141,7 @@ A barlib (**bar** **lib**rary) is a thing that knows:
 
   * how to indicate an error, should one happen.
 
-Barlibs are shared libraries, too. For how to write them, see
-`DOCS/WRITING_BARLIB_OR_PLUGIN.md`.
+Barlibs are shared libraries, too.
 
 Barlibs are capable of taking options.
 
