@@ -254,7 +254,7 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
         }
         break;
     default:
-        LS_ERRF(bd, "expected string or nil, found %s", luaL_typename(L, -1));
+        LS_ERRF(bd, "expected string, table or nil, found %s", luaL_typename(L, -1));
         return LUASTATUS_NONFATAL_ERR;
     }
 
