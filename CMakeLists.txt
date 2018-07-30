@@ -101,6 +101,7 @@ option (BUILD_BARLIB_DWM "build barlibs/dwm" ON)
 option (BUILD_BARLIB_I3 "build barlibs/i3" ON)
 option (BUILD_BARLIB_LEMONBAR "build barlibs/lemonbar" ON)
 option (BUILD_BARLIB_STDOUT "build barlibs/stdout" ON)
+option (BUILD_BARLIB_WMII "build barlibs/wmii" OFF)
 
 option (BUILD_PLUGIN_ALSA "build plugins/alsa" ON)
 option (BUILD_PLUGIN_BACKLIGHT_LINUX "build plugins/backlight-linux" ON)
@@ -139,6 +140,10 @@ endif ()
 
 if (BUILD_BARLIB_STDOUT)
     add_subdirectory (barlibs/stdout)
+endif ()
+
+if (BUILD_BARLIB_WMII)
+    add_subdirectory (barlibs/wmii)
 endif ()
 
 if (BUILD_PLUGIN_ALSA)

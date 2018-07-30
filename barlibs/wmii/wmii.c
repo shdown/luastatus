@@ -49,7 +49,7 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
         if ((v = ls_strfollow(*s, "address="))) {
             addr = v;
         } else if ((v = ls_strfollow(*s, "bar="))) {
-            if ((v[0] != 'l' && v[0] != 'r') || v[1] != '\0') {
+            if (strcmp(v, "l") != 0 && strcmp(v, "r") != 0) {
                 LS_FATALF(bd, "invalid bar= option value: '%s' (expected 'l' or 'r')", v);
                 goto error;
             }
@@ -58,6 +58,11 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
             LS_FATALF(bd, "unknown option '%s'", *s);
             goto error;
         }
+    }
+
+    if (!addr) {
+        LS_FATALF(bd, "address was not specified");
+        goto error;
     }
 
     if (!(p->client = ixp_mount(addr))) {
@@ -110,7 +115,7 @@ set_content(LuastatusBarlibData *bd, size_t widget_idx, const char *buf, size_t 
         ret = false;
     }
     if (ixp_close(f) != 1) {
-        // only give a warning
+        // only produce a warning
         LS_WARNF(bd, "ixp_close [%s]: %s", path, ixp_errbuf());
     }
     return ret;
