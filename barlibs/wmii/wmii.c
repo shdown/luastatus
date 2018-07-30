@@ -11,6 +11,9 @@
 
 #include "libls/alloc_utils.h"
 #include "libls/cstring_utils.h"
+#include "libls/getenv_r.h"
+
+#define WMII_NS "wmii"
 
 typedef struct {
     size_t nwidgets;
@@ -43,7 +46,8 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
         .client = NULL,
     };
 
-    const char *addr = NULL;
+    const char *addr = ls_getenv_r("WMII_ADDRESS");
+
     for (const char *const *s = opts; *s; ++s) {
         const char *v;
         if ((v = ls_strfollow(*s, "address="))) {
@@ -60,14 +64,16 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
         }
     }
 
-    if (!addr) {
-        LS_FATALF(bd, "address was not specified");
-        goto error;
-    }
-
-    if (!(p->client = ixp_mount(addr))) {
-        LS_FATALF(bd, "ixp_mount: %s: %s", addr, ixp_errbuf());
-        goto error;
+    if (addr) {
+        if (!(p->client = ixp_mount(addr))) {
+            LS_FATALF(bd, "ixp_mount: %s: %s", addr, ixp_errbuf());
+            goto error;
+        }
+    } else {
+        if (!(p->client = ixp_nsmount(WMII_NS))) {
+            LS_FATALF(bd, "ixp_nsmount: %s: %s", WMII_NS, ixp_errbuf());
+            goto error;
+        }
     }
 
     return LUASTATUS_OK;
