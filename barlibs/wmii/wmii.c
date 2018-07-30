@@ -76,6 +76,10 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
         }
     }
 
+    if (nwidgets > 1000) {
+        LS_WARNF(bd, "# of widgets > 1000, expect wrong widget ordering");
+    }
+
     return LUASTATUS_OK;
 
 error:
