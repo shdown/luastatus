@@ -11,6 +11,9 @@
 
 #include "libls/alloc_utils.h"
 #include "libls/cstring_utils.h"
+#include "libls/sprintf_utils.h"
+#include "libls/vector.h"
+#include "libls/string_.h"
 #include "libls/getenv_r.h"
 
 #define WMII_NS "wmii"
@@ -19,6 +22,8 @@ typedef struct {
     size_t nwidgets;
     unsigned char *exists;
     char barsym;
+    size_t npreface;
+    LSString buf;
     IxpClient *client;
 } Priv;
 
@@ -28,6 +33,7 @@ destroy(LuastatusBarlibData *bd)
 {
     Priv *p = bd->priv;
     free(p->exists);
+    LS_VECTOR_FREE(p->buf);
     if (p->client) {
         ixp_unmount(p->client);
     }
@@ -43,10 +49,13 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
         .nwidgets = nwidgets,
         .exists = LS_XNEW0(unsigned char, nwidgets),
         .barsym = 'r',
+        .npreface = 0,
+        .buf = LS_VECTOR_NEW(),
         .client = NULL,
     };
 
     const char *addr = ls_getenv_r("WMII_ADDRESS");
+    bool wmii2 = false;
 
     for (const char *const *s = opts; *s; ++s) {
         const char *v;
@@ -58,11 +67,22 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
                 goto error;
             }
             p->barsym = v[0];
+        } else if (strcmp(*s, "wmii2") == 0) {
+            wmii2 = true;
+        } else if ((v = ls_strfollow(*s, "wmii2_addline="))) {
+            wmii2 = true;
+            ls_string_append_s(&p->buf, v);
+            ls_string_append_c(&p->buf, '\n');
         } else {
             LS_FATALF(bd, "unknown option '%s'", *s);
             goto error;
         }
     }
+
+    if (wmii2) {
+        ls_string_append_s(&p->buf, "label ");
+    }
+    p->npreface = p->buf.size;
 
     if (addr) {
         if (!(p->client = ixp_mount(addr))) {
@@ -119,10 +139,16 @@ set_content(LuastatusBarlibData *bd, size_t widget_idx, const char *buf, size_t 
         p->exists[widget_idx] = 1;
     }
 
+    p->buf.size = p->npreface;
+    ls_string_append_b(&p->buf, buf, nbuf);
+    ls_string_append_c(&p->buf, '\n');
+
     bool ret = true;
-    if (ixp_write(f, buf, (long) nbuf) != (long) nbuf) {
-        LS_ERRF(bd, "ixp_write [%s]: %s", path, ixp_errbuf());
+    if (ixp_write(f, p->buf.data, p->buf.size) != (long) p->buf.size) {
         ret = false;
+        LS_ERRF(bd, "ixp_write [%s]: %s", path, ixp_errbuf());
+        LS_INFOF(bd, "try passing 'wmii2' option to this barlib, especially if getting 'bad value' "
+                     "error");
     }
     if (ixp_close(f) != 1) {
         // only produce a warning
