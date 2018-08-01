@@ -55,7 +55,7 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
     };
 
     const char *addr = ls_getenv_r("WMII_ADDRESS");
-    bool wmii2 = false;
+    bool wmii3 = false;
 
     for (const char *const *s = opts; *s; ++s) {
         const char *v;
@@ -67,10 +67,10 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
                 goto error;
             }
             p->barsym = v[0];
-        } else if (strcmp(*s, "wmii2") == 0) {
-            wmii2 = true;
-        } else if ((v = ls_strfollow(*s, "wmii2_addline="))) {
-            wmii2 = true;
+        } else if (strcmp(*s, "wmii3") == 0) {
+            wmii3 = true;
+        } else if ((v = ls_strfollow(*s, "wmii3_addline="))) {
+            wmii3 = true;
             ls_string_append_s(&p->buf, v);
             ls_string_append_c(&p->buf, '\n');
         } else {
@@ -79,7 +79,7 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
         }
     }
 
-    if (wmii2) {
+    if (wmii3) {
         ls_string_append_s(&p->buf, "label ");
     }
     p->npreface = p->buf.size;
@@ -127,12 +127,12 @@ set_content(LuastatusBarlibData *bd, size_t widget_idx, const char *buf, size_t 
 
     IxpCFid *f;
     if (p->exists[widget_idx]) {
-        if (!(f = ixp_open(p->client, path, P9_OWRITE))) {
+        if (!(f = ixp_open(p->client, path, P9_OWRITE | P9_OCEXEC))) {
             LS_ERRF(bd, "ixp_open: %s: %s", path, ixp_errbuf());
             return false;
         }
     } else {
-        if (!(f = ixp_create(p->client, path, 6 /* rw- */, P9_OWRITE))) {
+        if (!(f = ixp_create(p->client, path, 6 /* rw- */, P9_OWRITE | P9_OCEXEC))) {
             LS_ERRF(bd, "ixp_create: %s: %s", path, ixp_errbuf());
             return false;
         }
@@ -147,7 +147,7 @@ set_content(LuastatusBarlibData *bd, size_t widget_idx, const char *buf, size_t 
     if (ixp_write(f, p->buf.data, p->buf.size) != (long) p->buf.size) {
         ret = false;
         LS_ERRF(bd, "ixp_write [%s]: %s", path, ixp_errbuf());
-        LS_INFOF(bd, "try passing 'wmii2' option to this barlib, especially if getting 'bad value' "
+        LS_INFOF(bd, "try passing 'wmii3' option to this barlib, especially if getting 'bad value' "
                      "error");
     }
     if (ixp_close(f) != 1) {

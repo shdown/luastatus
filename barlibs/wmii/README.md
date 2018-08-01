@@ -1,4 +1,4 @@
-This barlib talks to the **wmii** window manager using libixp.
+This barlib talks to the **wmii** (**wmii2**, **wmii3**) window manager via the 9P protocol using libixp.
 
 It does not provide functions and does not support events.
 
@@ -8,11 +8,11 @@ A string or `nil`.
 
 Options
 ===
-* `wmii2`
+* `wmii3`
 
-  **Required if wmii2 is used.**
+  **Required if wmii3 is used.**
 
-* `wmii2_addline=<string>`
+* `wmii3_addline=<string>`
 
   E.g. `colors #000000 #ffffff #ff0000`.
 
