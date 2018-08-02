@@ -1,5 +1,7 @@
 This barlib simply writes lines to a file descriptor.
 
+It can be used for status bars such as **dzen**/**dzen2**, **xmobar**, **yabar**, **dvtm**, and others.
+
 It joins all non-empty strings returned by widgets by a separator, which defaults to ` | `.
 
 It does not provide functions and does not support events.
