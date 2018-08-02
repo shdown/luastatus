@@ -16,14 +16,27 @@
 #include "libls/string_.h"
 #include "libls/getenv_r.h"
 
-#define WMII_NS "wmii"
+static const char *wmii_namespace = "wmii";
 
 typedef struct {
+    // Number of widgets.
     size_t nwidgets;
+
+    // /exists[i]/ is 1 if the widget content file
+    //     "/?bar/LS###", where "?" is the value of /barsym/ and "###" is zero-padded /i/,
+    // is expected to exist, and 0 otherwise.
     unsigned char *exists;
+
+    // Bar side symbol: either 'l' or 'r'.
     char barsym;
+
+    // Length of the "preface" prefix in /buf/.
     size_t npreface;
+
+    // Widget content buffer.
     LSString buf;
+
+    // libixp client handle.
     IxpClient *client;
 } Priv;
 
@@ -90,8 +103,8 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
             goto error;
         }
     } else {
-        if (!(p->client = ixp_nsmount(WMII_NS))) {
-            LS_FATALF(bd, "ixp_nsmount: %s: %s", WMII_NS, ixp_errbuf());
+        if (!(p->client = ixp_nsmount(wmii_namespace))) {
+            LS_FATALF(bd, "ixp_nsmount: %s: %s", wmii_namespace, ixp_errbuf());
             goto error;
         }
     }
