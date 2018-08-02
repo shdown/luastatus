@@ -22,6 +22,8 @@ BARLIBS="
     ${PN}_barlibs_dwm
     ${PN}_barlibs_i3
     ${PN}_barlibs_lemonbar
+    ${PN}_barlibs_stdout
+    ${PN}_barlibs_wmii
 "
 
 PROPER_PLUGINS="
@@ -75,6 +77,7 @@ RDEPEND="${DEPEND}
     ${PN}_plugins_udev? ( virtual/libudev )
     ${PN}_barlibs_dwm? ( x11-libs/libxcb )
     ${PN}_barlibs_i3? ( >=dev-libs/yajl-2.1.0 )
+    ${PN}_barlibs_wmii? ( sys-libs/libixp )
 "
 
 src_configure() {
@@ -83,6 +86,8 @@ src_configure() {
         -DBUILD_BARLIB_DWM=$(usex ${PN}_barlibs_dwm)
         -DBUILD_BARLIB_I3=$(usex ${PN}_barlibs_i3)
         -DBUILD_BARLIB_LEMONBAR=$(usex ${PN}_barlibs_lemonbar)
+        -DBUILD_BARLIB_STDOUT=$(usex ${PN}_barlibs_stdout)
+        -DBUILD_BARLIB_WMII=$(usex ${PN}_barlibs_wmii)
         -DBUILD_PLUGIN_ALSA=$(usex ${PN}_plugins_alsa)
         -DBUILD_PLUGIN_BACKLIGHT_LINUX=$(usex ${PN}_plugins_backlight-linux)
         -DBUILD_PLUGIN_BATTERY_LINUX=$(usex ${PN}_plugins_battery-linux)
