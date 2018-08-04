@@ -1172,7 +1172,7 @@ plugin_call_cancel(void *userdata)
 
 static
 lua_State *
-ew_call_begin(LS_ATTR_UNUSED_ARG void *userdata, size_t widget_idx)
+ew_call_begin(void *userdata, size_t widget_idx)
 {
     TRACEF("ew_call_begin(userdata=%p, widget_idx=%zu)", userdata, widget_idx);
 
@@ -1259,8 +1259,9 @@ prepare_stdio(void)
 
 static
 void
-ignore_signal(LS_ATTR_UNUSED_ARG int signo)
+ignore_signal(int signo)
 {
+    (void) signo;
 }
 
 static

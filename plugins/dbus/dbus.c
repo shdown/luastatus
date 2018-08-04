@@ -165,7 +165,7 @@ typedef struct {
 static
 void
 callback_signal(
-    LS_ATTR_UNUSED_ARG GDBusConnection *connection,
+    GDBusConnection *connection,
     const gchar *sender_name,
     const gchar *object_path,
     const gchar *interface_name,
@@ -173,6 +173,7 @@ callback_signal(
     GVariant *parameters,
     gpointer user_data)
 {
+    (void) connection;
     PluginRunArgs args = *(PluginRunArgs *) user_data;
     lua_State *L = args.funcs.call_begin(args.pd->userdata);
 

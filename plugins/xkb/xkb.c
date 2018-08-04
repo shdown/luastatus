@@ -135,8 +135,9 @@ static jmp_buf global_jmpbuf;
 // > If the I/O error handler does return, the client process exits.
 static
 int
-x11_io_error_handler(LS_ATTR_UNUSED_ARG Display *dpy)
+x11_io_error_handler(Display *dpy)
 {
+    (void) dpy;
     LS_FATALF(global_pd, "X11 I/O error occurred");
     longjmp(global_jmpbuf, 1);
 }
@@ -147,8 +148,9 @@ x11_io_error_handler(LS_ATTR_UNUSED_ARG Display *dpy)
 // > your error handler to return; the returned value is ignored.
 static
 int
-x11_error_handler(LS_ATTR_UNUSED_ARG Display *dpy, XErrorEvent *ev)
+x11_error_handler(Display *dpy, XErrorEvent *ev)
 {
+    (void) dpy;
     LS_ERRF(global_pd, "X11 error: serial=%ld, error_code=%d, request_code=%d, minor_code=%d",
         ev->serial, ev->error_code, ev->request_code, ev->minor_code);
     return 0;

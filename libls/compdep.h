@@ -7,7 +7,6 @@
 #define LS_GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
 
 #define LS_ATTR_UNUSED                          /*nothing*/
-#define LS_ATTR_UNUSED_ARG                      /*nothing*/
 #define LS_ATTR_NORETURN                        /*nothing*/
 #define LS_ATTR_PRINTF(FmtArgN_, EllipsisArgN_) /*nothing*/
 #define LS_ATTR_MALLOC                          /*nothing*/
@@ -21,9 +20,6 @@
 #if __GNUC__ >= 2
 #   undef  LS_ATTR_UNUSED
 #   define LS_ATTR_UNUSED __attribute__((unused))
-
-#   undef LS_ATTR_UNUSED_ARG
-#   define LS_ATTR_UNUSED_ARG __attribute__((unused))
 
 #   undef  LS_ATTR_PRINTF
 #   define LS_ATTR_PRINTF(FmtArgN_, EllipsisArgN_) \
