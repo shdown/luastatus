@@ -19,7 +19,6 @@
 #include "libls/vector.h"
 #include "libls/errno_utils.h"
 #include "libls/time_utils.h"
-#include "libls/sprintf_utils.h"
 #include "libls/osdep.h"
 #include "libls/wakeup_fifo.h"
 #include "libls/strarr.h"

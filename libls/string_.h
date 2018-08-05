@@ -143,4 +143,28 @@ ls_string_new_from_c(char c)
     return r;
 }
 
+// Constructs a new /LSString/ initialized with a formatted string value.
+LS_INHEADER
+LSString
+ls_string_new_from_vf(const char *fmt, va_list vl)
+{
+    LSString s = LS_VECTOR_NEW();
+    bool r = ls_string_append_vf(&s, fmt, vl);
+    (void) r;
+    assert(r);
+    return s;
+}
+
+// Constructs a new /LSString/ initialized with a formatted string value.
+LS_INHEADER
+LSString
+ls_string_new_from_f(const char *fmt, ...)
+{
+    va_list vl;
+    va_start(vl, fmt);
+    LSString s = ls_string_new_from_vf(fmt, vl);
+    va_end(vl);
+    return s;
+}
+
 #endif

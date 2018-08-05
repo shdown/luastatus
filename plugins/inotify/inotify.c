@@ -351,7 +351,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     }
 
     char buf[sizeof(struct inotify_event) + NAME_MAX + 2]
-        __attribute__ ((aligned(__alignof__(struct inotify_event))));
+        __attribute__((aligned(__alignof__(struct inotify_event))));
 
     fd_set fds;
     FD_ZERO(&fds);
@@ -403,12 +403,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
              ptr < buf + r;
              ptr += sizeof(struct inotify_event) + event->len)
         {
-            event = (const struct inotify_event *)
-#if LS_HAS_BUILTIN_ASSUME_ALIGNED
-                __builtin_assume_aligned(ptr, __alignof__(struct inotify_event));
-#else
-                ptr;
-#endif
+            event = (const struct inotify_event *) ptr;
             push_event(funcs.call_begin(pd->userdata), event);
             funcs.call_end(pd->userdata);
         }

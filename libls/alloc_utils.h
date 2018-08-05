@@ -28,21 +28,14 @@
 //     /malloc(nelems * elemsz)/,
 // except when the multiplication overflows, or the allocation fails. In these cases, this function
 // panics.
-LS_INHEADER LS_ATTR_MALLOC LS_ATTR_ALLOC_SIZE2(1, 2)
+LS_INHEADER
 void *
 ls_xmalloc(size_t nelems, size_t elemsz)
 {
-    size_t n;
-#if LS_HAS_BUILTIN_OVERFLOW(__builtin_mul_overflow)
-    if (__builtin_mul_overflow(nelems, elemsz, &n)) {
-        goto oom;
-    }
-#else
     if (elemsz && nelems > SIZE_MAX / elemsz) {
         goto oom;
     }
-    n = nelems * elemsz;
-#endif
+    const size_t n = nelems * elemsz;
     void *r = malloc(n);
     if (n && !r) {
         goto oom;
@@ -56,7 +49,7 @@ oom:
 // The behaviour is same as calling
 //     /calloc(nelems, elemsz)/,
 // except when the allocation fails. In that case, this function panics.
-LS_INHEADER LS_ATTR_MALLOC LS_ATTR_ALLOC_SIZE2(1, 2)
+LS_INHEADER
 void *
 ls_xcalloc(size_t nelems, size_t elemsz)
 {
@@ -71,21 +64,14 @@ ls_xcalloc(size_t nelems, size_t elemsz)
 //     /realloc(p, nelems * elemsz)/,
 // except when the multiplication overflows, or the reallocation fails. In these cases, this
 // function panics.
-LS_INHEADER LS_ATTR_ALLOC_SIZE2(2, 3)
+LS_INHEADER
 void *
 ls_xrealloc(void *p, size_t nelems, size_t elemsz)
 {
-    size_t n;
-#if LS_HAS_BUILTIN_OVERFLOW(__builtin_mul_overflow)
-    if (__builtin_mul_overflow(nelems, elemsz, &n)) {
-        goto oom;
-    }
-#else
     if (elemsz && nelems > SIZE_MAX / elemsz) {
         goto oom;
     }
-    n = nelems * elemsz;
-#endif
+    const size_t n = nelems * elemsz;
     void *r = realloc(p, n);
     if (n && !r) {
         goto oom;
@@ -111,20 +97,11 @@ ls_x2realloc(void *p, size_t *pnelems, size_t elemsz)
     size_t n;
 
     if (oldnelems) {
-#if LS_HAS_BUILTIN_OVERFLOW(__builtin_mul_overflow)
-        if (__builtin_mul_overflow(oldnelems, 2, &newnelems)) {
-            goto oom;
-        }
-        if (__builtin_mul_overflow(newnelems, elemsz, &n)) {
-            goto oom;
-        }
-#else
         if (elemsz && oldnelems > SIZE_MAX / 2 / elemsz) {
             goto oom;
         }
         newnelems = oldnelems * 2;
         n = newnelems * elemsz;
-#endif
     } else {
         newnelems = 1;
         n = elemsz;
@@ -141,34 +118,8 @@ oom:
     ls_oom();
 }
 
-// Like /ls_xrealloc/, except that, if the resulting object is larger than the old one, zeroes the
-// new memory.
-LS_INHEADER LS_ATTR_ALLOC_SIZE2(3, 4)
-void *
-ls_xrealloc0(void *p, size_t oldnelems, size_t nelems, size_t elemsz)
-{
-    p = ls_xrealloc(p, nelems, elemsz);
-    if (elemsz && nelems > oldnelems) {
-        memset((char *) p + elemsz * oldnelems, 0, elemsz * (nelems - oldnelems));
-    }
-    return p;
-}
-
-// Like /ls_x2realloc/, except that it zeroes the new memory.
-LS_INHEADER
-void *
-ls_x2realloc0(void *p, size_t *pnelems, size_t elemsz)
-{
-    const size_t oldnelems = *pnelems;
-    p = ls_x2realloc(p, pnelems, elemsz);
-    if (elemsz) {
-        memset((char *) p + elemsz * oldnelems, 0, elemsz * (*pnelems - oldnelems));
-    }
-    return p;
-}
-
 // Duplicates (as if with /malloc/) /n/ bytes of memory at address /p/. Panics on failure.
-LS_INHEADER LS_ATTR_MALLOC LS_ATTR_ALLOC_SIZE1(2)
+LS_INHEADER
 void *
 ls_xmemdup(const void *p, size_t n)
 {
@@ -185,7 +136,7 @@ ls_xmemdup(const void *p, size_t n)
 // The behaviour is same as calling
 //     /strdup(s)/,
 // except when the allocation fails. In that case, this function panics.
-LS_INHEADER LS_ATTR_MALLOC
+LS_INHEADER
 char *
 ls_xstrdup(const char *s)
 {

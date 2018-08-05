@@ -5,16 +5,20 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <stdint.h>
 #include <lua.h>
 #include <lauxlib.h>
+#include <errno.h>
 #include <ixp.h>
 
 #include "libls/alloc_utils.h"
 #include "libls/cstring_utils.h"
-#include "libls/sprintf_utils.h"
+#include "libls/errno_utils.h"
 #include "libls/vector.h"
 #include "libls/string_.h"
 #include "libls/getenv_r.h"
+#include "libls/io_utils.h"
+#include "libls/parse_int.h"
 
 static const char *wmii_namespace = "wmii";
 
@@ -36,6 +40,9 @@ typedef struct {
     // Widget content buffer.
     LSString buf;
 
+    // /fdopen/'ed /event_fd/, if passed; otherwise /NULL/.
+    FILE *in;
+
     // libixp client handle.
     IxpClient *client;
 } Priv;
@@ -47,6 +54,9 @@ destroy(LuastatusBarlibData *bd)
     Priv *p = bd->priv;
     free(p->exists);
     LS_VECTOR_FREE(p->buf);
+    if (p->in) {
+        fclose(p->in);
+    }
     if (p->client) {
         ixp_unmount(p->client);
     }
@@ -64,11 +74,13 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
         .barsym = 'r',
         .npreface = 0,
         .buf = LS_VECTOR_NEW(),
+        .in = NULL,
         .client = NULL,
     };
 
     const char *addr = ls_getenv_r("WMII_ADDRESS");
     bool wmii3 = false;
+    int in_fd = -1;
 
     for (const char *const *s = opts; *s; ++s) {
         const char *v;
@@ -76,7 +88,7 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
             addr = v;
         } else if ((v = ls_strfollow(*s, "bar="))) {
             if (strcmp(v, "l") != 0 && strcmp(v, "r") != 0) {
-                LS_FATALF(bd, "invalid bar= option value: '%s' (expected 'l' or 'r')", v);
+                LS_FATALF(bd, "invalid bar value: '%s' (expected 'l' or 'r')", v);
                 goto error;
             }
             p->barsym = v[0];
@@ -86,6 +98,16 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
             wmii3 = true;
             ls_string_append_s(&p->buf, v);
             ls_string_append_c(&p->buf, '\n');
+        } else if ((v = ls_strfollow(*s, "event_fd="))) {
+            in_fd = ls_full_parse_uint_s(v);
+            if (in_fd < 0) {
+                LS_FATALF(bd, "event_fd value is not a valid unsigned integer");
+                goto error;
+            }
+            if (in_fd < 3) {
+                LS_FATALF(bd, "event_fd < 3");
+                goto error;
+            }
         } else {
             LS_FATALF(bd, "unknown option '%s'", *s);
             goto error;
@@ -96,6 +118,21 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
         ls_string_append_s(&p->buf, "label ");
     }
     p->npreface = p->buf.size;
+
+    if (in_fd >= 0) {
+        if (!(p->in = fdopen(in_fd, "r"))) {
+            LS_WITH_ERRSTR(s, errno,
+                LS_FATALF(bd, "cannot fdopen %d: %s", in_fd, s);
+            );
+            goto error;
+        }
+        if (ls_make_cloexec(in_fd) < 0) {
+            LS_WITH_ERRSTR(s, errno,
+                LS_FATALF(bd, "cannot make file descriptor %d CLOEXEC: %s", in_fd, s);
+            );
+            goto error;
+        }
+    }
 
     if (addr) {
         if (!(p->client = ixp_mount(addr))) {
@@ -227,9 +264,54 @@ set_error(LuastatusBarlibData *bd, size_t widget_idx)
     return LUASTATUS_OK;
 }
 
+static
+int
+event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
+{
+    Priv *p = bd->priv;
+
+    if (!p->in) {
+        return LUASTATUS_NONFATAL_ERR;
+    }
+
+    char *line;
+    size_t line_alloc = 0;
+    for (ssize_t nline; (nline = getline(&line, &line_alloc, p->in)) >= 0;) {
+        char event[128];
+        int button;
+        size_t widget_idx;
+        if (sscanf(line, "%127s %d LS%zu\n", event, &button, &widget_idx) != 3) {
+            continue;
+        }
+        const char *evdetail = ls_strfollow(event, p->barsym == 'l' ? "LeftBar" : "RightBar");
+        if (!evdetail) {
+            continue;
+        }
+        lua_State *L = funcs.call_begin(bd->userdata, widget_idx);
+        // L: ?
+        lua_newtable(L); // L: ? table
+        lua_pushstring(L, evdetail); // L: ? table string
+        lua_setfield(L, -2, "event"); // L: ? table
+        lua_pushinteger(L, button); // L: ? table integer
+        lua_setfield(L, -2, "button"); // L: ? table
+        funcs.call_end(bd->userdata, widget_idx);
+    }
+
+    if (feof(p->in)) {
+        LS_FATALF(bd, "(event watcher) event fd has been closed");
+    } else {
+        LS_WITH_ERRSTR(s, errno,
+            LS_FATALF(bd, "(event watcher) cannot read from event fd: %s", s);
+        );
+    }
+    free(line);
+    return LUASTATUS_ERR;
+}
+
 LuastatusBarlibIface luastatus_barlib_iface_v1 = {
     .init = init,
     .set = set,
     .set_error = set_error,
+    .event_watcher = event_watcher,
     .destroy = destroy,
 };
