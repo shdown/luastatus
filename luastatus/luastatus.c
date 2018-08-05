@@ -215,28 +215,23 @@ safe_dlerror(void)
     return err ? err : "(no error, but the symbol is NULL)";
 }
 
-#define XPAND_LOGLEVELS() \
-    X(LUASTATUS_LOG_FATAL,   "fatal") \
-    X(LUASTATUS_LOG_ERR,     "error") \
-    X(LUASTATUS_LOG_WARN,    "warning") \
-    X(LUASTATUS_LOG_INFO,    "info") \
-    X(LUASTATUS_LOG_VERBOSE, "verbose") \
-    X(LUASTATUS_LOG_DEBUG,   "debug") \
-    X(LUASTATUS_LOG_TRACE,   "trace") \
-    /* end of the list */
+static const char * loglevel_names[LUASTATUS_LOG_LAST] = {
+    [LUASTATUS_LOG_FATAL]   = "fatal",
+    [LUASTATUS_LOG_ERR]     = "error",
+    [LUASTATUS_LOG_WARN]    = "warning",
+    [LUASTATUS_LOG_INFO]    = "info",
+    [LUASTATUS_LOG_VERBOSE] = "verbose",
+    [LUASTATUS_LOG_DEBUG]   = "debug",
+    [LUASTATUS_LOG_TRACE]   = "trace",
+};
 
 // Returns a name of the given log level. If /level/ is not a correct log level, the behaviour is
 // undefined.
-static
+static inline
 const char *
 loglevel_tostr(int level)
 {
-    switch (level) {
-#define X(Level_, Name_) case Level_: return Name_;
-    XPAND_LOGLEVELS()
-#undef X
-    }
-    LS_UNREACHABLE();
+    return loglevel_names[level];
 }
 
 // Returns a log level number by its name /str/, or returns /LUASTATUS_LOG_LAST/ if no such log
@@ -245,15 +240,14 @@ static
 int
 loglevel_fromstr(const char *str)
 {
-#define X(Level_, Name_) \
-    if (strcmp(str, Name_) == 0) { \
-        return Level_; \
+    for (size_t i = 0; i < LUASTATUS_LOG_LAST; ++i) {
+        assert(loglevel_names[i]); // a hole in enumeration?
+        if (strcmp(str, loglevel_names[i]) == 0) {
+            return i;
+        }
     }
-    XPAND_LOGLEVELS()
-#undef X
     return LUASTATUS_LOG_LAST;
 }
-#undef XPAND_LOGLEVELS
 
 // The generic logging function: generates a log message with level /level/ from a given /subsystem/
 // (either a plugin or a barlib name; or /NULL/, which means the message is from the luastatus
