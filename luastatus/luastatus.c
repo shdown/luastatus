@@ -167,7 +167,7 @@ static struct {
 
     // A mutex guarding /L/.
     pthread_mutex_t L_mtx;
-} sepstate = {NULL};
+} sepstate = {.L = NULL};
 
 // See DOCS/design/map_get.md
 //

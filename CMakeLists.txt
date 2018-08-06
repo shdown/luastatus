@@ -17,7 +17,7 @@ if ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU" OR
     if (${CMAKE_BUILD_TYPE} MATCHES "Release|MinSizeRel")
         set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s")
     endif ()
-    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pedantic -Wall -Wextra -Wcast-qual -Wcast-align -Wfloat-equal -Wredundant-decls -Wshadow -Wpointer-arith -Wstrict-prototypes -Winit-self")
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pedantic -Wall -Wextra -Wcast-qual -Wfloat-equal -Wredundant-decls -Wshadow -Wpointer-arith -Wstrict-prototypes -Winit-self")
     if ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
         set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wlogical-op")
     endif ()
