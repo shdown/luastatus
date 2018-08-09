@@ -141,7 +141,7 @@ static struct {
     // A mutex guarding calls to /iface.set()/ and /iface.set_error()/.
     pthread_mutex_t set_mtx;
 
-    // A handle required from /dlopen/ for this barlib's shared library file.
+    // A handle returned from /dlopen/ for this barlib's shared library file.
     void *dlhandle;
 } barlib;
 
