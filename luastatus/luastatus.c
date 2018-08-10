@@ -128,6 +128,17 @@ typedef struct {
     char *filename;
 } Widget;
 
+// The list of log level names.
+static const char *loglevel_names[LUASTATUS_LOG_LAST] = {
+    [LUASTATUS_LOG_FATAL]   = "fatal",
+    [LUASTATUS_LOG_ERR]     = "error",
+    [LUASTATUS_LOG_WARN]    = "warning",
+    [LUASTATUS_LOG_INFO]    = "info",
+    [LUASTATUS_LOG_VERBOSE] = "verbose",
+    [LUASTATUS_LOG_DEBUG]   = "debug",
+    [LUASTATUS_LOG_TRACE]   = "trace",
+};
+
 // Current log level. May only be changed once, when parsing command-line arguments.
 static int loglevel = LUASTATUS_LOG_INFO;
 
@@ -214,16 +225,6 @@ safe_dlerror(void)
     const char *err = dlerror();
     return err ? err : "(no error, but the symbol is NULL)";
 }
-
-static const char * loglevel_names[LUASTATUS_LOG_LAST] = {
-    [LUASTATUS_LOG_FATAL]   = "fatal",
-    [LUASTATUS_LOG_ERR]     = "error",
-    [LUASTATUS_LOG_WARN]    = "warning",
-    [LUASTATUS_LOG_INFO]    = "info",
-    [LUASTATUS_LOG_VERBOSE] = "verbose",
-    [LUASTATUS_LOG_DEBUG]   = "debug",
-    [LUASTATUS_LOG_TRACE]   = "trace",
-};
 
 // Returns a name of the given log level. If /level/ is not a correct log level, the behaviour is
 // undefined.
