@@ -56,20 +56,20 @@
 #define UNLOCK_E(W_) PTH_ASSERT(pthread_mutex_unlock(widget_event_L_mtx(W_)))
 
 typedef struct {
-    // The interface loaded from this plugin's shared library file.
+    // The interface loaded from this plugin's .so file.
     LuastatusPluginIface_v1 iface;
 
     // An allocated zero-terminated string with plugin name, as specified in widget's
     // /widget.plugin/ string.
     char *name;
 
-    // A handle returned from /dlopen/ for this plugin's shared library file.
+    // A handle returned from /dlopen/ for this plugin's .so file.
     void *dlhandle;
 } Plugin;
 
 // If any step of widget's initialization fails, the widget is not removed from the /widgets/
 // buffer, but is, instead, unloaded and becomes *stillborn*; barlib's /set_error()/ is called on
-// such a widget, and a separate "runner" thread simply does not get spawned for it.
+// it, and a separate "runner" thread simply does not get spawned for it.
 //
 // However, barlib's /event_watcher()/ may still report events on such a widget.
 // Possible solutions to this are:
@@ -79,8 +79,8 @@ typedef struct {
 //   2. Initialize each stillborn widget's /L/ with an empty Lua state, and provide it to the event
 //      watcher each time it generates an event on this widget.
 //   3. If there is at least one stillborn widget, initialize the *separate state* (see below), and
-//      provide /sepstate.L/ to the event watcher. A slight benefit over the second one is that only
-//      one extra initialized Lua state is required.
+//      provide /sepstate.L/ to the event watcher. A slight benefit over the second variant is that
+//      only one extra initialized Lua state is required.
 //
 // We choose the third one, and thus require stillborn widgets to have:
 //   1. /sepstate_event/ field set to /true/ so that /ew_call_begin/ and /ew_call_end/ functions
@@ -143,7 +143,7 @@ static const char *loglevel_names[LUASTATUS_LOG_LAST] = {
 static int loglevel = LUASTATUS_LOG_INFO;
 
 static struct {
-    // The interface loaded from this barlib's shared library file.
+    // The interface loaded from this barlib's .so file.
     LuastatusBarlibIface_v1 iface;
 
     // This barlib's data.
@@ -152,7 +152,7 @@ static struct {
     // A mutex guarding calls to /iface.set()/ and /iface.set_error()/.
     pthread_mutex_t set_mtx;
 
-    // A handle returned from /dlopen/ for this barlib's shared library file.
+    // A handle returned from /dlopen/ for this barlib's .so file.
     void *dlhandle;
 } barlib;
 
@@ -195,7 +195,7 @@ static struct {
     bool frozen;
 } map = {NULL, false};
 
-// A structure we store in the nodes of the tree.
+// A structure we store in a node of the tree.
 typedef struct {
     // The pointer value of this entry.
     void *value;
@@ -318,10 +318,10 @@ map_entry_cmp(const void *a, const void *b)
 // Returns a pointer to the value of the entry with key /key/.
 static
 void **
-map_do_get(const char *key)
+map_get(const char *key)
 {
     if (map.frozen) {
-        LS_PANIC("map_do_get is called after the map has been frozen");
+        LS_PANIC("map_get is called after the map has been frozen");
     }
 
     const size_t nkey = strlen(key);
@@ -342,10 +342,10 @@ map_do_get(const char *key)
 
 static
 void **
-map_get(void *userdata, const char *key)
+external_map_get(void *userdata, const char *key)
 {
     TRACEF("map_get(userdata=%p, key='%s')", userdata, key);
-    return map_do_get(key);
+    return map_get(key);
 }
 
 // Destroys the map.
@@ -394,7 +394,7 @@ barlib_init(const char *filename, const char *const *opts)
     barlib.data = (LuastatusBarlibData_v1) {
         .userdata = NULL,
         .sayf = external_sayf,
-        .map_get = map_get,
+        .map_get = external_map_get,
     };
 
     if (barlib.iface.init(&barlib.data, opts, nwidgets) == LUASTATUS_ERR) {
@@ -623,7 +623,7 @@ int
 l_map_get_handle(lua_State *L)
 {
     const char *arg = luaL_checkstring(L, 1);
-    lua_pushlightuserdata(L, map_do_get(arg)); // L: ? key
+    lua_pushlightuserdata(L, map_get(arg)); // L: ? key
     lua_pushvalue(L, lua_upvalueindex(1)); // L: ? key metatable
     lua_setmetatable(L, -2); // L: ? key
     return 1;
@@ -967,7 +967,7 @@ widget_init(Widget *w, const char *filename)
     w->data = (LuastatusPluginData_v1) {
         .userdata = w,
         .sayf = external_sayf,
-        .map_get = map_get,
+        .map_get = external_map_get,
     };
 
     if (w->plugin.iface.init(&w->data, L) == LUASTATUS_ERR) {
