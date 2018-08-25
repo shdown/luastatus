@@ -115,6 +115,7 @@ option (BUILD_PLUGIN_IMAP "build plugins/imap" ON)
 option (BUILD_PLUGIN_MEM_USAGE_LINUX "build plugins/mem-usage-linux" ON)
 option (BUILD_PLUGIN_MPD "build plugins/mpd" ON)
 option (BUILD_PLUGIN_PIPE "build plugins/pipe" ON)
+option (BUILD_PLUGIN_PULSE "build plugins/pulse" OFF)
 option (BUILD_PLUGIN_TIMER "build plugins/timer" ON)
 option (BUILD_PLUGIN_UDEV "build plugins/udev" ON)
 option (BUILD_PLUGIN_XKB "build plugins/xkb" ON)
@@ -192,6 +193,10 @@ endif ()
 
 if (BUILD_PLUGIN_PIPE)
     add_subdirectory (plugins/pipe)
+endif ()
+
+if (BUILD_PLUGIN_PULSE)
+    add_subdirectory (plugins/pulse)
 endif ()
 
 if (BUILD_PLUGIN_TIMER)
