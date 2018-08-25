@@ -84,9 +84,9 @@ oom:
 
 // The behaviour is same as calling
 //     /realloc(p, (*pnelems = F(*pnelems)) * elemsz)/,
-// where F(n) = max(1, 2*n),
-// except when the multiplication overflows, or the reallocation fails. In these cases, this
-// function panics.
+// where F(n) = max(1, 2 * n),
+// except when a multiplication overflows, or the reallocation fails. In these cases, this function
+// panics.
 LS_INHEADER
 void *
 ls_x2realloc(void *p, size_t *pnelems, size_t elemsz)

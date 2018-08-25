@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <alsa/asoundlib.h>
 
 #include "include/plugin_v1.h"
@@ -111,10 +112,11 @@ cleanup:
 }
 
 static
-void
-run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
+bool
+iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
+    bool ret = false;
 
     snd_mixer_t *mixer;
     bool mixer_opened = false;
@@ -180,6 +182,8 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         p->capture ? snd_mixer_selem_get_capture_switch
                    : snd_mixer_selem_get_playback_switch;
 
+    ret = true;
+
     while (1) {
         lua_State *L = funcs.call_begin(pd->userdata);
         lua_newtable(L); // L: table
@@ -215,6 +219,18 @@ error:
         snd_mixer_close(mixer);
     }
     free(realname);
+    return ret;
+}
+
+static
+void
+run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
+{
+    while (1) {
+        if (!iteration(pd, funcs)) {
+            nanosleep((struct timespec[1]){{.tv_sec = 5}}, NULL);
+        }
+    }
 }
 
 LuastatusPluginIface luastatus_plugin_iface_v1 = {

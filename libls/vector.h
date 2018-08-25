@@ -75,6 +75,8 @@
         (Vec_).size -= (NRemove_); \
     } while (0)
 
+#define LS_VECTOR_POP(Vec_) (Vec_).data[--(Vec_).size]
+
 #define LS_VECTOR_FREE(Vec_) free((Vec_).data)
 
 #endif
