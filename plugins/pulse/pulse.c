@@ -172,9 +172,10 @@ context_state_cb(pa_context *c, void *vud)
 }
 
 static
-void
+bool
 iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
+    bool ret = false;
     UserData ud = {.pd = pd, .funcs = funcs, .def_sink_idx = DEF_SINK_IDX};
     pa_mainloop_api *api = NULL;
     pa_context *ctx = NULL;
@@ -203,8 +204,10 @@ iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         LS_FATALF(pd, "pa_context_connect: %s", pa_strerror(pa_context_errno(ctx)));
         goto error;
     }
-    int ret;
-    if (pa_mainloop_run(ud.ml, &ret) < 0) {
+    ret = true;
+
+    int ignored;
+    if (pa_mainloop_run(ud.ml, &ignored) < 0) {
         LS_FATALF(pd, "pa_mainloop_run: %s", pa_strerror(pa_context_errno(ctx)));
         goto error;
     }
@@ -216,6 +219,7 @@ error:
     if (ud.ml) {
         pa_mainloop_free(ud.ml);
     }
+    return ret;
 }
 
 static
@@ -223,7 +227,9 @@ void
 run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     while (1) {
-        iteration(pd, funcs);
+        if (!iteration(pd, funcs)) {
+            nanosleep((struct timespec[1]){{.tv_sec = 5}}, NULL);
+        }
     }
 }
 
