@@ -17,6 +17,7 @@ end
 
 widget = {
     plugin = 'timer',
+    opts = {period = 2},
     cb = function()
         local res = {}
         for _, p in ipairs(paths) do
