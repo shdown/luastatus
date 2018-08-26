@@ -1,4 +1,4 @@
-# Copyright 1999-2017 Gentoo Foundation
+# Copyright 1999-2018 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=6
@@ -32,6 +32,7 @@ PROPER_PLUGINS="
     +${PN}_plugins_fs
     +${PN}_plugins_inotify
     +${PN}_plugins_mpd
+    +${PN}_plugins_pulse
     +${PN}_plugins_timer
     +${PN}_plugins_udev
     +${PN}_plugins_xkb
@@ -39,8 +40,8 @@ PROPER_PLUGINS="
 "
 
 DERIVED_PLUGINS="
-    +${PN}_plugins_battery-linux
     +${PN}_plugins_backlight-linux
+    +${PN}_plugins_battery-linux
     +${PN}_plugins_cpu-usage-linux
     +${PN}_plugins_file-contents-linux
     +${PN}_plugins_imap
@@ -57,8 +58,8 @@ LICENSE="LGPL-3+"
 SLOT="0"
 IUSE="doc examples luajit ${BARLIBS} ${PLUGINS}"
 REQUIRED_USE="
-    ${PN}_plugins_battery-linux? ( ${PN}_plugins_timer )
     ${PN}_plugins_backlight-linux? ( ${PN}_plugins_udev )
+    ${PN}_plugins_battery-linux? ( ${PN}_plugins_timer )
     ${PN}_plugins_cpu-usage-linux? ( ${PN}_plugins_timer )
     ${PN}_plugins_file-contents-linux? ( ${PN}_plugins_inotify )
     ${PN}_plugins_imap? ( ${PN}_plugins_timer )
@@ -70,14 +71,15 @@ DEPEND=""
 RDEPEND="${DEPEND}
     luajit? ( dev-lang/luajit:2 )
     !luajit? ( dev-lang/lua:0 )
-    ${PN}_plugins_xtitle? ( x11-libs/libxcb x11-libs/xcb-util-wm )
-    ${PN}_plugins_xkb? ( x11-libs/libX11 )
-    ${PN}_plugins_alsa? ( media-libs/alsa-lib )
-    ${PN}_plugins_dbus? ( dev-libs/glib )
-    ${PN}_plugins_udev? ( virtual/libudev )
     ${PN}_barlibs_dwm? ( x11-libs/libxcb )
     ${PN}_barlibs_i3? ( >=dev-libs/yajl-2.1.0 )
     ${PN}_barlibs_wmii? ( sys-libs/libixp )
+    ${PN}_plugins_alsa? ( media-libs/alsa-lib )
+    ${PN}_plugins_dbus? ( dev-libs/glib )
+    ${PN}_plugins_pulse? ( media-sound/pulseaudio )
+    ${PN}_plugins_udev? ( virtual/libudev )
+    ${PN}_plugins_xtitle? ( x11-libs/libxcb x11-libs/xcb-util-wm )
+    ${PN}_plugins_xkb? ( x11-libs/libX11 )
 "
 
 src_configure() {
@@ -95,11 +97,12 @@ src_configure() {
         -DBUILD_PLUGIN_DBUS=$(usex ${PN}_plugins_dbus)
         -DBUILD_PLUGIN_FILE_CONTENTS_LINUX=$(usex ${PN}_plugins_file-contents-linux)
         -DBUILD_PLUGIN_FS=$(usex ${PN}_plugins_fs)
-        -DBUILD_PLUGIN_INOTIFY=$(usex ${PN}_plugins_inotify)
         -DBUILD_PLUGIN_IMAP=$(usex ${PN}_plugins_imap)
+        -DBUILD_PLUGIN_INOTIFY=$(usex ${PN}_plugins_inotify)
         -DBUILD_PLUGIN_MEM_USAGE_LINUX=$(usex ${PN}_plugins_mem-usage-linux)
         -DBUILD_PLUGIN_MPD=$(usex ${PN}_plugins_mpd)
         -DBUILD_PLUGIN_PIPE=$(usex ${PN}_plugins_pipe)
+        -DBUILD_PLUGIN_PULSE=$(usex ${PN}_plugins_pulse)
         -DBUILD_PLUGIN_TIMER=$(usex ${PN}_plugins_timer)
         -DBUILD_PLUGIN_UDEV=$(usex ${PN}_plugins_udev)
         -DBUILD_PLUGIN_XKB=$(usex ${PN}_plugins_xkb)
