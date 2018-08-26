@@ -10,6 +10,10 @@
 
 #include "libls/alloc_utils.h"
 
+// Note: some parts of this file are stolen from i3status' src/pulse.c.
+// This is fine since the BSD 3-Clause licence, under which it is licenced, is compatible with
+// LGPL-3.0.
+
 //typedef struct {
 //} Priv;
 
@@ -91,14 +95,14 @@ store_volume_from_sink_cb(pa_context *c, const pa_sink_info *info, int eol, void
 
 static
 void
-store_default_sink_cb(pa_context *c, const pa_sink_info *i, int eol, void *vud)
+store_default_sink_cb(pa_context *c, const pa_sink_info *info, int eol, void *vud)
 {
     UserData *ud = vud;
-    if (i) {
-        if (ud->def_sink_idx != i->index) {
+    if (info) {
+        if (ud->def_sink_idx != info->index) {
             // default sink changed?
-            ud->def_sink_idx = i->index;
-            store_volume_from_sink_cb(c, i, eol, vud);
+            ud->def_sink_idx = info->index;
+            store_volume_from_sink_cb(c, info, eol, vud);
         }
     }
 }
@@ -130,7 +134,8 @@ subscribe_cb(pa_context *c, pa_subscription_event_type_t t, uint32_t idx, void *
         break;
     case PA_SUBSCRIPTION_EVENT_SINK:
         {
-            pa_operation *o = pa_context_get_sink_info_by_index(c, idx, store_volume_from_sink_cb, vud);
+            pa_operation *o = pa_context_get_sink_info_by_index(
+                c, idx, store_volume_from_sink_cb, vud);
             free_op(ud->pd, c, o, "pa_context_get_sink_info_by_index");
         }
         break;
@@ -138,7 +143,6 @@ subscribe_cb(pa_context *c, pa_subscription_event_type_t t, uint32_t idx, void *
         break;
     }
 }
-
 
 static
 void
