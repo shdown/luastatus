@@ -8,10 +8,10 @@ widget = {
             elseif base_layout == 'ru' then
                 return '[Ru]'
             else
-                return '[' .. base_layout:sub(1,1):upper() .. base_layout:sub(2) .. ']'
+                return '[' .. base_layout:sub(1, 1):upper() .. base_layout:sub(2) .. ']'
             end
         else
-            return '[' .. '? ID ' .. t.id .. ']'
+            return '[? ID ' .. t.id .. ']'
         end
     end,
 }

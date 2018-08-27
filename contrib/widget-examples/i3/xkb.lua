@@ -8,10 +8,10 @@ widget = {
             elseif base_layout == 'ru' then
                 return {full_text = '[Ru]', color = '#eab93d'}
             else
-                return {full_text = '[' .. base_layout:sub(1,1):upper() .. base_layout:sub(2) .. ']'}
+                return {full_text = '[' .. base_layout:sub(1, 1):upper() .. base_layout:sub(2) .. ']'}
             end
         else
-            return {full_text = '[' .. '? ID ' .. t.id .. ']'}
+            return {full_text = '[? ID ' .. t.id .. ']'}
         end
     end,
 }
