@@ -5,6 +5,12 @@
 
 #include "alloc_utils.h"
 
+// To be able to pass vectors as function arguments and/or return them, use, e.g.,
+//
+// typedef LS_VECTOR_OF(int) IntVector;
+//
+// Note this is not required for any other use.
+
 #define LS_VECTOR_OF(Type_) \
     struct { \
         Type_ *data; \
