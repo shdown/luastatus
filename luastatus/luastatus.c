@@ -55,6 +55,14 @@
 #define LOCK_E(W_)   PTH_ASSERT(pthread_mutex_lock(widget_event_L_mtx(W_)))
 #define UNLOCK_E(W_) PTH_ASSERT(pthread_mutex_unlock(widget_event_L_mtx(W_)))
 
+// Allocates (as if with /malloc/) a buffer of sufficient size, prints the formatted zero-terminated
+// string into it (as if with /sprintf(<...>, Fmt_, __VA_ARGS__)/), and returns it as a /char */.
+//
+// Panics on allocation failure.
+//
+// /Fmt_/ must be a literal constant.
+#define ASPRINTF(Fmt_, ...) ls_string_new_from_f(Fmt_ "%c", __VA_ARGS__, '\0').data
+
 typedef struct {
     // The interface loaded from this plugin's .so file.
     LuastatusPluginIface_v1 iface;
@@ -423,9 +431,9 @@ barlib_init_by_name(const char *name, const char *const *opts)
     if ((strchr(name, '/'))) {
         return barlib_init(name, opts);
     } else {
-        LSString filename = ls_string_new_from_f("%s/barlib-%s.so", LUASTATUS_BARLIBS_DIR, name);
-        bool r = barlib_init(filename.data, opts);
-        LS_VECTOR_FREE(filename);
+        char *filename = ASPRINTF("%s/barlib-%s.so", LUASTATUS_BARLIBS_DIR, name);
+        bool r = barlib_init(filename, opts);
+        free(filename);
         return r;
     }
 }
@@ -491,9 +499,9 @@ plugin_load_by_name(Plugin *p, const char *name)
     if ((strchr(name, '/'))) {
         return plugin_load(p, name, name);
     } else {
-        LSString filename = ls_string_new_from_f("%s/plugin-%s.so", LUASTATUS_PLUGINS_DIR, name);
-        bool r = plugin_load(p, filename.data, name);
-        LS_VECTOR_FREE(filename);
+        char *filename = ASPRINTF("%s/plugin-%s.so", LUASTATUS_PLUGINS_DIR, name);
+        bool r = plugin_load(p, filename, name);
+        free(filename);
         return r;
     }
 }
@@ -674,9 +682,9 @@ l_require_plugin(lua_State *L)
     }
     lua_pop(L, 1); // L: ? table
 
-    LSString filename = ls_string_new_from_f("%s/%s.lua", LUASTATUS_PLUGINS_DIR, arg);
-    int r = luaL_loadfile(L, filename.data);
-    LS_VECTOR_FREE(filename);
+    char *filename = ASPRINTF("%s/%s.lua", LUASTATUS_PLUGINS_DIR, arg);
+    int r = luaL_loadfile(L, filename);
+    free(filename);
     if (r != 0) {
         return lua_error(L);
     }
@@ -872,11 +880,10 @@ widget_init_inspect_event(Widget *w, const char *filename)
             sepstate_maybe_init();
             size_t ncode;
             const char *code = lua_tolstring(w->L, -1, &ncode);
-            LSString chunkname = ls_string_new_from_f("widget.event of %s", filename);
+            char *chunkname = ASPRINTF("widget.event of %s", filename);
             bool r = check_lua_call(
-                sepstate.L,
-                luaL_loadbuffer(sepstate.L, code, ncode, chunkname.data));
-            LS_VECTOR_FREE(chunkname);
+                sepstate.L, luaL_loadbuffer(sepstate.L, code, ncode, chunkname));
+            free(chunkname);
             if (!r) {
                 return false;
             }
