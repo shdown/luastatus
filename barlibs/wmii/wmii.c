@@ -274,13 +274,17 @@ event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
         return LUASTATUS_NONFATAL_ERR;
     }
 
-    char *line;
+    char *line = NULL;
     size_t line_alloc = 0;
     for (ssize_t nline; (nline = getline(&line, &line_alloc, p->in)) >= 0;) {
         char event[128];
         int button;
         size_t widget_idx;
         if (sscanf(line, "%127s %d LS%zu\n", event, &button, &widget_idx) != 3) {
+            continue;
+        }
+        if (widget_idx >= p->nwidgets) {
+            LS_WARNF(bd, "event on widget with invalid index %zu reported", widget_idx);
             continue;
         }
         const char *evdetail = ls_strfollow(event, p->barsym == 'l' ? "LeftBar" : "RightBar");
