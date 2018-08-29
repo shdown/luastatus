@@ -32,6 +32,13 @@ Functions
 Example
 ===
 ````lua
+function get_user_name()
+    local f = io.popen('whoami', 'r')
+    local r = f:read('*line')
+    f:close()
+    return r
+end
+
 i = 0
 widget = {
     plugin = 'timer',
@@ -45,7 +52,7 @@ widget = {
             return {full_text = '<Hello!>', color = '#aaaa00'}
         elseif i == 3 then
             -- see https://developer.gnome.org/pango/stable/PangoMarkupFormat.html
-            return {full_text = 'Hello, <span color="#aaaa00">' .. luastatus.barlib.pango_escape(luastatus.dollar{'whoami'}) .. '</span>!',
+            return {full_text = 'Hello, <span color="#aaaa00">' .. luastatus.barlib.pango_escape(get_user_name()) .. '</span>!',
                     markup = 'pango'}
         elseif i == 4 then
             i = 0
