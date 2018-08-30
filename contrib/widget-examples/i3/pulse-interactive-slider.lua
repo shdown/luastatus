@@ -1,9 +1,6 @@
 HBLOCKS = {' ', '▏', '▎', '▍', '▌', '▋', '▊', '▉', '█'}
 WIDTH = 20
 
-fifo = os.getenv('HOME') .. '/.luastatus-toy'
-assert(os.execute('f=' .. fifo .. '; set -e; rm -f $f; mkfifo -m600 $f'))
-
 function round(x) -- only works for x >= 0
     return math.floor(x + 0.5)
 end
