@@ -1,7 +1,8 @@
 HBLOCKS = {' ', '▏', '▎', '▍', '▌', '▋', '▊', '▉', '█'}
 WIDTH = 20
+OFFSET = 9
 
-function round(x) -- only works for x >= 0
+function round(x)
     return math.floor(x + 0.5)
 end
 
@@ -30,7 +31,7 @@ widget = {
     end,
     event = function(t)
         if t.button == 1 then
-            local c = round(t.relative_x / t.width * last_norm)
+            local c = round((t.relative_x - OFFSET) / (t.width - OFFSET) * last_norm)
             os.execute('pactl set-sink-volume @DEFAULT_SINK@ ' .. c)
         end
     end,
