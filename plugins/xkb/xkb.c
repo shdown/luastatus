@@ -64,7 +64,7 @@ init(LuastatusPluginData *pd, lua_State *L)
             LS_FATALF(pd, "XInitThreads failed");
             goto error;
         }
-        *ptr = p;
+        *ptr = "yes";
     }
 
     return LUASTATUS_OK;
