@@ -14,11 +14,11 @@ local GAUGE_NCHARS = 20
 --     * `B' be the width, in pixels, on the gauge block (known when clicked).
 --
 -- We have:
---      { x + U*y = A;
---      { x + V*y = B.
+--     { x + U*y = A;
+--     { x + V*y = B.
 -- So,
---      y = (A - B) / (U - V)
---      x = A - U*y.
+--     y = (A - B) / (U - V);
+--     x = A - U*y.
 
 local last_cur, last_norm = nil, nil
 local text_block_nchars, text_block_width = nil, nil
