@@ -19,3 +19,8 @@ A string decribing why the function is called:
 * If it’s `"timeout"`, the function hasn’t been called for `period` seconds.
 
 * If it’s `"fifo"`, the FIFO has been touched.
+
+Functions
+===
+
+* `push_period(seconds)` (**EXPERIMENTAL**): change the timer period for one iteration.
