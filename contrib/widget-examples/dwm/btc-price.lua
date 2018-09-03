@@ -35,10 +35,6 @@ function request_check_code(...)
     return body, headers
 end
 
-fifo_path = os.getenv('HOME') .. '/.luastatus-btc-pipe'
-assert(os.execute('f=' .. fifo_path .. '; set -e; rm -f $f; mkfifo -m600 $f'))
-upd_self_cmd = 'touch ' .. fifo_path
-
 widget = {
     plugin = 'timer',
     opts = {
@@ -52,7 +48,7 @@ widget = {
             text = json.decode(body).bpi.USD.rate:match('[^.]+')
         else
             text = '......'
-            os.execute('{ sleep 2; exec ' .. upd_self_cmd .. '; }&')
+            luastatus.plugin.push_period(5) -- retry in 5 seconds
         end
         return string.format('[$%s]', text)
     end,

@@ -19,8 +19,7 @@ Functions
 
       * `mailbox`: mailbox name (string; typically `"Inbox"`);
 
-      * `sleep_on_error`: a function that will be called when the plugin wants to sleep after an error.
-        Typically something like: `function() os.execute('sleep 60') end`;
+      * `error_sleep_period`: a number of seconds to sleep after an error.
 
       **(optional)**
 

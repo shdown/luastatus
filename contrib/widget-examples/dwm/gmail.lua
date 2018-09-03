@@ -10,7 +10,7 @@ widget = luastatus.require_plugin('imap').widget{
     handshake_timeout = 10,
     login = credentials.gmail.login,
     password = credentials.gmail.password,
-    sleep_on_error = function() os.execute('sleep 60') end,
+    error_sleep_period = 60,
     cb = function(unseen)
         if unseen == nil or unseen == 0 then
             return nil

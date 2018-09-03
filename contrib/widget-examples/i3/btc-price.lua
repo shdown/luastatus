@@ -37,7 +37,6 @@ end
 
 fifo_path = os.getenv('HOME') .. '/.luastatus-btc-pipe'
 assert(os.execute('f=' .. fifo_path .. '; set -e; rm -f $f; mkfifo -m600 $f'))
-upd_self_cmd = 'touch ' .. fifo_path
 
 widget = {
     plugin = 'timer',
@@ -52,7 +51,7 @@ widget = {
             text = json.decode(body).bpi.USD.rate:match('[^.]+')
         else
             text = '......'
-            os.execute('{ sleep 2; exec ' .. upd_self_cmd .. '; }&')
+            luastatus.plugin.push_period(5) -- retry in 5 seconds
         end
         return {
             full_text = string.format('[<span color="#C0863F">$</span>%s]', text),
@@ -62,7 +61,7 @@ widget = {
     end,
     event = function(t)
         if t.button == 1 then
-            os.execute('exec ' .. upd_self_cmd .. '&')
+            os.execute('touch ' .. fifo_path .. '&')
         end
     end,
 }
