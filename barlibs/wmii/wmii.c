@@ -175,14 +175,16 @@ set_content(LuastatusBarlibData *bd, size_t widget_idx, const char *buf, size_t 
     char path[NPATH];
     get_path(path, p, widget_idx);
 
+    // Why am I getting EPERM if passing (P9_OWRITE | P9_OCEXEC) flags?
+    // libixp is really crappy.
     IxpCFid *f;
     if (p->exists[widget_idx]) {
-        if (!(f = ixp_open(p->client, path, P9_OWRITE | P9_OCEXEC))) {
+        if (!(f = ixp_open(p->client, path, P9_OWRITE))) {
             LS_ERRF(bd, "ixp_open: %s: %s", path, ixp_errbuf());
             return false;
         }
     } else {
-        if (!(f = ixp_create(p->client, path, 6 /* rw- */, P9_OWRITE | P9_OCEXEC))) {
+        if (!(f = ixp_create(p->client, path, 6 /* rw- */, P9_OWRITE))) {
             LS_ERRF(bd, "ixp_create: %s: %s", path, ixp_errbuf());
             return false;
         }

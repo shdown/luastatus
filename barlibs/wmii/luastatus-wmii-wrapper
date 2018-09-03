@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+exec ${LUASTATUS:-luastatus} -b wmii -B event_fd=3 "$@" 3< <(exec wmiir read /event)
