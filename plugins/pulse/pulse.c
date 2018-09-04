@@ -1,7 +1,10 @@
 #include <lua.h>
 #include <stdlib.h>
 #include <time.h>
+#include <errno.h>
 #include <stdint.h>
+#include <unistd.h>
+#include <assert.h>
 #include <pulse/pulseaudio.h>
 
 #include "include/plugin_v1.h"
@@ -9,42 +12,82 @@
 #include "include/plugin_utils.h"
 
 #include "libls/alloc_utils.h"
+#include "libls/osdep.h"
+#include "libls/io_utils.h"
+#include "libls/errno_utils.h"
 
 // Note: some parts of this file are stolen from i3status' src/pulse.c.
 // This is fine since the BSD 3-Clause licence, under which it is licenced, is compatible with
 // LGPL-3.0.
 
-//typedef struct {
-//} Priv;
+typedef struct {
+    int self_pipe[2];
+} Priv;
 
 static
 void
 destroy(LuastatusPluginData *pd)
 {
-    (void) pd;
-    //Priv *p = pd->priv;
-    //free(p);
+    Priv *p = pd->priv;
+    ls_close(p->self_pipe[0]);
+    ls_close(p->self_pipe[1]);
+    free(p);
 }
 
 static
 int
 init(LuastatusPluginData *pd, lua_State *L)
 {
-    //Priv *p = pd->priv = LS_XNEW(Priv, 1);
-    //*p = (Priv) {
-    //};
+    Priv *p = pd->priv = LS_XNEW(Priv, 1);
+    *p = (Priv) {
+        .self_pipe = {-1, -1},
+    };
 
-    lua_pushnil(L);
-    if (lua_next(L, -2)) {
-        LS_FATALF(pd, "no options supported");
-        goto error;
-    }
+    PU_MAYBE_VISIT_BOOL("make_self_pipe", NULL, b,
+        if (b) {
+            if (ls_cloexec_pipe(p->self_pipe) < 0) {
+                LS_WITH_ERRSTR(s, errno,
+                    LS_FATALF(pd, "ls_cloexec_pipe: %s", s);
+                );
+                p->self_pipe[0] = -1;
+                p->self_pipe[1] = -1;
+                goto error;
+            }
+            ls_make_nonblock(p->self_pipe[0]);
+            ls_make_nonblock(p->self_pipe[1]);
+        }
+    );
 
     return LUASTATUS_OK;
 
 error:
     destroy(pd);
     return LUASTATUS_ERR;
+}
+
+static
+int
+l_wake_up(lua_State *L)
+{
+    LuastatusPluginData *pd = lua_touserdata(L, lua_upvalueindex(1));
+    Priv *p = pd->priv;
+
+    write(p->self_pipe[1], "", 1);
+
+    return 0;
+}
+
+static
+void
+register_funcs(LuastatusPluginData *pd, lua_State *L)
+{
+    Priv *p = pd->priv;
+    if (p->self_pipe[0] >= 0) {
+        // L: table
+        lua_pushlightuserdata(L, pd); // L: table bd
+        lua_pushcclosure(L, l_wake_up, 1); // L: table pd l_wake_up
+        ls_lua_rawsetf(L, "wake_up"); // L: table
+    }
 }
 
 static const uint32_t DEF_SINK_IDX = UINT32_MAX;
@@ -65,6 +108,22 @@ free_op(LuastatusPluginData *pd, pa_context *c, pa_operation *o, const char *wha
     } else {
         LS_ERRF(pd, "%s: %s", what, pa_strerror(pa_context_errno(c)));
     }
+}
+
+static
+void
+self_pipe_cb(pa_mainloop_api *api, pa_io_event *e, int fd, pa_io_event_flags_t events, void *vud)
+{
+    (void) api;
+    (void) e;
+    (void) events;
+
+    read(fd, (char[1]) {'\0'}, 1);
+
+    UserData *ud = vud;
+    lua_State *L = ud->funcs.call_begin(ud->pd->userdata);
+    lua_pushnil(L);
+    ud->funcs.call_end(ud->pd->userdata);
 }
 
 static
@@ -122,6 +181,7 @@ void
 subscribe_cb(pa_context *c, pa_subscription_event_type_t t, uint32_t idx, void *vud)
 {
     UserData *ud = vud;
+    LS_INFOF(ud->pd, "subscribe_cb");
 
     if ((t & PA_SUBSCRIPTION_EVENT_TYPE_MASK) != PA_SUBSCRIPTION_EVENT_CHANGE) {
         return;
@@ -149,6 +209,7 @@ void
 context_state_cb(pa_context *c, void *vud)
 {
     UserData *ud = vud;
+    LS_INFOF(ud->pd, "context_state_cb");
     switch (pa_context_get_state(c)) {
     case PA_CONTEXT_UNCONNECTED:
     case PA_CONTEXT_CONNECTING:
@@ -180,9 +241,11 @@ bool
 iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     bool ret = false;
+    Priv *p = pd->priv;
     UserData ud = {.pd = pd, .funcs = funcs, .def_sink_idx = DEF_SINK_IDX};
     pa_mainloop_api *api = NULL;
     pa_context *ctx = NULL;
+    pa_io_event *pipe_ev = NULL;
 
     if (!(ud.ml = pa_mainloop_new())) {
         LS_FATALF(pd, "pa_mainloop_new() failed");
@@ -208,6 +271,15 @@ iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         LS_FATALF(pd, "pa_context_connect: %s", pa_strerror(pa_context_errno(ctx)));
         goto error;
     }
+
+    if (p->self_pipe[0] >= 0) {
+        pipe_ev = api->io_new(api, p->self_pipe[0], PA_IO_EVENT_INPUT, self_pipe_cb, &ud);
+        if (!pipe_ev) {
+            LS_FATALF(pd, "io_new() failed");
+            goto error;
+        }
+    }
+
     ret = true;
 
     int ignored;
@@ -217,6 +289,10 @@ iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     }
 
 error:
+    if (pipe_ev) {
+        assert(api);
+        api->io_free(pipe_ev);
+    }
     if (ctx) {
         pa_context_unref(ctx);
     }
@@ -232,13 +308,14 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     while (1) {
         if (!iteration(pd, funcs)) {
-            nanosleep((struct timespec[1]){{.tv_sec = 5}}, NULL);
+            nanosleep((struct timespec[1]) {{.tv_sec = 5}}, NULL);
         }
     }
 }
 
 LuastatusPluginIface luastatus_plugin_iface_v1 = {
     .init = init,
+    .register_funcs = register_funcs,
     .run = run,
     .destroy = destroy,
 };

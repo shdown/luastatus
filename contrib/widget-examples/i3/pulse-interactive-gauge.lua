@@ -20,7 +20,7 @@ local GAUGE_NCHARS = 20
 --     y = (A - B) / (U - V);
 --     x = A - U*y.
 
-local last_cur, last_norm = nil, nil
+local last_t = nil
 local text_block_nchars, text_block_width = nil, nil
 local gauge = false
 
@@ -39,20 +39,19 @@ local function mk_gauge(level)
     return filled .. HBLOCKS[1 + mid_idx] .. HBLOCKS[1]:rep(GAUGE_NCHARS - nfull - 1)
 end
 
-local function update_self()
-    -- this is extremely hack-ish and should be replaced with some to-be-added self-awaking
-    -- capability of the plugin.
-    assert(os.execute(
-        'pactl set-sink-volume @DEFAULT_SINK@ ' .. (last_cur + 1) .. ';' ..
-        'pactl set-sink-volume @DEFAULT_SINK@ ' .. last_cur))
-end
-
 widget = {
     plugin = 'pulse',
 
+    opts = {make_self_pipe = true},
+
     cb = function(t)
-        last_cur, last_norm = t.cur, t.norm
-        local level = last_cur / last_norm
+        if t == nil then
+            t = last_t
+        else
+            last_t = t
+        end
+
+        local level = t.cur / t.norm
 
         local r = {}
         if t.mute then
@@ -84,13 +83,13 @@ widget = {
                 if x < 0 then
                     return
                 end
-                local rawvol = round(x / (t.width - sep_width) * last_norm)
+                local rawvol = round(x / (t.width - sep_width) * last_t.norm)
                 assert(os.execute('pactl set-sink-volume @DEFAULT_SINK@ ' .. rawvol))
 
             else
                 gauge = not gauge
                 text_block_width = t.width
-                update_self()
+                luastatus.plugin.wake_up()
             end
 
         elseif t.button == 3 then -- right mouse button
