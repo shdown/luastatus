@@ -4,7 +4,7 @@ It does not provide functions.
 
 `cb` return value
 ===
-A string or `nil`.
+A string, an array (that is, a table with integer keys) of strings, or `nil`.
 
 Options
 ===
