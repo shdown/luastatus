@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <poll.h>
 #include <alsa/asoundlib.h>
 
 #include "include/plugin_v1.h"
@@ -11,12 +12,16 @@
 #include "include/plugin_utils.h"
 
 #include "libls/alloc_utils.h"
+#include "libls/osdep.h"
+#include "libls/io_utils.h"
+#include "libls/errno_utils.h"
 
 typedef struct {
     char *card;
     char *channel;
     bool capture;
     bool in_db;
+    int self_pipe[2];
 } Priv;
 
 static
@@ -26,6 +31,8 @@ destroy(LuastatusPluginData *pd)
     Priv *p = pd->priv;
     free(p->card);
     free(p->channel);
+    ls_close(p->self_pipe[0]);
+    ls_close(p->self_pipe[1]);
     free(p);
 }
 
@@ -39,6 +46,7 @@ init(LuastatusPluginData *pd, lua_State *L)
         .channel = NULL,
         .capture = false,
         .in_db = false,
+        .self_pipe = {-1, -1},
     };
 
     PU_MAYBE_VISIT_STR("card", NULL, s,
@@ -63,11 +71,51 @@ init(LuastatusPluginData *pd, lua_State *L)
         p->in_db = b;
     );
 
+    PU_MAYBE_VISIT_BOOL("make_self_pipe", NULL, b,
+        if (b) {
+            if (ls_cloexec_pipe(p->self_pipe) < 0) {
+                LS_WITH_ERRSTR(s, errno,
+                    LS_FATALF(pd, "ls_cloexec_pipe: %s", s);
+                );
+                p->self_pipe[0] = -1;
+                p->self_pipe[1] = -1;
+                goto error;
+            }
+            ls_make_nonblock(p->self_pipe[0]);
+            ls_make_nonblock(p->self_pipe[1]);
+        }
+    );
+
     return LUASTATUS_OK;
 
 error:
     destroy(pd);
     return LUASTATUS_ERR;
+}
+
+static
+int
+l_wake_up(lua_State *L)
+{
+    LuastatusPluginData *pd = lua_touserdata(L, lua_upvalueindex(1));
+    Priv *p = pd->priv;
+
+    write(p->self_pipe[1], "", 1);
+
+    return 0;
+}
+
+static
+void
+register_funcs(LuastatusPluginData *pd, lua_State *L)
+{
+    Priv *p = pd->priv;
+    if (p->self_pipe[0] >= 0) {
+        // L: table
+        lua_pushlightuserdata(L, pd); // L: table bd
+        lua_pushcclosure(L, l_wake_up, 1); // L: table pd l_wake_up
+        ls_lua_rawsetf(L, "wake_up"); // L: table
+    }
 }
 
 static
@@ -123,12 +171,24 @@ iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     snd_mixer_selem_id_t *sid;
     bool sid_alloced = false;
     char *realname = NULL;
+    struct {
+        struct pollfd *buf;
+        size_t count;
+        size_t nprefix;
+    } pfds = {NULL, 0, 0};
+
+    if (p->self_pipe[0] >= 0) {
+        pfds.buf = LS_XNEW(struct pollfd, 1);
+        pfds.count = 1;
+        pfds.nprefix = 1;
+        pfds.buf[0] = (struct pollfd) {.fd = p->self_pipe[0], .events = POLLIN};
+    }
 
     if (!(realname = xalloc_card_realname(p->card))) {
         realname = ls_xstrdup(p->card);
     }
 
-    // Actually, the only function that can return /-EINTR/ is /snd_mixer_wait/,
+    // The only function that can return /-EINTR/ is /snd_mixer_wait/,
     // because it uses one of the multiplexing interfaces mentioned below:
     //
     // http://man7.org/linux/man-pages/man7/signal.7.html
@@ -141,8 +201,7 @@ iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     // >       epoll_pwait(2), poll(2), ppoll(2), select(2), and pselect(2).
 #define ALSA_CALL(Func_, ...) \
     do { \
-        int r_; \
-        while ((r_ = Func_(__VA_ARGS__)) == -EINTR) {} \
+        int r_ = Func_(__VA_ARGS__); \
         if (r_ < 0) { \
             LS_FATALF(pd, "%s: %s", #Func_, snd_strerror(r_)); \
             goto error; \
@@ -207,8 +266,44 @@ iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
             lua_setfield(L, -2, "mute"); // L: table
         }
         funcs.call_end(pd->userdata);
-        ALSA_CALL(snd_mixer_wait, mixer, -1);
-        ALSA_CALL(snd_mixer_handle_events, mixer);
+
+        {
+            const size_t n = pfds.nprefix + snd_mixer_poll_descriptors_count(mixer);
+            if (pfds.count != n) {
+                pfds.buf = ls_xrealloc(pfds.buf, n, sizeof(struct pollfd));
+                pfds.count = n;
+            }
+        }
+        ALSA_CALL(snd_mixer_poll_descriptors,
+            mixer,
+            pfds.buf + pfds.nprefix,
+            pfds.count - pfds.nprefix);
+
+        int r;
+        while ((r = poll(pfds.buf, pfds.count, -1)) < 0 && errno == EINTR) {}
+        if (r < 0) {
+            LS_WITH_ERRSTR(s, errno,
+                LS_FATALF(pd, "poll: %s", s);
+            );
+            goto error;
+        }
+        if (pfds.nprefix && (pfds.buf[0].revents & POLLIN)) {
+            read(p->self_pipe[0], (char [1]) {'\0'}, 1);
+        }
+
+        unsigned short revents;
+        ALSA_CALL(snd_mixer_poll_descriptors_revents,
+            mixer,
+            pfds.buf + pfds.nprefix,
+            pfds.count - pfds.nprefix,
+            &revents);
+        if (revents & (POLLERR | POLLNVAL)) {
+            LS_ERRF(pd, "snd_mixer_poll_descriptors_revents() reported an error condition");
+            goto error;
+        }
+        if (revents & POLLIN) {
+            ALSA_CALL(snd_mixer_handle_events, mixer);
+        }
     }
 #undef ALSA_CALL
 error:
@@ -219,6 +314,7 @@ error:
         snd_mixer_close(mixer);
     }
     free(realname);
+    free(pfds.buf);
     return ret;
 }
 
@@ -235,6 +331,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 
 LuastatusPluginIface luastatus_plugin_iface_v1 = {
     .init = init,
+    .register_funcs = register_funcs,
     .run = run,
     .destroy = destroy,
 };
