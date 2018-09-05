@@ -268,6 +268,9 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
                     LS_ERRF(bd, "table: too many elements (more than 1000)");
                     return LUASTATUS_NONFATAL_ERR;
                 }
+                if (lua_isnil(L, LS_LUA_VALUE)) {
+                    continue;
+                }
                 if (!lua_isstring(L, LS_LUA_VALUE)) {
                     LS_ERRF(bd, "table element: expected string, got %s", luaL_typename(L, -1));
                     return LUASTATUS_NONFATAL_ERR;
