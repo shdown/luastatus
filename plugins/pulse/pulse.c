@@ -181,7 +181,6 @@ void
 subscribe_cb(pa_context *c, pa_subscription_event_type_t t, uint32_t idx, void *vud)
 {
     UserData *ud = vud;
-    LS_INFOF(ud->pd, "subscribe_cb");
 
     if ((t & PA_SUBSCRIPTION_EVENT_TYPE_MASK) != PA_SUBSCRIPTION_EVENT_CHANGE) {
         return;
@@ -209,7 +208,6 @@ void
 context_state_cb(pa_context *c, void *vud)
 {
     UserData *ud = vud;
-    LS_INFOF(ud->pd, "context_state_cb");
     switch (pa_context_get_state(c)) {
     case PA_CONTEXT_UNCONNECTED:
     case PA_CONTEXT_CONNECTING:
