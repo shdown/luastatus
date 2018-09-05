@@ -27,6 +27,10 @@ typedef struct {
     // Number of widgets.
     size_t nwidgets;
 
+    // /nfiles[i]/ is the largest /n/ such that the file named
+    //     "/?bar/LS###_@@@",
+    // where "?" is the value of /barsym/, "###" is zero-padded /i/, and "@@@" is zero-padded /n/,
+    // is expected to exist.
     unsigned *nfiles;
 
     // Bar side symbol: either 'l' or 'r'.
@@ -145,7 +149,7 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
     }
 
     if (nwidgets > 1000) {
-        LS_FATALF(bd, "number of widgets > 1000");
+        LS_FATALF(bd, "too many widgets (more than 1000)");
         goto error;
     }
 
@@ -260,6 +264,10 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
         {
             unsigned n = 0;
             LS_LUA_TRAVERSE(L, -1) {
+                if (n == 1000) {
+                    LS_ERRF(bd, "table: too many elements (more than 1000)");
+                    return LUASTATUS_NONFATAL_ERR;
+                }
                 if (!lua_isstring(L, LS_LUA_VALUE)) {
                     LS_ERRF(bd, "table element: expected string, got %s", luaL_typename(L, -1));
                     return LUASTATUS_NONFATAL_ERR;
