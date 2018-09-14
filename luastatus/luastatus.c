@@ -751,48 +751,6 @@ inject_libs(lua_State *L)
 #undef REG
 }
 
-// Registers /barlib/'s function at /L/.
-// If /w/ is not /NULL/, registers /w/'s plugin's functions at /L/.
-static
-void
-register_funcs(lua_State *L, Widget *w)
-{
-    // L: ?
-    ls_lua_pushg(L); // L: ? _G
-    ls_lua_rawgetf(L, "luastatus"); // L: ? _G luastatus
-
-    if (!lua_istable(L, -1)) {
-        assert(w);
-        WARNF("widget '%s': 'luastatus' is not a table anymore, will not register "
-              "barlib/plugin functions",
-              w->filename);
-        goto done;
-    }
-    if (barlib.iface.register_funcs) {
-        lua_newtable(L); // L: ? _G luastatus table
-
-        int old_top = lua_gettop(L);
-        (void) old_top;
-        barlib.iface.register_funcs(&barlib.data, L); // L: ? _G luastatus table
-        assert(lua_gettop(L) == old_top);
-
-        ls_lua_rawsetf(L, "barlib"); // L: ? _G luastatus
-    }
-    if (w && w->plugin.iface.register_funcs) {
-        lua_newtable(L); // L: ? _G luastatus table
-
-        int old_top = lua_gettop(L);
-        (void) old_top;
-        w->plugin.iface.register_funcs(&w->data, L); // L: ? _G luastatus table
-        assert(lua_gettop(L) == old_top);
-
-        ls_lua_rawsetf(L, "plugin"); // L: ? _G luastatus
-    }
-
-done:
-    lua_pop(L, 2); // L: ?
-}
-
 // Initializes, if not already initialized, the separate state.
 static
 void
@@ -1053,6 +1011,49 @@ widget_destroy(Widget *w)
         PTH_ASSERT(pthread_mutex_destroy(&w->L_mtx));
         free(w->filename);
     }
+}
+
+// Registers /barlib/'s and /w->plugin/'s function at /L/.
+static
+void
+register_funcs(lua_State *L, Widget *w)
+{
+    assert(w);
+    assert(!widget_is_stillborn(w));
+
+    // L: ?
+    ls_lua_pushg(L); // L: ? _G
+    ls_lua_rawgetf(L, "luastatus"); // L: ? _G luastatus
+
+    if (!lua_istable(L, -1)) {
+        WARNF("widget '%s': 'luastatus' is not a table anymore, will not register "
+              "barlib/plugin functions",
+              w->filename);
+        goto done;
+    }
+    if (barlib.iface.register_funcs) {
+        lua_newtable(L); // L: ? _G luastatus table
+
+        int old_top = lua_gettop(L);
+        (void) old_top;
+        barlib.iface.register_funcs(&barlib.data, L); // L: ? _G luastatus table
+        assert(lua_gettop(L) == old_top);
+
+        ls_lua_rawsetf(L, "barlib"); // L: ? _G luastatus
+    }
+    if (w->plugin.iface.register_funcs) {
+        lua_newtable(L); // L: ? _G luastatus table
+
+        int old_top = lua_gettop(L);
+        (void) old_top;
+        w->plugin.iface.register_funcs(&w->data, L); // L: ? _G luastatus table
+        assert(lua_gettop(L) == old_top);
+
+        ls_lua_rawsetf(L, "plugin"); // L: ? _G luastatus
+    }
+
+done:
+    lua_pop(L, 2); // L: ?
 }
 
 // Initializes the /widgets/ and /nwidgets/ global variables from the given list of file names:
@@ -1373,11 +1374,6 @@ main(int argc, char **argv)
         goto cleanup;
     }
     barlib_inited = true;
-
-    // register barlib's function at the separate state, if we are going to use it.
-    if (sepstate.L) {
-        register_funcs(sepstate.L, NULL);
-    }
 
     // Freeze the map.
     map.frozen = true;
