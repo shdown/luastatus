@@ -120,7 +120,7 @@ src_install() {
         for i in ${BARLIBS//+/}; do
             if use ${i}; then
                 barlib=${i#${PN}_barlibs_}
-                dodoc -r contrib/widget-examples/${barlib}
+                dodoc -r examples/${barlib}
                 docompress -x /usr/share/doc/${PF}/widget-examples/${barlib}
             fi
         done

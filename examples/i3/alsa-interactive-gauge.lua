@@ -52,11 +52,7 @@ widget = {
     },
 
     cb = function(t)
-        if t == nil then
-            t = last_t
-        else
-            last_t = t
-        end
+        last_t = t
 
         local level = (t.vol.cur - t.vol.min) / (t.vol.max - t.vol.min)
 
