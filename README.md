@@ -198,15 +198,10 @@ Lua libraries
 
 The `luastatus` module
 ---
-luastatus provides the `luastatus` module, which contains the following
-functions:
+luastatus provides the `luastatus` module, which currently contains only one
+function:
   - `luastatus.require_plugin(name)` is like the `require` function, except that
   it loads a file named `<name>.lua` from luastatus’ plugins directory.
-  - `luastatus.map_get_handle(key)` returns a handle object to the *map entry*
-  with the key `key`. See `DOCS/design/map_get.md` for overview; in short, this
-  is a mechanism allowing plugins to synchronize thread-unsafe operations.
-  Unless you’re writing a derived plugin *and* using thread-unsafe stuff, you
-  don’t need it.
 
 Plugins’ and barlib’s Lua functions
 ---

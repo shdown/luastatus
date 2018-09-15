@@ -624,47 +624,6 @@ l_os_setlocale(lua_State *L)
     return 1;
 }
 
-// Implementation of /luastatus.map_get_handle()/. Expects a single upvalue: a metatable to equip
-// the resulting handle with.
-static
-int
-l_map_get_handle(lua_State *L)
-{
-    const char *arg = luaL_checkstring(L, 1);
-    lua_pushlightuserdata(L, map_get(arg)); // L: ? key
-    lua_pushvalue(L, lua_upvalueindex(1)); // L: ? key metatable
-    lua_setmetatable(L, -2); // L: ? key
-    return 1;
-}
-
-// Implementation of the /:read()/ method of a map handle object.
-static
-int
-l_map_handle_read(lua_State *L)
-{
-    luaL_checktype(L, 1, LUA_TLIGHTUSERDATA);
-    void * volatile *handle = lua_touserdata(L, 1);
-    void *content = *handle;
-    if (content) {
-        lua_pushstring(L, (const char *) content);
-    } else {
-        lua_pushnil(L);
-    }
-    return 1;
-}
-
-// Implementation of the /:write()/ method of a map handle object.
-static
-int
-l_map_handle_write(lua_State *L)
-{
-    luaL_checktype(L, 1, LUA_TLIGHTUSERDATA);
-    const char *key = luaL_optstring(L, 2, NULL);
-    void* volatile *handle = lua_touserdata(L, 1);
-    *handle = key ? ls_xstrdup(key) : NULL;
-    return 0;
-}
-
 // Implementation of /luastatus.require_plugin()/. Expects a single upvalue: an initially empty
 // table that will be used as a registry of loaded Lua plugins.
 static
@@ -720,32 +679,6 @@ inject_libs(lua_State *L)
     lua_newtable(L); // L: ? table table
     lua_pushcclosure(L, l_require_plugin, 1); // L: ? table l_require_plugin
     lua_setfield(L, -2, "require_plugin"); // L: ? table
-
-    // Quite a non-trivial thing here. So we are going to construct a metatable for our map handle
-    // objects. Basically, translated to Lua, the code fragment following this comment does this
-    // (leaving /mt/ on top of the stack):
-    //
-    //     local mt = {}
-    //     mt.__index = mt
-    //     mt.read = <C function l_map_handle_read>
-    //     mt.write = <C function l_map_handle_write>
-    //
-    // This trick is employed to reduce the number of tables needed, and is equivalent to:
-    //
-    //     local tmp = {}
-    //     tmp.read = <C function l_map_handle_read>
-    //     tmp.write = <C function l_map_handle_write>
-    //     local mt = {}
-    //     mt.__index = tmp
-    //
-    lua_newtable(L); // L: ? table metatable
-    lua_pushvalue(L, -1); // L: ? table metatable metatable
-    lua_setfield(L, -2, "__index"); // L: ? table metatable
-    REG("read", l_map_handle_read);
-    REG("write", l_map_handle_write);
-
-    lua_pushcclosure(L, l_map_get_handle, 1); // L: ? table l_map_get_handle
-    lua_setfield(L, -2, "map_get_handle"); // L: ? table
 
     lua_setglobal(L, "luastatus"); // L: ?
 #undef REG
