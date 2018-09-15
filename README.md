@@ -161,7 +161,7 @@ its `README.md` file for detailed instructions and documentation.
 Similary, for plugins’ documentation, see `README.md` files in the
 subdirectories of `plugins/`.
 
-You will find widget examples in `contrib/widget-examples`.
+You will find widget examples in the `examples` directory.
 
 Using luastatus binary
 ===

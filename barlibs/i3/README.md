@@ -1,6 +1,6 @@
 This barlib talks with `i3bar`.
 
-Please see `contrib/widget-examples/i3/README.md` for the example of using this barlib.
+Please see `examples/i3/README.md` for the example of using this barlib.
 
 Redirections and `luastatus-i3-wrapper`
 ===

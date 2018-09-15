@@ -115,13 +115,13 @@ src_install() {
     default
     local i barlib plugin
     if use examples; then
-        dodir /usr/share/doc/${PF}/widget-examples
-        docinto widget-examples
+        dodir /usr/share/doc/${PF}/examples
+        docinto examples
         for i in ${BARLIBS//+/}; do
             if use ${i}; then
                 barlib=${i#${PN}_barlibs_}
                 dodoc -r examples/${barlib}
-                docompress -x /usr/share/doc/${PF}/widget-examples/${barlib}
+                docompress -x /usr/share/doc/${PF}/examples/${barlib}
             fi
         done
     fi
