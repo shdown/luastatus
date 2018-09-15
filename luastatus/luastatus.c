@@ -946,19 +946,20 @@ widget_destroy(Widget *w)
     }
 }
 
-// Registers /barlib/'s and /w->plugin/'s function at /L/.
+// Registers /barlib/'s functions at /L/.
+// If /w/ is not /NULL/, also registers /w->plugin/'s functions at /L/.
 static
 void
 register_funcs(lua_State *L, Widget *w)
 {
-    assert(w);
-    assert(!widget_is_stillborn(w));
-
     // L: ?
     ls_lua_pushg(L); // L: ? _G
     ls_lua_rawgetf(L, "luastatus"); // L: ? _G luastatus
 
     if (!lua_istable(L, -1)) {
+        assert(w);
+        assert(!widget_is_stillborn(w));
+
         WARNF("widget '%s': 'luastatus' is not a table anymore, will not register "
               "barlib/plugin functions",
               w->filename);
@@ -974,7 +975,7 @@ register_funcs(lua_State *L, Widget *w)
 
         ls_lua_rawsetf(L, "barlib"); // L: ? _G luastatus
     }
-    if (w->plugin.iface.register_funcs) {
+    if (w && w->plugin.iface.register_funcs) {
         lua_newtable(L); // L: ? _G luastatus table
 
         int old_top = lua_gettop(L);
@@ -1310,6 +1311,11 @@ main(int argc, char **argv)
 
     // Freeze the map.
     map.frozen = true;
+
+    // Register barlib's function at the separate state, if we are going to use it.
+    if (sepstate.L) {
+        register_funcs(sepstate.L, NULL);
+    }
 
     // Spawn a thread for each successfully initialized widget, call /barlib/'s /set_error()/ method
     // on each widget whose initialization has failed.
