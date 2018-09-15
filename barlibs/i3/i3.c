@@ -182,14 +182,27 @@ l_pango_escape(lua_State *L)
     // WARNING: luaL_check*() functions do a long jump on error!
     const char *s = luaL_checklstring(L, 1, &ns);
 
-    LuastatusBarlibData *bd = lua_touserdata(L, lua_upvalueindex(1));
-    Priv *p = bd->priv;
+    luaL_Buffer b;
+    luaL_buffinit(L, &b);
 
-    LSString *buf = &p->luabuf;
-    LS_VECTOR_CLEAR(*buf);
-    pango_ls_string_append_escaped_b(buf, s, ns);
-    // L: -
-    lua_pushlstring(L, buf->data, buf->size); // L: string
+    size_t prev = 0;
+    for (size_t i = 0; i < ns; ++i) {
+        const char *esc;
+        switch (s[i]) {
+        case '&':  esc = "&amp;";   break;
+        case '<':  esc = "&lt;";    break;
+        case '>':  esc = "&gt;";    break;
+        case '\'': esc = "&apos;";  break;
+        case '"':  esc = "&quot;";  break;
+        default: continue;
+        }
+        luaL_addlstring(&b, s + prev, i - prev);
+        luaL_addstring(&b, esc);
+        prev = i + 1;
+    }
+    luaL_addlstring(&b, s + prev, ns - prev);
+
+    luaL_pushresult(&b);
     return 1;
 }
 
@@ -197,9 +210,9 @@ static
 void
 register_funcs(LuastatusBarlibData *bd, lua_State *L)
 {
+    (void) bd;
     // L: table
-    lua_pushlightuserdata(L, bd); // L: table bd
-    lua_pushcclosure(L, l_pango_escape, 1); // L: table bd l_pango_escape
+    lua_pushcfunction(L, l_pango_escape); // L: table l_pango_escape
     ls_lua_rawsetf(L, "pango_escape"); // L: table
 }
 

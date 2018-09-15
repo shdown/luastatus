@@ -6,21 +6,24 @@
 #include <stddef.h>
 #include <string.h>
 #include <stdbool.h>
+#include <lauxlib.h>
 
 void
-lemonbar_ls_string_append_escaped_b(LSString *buf, const char *s, size_t ns)
+lemonbar_push_escaped(lua_State *L, const char *s, size_t ns)
 {
     // just replace all "%"s with "%%"
 
+    luaL_Buffer b;
+    luaL_buffinit(L, &b);
     // we have to check /ns/ before calling /memchr/, see DOCS/c_notes/empty-ranges-and-c-stdlib.md
     for (const char *t; ns && (t = memchr(s, '%', ns));) {
         const size_t nseg = t - s + 1;
-        ls_string_append_b(buf, s, nseg);
-        ls_string_append_c(buf, '%');
+        luaL_addlstring(&b, s, nseg);
+        luaL_addchar(&b, '%');
         ns -= nseg;
         s += nseg;
     }
-    ls_string_append_b(buf, s, ns);
+    luaL_pushresult(&b);
 }
 
 void

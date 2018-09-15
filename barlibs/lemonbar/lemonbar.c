@@ -158,16 +158,7 @@ l_escape(lua_State *L)
     // WARNING: /luaL_check*()/ functions do a long jump on error!
     const char *s = luaL_checklstring(L, 1, &ns);
 
-    LuastatusBarlibData *bd = lua_touserdata(L, lua_upvalueindex(1));
-    Priv *p = bd->priv;
-
-    LSString *buf = &p->luabuf;
-    LS_VECTOR_CLEAR(*buf);
-
-    lemonbar_ls_string_append_escaped_b(buf, s, ns);
-
-    // L: -
-    lua_pushlstring(L, buf->data, buf->size); // L: string
+    lemonbar_push_escaped(L, s, ns);
     return 1;
 }
 
@@ -175,9 +166,9 @@ static
 void
 register_funcs(LuastatusBarlibData *bd, lua_State *L)
 {
+    (void) bd;
     // L: table
-    lua_pushlightuserdata(L, bd); // L: table bd
-    lua_pushcclosure(L, l_escape, 1); // L: table bd l_escape
+    lua_pushcfunction(L, l_escape); // L: table l_escape
     ls_lua_rawsetf(L, "escape"); // L: table
 }
 
