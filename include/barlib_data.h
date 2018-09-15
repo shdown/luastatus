@@ -68,6 +68,8 @@ typedef struct {
     // This function should register Lua functions provided by the barlib into the table on the top
     // of /L/'s stack.
     //
+    // These functions should be thread-safe!
+    //
     // It is guaranteed that /L/ stack has at least 15 free stack slots.
     //
     // May be /NULL/.

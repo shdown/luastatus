@@ -71,6 +71,15 @@ typedef struct {
     // This function should register Lua functions provided by the plugin into table on top of /L/'s
     // stack.
     //
+    // These functions, in current implementation, are not required to be thread-safe with respect
+    // to the widget instance, that is, /register_funcs/ in only called once per plugin instance,
+    // and while the widget is calling a function registered by this plugin instance, no other Lua
+    // state may do so.
+    //
+    // This may change in the future.
+    //
+    // Note that the above does not mean they are allowed to be genereally thread-unsafe.
+    //
     // It is guaranteed that /L/'s stack has at least 15 free slots.
     //
     // May be /NULL/.
