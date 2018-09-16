@@ -58,18 +58,18 @@ widget = {
 
         local r = {}
         if t.mute then
-            r[1] = {full_text='[mute]', color='#e03838'}
+            r[2] = {full_text='[mute]', color='#e03838'}
         else
-            r[1] = {full_text=string.format('[%3d%%]', round(level * 100)), color='#718ba6'}
+            r[2] = {full_text=string.format('[%3d%%]', round(level * 100)), color='#718ba6'}
         end
-        text_block_nchars = #r[1].full_text -- please note this does not work with Unicode.
+        text_block_nchars = #r[2].full_text -- please note this does not work with Unicode.
 
         if gauge then
             local fg, bg = '#dcdcdc', '#444444'
             if t.mute then
                 fg, bg = '#e03838', '#4a1414'
             end
-            r[2] = {full_text=mk_gauge(level), color=fg, background=bg, instance='gauge'}
+            r[1] = {full_text=mk_gauge(level), color=fg, background=bg, instance='gauge'}
         end
 
         return r
