@@ -1,3 +1,13 @@
+-- So, it looks like this:
+--
+--     ••• | ██████████████       | [ 70%] | •••
+--
+--           ^ gauge block          ^ text block
+--
+-- The gauge block is initially hidden; click on the text block to toggle its visibility.
+-- Click anywhere at the gauge block to change the volume.
+-- Click with the right mouse button on either block to toggle mute state.
+
 local CARD = 'default'
 local CHANNEL = 'Master'
 
