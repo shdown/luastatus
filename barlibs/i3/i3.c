@@ -37,7 +37,6 @@ destroy(LuastatusBarlibData *bd)
     if (p->out) {
         fclose(p->out);
     }
-    LS_VECTOR_FREE(p->luabuf);
     free(p);
 }
 
@@ -53,7 +52,6 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
         .out = NULL,
         .noclickev = false,
         .noseps = false,
-        .luabuf = LS_VECTOR_NEW(),
     };
     for (size_t i = 0; i < nwidgets; ++i) {
         LS_VECTOR_INIT_RESERVE(p->bufs[i], 1024);

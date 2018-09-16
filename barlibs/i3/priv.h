@@ -25,9 +25,6 @@ typedef struct {
 
     // Whether or not the /no_separators/ option was specified
     bool noseps;
-
-    // The buffer for the /pango_escape/ Lua function.
-    LSString luabuf;
 } Priv;
 
 #endif
