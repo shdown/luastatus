@@ -16,7 +16,13 @@ Options
 
 * `capture`: boolean
 
-  Whether or not this is a capture stream, as opposed to a playback one. Defaults to false.
+  Whether or not this is a capture stream, as opposed to a playback one.
+  Defaults to false.
+
+* `make_self_pipe`: boolean
+
+  If true, the `wake_up()` (see below) function will be available.
+  Defaults to false.
 
 `cb` argument
 ===
@@ -24,3 +30,9 @@ A table with the following entries:
 * `mute`: boolean (if the channel has a playback switch capability)
 * `vol`: table with the following entries:
   * `cur`, `min`, `max`: numbers (if the channel has volume control capability)
+
+Functions
+===
+
+* `wake_up()`: if the `make_self_pipe` option is set to `true`, forces a call to
+`cb`.
