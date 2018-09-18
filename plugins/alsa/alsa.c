@@ -159,6 +159,40 @@ cleanup:
     return buf;
 }
 
+typedef struct {
+    struct pollfd *data;
+    size_t size;
+    size_t nprefix;
+} PollFdSet;
+
+static inline
+PollFdSet
+pollfd_set_new(const struct pollfd *prefix, size_t nprefix)
+{
+    return (PollFdSet) {
+        .data = ls_xmemdup(prefix, nprefix * sizeof(struct pollfd)),
+        .size = nprefix,
+        .nprefix = nprefix,
+    };
+}
+
+static inline
+void
+pollfd_set_resize(PollFdSet *s, size_t n)
+{
+    if (s->size != n) {
+        s->data = ls_xrealloc(s->data, n, sizeof(struct pollfd));
+        s->size = n;
+    }
+}
+
+static inline
+void
+pollfd_set_free(PollFdSet s)
+{
+    free(s.data);
+}
+
 static
 bool
 iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
@@ -171,18 +205,9 @@ iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     snd_mixer_selem_id_t *sid;
     bool sid_alloced = false;
     char *realname = NULL;
-    struct {
-        struct pollfd *buf;
-        size_t count;
-        size_t nprefix;
-    } pfds = {NULL, 0, 0};
-
-    if (p->self_pipe[0] >= 0) {
-        pfds.buf = LS_XNEW(struct pollfd, 1);
-        pfds.count = 1;
-        pfds.nprefix = 1;
-        pfds.buf[0] = (struct pollfd) {.fd = p->self_pipe[0], .events = POLLIN};
-    }
+    PollFdSet pollfds = (p->self_pipe[0] >= 0)
+        ? pollfd_set_new((struct pollfd [1]) {{.fd = p->self_pipe[0], .events = POLLIN}}, 1)
+        : pollfd_set_new(NULL, 0);
 
     if (!(realname = xalloc_card_realname(p->card))) {
         realname = ls_xstrdup(p->card);
@@ -267,35 +292,29 @@ iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         }
         funcs.call_end(pd->userdata);
 
-        {
-            const size_t n = pfds.nprefix + snd_mixer_poll_descriptors_count(mixer);
-            if (pfds.count != n) {
-                pfds.buf = ls_xrealloc(pfds.buf, n, sizeof(struct pollfd));
-                pfds.count = n;
-            }
-        }
+        pollfd_set_resize(&pollfds, pollfds.nprefix + snd_mixer_poll_descriptors_count(mixer));
         ALSA_CALL(snd_mixer_poll_descriptors,
             mixer,
-            pfds.buf + pfds.nprefix,
-            pfds.count - pfds.nprefix);
+            pollfds.data + pollfds.nprefix,
+            pollfds.size - pollfds.nprefix);
 
         int r;
-        while ((r = poll(pfds.buf, pfds.count, -1)) < 0 && errno == EINTR) {}
+        while ((r = poll(pollfds.data, pollfds.size, -1)) < 0 && errno == EINTR) {}
         if (r < 0) {
             LS_WITH_ERRSTR(s, errno,
                 LS_FATALF(pd, "poll: %s", s);
             );
             goto error;
         }
-        if (pfds.nprefix && (pfds.buf[0].revents & POLLIN)) {
+        if (pollfds.nprefix && (pollfds.data[0].revents & POLLIN)) {
             read(p->self_pipe[0], (char [1]) {'\0'}, 1);
         }
 
         unsigned short revents;
         ALSA_CALL(snd_mixer_poll_descriptors_revents,
             mixer,
-            pfds.buf + pfds.nprefix,
-            pfds.count - pfds.nprefix,
+            pollfds.data + pollfds.nprefix,
+            pollfds.size - pollfds.nprefix,
             &revents);
         if (revents & (POLLERR | POLLNVAL)) {
             LS_ERRF(pd, "snd_mixer_poll_descriptors_revents() reported an error condition");
@@ -314,7 +333,7 @@ error:
         snd_mixer_close(mixer);
     }
     free(realname);
-    free(pfds.buf);
+    pollfd_set_free(pollfds);
     return ret;
 }
 
