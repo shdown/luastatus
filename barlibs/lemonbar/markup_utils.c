@@ -23,6 +23,8 @@ lemonbar_push_escaped(lua_State *L, const char *s, size_t ns)
         ns -= nseg;
         s += nseg;
     }
+    luaL_addlstring(&b, s, ns);
+
     luaL_pushresult(&b);
 }
 
