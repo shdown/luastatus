@@ -243,17 +243,17 @@ append_segment(LuastatusBarlibData *bd, lua_State *L, int table_pos, size_t widg
             separator_key_found = true;
         }
         ls_string_append_c(s, ',');
-        json_ls_string_append_escaped_s(s, key);
+        append_json_escaped_s(s, key);
         ls_string_append_c(s, ':');
         switch (lua_type(L, LS_LUA_VALUE)) {
         case LUA_TNUMBER:
-            if (!json_ls_string_append_number(s, lua_tonumber(L, LS_LUA_VALUE))) {
+            if (!append_json_number(s, lua_tonumber(L, LS_LUA_VALUE))) {
                 LS_ERRF(bd, "segment entry '%s': invalid number (NaN/Inf)", key);
                 return false;
             }
             break;
         case LUA_TSTRING:
-            json_ls_string_append_escaped_s(s, lua_tostring(L, LS_LUA_VALUE));
+            append_json_escaped_s(s, lua_tostring(L, LS_LUA_VALUE));
             break;
         case LUA_TBOOLEAN:
             ls_string_append_s(s, lua_toboolean(L, LS_LUA_VALUE) ? "true" : "false");

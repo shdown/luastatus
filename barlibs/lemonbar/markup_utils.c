@@ -9,7 +9,7 @@
 #include <lauxlib.h>
 
 void
-lemonbar_push_escaped(lua_State *L, const char *s, size_t ns)
+push_escaped(lua_State *L, const char *s, size_t ns)
 {
     // just replace all "%"s with "%%"
 
@@ -29,7 +29,7 @@ lemonbar_push_escaped(lua_State *L, const char *s, size_t ns)
 }
 
 void
-lemonbar_ls_string_append_sanitized_b(LSString *buf, size_t widget_idx, const char *s, size_t ns)
+append_sanitized_b(LSString *buf, size_t widget_idx, const char *s, size_t ns)
 {
     size_t prev = 0;
     bool a_tag = false;
@@ -68,7 +68,7 @@ lemonbar_ls_string_append_sanitized_b(LSString *buf, size_t widget_idx, const ch
 }
 
 const char *
-lemonbar_parse_command(const char *line, size_t nline, size_t *ncommand, size_t *widget_idx)
+parse_command(const char *line, size_t nline, size_t *ncommand, size_t *widget_idx)
 {
     const char *endptr;
     const int idx = ls_parse_uint_b(line, nline, &endptr);

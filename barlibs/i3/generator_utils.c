@@ -4,7 +4,7 @@
 #include <stdbool.h>
 
 void
-json_ls_string_append_escaped_s(LSString *s, const char *zts)
+append_json_escaped_s(LSString *s, const char *zts)
 {
     ls_string_append_c(s, '"');
     size_t prev = 0;
@@ -25,7 +25,7 @@ json_ls_string_append_escaped_s(LSString *s, const char *zts)
 }
 
 bool
-json_ls_string_append_number(LSString *s, double value)
+append_json_number(LSString *s, double value)
 {
     if (!isfinite(value)) {
         return false;

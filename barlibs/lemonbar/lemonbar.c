@@ -153,7 +153,7 @@ l_escape(lua_State *L)
     // WARNING: /luaL_check*()/ functions do a long jump on error!
     const char *s = luaL_checklstring(L, 1, &ns);
 
-    lemonbar_push_escaped(L, s, ns);
+    push_escaped(L, s, ns);
     return 1;
 }
 
@@ -213,7 +213,7 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
         {
             size_t ns;
             const char *s = lua_tolstring(L, -1, &ns);
-            lemonbar_ls_string_append_sanitized_b(buf, widget_idx, s, ns);
+            append_sanitized_b(buf, widget_idx, s, ns);
         }
         break;
     case LUA_TTABLE:
@@ -235,7 +235,7 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
                 if (buf->size && ns) {
                     ls_string_append_s(buf, sep);
                 }
-                lemonbar_ls_string_append_sanitized_b(buf, widget_idx, s, ns);
+                append_sanitized_b(buf, widget_idx, s, ns);
             }
         }
         break;
@@ -277,7 +277,7 @@ event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
         }
         size_t ncommand;
         size_t widget_idx;
-        const char *command = lemonbar_parse_command(buf, nread - 1, &ncommand, &widget_idx);
+        const char *command = parse_command(buf, nread - 1, &ncommand, &widget_idx);
         if (!command) {
             continue;
         }
