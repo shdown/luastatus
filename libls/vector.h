@@ -71,16 +71,6 @@
         (Vec_).data[(Vec_).size++] = (Elem_); \
     } while (0)
 
-#define LS_VECTOR_REMOVE(Vec_, StartPos_, NRemove_) \
-    do { \
-        if ((Vec_).size != (StartPos_) + (NRemove_)) { \
-            memmove((Vec_).data + (StartPos_), \
-                    (Vec_).data + (StartPos_) + (NRemove_), \
-                    ((Vec_).size - (StartPos_) - (NRemove_)) * sizeof(*(Vec_).data)); \
-        } \
-        (Vec_).size -= (NRemove_); \
-    } while (0)
-
 #define LS_VECTOR_POP(Vec_) (Vec_).data[--(Vec_).size]
 
 #define LS_VECTOR_FREE(Vec_) free((Vec_).data)
