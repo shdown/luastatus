@@ -32,7 +32,7 @@ The `widget` table **must** contain the following entries:
 
   * `plugin`: a string with the name of a *plugin* (see below) you want to
   receive data from. If it contains a slash, it is treated as a path to a shared
-  library. If it does not, luastatus tries to load `<plugin>.so` from the
+  library. If it does not, luastatus tries to load `plugin-<plugin>.so` from the
   directory configured at the build time (CMake `PLUGINS_DIR` variable, defaults
   to `${CMAKE_INSTALL_FULL_LIBDIR}/luastatus/plugins`).
 
@@ -172,9 +172,9 @@ Pass a barlib with `-b`, then (optionally) its options with `-B`, then widget
 files.
 
 If `-b` argument contains a slash, it is treated as a path to a shared library.
-If it does not, luastatus tries to load `<argument>.so` from the directory
-configured at the build time (CMake `BARLIBS_DIR` variable, defaults to
-`${CMAKE_INSTALL_FULL_LIBDIR}/luastatus/barlibs`).
+If it does not, luastatus tries to load `barlib-<argument>.so` from the
+directory configured at the build time (CMake `BARLIBS_DIR` variable, defaults
+to `${CMAKE_INSTALL_FULL_LIBDIR}/luastatus/barlibs`).
 
 Example:
 
