@@ -9,6 +9,7 @@
 // ...because /LS_PANIC__CAT(__LINE__)/ would give "__LINE__".
 #define LS_PANIC__EVAL_CAT(X_) LS_PANIC__CAT(X_)
 
+// Logs /Msg_/ and aborts.
 #define LS_PANIC(Msg_) \
     do { \
         fputs("LS_PANIC at " __FILE__ ":" LS_PANIC__EVAL_CAT(__LINE__) ": " Msg_ "\n", \

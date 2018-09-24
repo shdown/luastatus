@@ -169,6 +169,11 @@ get_path(char *buf, Priv *p, size_t widget_idx, unsigned file_idx)
     snprintf(buf, NPATH, "/%cbar/LS%03zu_%03u", p->barsym, widget_idx, file_idx);
 }
 
+// If /file_idx/ < /p->nfiles[widget_idx]/, updates the content of the block file.
+//
+// If /file_idx/ == /p->nfiles[widget_idx]/, creates a new file and updates /p->nfiles[widget_idx]/.
+//
+// Passing /file_idx/ > /p->nfiles[widget_idx]/ is not allowed.
 static
 bool
 set_content(
@@ -218,6 +223,11 @@ set_content(
     return ret;
 }
 
+// Removes files corresponding to blocks /new_nfiles/ to /p->nfiles[widget_idx]/ and updates
+// /p->nfiles[widget_idx]/ on success.
+//
+// If /false/ is returned, the state of the files is unspecified and /p->nfiles/ cannot be further
+// relied on.
 static
 bool
 clean_up(LuastatusBarlibData *bd, size_t widget_idx, unsigned new_nfiles)

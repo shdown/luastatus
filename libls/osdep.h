@@ -6,7 +6,7 @@
 // binary directory included, unlike everything that includes its headers.
 // So no in-header functions, unfortunately.
 
-// /EINTR/-safe (as possible) /close()/. Please read:
+// /EINTR/-safe (as much as possible) /close()/. Please read:
 // 1. http://www.daemonology.net/blog/2011-12-17-POSIX-close-is-broken.html
 // 2. https://news.ycombinator.com/item?id=3363819
 // 3. https://sourceware.org/bugzilla/show_bug.cgi?id=16302
