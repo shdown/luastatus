@@ -14,6 +14,7 @@ typedef struct {
 
     // Content of the widgets.
     LSString *bufs;
+
     // Input file descriptor number.
     int in_fd;
 
