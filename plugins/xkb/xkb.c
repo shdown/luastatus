@@ -4,7 +4,6 @@
 #include <limits.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include <setjmp.h>
 #include <lua.h>
 
 #include "include/plugin_v1.h"
@@ -17,6 +16,13 @@
 
 #include "rules_names.h"
 #include "parse_groups.h"
+
+// If this plugin is used, the whole process gets killed if a connection to the display is lost,
+// because Xlib is terrible.
+//
+// See:
+// * https://tronche.com/gui/x/xlib/event-handling/protocol-errors/XSetIOErrorHandler.html
+// * https://tronche.com/gui/x/xlib/event-handling/protocol-errors/XSetErrorHandler.html
 
 typedef struct {
     char *dpyname;
@@ -124,38 +130,6 @@ query_groups(Display *dpy, LSStringArray *groups)
     return true;
 }
 
-static LuastatusPluginData *global_pd;
-static jmp_buf global_jmpbuf;
-
-// https://tronche.com/gui/x/xlib/event-handling/protocol-errors/XSetIOErrorHandler.html
-//
-// > Xlib calls the program's supplied error handler if any sort of system call
-// > error occurs (for example, the connection to the server was lost). This is
-// > assumed to be a fatal condition, and the called routine should not return.
-// > If the I/O error handler does return, the client process exits.
-static
-int
-x11_io_error_handler(Display *dpy)
-{
-    (void) dpy;
-    LS_FATALF(global_pd, "X11 I/O error occurred");
-    longjmp(global_jmpbuf, 1);
-}
-
-// https://tronche.com/gui/x/xlib/event-handling/protocol-errors/XSetErrorHandler.html
-//
-// > Because this condition is not assumed to be fatal, it is acceptable for
-// > your error handler to return; the returned value is ignored.
-static
-int
-x11_error_handler(Display *dpy, XErrorEvent *ev)
-{
-    (void) dpy;
-    LS_ERRF(global_pd, "X11 error: serial=%ld, error_code=%d, request_code=%d, minor_code=%d",
-        ev->serial, ev->error_code, ev->request_code, ev->minor_code);
-    return 0;
-}
-
 static
 void
 run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
@@ -163,16 +137,6 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     Priv *p = pd->priv;
     LSStringArray groups = ls_strarr_new();
     Display *dpy = NULL;
-
-    global_pd = pd;
-    if (setjmp(global_jmpbuf) != 0) {
-        // We have jumped here.
-        // We don't bother to clean up because we could not call /XCloseDisplay(dpy)/ anyway.
-        // The amount of leaked memory is constant, and nobody cares.
-        return;
-    }
-    XSetIOErrorHandler(x11_io_error_handler);
-    XSetErrorHandler(x11_error_handler);
 
     if (!(dpy = open_dpy(pd, p->dpyname))) {
         goto error;
