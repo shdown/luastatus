@@ -15,7 +15,6 @@
 #include "libls/strarr.h"
 
 #include "rules_names.h"
-#include "parse_groups.h"
 
 // If this plugin is used, the whole process gets killed if a connection to the display is lost,
 // because Xlib is terrible.
@@ -125,7 +124,28 @@ query_groups(Display *dpy, LSStringArray *groups)
     if (!rules_names_load(dpy, &rn)) {
         return false;
     }
-    parse_groups(groups, rn.layout ? rn.layout : "");
+
+    ls_strarr_clear(groups);
+    if (rn.layout) {
+        // split /rn.layout/ by non-parenthesized commas
+        int balance = 0;
+        size_t prev = 0;
+        const size_t nlayout = strlen(rn.layout);
+        for (size_t i = 0; i < nlayout; ++i) {
+            switch (rn.layout[i]) {
+            case '(': ++balance; break;
+            case ')': --balance; break;
+            case ',':
+                if (balance == 0) {
+                    ls_strarr_append(groups, rn.layout + prev, i - prev);
+                    prev = i + 1;
+                }
+                break;
+            }
+        }
+        ls_strarr_append(groups, rn.layout + prev, nlayout - prev);
+    }
+
     rules_names_destroy(&rn);
     return true;
 }

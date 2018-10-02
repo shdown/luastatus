@@ -7,4 +7,7 @@
 // Maximum of /A_/ and /B_/.
 #define LS_MAX(A_, B_) ((A_) > (B_) ? (A_) : (B_))
 
+// Number of elements in array /Arr_/.
+#define LS_ARRAY_SIZE(Arr_) (sizeof(Arr_) / sizeof((Arr_)[0]))
+
 #endif
