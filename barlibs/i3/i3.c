@@ -224,10 +224,13 @@ append_segment(LuastatusBarlibData *bd, lua_State *L, int table_pos, size_t widg
     Priv *p = bd->priv;
     LSString *s = &p->bufs[widget_idx];
 
+    // add a "prologue"
     if (s->size) {
         ls_string_append_c(s, ',');
     }
     ls_string_append_f(s, "{\"name\":\"%zu\"", widget_idx);
+
+    // traverse the table
     bool separator_key_found = false;
     LS_LUA_TRAVERSE(L, table_pos) {
         if (!lua_isstring(L, LS_LUA_KEY)) {
@@ -267,10 +270,13 @@ append_segment(LuastatusBarlibData *bd, lua_State *L, int table_pos, size_t widg
             return false;
         }
     }
+
+    // add an "epilogue"
     if (p->noseps && !separator_key_found) {
         ls_string_append_s(s, ",\"separator\":false");
     }
     ls_string_append_c(s, '}');
+
     return true;
 }
 
