@@ -187,7 +187,7 @@ redraw(LuastatusBarlibData *bd)
             first = false;
         }
     }
-    fputc('\n', out);
+    putc_unlocked('\n', out);
     fflush(out);
     if (ferror(out)) {
         LS_WITH_ERRSTR(s, errno,

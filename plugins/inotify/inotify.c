@@ -290,19 +290,20 @@ static
 void
 register_funcs(LuastatusPluginData *pd, lua_State *L)
 {
-#define REG_CLOSURE(Func_, Name_) \
-    do { \
-        /* L: table */ \
-        lua_pushlightuserdata(L, pd); /* L: table bd */ \
-        lua_pushcclosure(L, Func_, 1); /* L: table bd Func_ */ \
-        ls_lua_rawsetf(L, Name_); /* L: table */ \
-    } while (0)
+    // L: table
+    lua_pushlightuserdata(L, pd); // L: table pd
+    lua_pushcclosure(L, l_add_watch, 1); // L: table closure
+    ls_lua_rawsetf(L, "add_watch"); // L: table
 
-    REG_CLOSURE(l_add_watch, "add_watch");
-    REG_CLOSURE(l_remove_watch, "remove_watch");
-    REG_CLOSURE(l_get_initial_wds, "get_initial_wds");
+    // L: table
+    lua_pushlightuserdata(L, pd); // L: table pd
+    lua_pushcclosure(L, l_remove_watch, 1); // L: table closure
+    ls_lua_rawsetf(L, "remove_watch"); // L: table
 
-#undef REG_CLOSURE
+    // L: table
+    lua_pushlightuserdata(L, pd); // L: table pd
+    lua_pushcclosure(L, l_get_initial_wds, 1); // L: table closure
+    ls_lua_rawsetf(L, "get_initial_wds"); // L: table
 }
 
 static

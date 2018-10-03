@@ -244,7 +244,7 @@ interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, int fd)
     if (p->password) {
         fputs("password ", f);
         mpdproto_write_quoted(f, p->password);
-        fputc('\n', f);
+        putc_unlocked('\n', f);
         fflush(f);
         if (ferror(f)) {
             goto io_error;

@@ -661,17 +661,17 @@ l_require_plugin(lua_State *L)
 void
 inject_libs(lua_State *L)
 {
-#define REG(Name_, Ptr_) \
-    do { \
-        /* L: ? table */ \
-        lua_pushcfunction(L, Ptr_); /* L: ? table ptr */ \
-        ls_lua_rawsetf(L, Name_); /* L: ? table */ \
-    } while (0)
-
     lua_getglobal(L, "os"); // L: ? os
-    REG("exit", l_os_exit);
-    REG("getenv", l_os_getenv);
-    REG("setlocale", l_os_setlocale);
+
+    lua_pushcfunction(L, l_os_exit); // L: ? os l_os_exit
+    ls_lua_rawsetf(L, "exit"); // L: ? os
+
+    lua_pushcfunction(L, l_os_getenv); // L: ? os l_os_getenv
+    ls_lua_rawsetf(L, "getenv"); // L: ? os
+
+    lua_pushcfunction(L, l_os_setlocale); // L: ? os l_os_setlocale
+    ls_lua_rawsetf(L, "setlocale"); // L: ? os
+
     lua_pop(L, 1); // L: ?
 
     lua_newtable(L); // L: ? table
@@ -681,7 +681,6 @@ inject_libs(lua_State *L)
     lua_setfield(L, -2, "require_plugin"); // L: ? table
 
     lua_setglobal(L, "luastatus"); // L: ?
-#undef REG
 }
 
 // Initializes, if not already initialized, the separate state.
@@ -1185,7 +1184,7 @@ prepare_stdio(void)
 {
     // We rely on that /*printf/ functions produce numbers in C locale.
     if (setlocale(LC_NUMERIC, "C") == NULL) {
-        fprintf(stderr, "luastatus: FATAL: setlocale failed\n");
+        fprintf(stderr, "luastatus: setlocale failed\n");
         return false;
     }
     return true;
@@ -1204,25 +1203,22 @@ prepare_signals(void)
 {
     struct sigaction sa = {.sa_flags = SA_RESTART};
     ls_xsigemptyset(&sa.sa_mask);
-#define HANDLE(SigNo_) \
-    do { \
-        if (sigaction(SigNo_, &sa, NULL) < 0) { \
-            LS_WITH_ERRSTR(s, errno, \
-                fprintf(stderr, "luastatus: WARNING: sigaction: %s: %s", #SigNo_, s); \
-            ); \
-        } \
-    } while (0)
 
     // We do not want to terminate on a write to a dead pipe.
     sa.sa_handler = ignore_signal;
-    HANDLE(SIGPIPE);
+    if (sigaction(SIGPIPE, &sa, NULL) < 0) {
+        perror("luastatus: sigaction: SIGPIPE");
+    }
 
     // We do this to ensure SA_RESTART is set for these.
     sa.sa_handler = SIG_DFL;
-    HANDLE(SIGCHLD);
-    HANDLE(SIGURG);
+    if (sigaction(SIGCHLD, &sa, NULL) < 0) {
+        perror("luastatus: sigaction: SIGCHLD");
+    }
+    if (sigaction(SIGURG, &sa, NULL) < 0) {
+        perror("luastatus: sigaction: SIGURG");
+    }
 
-#undef HANDLE
     return true;
 }
 

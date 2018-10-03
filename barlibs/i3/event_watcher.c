@@ -21,15 +21,15 @@ typedef size_t StringIndex;
 typedef struct {
     enum {
         TYPE_STRING,
-        TYPE_DOUBLE,
+        TYPE_NUMBER,
         TYPE_BOOL,
         TYPE_NULL,
     } type;
     union {
-        StringIndex s_idx;
-        double d;
-        bool b;
-    } u;
+        StringIndex str_idx;
+        double num;
+        bool flag;
+    } as;
 } Value;
 
 typedef struct {
@@ -43,7 +43,7 @@ typedef struct {
         STATE_EXPECTING_MAP_BEGIN,
         STATE_INSIDE_MAP,
     } state;
-    LSStringArray strs;
+    LSStringArray strarr;
     LS_VECTOR_OF(KeyValue) params;
     StringIndex last_key_idx;
     int widget;
@@ -54,10 +54,10 @@ typedef struct {
 
 static inline
 StringIndex
-append_to_strs(Context *ctx, const char *buf, size_t nbuf)
+append_to_strarr(Context *ctx, const char *buf, size_t nbuf)
 {
-    ls_strarr_append(&ctx->strs, buf, nbuf);
-    return ls_strarr_size(ctx->strs) - 1;
+    ls_strarr_append(&ctx->strarr, buf, nbuf);
+    return ls_strarr_size(ctx->strarr) - 1;
 }
 
 static
@@ -69,14 +69,14 @@ value_helper(Context *ctx, Value value)
         return 0;
     }
     size_t nkey;
-    const char *key = ls_strarr_at(ctx->strs, ctx->last_key_idx, &nkey);
+    const char *key = ls_strarr_at(ctx->strarr, ctx->last_key_idx, &nkey);
     if (nkey == 4 && memcmp("name", key, 4) == 0) {
         if (value.type != TYPE_STRING) {
             LS_ERRF(ctx->bd, "(event watcher) 'name' is not a string");
             return 0;
         }
         size_t nname;
-        const char *name = ls_strarr_at(ctx->strs, value.u.s_idx, &nname);
+        const char *name = ls_strarr_at(ctx->strarr, value.as.str_idx, &nname);
         // parse error is OK here, /ctx->widget/ is checked later
         ctx->widget = ls_full_parse_uint_b(name, nname);
     } else {
@@ -103,7 +103,7 @@ callback_boolean(void *vctx, int value)
 {
     return value_helper(vctx, (Value) {
         .type = TYPE_BOOL,
-        .u = { .b = value },
+        .as = { .flag = value },
     });
 }
 
@@ -112,8 +112,8 @@ int
 callback_integer(void *vctx, long long value)
 {
     return value_helper(vctx, (Value) {
-        .type = TYPE_DOUBLE,
-        .u = { .d = value },
+        .type = TYPE_NUMBER,
+        .as = { .num = value },
     });
 }
 
@@ -122,8 +122,8 @@ int
 callback_double(void *vctx, double value)
 {
     return value_helper(vctx, (Value) {
-        .type = TYPE_DOUBLE,
-        .u = { .d = value },
+        .type = TYPE_NUMBER,
+        .as = { .num = value },
     });
 }
 
@@ -133,7 +133,7 @@ callback_string(void *vctx, const unsigned char *buf, size_t nbuf)
 {
     return value_helper(vctx, (Value) {
         .type = TYPE_STRING,
-        .u = { .s_idx = append_to_strs(vctx, (const char *) buf, nbuf) },
+        .as = { .str_idx = append_to_strarr(vctx, (const char *) buf, nbuf) },
     });
 }
 
@@ -147,7 +147,7 @@ callback_start_map(void *vctx)
         return 0;
     }
     ctx->state = STATE_INSIDE_MAP;
-    ls_strarr_clear(&ctx->strs);
+    ls_strarr_clear(&ctx->strarr);
     LS_VECTOR_CLEAR(ctx->params);
     ctx->widget = -1;
     return 1;
@@ -162,7 +162,7 @@ callback_map_key(void *vctx, const unsigned char *buf, size_t nbuf)
         LS_ERRF(ctx->bd, "(event watcher) unexpected map key");
         return 0;
     }
-    ctx->last_key_idx = append_to_strs(vctx, (const char *) buf, nbuf);
+    ctx->last_key_idx = append_to_strarr(vctx, (const char *) buf, nbuf);
     return 1;
 }
 
@@ -177,13 +177,6 @@ callback_end_map(void *vctx)
     }
     ctx->state = STATE_EXPECTING_MAP_BEGIN;
 
-#define PUSH_STRS_ELEM(Idx_) \
-    do { \
-        size_t ns_; \
-        const char *s_ = ls_strarr_at(ctx->strs, Idx_, &ns_); \
-        lua_pushlstring(L, s_, ns_); \
-    } while (0)
-
     Priv *p = ctx->bd->priv;
     if (ctx->widget >= 0 && (size_t) ctx->widget < p->nwidgets) {
         lua_State *L = ctx->funcs.call_begin(ctx->bd->userdata, ctx->widget);
@@ -192,16 +185,24 @@ callback_end_map(void *vctx)
         for (size_t i = 0; i < ctx->params.size; ++i) {
             // L: table
             KeyValue kv = ctx->params.data[i];
-            PUSH_STRS_ELEM(kv.key_idx); // L: table key
+
+            size_t nkey;
+            const char *key = ls_strarr_at(ctx->strarr, kv.key_idx, &nkey);
+            lua_pushlstring(L, key, nkey); // L: table key
+
             switch (kv.value.type) {
             case TYPE_STRING:
-                PUSH_STRS_ELEM(kv.value.u.s_idx); // L: table key value
+                {
+                    size_t nstr;
+                    const char *str = ls_strarr_at(ctx->strarr, kv.value.as.str_idx, &nstr);
+                    lua_pushlstring(L, str, nstr); // L: table key value
+                }
                 break;
-            case TYPE_DOUBLE:
-                lua_pushnumber(L, kv.value.u.d); // L: table key value
+            case TYPE_NUMBER:
+                lua_pushnumber(L, kv.value.as.num); // L: table key value
                 break;
             case TYPE_BOOL:
-                lua_pushboolean(L, kv.value.u.b); // L: table key value
+                lua_pushboolean(L, kv.value.as.flag); // L: table key value
                 break;
             case TYPE_NULL:
                 lua_pushnil(L); // L: table key value
@@ -210,7 +211,6 @@ callback_end_map(void *vctx)
             lua_rawset(L, -3); // L: table
         }
         ctx->funcs.call_end(ctx->bd->userdata, ctx->widget);
-#undef PUSH_STRS_ELEM
     }
     return 1;
 }
@@ -247,7 +247,7 @@ event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
 
     Context ctx = {
         .state = STATE_EXPECTING_ARRAY_BEGIN,
-        .strs = ls_strarr_new(),
+        .strarr = ls_strarr_new(),
         .params = LS_VECTOR_NEW(),
         .widget = -1,
         .bd = bd,
@@ -298,7 +298,7 @@ event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
     }
 
 error:
-    ls_strarr_destroy(ctx.strs);
+    ls_strarr_destroy(ctx.strarr);
     LS_VECTOR_FREE(ctx.params);
     yajl_free(hand);
     return LUASTATUS_ERR;
