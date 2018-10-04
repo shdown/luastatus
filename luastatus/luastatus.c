@@ -1179,18 +1179,6 @@ widget_thread(void *arg)
 }
 
 static
-bool
-prepare_stdio(void)
-{
-    // We rely on that /*printf/ functions produce numbers in C locale.
-    if (setlocale(LC_NUMERIC, "C") == NULL) {
-        fprintf(stderr, "luastatus: setlocale failed\n");
-        return false;
-    }
-    return true;
-}
-
-static
 void
 ignore_signal(int signo)
 {
@@ -1198,28 +1186,15 @@ ignore_signal(int signo)
 }
 
 static
-bool
+void
 prepare_signals(void)
 {
-    struct sigaction sa = {.sa_flags = SA_RESTART};
-    ls_xsigemptyset(&sa.sa_mask);
-
     // We do not want to terminate on a write to a dead pipe.
-    sa.sa_handler = ignore_signal;
+    struct sigaction sa = {.sa_flags = SA_RESTART, .sa_handler = ignore_signal};
+    ls_xsigemptyset(&sa.sa_mask);
     if (sigaction(SIGPIPE, &sa, NULL) < 0) {
         perror("luastatus: sigaction: SIGPIPE");
     }
-
-    // We do this to ensure SA_RESTART is set for these.
-    sa.sa_handler = SIG_DFL;
-    if (sigaction(SIGCHLD, &sa, NULL) < 0) {
-        perror("luastatus: sigaction: SIGCHLD");
-    }
-    if (sigaction(SIGURG, &sa, NULL) < 0) {
-        perror("luastatus: sigaction: SIGURG");
-    }
-
-    return true;
 }
 
 static
@@ -1281,11 +1256,9 @@ main(int argc, char **argv)
 
     // Prepare.
 
-    if (!prepare_stdio() || !prepare_signals()) {
-        goto cleanup;
-    }
+    prepare_signals();
 
-    // Initialize the widgets (now, proper logging can be used).
+    // Initialize the widgets.
 
     widgets_init(argv + optind, argc - optind);
 
