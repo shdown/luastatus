@@ -214,15 +214,14 @@ register_funcs(LuastatusBarlibData *bd, lua_State *L)
     ls_lua_rawsetf(L, "pango_escape"); // L: table
 }
 
-// Appends a JSON segment to
-//     /((Priv *) bd->priv)->bufs[widget_idx]/
-// from the table at position /table_pos/ on /L/'s stack.
+// Appends a JSON segment generated from table at position /table_pos/ on /L/'s stack, to
+// /((Priv *) bd->priv)->tmpbuf/.
 static
 bool
 append_segment(LuastatusBarlibData *bd, lua_State *L, int table_pos, size_t widget_idx)
 {
     Priv *p = bd->priv;
-    LSString *s = &p->bufs[widget_idx];
+    LSString *s = &p->tmpbuf;
 
     // add a "prologue"
     if (s->size) {
@@ -285,7 +284,7 @@ int
 set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
 {
     Priv *p = bd->priv;
-    LS_VECTOR_CLEAR(p->bufs[widget_idx]);
+    LS_VECTOR_CLEAR(p->tmpbuf);
 
     switch (lua_type(L, -1)) {
     case LUA_TNIL:
@@ -326,13 +325,15 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
         goto invalid_data;
     }
 
-    if (!redraw(bd)) {
-        return LUASTATUS_ERR;
+    if (!ls_string_eq(p->tmpbuf, p->bufs[widget_idx])) {
+        ls_string_swap(&p->tmpbuf, &p->bufs[widget_idx]);
+        if (!redraw(bd)) {
+            return LUASTATUS_ERR;
+        }
     }
     return LUASTATUS_OK;
 
 invalid_data:
-    // the buffer may contain an invalid JSON at this point; just clear it.
     LS_VECTOR_CLEAR(p->bufs[widget_idx]);
     return LUASTATUS_NONFATAL_ERR;
 }
@@ -344,8 +345,8 @@ set_error(LuastatusBarlibData *bd, size_t widget_idx)
     Priv *p = bd->priv;
     LSString *s = &p->bufs[widget_idx];
 
-    ls_string_assign_s(s, "{\"full_text\":\"(Error)\",\"color\":\"#ff0000\""
-        ",\"background\":\"#000000\"");
+    ls_string_assign_s(
+        s, "{\"full_text\":\"(Error)\",\"color\":\"#ff0000\",\"background\":\"#000000\"");
     if (p->noseps) {
         ls_string_append_s(s, ",\"separator\":false");
     }

@@ -167,4 +167,24 @@ ls_string_new_from_f(const char *fmt, ...)
     return s;
 }
 
+// Checks whether two strings are equal.
+LS_INHEADER
+bool
+ls_string_eq(LSString a, LSString b)
+{
+    // We have to check that the size is not zero before calling /memcmp/:
+    // see DOCS/c_notes/empty-ranges-and-c-stdlib.md
+    return a.size == b.size && a.size && memcmp(a.data, b.data, a.size) == 0;
+}
+
+// Swaps two string efficiently (in O(1) time).
+LS_INHEADER
+void
+ls_string_swap(LSString *a, LSString *b)
+{
+    LSString tmp = *a;
+    *a = *b;
+    *b = tmp;
+}
+
 #endif
