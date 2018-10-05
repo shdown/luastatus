@@ -21,7 +21,8 @@
 #include "libls/parse_int.h"
 #include "libls/lua_utils.h"
 
-static const char *wmii_namespace = "wmii";
+// Size of a buffer with (zero-terminated) widget path.
+#define NPATH 32
 
 typedef struct {
     // Number of widgets.
@@ -48,6 +49,13 @@ typedef struct {
     // libixp client handle.
     IxpClient *client;
 } Priv;
+
+static inline
+void
+get_path(char *buf, Priv *p, size_t widget_idx, unsigned file_idx)
+{
+    snprintf(buf, NPATH, "/%cbar/LS%03zu_%03u", p->barsym, widget_idx, file_idx);
+}
 
 static
 void
@@ -142,8 +150,8 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
             goto error;
         }
     } else {
-        if (!(p->client = ixp_nsmount(wmii_namespace))) {
-            LS_FATALF(bd, "ixp_nsmount: %s: %s", wmii_namespace, ixp_errbuf());
+        if (!(p->client = ixp_nsmount("wmii"))) {
+            LS_FATALF(bd, "ixp_nsmount: wmii: %s", ixp_errbuf());
             goto error;
         }
     }
@@ -158,15 +166,6 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
 error:
     destroy(bd);
     return LUASTATUS_ERR;
-}
-
-#define NPATH 32
-
-static inline
-void
-get_path(char *buf, Priv *p, size_t widget_idx, unsigned file_idx)
-{
-    snprintf(buf, NPATH, "/%cbar/LS%03zu_%03u", p->barsym, widget_idx, file_idx);
 }
 
 // If /file_idx/ < /p->nfiles[widget_idx]/, updates the content of the block file.

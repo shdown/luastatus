@@ -25,14 +25,14 @@ ls_strlcpy(char *buf, const char *src, size_t nbuf)
     return nsrc;
 }
 
-// If zero-terminated string /a/ starts with zero-terminated string /b/, returns /a + strlen(b)/.
-// Otherwise, returns /NULL/.
+// If zero-terminated string /str/ starts with zero-terminated string /prefix/, returns
+// /str + strlen(prefix)/; otherwise, returns /NULL/.
 LS_INHEADER
 const char *
-ls_strfollow(const char *a, const char *b)
+ls_strfollow(const char *str, const char *prefix)
 {
-    const size_t nb = strlen(b);
-    return strncmp(a, b, nb) == 0 ? a + nb : NULL;
+    const size_t nprefix = strlen(prefix);
+    return strncmp(str, prefix, nprefix) == 0 ? str + nprefix : NULL;
 }
 
 #endif

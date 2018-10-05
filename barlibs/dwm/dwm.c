@@ -76,8 +76,9 @@ redraw(LuastatusBarlibData *bd)
 
     xcb_generic_error_t *err = xcb_request_check(
         p->conn,
-        xcb_change_property_checked(p->conn, XCB_PROP_MODE_REPLACE, p->root, XCB_ATOM_WM_NAME,
-            XCB_ATOM_STRING, 8, joined->size, joined->data));
+        xcb_change_property_checked(
+            p->conn, XCB_PROP_MODE_REPLACE, p->root, XCB_ATOM_WM_NAME, XCB_ATOM_STRING, 8,
+            joined->size, joined->data));
     if (err) {
         LS_FATALF(bd, "XCB error %d occured", err->error_code);
         free(err);
