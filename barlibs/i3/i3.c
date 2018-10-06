@@ -33,6 +33,7 @@ destroy(LuastatusBarlibData *bd)
         LS_VECTOR_FREE(p->bufs[i]);
     }
     free(p->bufs);
+    LS_VECTOR_FREE(p->tmpbuf);
     ls_close(p->in_fd);
     if (p->out) {
         fclose(p->out);
@@ -48,6 +49,7 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
     *p = (Priv) {
         .nwidgets = nwidgets,
         .bufs = LS_XNEW(LSString, nwidgets),
+        .tmpbuf = LS_VECTOR_NEW(),
         .in_fd = -1,
         .out = NULL,
         .noclickev = false,
