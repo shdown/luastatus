@@ -26,6 +26,8 @@ typedef struct {
     // Content of the widgets.
     LSString *bufs;
 
+    LSString tmpbuf;
+
     // Zero-terminated separator string.
     char *sep;
 
@@ -45,6 +47,7 @@ destroy(LuastatusBarlibData *bd)
         LS_VECTOR_FREE(p->bufs[i]);
     }
     free(p->bufs);
+    LS_VECTOR_FREE(p->tmpbuf);
     free(p->sep);
     free(p->error);
     if (p->out) {
@@ -61,6 +64,7 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
     *p = (Priv) {
         .nwidgets = nwidgets,
         .bufs = LS_XNEW(LSString, nwidgets),
+        .tmpbuf = LS_VECTOR_NEW(),
         .sep = NULL,
         .error = NULL,
         .out = NULL,
@@ -171,7 +175,7 @@ int
 set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
 {
     Priv *p = bd->priv;
-    LSString *buf = &p->bufs[widget_idx];
+    LSString *buf = &p->tmpbuf;
 
     LS_VECTOR_CLEAR(*buf);
     switch (lua_type(L, -1)) {
@@ -191,12 +195,12 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
                 if (!lua_isnumber(L, LS_LUA_KEY)) {
                     LS_ERRF(bd, "table key: expected number, found %s",
                         luaL_typename(L, LS_LUA_KEY));
-                    return LUASTATUS_NONFATAL_ERR;
+                    goto invalid_data;
                 }
                 if (!lua_isstring(L, LS_LUA_VALUE)) {
                     LS_ERRF(bd, "table value: expected string, found %s",
                         luaL_typename(L, LS_LUA_VALUE));
-                    return LUASTATUS_NONFATAL_ERR;
+                    goto invalid_data;
                 }
                 size_t ns;
                 const char *s = lua_tolstring(L, LS_LUA_VALUE, &ns);
@@ -209,13 +213,20 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
         break;
     default:
         LS_ERRF(bd, "expected string, table or nil, found %s", luaL_typename(L, -1));
-        return LUASTATUS_NONFATAL_ERR;
+        goto invalid_data;
     }
 
-    if (!redraw(bd)) {
-        return LUASTATUS_ERR;
+    if (!ls_string_eq(*buf, p->bufs[widget_idx])) {
+        ls_string_swap(buf, &p->bufs[widget_idx]);
+        if (!redraw(bd)) {
+            return LUASTATUS_ERR;
+        }
     }
     return LUASTATUS_OK;
+
+invalid_data:
+    LS_VECTOR_CLEAR(p->bufs[widget_idx]);
+    return LUASTATUS_NONFATAL_ERR;
 }
 
 static

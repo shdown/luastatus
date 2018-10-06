@@ -23,6 +23,8 @@ typedef struct {
     // Content of the widgets.
     LSString *bufs;
 
+    LSString tmpbuf;
+
     // Buffer for the content of the widgets joined by /sep/.
     LSString joined;
 
@@ -45,6 +47,7 @@ destroy(LuastatusBarlibData *bd)
         LS_VECTOR_FREE(p->bufs[i]);
     }
     free(p->bufs);
+    LS_VECTOR_FREE(p->tmpbuf);
     LS_VECTOR_FREE(p->joined);
     free(p->sep);
     if (p->conn) {
@@ -95,6 +98,7 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
     *p = (Priv) {
         .nwidgets = nwidgets,
         .bufs = LS_XNEW(LSString, nwidgets),
+        .tmpbuf = LS_VECTOR_NEW(),
         .joined = LS_VECTOR_NEW_RESERVE(char, 1024),
         .sep = NULL,
         .conn = NULL,
@@ -150,33 +154,33 @@ int
 set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
 {
     Priv *p = bd->priv;
+    LSString *buf = &p->tmpbuf;
+    LS_VECTOR_CLEAR(*buf);
+
     switch (lua_type(L, -1)) {
     case LUA_TSTRING:
         {
             size_t ns;
             const char *s = lua_tolstring(L, -1, &ns);
-            ls_string_assign_b(&p->bufs[widget_idx], s, ns);
+            ls_string_assign_b(buf, s, ns);
         }
         break;
     case LUA_TNIL:
-        LS_VECTOR_CLEAR(p->bufs[widget_idx]);
         break;
     case LUA_TTABLE:
         {
-            LSString *buf = &p->bufs[widget_idx];
             const char *sep = p->sep;
 
-            LS_VECTOR_CLEAR(*buf);
             LS_LUA_TRAVERSE(L, -1) {
                 if (!lua_isnumber(L, LS_LUA_KEY)) {
                     LS_ERRF(bd, "table key: expected number, found %s",
                         luaL_typename(L, LS_LUA_KEY));
-                    return LUASTATUS_NONFATAL_ERR;
+                    goto invalid_data;
                 }
                 if (!lua_isstring(L, LS_LUA_VALUE)) {
                     LS_ERRF(bd, "table value: expected string, found %s",
                         luaL_typename(L, LS_LUA_VALUE));
-                    return LUASTATUS_NONFATAL_ERR;
+                    goto invalid_data;
                 }
                 size_t ns;
                 const char *s = lua_tolstring(L, LS_LUA_VALUE, &ns);
@@ -189,13 +193,20 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
         break;
     default:
         LS_ERRF(bd, "expected table, string or nil, found %s", luaL_typename(L, -1));
-        return LUASTATUS_NONFATAL_ERR;
+        goto invalid_data;
     }
 
-    if (!redraw(bd)) {
-        return LUASTATUS_ERR;
+    if (!ls_string_eq(*buf, p->bufs[widget_idx])) {
+        ls_string_swap(buf, &p->bufs[widget_idx]);
+        if (!redraw(bd)) {
+            return LUASTATUS_ERR;
+        }
     }
     return LUASTATUS_OK;
+
+invalid_data:
+    LS_VECTOR_CLEAR(p->bufs[widget_idx]);
+    return LUASTATUS_NONFATAL_ERR;
 }
 
 static
