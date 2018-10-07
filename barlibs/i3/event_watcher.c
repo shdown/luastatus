@@ -16,8 +16,11 @@
 
 #include "priv.h"
 
+// We store all string keys and values in the /strarr/ field of /Context/ structure; this type is
+// used for an index of the string in that /LSStringArray/.
 typedef size_t StringIndex;
 
+// Type for a JSON value awaiting to be converted to a Lua value.
 typedef struct {
     enum {
         TYPE_STRING,
@@ -32,6 +35,7 @@ typedef struct {
     } as;
 } Value;
 
+// Type for a JSON key (JSON only supports string keys).
 typedef struct {
     StringIndex key_idx;
     Value value;
@@ -43,9 +47,13 @@ typedef struct {
         STATE_EXPECTING_MAP_BEGIN,
         STATE_INSIDE_MAP,
     } state;
+    // An array in which the JSON strings, including keys, are stored.
     LSStringArray strarr;
+    // Current event's parameters as key-value pairs.
     LS_VECTOR_OF(KeyValue) params;
+    // Index in /strarr/ of the last encountered JSON key.
     StringIndex last_key_idx;
+    // Current event's widget index, or a negative value if is not known yet or invalid.
     int widget;
 
     LuastatusBarlibData *bd;
