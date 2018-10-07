@@ -137,7 +137,7 @@ typedef struct {
 } Widget;
 
 // The list of log level names.
-static const char *loglevel_names[LUASTATUS_LOG_LAST] = {
+static const char *loglevel_names[] = {
     [LUASTATUS_LOG_FATAL]   = "fatal",
     [LUASTATUS_LOG_ERR]     = "error",
     [LUASTATUS_LOG_WARN]    = "warning",
@@ -234,22 +234,13 @@ safe_dlerror(void)
     return err ? err : "(no error, but the symbol is NULL)";
 }
 
-// Returns a name of the given log level. If /level/ is not a correct log level, the behaviour is
-// undefined.
-static inline
-const char *
-loglevel_tostr(int level)
-{
-    return loglevel_names[level];
-}
-
 // Returns a log level number by its name /str/, or returns /LUASTATUS_LOG_LAST/ if no such log
 // level was found.
 static
 int
 loglevel_fromstr(const char *str)
 {
-    for (size_t i = 0; i < LUASTATUS_LOG_LAST; ++i) {
+    for (size_t i = 0; i < LS_ARRAY_SIZE(loglevel_names); ++i) {
         assert(loglevel_names[i]); // a hole in enumeration?
         if (strcmp(str, loglevel_names[i]) == 0) {
             return i;
@@ -276,9 +267,9 @@ common_vsayf(int level, const char *subsystem, const char *fmt, va_list vl)
     }
 
     if (subsystem) {
-        fprintf(stderr, "luastatus: (%s) %s: %s\n", subsystem, loglevel_tostr(level), buf);
+        fprintf(stderr, "luastatus: (%s) %s: %s\n", subsystem, loglevel_names[level], buf);
     } else {
-        fprintf(stderr, "luastatus: %s: %s\n", loglevel_tostr(level), buf);
+        fprintf(stderr, "luastatus: %s: %s\n", loglevel_names[level], buf);
     }
 }
 
