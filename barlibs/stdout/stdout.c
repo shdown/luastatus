@@ -26,6 +26,7 @@ typedef struct {
     // Content of the widgets.
     LSString *bufs;
 
+    // Temporary buffer for secondary buffering, to avoid unneeded redraws.
     LSString tmpbuf;
 
     // Zero-terminated separator string.
