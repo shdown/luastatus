@@ -1,6 +1,8 @@
 -- A reimplementation of `examples/i3/cpu-temperature.lua` in MoonScript.
 -- Arguably less cluttered than the Lua counterpart.
 
+-- Replace "*" with "[^0]*" in the following line if your zeroeth thermal sensor is virtual (and
+-- thus useless):
 paths = [x for x in io.popen('echo /sys/class/thermal/thermal_zone*/temp', 'r')\read!\gmatch '%S+']
 
 COOL_TEMP = 50
@@ -15,6 +17,7 @@ getcolor = (temp) ->
 
 export widget = {
     plugin: 'timer'
+    opts: period: 2
     cb: ->
         return for path in *paths
             f = assert io.open path, 'r'
