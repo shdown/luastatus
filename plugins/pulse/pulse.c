@@ -72,7 +72,7 @@ l_wake_up(lua_State *L)
     LuastatusPluginData *pd = lua_touserdata(L, lua_upvalueindex(1));
     Priv *p = pd->priv;
 
-    write(p->self_pipe[1], "", 1);
+    write(p->self_pipe[1], "", 1); // write '\0'
 
     return 0;
 }

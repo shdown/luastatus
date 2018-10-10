@@ -100,7 +100,7 @@ l_wake_up(lua_State *L)
     LuastatusPluginData *pd = lua_touserdata(L, lua_upvalueindex(1));
     Priv *p = pd->priv;
 
-    write(p->self_pipe[1], "", 1);
+    write(p->self_pipe[1], "", 1); // write '\0'
 
     return 0;
 }
@@ -311,11 +311,8 @@ iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         }
 
         unsigned short revents;
-        ALSA_CALL(snd_mixer_poll_descriptors_revents,
-            mixer,
-            pollfds.data + pollfds.nprefix,
-            pollfds.size - pollfds.nprefix,
-            &revents);
+        ALSA_CALL(snd_mixer_poll_descriptors_revents, mixer,
+                  pollfds.data + pollfds.nprefix, pollfds.size - pollfds.nprefix, &revents);
         if (revents & (POLLERR | POLLNVAL)) {
             LS_ERRF(pd, "snd_mixer_poll_descriptors_revents() reported an error condition");
             goto error;

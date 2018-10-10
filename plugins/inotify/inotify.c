@@ -351,6 +351,11 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         funcs.call_end(pd->userdata);
     }
 
+    // This /__attribute__((aligned(__alignof__(struct inotify_event))))/ thing is in inotify's
+    // man page.
+    // Since inotify is Linux-specific, and you need gcc to build the Linux kernel, it's probably
+    // justified that gcc (or at least a GNU C-compatible compiler) is also needed to build this
+    // plugin.
     char buf[sizeof(struct inotify_event) + NAME_MAX + 2]
         __attribute__((aligned(__alignof__(struct inotify_event))));
 
