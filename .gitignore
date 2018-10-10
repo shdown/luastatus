@@ -12,3 +12,5 @@ CTestTestfile.cmake
 build/
 # generated headers
 *.generated.[ch]
+# Do not ignore hand-written Makefiles
+!/examples/*/moonscript/Makefile
