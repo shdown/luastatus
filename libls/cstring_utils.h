@@ -17,7 +17,7 @@ ls_strlcpy(char *buf, const char *src, size_t nbuf)
     const size_t nsrc = strlen(src);
     if (nbuf) {
         const size_t ncopy = LS_MIN(nsrc, nbuf - 1);
-        // both /buf/ and /src/ are safe to dereference here, so it's safe to call memcpy without
+        // both /buf/ and /src/ are safe to dereference here, so it's safe to call /memcpy/ without
         // additional checks (see /DOCS/c_notes/empty-ranges-and-c-stdlib.md).
         memcpy(buf, src, ncopy);
         buf[ncopy] = '\0';
