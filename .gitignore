@@ -12,5 +12,6 @@ CTestTestfile.cmake
 build/
 # generated headers
 *.generated.[ch]
-# Do not ignore hand-written Makefiles
+# rules for MoonScript directories
 !/examples/*/moonscript/Makefile
+/examples/*/moonscript/*.lua
