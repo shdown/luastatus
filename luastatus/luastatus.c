@@ -1171,17 +1171,10 @@ widget_thread(void *arg)
 
 static
 void
-ignore_signal(int signo)
-{
-    (void) signo;
-}
-
-static
-void
 prepare_signals(void)
 {
     // We do not want to terminate on a write to a dead pipe.
-    struct sigaction sa = {.sa_flags = SA_RESTART, .sa_handler = ignore_signal};
+    struct sigaction sa = {.sa_flags = SA_RESTART, .sa_handler = SIG_IGN};
     ls_xsigemptyset(&sa.sa_mask);
     if (sigaction(SIGPIPE, &sa, NULL) < 0) {
         perror("luastatus: sigaction: SIGPIPE");
