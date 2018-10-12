@@ -1,9 +1,12 @@
 -- A reimplementation of `examples/i3/cpu-temperature.lua` in MoonScript.
 -- Arguably less cluttered than the Lua counterpart.
 
+local paths
 -- Replace "*" with "[^0]*" in the following line if your zeroeth thermal sensor is virtual (and
 -- thus useless):
-paths = [x for x in io.popen('echo /sys/class/thermal/thermal_zone*/temp', 'r')\read!\gmatch '%S+']
+with io.popen "printf '%s\n' /sys/class/thermal/thermal_zone*/temp"
+    paths = [p for p in \lines!]
+    \close!
 
 COOL_TEMP = 50
 HEAT_TEMP = 75

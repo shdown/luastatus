@@ -44,11 +44,13 @@ widget = {
     opts = {period = PERIOD},
     cb = function()
         local res = {}
-        for line in assert(io.open('/proc/net/dev', 'r')):lines() do
+        local f = assert(io.open('/proc/net/dev', 'r'))
+        for line in f:lines() do
             if not line:find('|') then -- skip the "header" lines
                 table.insert(res, get_block(line))
             end
         end
+        f:close()
         return res
     end
 }

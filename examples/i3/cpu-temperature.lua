@@ -1,8 +1,12 @@
 paths = {}
--- Replace "*" with "[^0]*" in the following line if your zeroeth thermal sensor is virtual (and
--- thus useless):
-for p in io.popen([[printf '%s\n' /sys/class/thermal/thermal_zone*/temp]], 'r'):lines() do
-    table.insert(paths, p)
+do
+    -- Replace "*" with "[^0]*" in the following line if your zeroeth thermal sensor is virtual (and
+    -- thus useless):
+    local f = assert(io.popen("printf '%s\n' /sys/class/thermal/thermal_zone*/temp"))
+    for p in f:lines() do
+        table.insert(paths, p)
+    end
+    f:close()
 end
 
 COOL_TEMP = 50
