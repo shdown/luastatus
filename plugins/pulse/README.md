@@ -3,6 +3,10 @@ This plugin monitors the volume and mute status of the default PulseAudio sink.
 Options
 ===
 
+* `sink`: string
+
+Sink name; default is `"@DEFAULT_SINK@"`.
+
 * `make_self_pipe`: boolean
 
 If `true`, the `wake_up()` (see below) function will be available.

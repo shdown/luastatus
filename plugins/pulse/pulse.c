@@ -21,6 +21,7 @@
 // LGPL-3.0.
 
 typedef struct {
+    char *sink_name;
     int self_pipe[2];
 } Priv;
 
@@ -29,6 +30,7 @@ void
 destroy(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
+    free(p->sink_name);
     ls_close(p->self_pipe[0]);
     ls_close(p->self_pipe[1]);
     free(p);
@@ -40,8 +42,16 @@ init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
+        .sink_name = NULL,
         .self_pipe = {-1, -1},
     };
+
+    PU_MAYBE_VISIT_STR("sink", NULL, s,
+        p->sink_name = ls_xstrdup(s);
+    );
+    if (!p->sink_name) {
+        p->sink_name = ls_xstrdup("@DEFAULT_SINK@");
+    }
 
     PU_MAYBE_VISIT_BOOL("make_self_pipe", NULL, b,
         if (b) {
@@ -94,7 +104,7 @@ typedef struct {
     LuastatusPluginData *pd;
     LuastatusPluginRunFuncs funcs;
     pa_mainloop *ml;
-    uint32_t def_sink_idx;
+    uint32_t sink_idx;
 } UserData;
 
 static
@@ -124,7 +134,7 @@ store_volume_from_sink_cb(pa_context *c, const pa_sink_info *info, int eol, void
         }
         LS_ERRF(ud->pd, "PulseAudio error: %s", pa_strerror(pa_context_errno(c)));
     } else if (eol == 0) {
-        if (info->index == ud->def_sink_idx) {
+        if (info->index == ud->sink_idx) {
             lua_State *L = ud->funcs.call_begin(ud->pd->userdata);
             // L: ?
             lua_newtable(L); // L: ? table
@@ -141,13 +151,13 @@ store_volume_from_sink_cb(pa_context *c, const pa_sink_info *info, int eol, void
 
 static
 void
-store_default_sink_cb(pa_context *c, const pa_sink_info *info, int eol, void *vud)
+store_sink_cb(pa_context *c, const pa_sink_info *info, int eol, void *vud)
 {
     UserData *ud = vud;
     if (info) {
-        if (ud->def_sink_idx != info->index) {
-            // default sink changed?
-            ud->def_sink_idx = info->index;
+        if (ud->sink_idx != info->index) {
+            // sink has changed?
+            ud->sink_idx = info->index;
             store_volume_from_sink_cb(c, info, eol, vud);
         }
     }
@@ -155,12 +165,12 @@ store_default_sink_cb(pa_context *c, const pa_sink_info *info, int eol, void *vu
 
 static
 void
-update_default_sink(pa_context *c, void *vud)
+update_sink(pa_context *c, void *vud)
 {
     UserData *ud = vud;
-    pa_operation *o = pa_context_get_sink_info_by_name(
-        c, "@DEFAULT_SINK@", store_default_sink_cb, vud);
+    Priv *p = ud->pd->priv;
 
+    pa_operation *o = pa_context_get_sink_info_by_name(c, p->sink_name, store_sink_cb, vud);
     if (o) {
         pa_operation_unref(o);
     } else {
@@ -180,8 +190,8 @@ subscribe_cb(pa_context *c, pa_subscription_event_type_t t, uint32_t idx, void *
     pa_subscription_event_type_t facility = t & PA_SUBSCRIPTION_EVENT_FACILITY_MASK;
     switch (facility) {
     case PA_SUBSCRIPTION_EVENT_SERVER:
-        // server change event, see if the default sink changed
-        update_default_sink(c, vud);
+        // server change event, see if the sink has changed
+        update_sink(c, vud);
         break;
     case PA_SUBSCRIPTION_EVENT_SINK:
         {
@@ -218,7 +228,7 @@ context_state_cb(pa_context *c, void *vud)
     case PA_CONTEXT_READY:
         {
             pa_context_set_subscribe_callback(c, subscribe_cb, vud);
-            update_default_sink(c, vud);
+            update_sink(c, vud);
             pa_operation *o = pa_context_subscribe(
                 c, PA_SUBSCRIPTION_MASK_SINK | PA_SUBSCRIPTION_MASK_SERVER, NULL, NULL);
 
@@ -243,7 +253,7 @@ iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     bool ret = false;
     Priv *p = pd->priv;
-    UserData ud = {.pd = pd, .funcs = funcs, .def_sink_idx = UINT32_MAX};
+    UserData ud = {.pd = pd, .funcs = funcs, .sink_idx = UINT32_MAX};
     pa_mainloop_api *api = NULL;
     pa_context *ctx = NULL;
     pa_io_event *pipe_ev = NULL;
