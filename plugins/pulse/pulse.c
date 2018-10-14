@@ -90,25 +90,12 @@ register_funcs(LuastatusPluginData *pd, lua_State *L)
     }
 }
 
-static const uint32_t DEF_SINK_IDX = UINT32_MAX;
-
 typedef struct {
     LuastatusPluginData *pd;
     LuastatusPluginRunFuncs funcs;
     pa_mainloop *ml;
     uint32_t def_sink_idx;
 } UserData;
-
-static
-void
-free_op(LuastatusPluginData *pd, pa_context *c, pa_operation *o, const char *what)
-{
-    if (o) {
-        pa_operation_unref(o);
-    } else {
-        LS_ERRF(pd, "%s: %s", what, pa_strerror(pa_context_errno(c)));
-    }
-}
 
 static
 void
@@ -173,7 +160,12 @@ update_default_sink(pa_context *c, void *vud)
     UserData *ud = vud;
     pa_operation *o = pa_context_get_sink_info_by_name(
         c, "@DEFAULT_SINK@", store_default_sink_cb, vud);
-    free_op(ud->pd, c, o, "pa_context_get_sink_info_by_name");
+
+    if (o) {
+        pa_operation_unref(o);
+    } else {
+        LS_ERRF(ud->pd, "pa_context_get_sink_info_by_name: %s", pa_strerror(pa_context_errno(c)));
+    }
 }
 
 static
@@ -195,7 +187,13 @@ subscribe_cb(pa_context *c, pa_subscription_event_type_t t, uint32_t idx, void *
         {
             pa_operation *o = pa_context_get_sink_info_by_index(
                 c, idx, store_volume_from_sink_cb, vud);
-            free_op(ud->pd, c, o, "pa_context_get_sink_info_by_index");
+
+            if (o) {
+                pa_operation_unref(o);
+            } else {
+                LS_ERRF(ud->pd, "pa_context_get_sink_info_by_index: %s",
+                        pa_strerror(pa_context_errno(c)));
+            }
         }
         break;
     default:
@@ -223,7 +221,12 @@ context_state_cb(pa_context *c, void *vud)
             update_default_sink(c, vud);
             pa_operation *o = pa_context_subscribe(
                 c, PA_SUBSCRIPTION_MASK_SINK | PA_SUBSCRIPTION_MASK_SERVER, NULL, NULL);
-            free_op(ud->pd, c, o, "pa_context_subscribe");
+
+            if (o) {
+                pa_operation_unref(o);
+            } else {
+                LS_ERRF(ud->pd, "pa_context_subscribe: %s", pa_strerror(pa_context_errno(c)));
+            }
         }
         break;
 
@@ -240,7 +243,7 @@ iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     bool ret = false;
     Priv *p = pd->priv;
-    UserData ud = {.pd = pd, .funcs = funcs, .def_sink_idx = DEF_SINK_IDX};
+    UserData ud = {.pd = pd, .funcs = funcs, .def_sink_idx = UINT32_MAX};
     pa_mainloop_api *api = NULL;
     pa_context *ctx = NULL;
     pa_io_event *pipe_ev = NULL;
