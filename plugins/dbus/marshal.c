@@ -1,10 +1,25 @@
 #include "marshal.h"
 
 #include "libls/compdep.h"
+#include "libls/panic.h"
 
 #include <stdio.h>
 #include <limits.h>
 #include <inttypes.h>
+
+static
+int
+l_special_object(lua_State *L)
+{
+    lua_pushvalue(L, lua_upvalueindex(1)); // L: upvalue1
+    if (lua_isnil(L, -1)) {
+        lua_pushvalue(L, lua_upvalueindex(2)); // L: upvalue1 upvalue 2
+        return 2;
+    } else {
+        // L: upvalue 1
+        return 1;
+    }
+}
 
 // forward declaration
 static
@@ -15,7 +30,9 @@ static
 void
 on_recur_lim(lua_State *L)
 {
-    lua_pushstring(L, "(recursion limit reached)");
+    lua_pushnil(L); // L: nil
+    lua_pushstring(L, "depth limit exceeded"); // L: nil str
+    lua_pushcclosure(L, l_special_object, 2); // L: closure
 }
 
 static
@@ -56,128 +73,105 @@ push_gvariant(lua_State *L, GVariant *var, unsigned recurlim)
         return;
     }
 
-    if (!var) {
-        lua_pushnil(L);
-        return;
-    }
-
-    const char *kind;
-    lua_newtable(L); // L: ? table
-
-#define ALTSTR(GType_, LuaType_, CastTo_, Fmt_) \
+#define PUSH_STR(Fmt_, What_) \
     do { \
         char buf_[32]; \
-        snprintf(buf_, sizeof(buf_), Fmt_, (CastTo_) g_variant_get_ ## GType_(var)); \
-        lua_pushstring(L, buf_); /* L: ? table str */ \
-        lua_setfield(L, -2, "as_string"); /* L: ? table */ \
-        lua_push ## LuaType_(L, g_variant_get_ ## GType_(var)); /* L: ? table value */ \
+        snprintf(buf_, sizeof(buf_), Fmt_, What_); \
+        lua_pushstring(L, buf_); \
     } while (0)
 
     switch (g_variant_classify(var)) {
         case G_VARIANT_CLASS_BOOLEAN:
-            kind = "boolean";
             lua_pushboolean(L, g_variant_get_boolean(var));
             break;
+
         case G_VARIANT_CLASS_BYTE:
-            kind = "byte";
-            ALTSTR(byte, integer, unsigned, "%u");
+            PUSH_STR("%u", (unsigned) g_variant_get_byte(var));
             break;
+
         case G_VARIANT_CLASS_INT16:
-            kind = "int16";
-            ALTSTR(int16, integer, int, "%d");
+            PUSH_STR("%" G_GINT16_FORMAT, g_variant_get_int16(var));
             break;
+
         case G_VARIANT_CLASS_UINT16:
-            kind = "uint16";
-            ALTSTR(uint16, integer, unsigned, "%u");
+            PUSH_STR("%" G_GUINT16_FORMAT, g_variant_get_uint16(var));
             break;
+
         case G_VARIANT_CLASS_INT32:
-            kind = "int32";
-            ALTSTR(int32, integer, int, "%d");
+            PUSH_STR("%" G_GINT32_FORMAT, g_variant_get_int32(var));
             break;
+
         case G_VARIANT_CLASS_UINT32:
-            kind = "uint32";
-            ALTSTR(uint32, integer, unsigned, "%u");
+            PUSH_STR("%" G_GUINT32_FORMAT, g_variant_get_uint32(var));
             break;
+
         case G_VARIANT_CLASS_INT64:
-            kind = "int64";
-            ALTSTR(int64, integer, int64_t, "%" PRId64);
+            PUSH_STR("%" G_GINT64_FORMAT, g_variant_get_int64(var));
             break;
+
         case G_VARIANT_CLASS_UINT64:
-            kind = "uint64";
-            ALTSTR(uint64, integer, uint64_t, "%" PRIu64);
+            PUSH_STR("%" G_GUINT64_FORMAT, g_variant_get_uint64(var));
             break;
-        case G_VARIANT_CLASS_HANDLE:
-            kind = "handle";
-            lua_pushnil(L);
-            break;
+
         case G_VARIANT_CLASS_DOUBLE:
-            kind = "double";
-            ALTSTR(double, number, double, "%g");
+            lua_pushnumber(L, g_variant_get_double(var));
             break;
+
         case G_VARIANT_CLASS_STRING:
-            kind = "string";
-            push_gvariant_strlike(L, var);
-            break;
         case G_VARIANT_CLASS_OBJECT_PATH:
-            kind = "object_path";
-            push_gvariant_strlike(L, var);
-            break;
         case G_VARIANT_CLASS_SIGNATURE:
-            kind = "signature";
             push_gvariant_strlike(L, var);
             break;
+
         case G_VARIANT_CLASS_VARIANT:
-            kind = "variant";
             push_gvariant(L, g_variant_get_variant(var), recurlim);
             break;
-        case G_VARIANT_CLASS_MAYBE:
-            kind = "maybe";
-            push_gvariant(L, g_variant_get_maybe(var), recurlim);
-            break;
-        case G_VARIANT_CLASS_ARRAY:
-            kind = "array";
-            push_gvariant_iterable(L, var, recurlim);
-            break;
-        case G_VARIANT_CLASS_TUPLE:
-            kind = "tuple";
-            push_gvariant_iterable(L, var, recurlim);
-            break;
-        case G_VARIANT_CLASS_DICT_ENTRY:
-            kind = "dict_entry";
-            {
-                GVariantIter iter;
-                if (g_variant_iter_init(&iter, var) == 2) {
-                    GVariant *key = g_variant_iter_next_value(&iter);
-                    // L: ? table
-                    push_gvariant(L, key, recurlim); // L: ? table key
-                    lua_setfield(L, -2, "key"); // L: ? table
-                    g_variant_unref(key);
 
-                    GVariant *value = g_variant_iter_next_value(&iter);
-                    push_gvariant(L, value, recurlim);
-                    g_variant_unref(value);
+        case G_VARIANT_CLASS_MAYBE:
+            {
+                GVariant *maybe = g_variant_get_maybe(var);
+                if (maybe) {
+                    push_gvariant(L, maybe, recurlim);
                 } else {
-                    // Not sure if this is possible, but whatever.
-                    push_gvariant_iterable(L, var, recurlim);
+                    lua_pushstring(L, "nothing"); // L: str
+                    lua_pushcclosure(L, l_special_object, 1); // L: closure
                 }
             }
             break;
+
+        case G_VARIANT_CLASS_ARRAY:
+        case G_VARIANT_CLASS_TUPLE:
+        case G_VARIANT_CLASS_DICT_ENTRY:
+            push_gvariant_iterable(L, var, recurlim);
+            break;
+
+        case G_VARIANT_CLASS_HANDLE:
         default:
-            LS_UNREACHABLE();
+            {
+                const GVariantType *type = g_variant_get_type(var);
+                const gchar *s = g_variant_type_peek_string(type);
+                const gsize ns = g_variant_type_get_string_length(type);
+                lua_pushlstring(L, s, ns); // L: str
+                lua_pushcclosure(L, l_special_object, 1); // L: closure
+            }
+            break;
     }
-    // L: ? table value
-    lua_setfield(L, -2, "value"); // L: ? table
-    lua_pushstring(L, kind); // L: ? table string
-    lua_setfield(L, -2, "kind"); // L: ? table
-#undef ALTSTR
+#undef PUSH_STR
 }
 
 void
 marshal(lua_State *L, GVariant *var)
 {
+    if (!var) {
+        lua_pushnil(L);
+        return;
+    }
+
     if (lua_checkstack(L, 510)) {
         push_gvariant(L, var, 500);
     } else {
-        lua_pushstring(L, "(out of memory)");
+        lua_pushnil(L); // L: nil
+        lua_pushstring(L, "out of memory"); // L: nil str
+        lua_pushcclosure(L, l_special_object, 2); // L: closure
     }
 }

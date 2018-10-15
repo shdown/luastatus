@@ -77,6 +77,38 @@ Options
 
     Signal name.
 
-    + `parameters`: table
+    + `parameters`: *D-Bus object*
 
     Signal arguments.
+
+D-Bus objects
+===
+
+D-Bus objects are marshalled as follows:
+
+* booleans: as Lua booleans;
+
+* byte, int16, uint16, int32, uint32, int64, uint64: as strings;
+
+* doubles: as numbers;
+
+* strings, object paths and signatures: as strings;
+
+* “maybe”s: as-is, or as *special objects* with value `"nothing"`;
+
+* handles: as *special objects* with value `"handle"`;
+
+* arrays, tuples and “dict entries”: as Lua arrays (tables with keys 1, 2, …);
+
+If an object cannot be marshalled, a *special object* with an error is generated instead.
+
+Special objects
+---
+
+Special objects represent D-Bus objects that cannot be marshalled to Lua.
+
+A special object is a function that, when called, returns either:
+
+    * value;
+
+    * `nil`, error.
