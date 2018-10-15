@@ -7,6 +7,7 @@
 -- The gauge block is initially hidden; click on the text block to toggle its visibility.
 -- Click anywhere at the gauge block to change the volume.
 -- Click with the right mouse button on either block to toggle mute state.
+local SINK = '@DEFAULT_SINK@'
 
 local HBLOCKS = {' ', '▏', '▎', '▍', '▌', '▋', '▊', '▉', '█'}
 local GAUGE_NCHARS = 20
@@ -52,7 +53,10 @@ end
 widget = {
     plugin = 'pulse',
 
-    opts = {make_self_pipe = true},
+    opts = {
+        sink = SINK,
+        make_self_pipe = true,
+    },
 
     cb = function(t)
         if t == nil then
@@ -94,7 +98,8 @@ widget = {
                     return
                 end
                 local rawvol = round(x / (t.width - sep_width) * last_t.norm)
-                assert(os.execute('pactl set-sink-volume @DEFAULT_SINK@ ' .. rawvol))
+                assert(os.execute(string.format(
+                    'pactl set-sink-volume "%s" %s', SINK, rawvol)))
 
             else
                 gauge = not gauge
@@ -103,7 +108,8 @@ widget = {
             end
 
         elseif t.button == 3 then -- right mouse button
-            assert(os.execute('pactl set-sink-mute @DEFAULT_SINK@ toggle'))
+            assert(os.execute(string.format(
+                'pactl set-sink-mute "%s" toggle', SINK)))
         end
     end,
 }
