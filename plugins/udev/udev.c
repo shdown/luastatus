@@ -89,7 +89,7 @@ void
 report_status(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, const char *status)
 {
     lua_State *L = funcs.call_begin(pd->userdata);
-    lua_newtable(L); // L: table
+    lua_createtable(L, 0, 1); // L: table
     lua_pushstring(L, status); // L: table string
     lua_setfield(L, -2, "what"); // L: table
     funcs.call_end(pd->userdata);
@@ -100,7 +100,7 @@ void
 report_event(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, struct udev_device *dev)
 {
     lua_State *L = funcs.call_begin(pd->userdata);
-    lua_newtable(L); // L: table
+    lua_createtable(L, 0, 4); // L: table
 
     lua_pushstring(L, "event"); // L: table string
     lua_setfield(L, -2, "what"); // L: table

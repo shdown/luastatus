@@ -189,7 +189,7 @@ callback_end_map(void *vctx)
     if (ctx->widget >= 0 && (size_t) ctx->widget < p->nwidgets) {
         lua_State *L = ctx->funcs.call_begin(ctx->bd->userdata, ctx->widget);
         // L: -
-        lua_newtable(L); // L: table
+        lua_createtable(L, 0, ctx->params.size); // L: table
         for (size_t i = 0; i < ctx->params.size; ++i) {
             // L: table
             KeyValue kv = ctx->params.data[i];

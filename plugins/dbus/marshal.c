@@ -53,13 +53,14 @@ push_gvariant_iterable(lua_State *L, GVariant *var, unsigned recurlim)
         return;
     }
 
-    lua_newtable(L); // L: table
     GVariantIter iter;
-    g_variant_iter_init(&iter, var);
+    const int n = g_variant_iter_init(&iter, var);
+    lua_createtable(L, n, 0); // L: table
+
     GVariant *elem;
-    for (int n = 1; (elem = g_variant_iter_next_value(&iter)); ++n) {
+    for (int i = 1; (elem = g_variant_iter_next_value(&iter)); ++i) {
         push_gvariant(L, elem, recurlim); // L: table value
-        lua_rawseti(L, -2, n); // L: table
+        lua_rawseti(L, -2, i); // L: table
         g_variant_unref(elem);
     }
 }

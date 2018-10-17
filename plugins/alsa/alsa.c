@@ -271,8 +271,9 @@ iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 
     while (1) {
         lua_State *L = funcs.call_begin(pd->userdata);
-        lua_newtable(L); // L: table
-        lua_newtable(L); // L: table table
+        lua_createtable(L, 0, 2); // L: table
+
+        lua_createtable(L, 0, 3); // L: table table
         long pmin, pmax;
         if (get_range(elem, &pmin, &pmax) >= 0) {
             lua_pushnumber(L, pmin); // L: table table pmin
@@ -286,11 +287,13 @@ iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
             lua_setfield(L, -2, "cur"); // L: table table
         }
         lua_setfield(L, -2, "vol"); // L: table
+
         int notmute;
         if (get_switch(elem, 0, &notmute) >= 0) {
             lua_pushboolean(L, !notmute); // L: table !notmute
             lua_setfield(L, -2, "mute"); // L: table
         }
+
         funcs.call_end(pd->userdata);
 
         pollfd_set_resize(&pollfds, pollfds.nprefix + snd_mixer_poll_descriptors_count(mixer));

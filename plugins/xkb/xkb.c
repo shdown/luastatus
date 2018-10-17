@@ -191,7 +191,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 
         // make a call
         lua_State *L = funcs.call_begin(pd->userdata); // L: -
-        lua_newtable(L); // L: table
+        lua_createtable(L, 0, 2); // L: table
         lua_pushinteger(L, group); // L: table n
         lua_setfield(L, -2, "id"); // L: table
         if (group >= 0 && (size_t) group < ls_strarr_size(groups)) {

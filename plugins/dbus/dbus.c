@@ -177,7 +177,7 @@ callback_signal(
     PluginRunArgs args = *(PluginRunArgs *) user_data;
     lua_State *L = args.funcs.call_begin(args.pd->userdata);
 
-    lua_newtable(L); // L: table
+    lua_createtable(L, 0, 6); // L: table
     lua_pushstring(L, "signal"); // L: table string
     lua_setfield(L, -2, "what"); // L: table
     lua_pushstring(L, sender_name); // L: table string
@@ -200,7 +200,7 @@ callback_timeout(gpointer user_data)
 {
     PluginRunArgs args = *(PluginRunArgs *) user_data;
     lua_State *L = args.funcs.call_begin(args.pd->userdata);
-    lua_newtable(L); // L: table
+    lua_createtable(L, 0, 1); // L: table
     lua_pushstring(L, "timeout"); // L: table string
     lua_setfield(L, -2, "what"); // L: table
     args.funcs.call_end(args.pd->userdata);
@@ -273,7 +273,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 
     if (p->greet) {
         lua_State *L = funcs.call_begin(pd->userdata);
-        lua_newtable(L); // L: table
+        lua_createtable(L, 0, 1); // L: table
         lua_pushstring(L, "hello"); // L: table string
         lua_setfield(L, -2, "what"); // L: table
         funcs.call_end(pd->userdata);

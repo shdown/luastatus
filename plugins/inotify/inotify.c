@@ -311,7 +311,7 @@ void
 push_event(lua_State *L, const struct inotify_event *event)
 {
     // L: -
-    lua_newtable(L); // L: table
+    lua_createtable(L, 0, 4); // L: table
 
     lua_pushstring(L, "event"); // L: table string
     lua_setfield(L, -2, "what"); // L: table
@@ -345,7 +345,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 
     if (p->greet) {
         lua_State *L = funcs.call_begin(pd->userdata);
-        lua_newtable(L); // L: table
+        lua_createtable(L, 0, 1); // L: table
         lua_pushstring(L, "hello"); // L: table string
         lua_setfield(L, -2, "what"); // L: table
         funcs.call_end(pd->userdata);
@@ -380,7 +380,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
                 goto error;
             } else if (r == 0) {
                 lua_State *L = funcs.call_begin(pd->userdata);
-                lua_newtable(L); // L: table
+                lua_createtable(L, 0, 1); // L: table
                 lua_pushstring(L, "timeout"); // L: table string
                 lua_setfield(L, -2, "what"); // L: table
                 funcs.call_end(pd->userdata);

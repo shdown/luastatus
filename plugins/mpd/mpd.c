@@ -154,11 +154,11 @@ kv_strarr_line_append(LSStringArray *sa, const char *line)
 
 static
 void
-kv_strarr_table_assign(LSStringArray sa, lua_State *L)
+kv_strarr_table_push(LSStringArray sa, lua_State *L)
 {
-    // L: table
     const size_t n = ls_strarr_size(sa);
     assert(n % 2 == 0);
+    lua_createtable(L, 0, n / 2); // L: table
     for (size_t i = 0; i < n; i += 2) {
         size_t nkey;
         const char *key = ls_strarr_at(sa, i, &nkey);
@@ -175,7 +175,7 @@ void
 report_status(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, const char *what)
 {
     lua_State *L = funcs.call_begin(pd->userdata);
-    lua_newtable(L); // L: table
+    lua_createtable(L, 0, 1); // L: table
     lua_pushstring(L, what); // L: table what
     lua_setfield(L, -2, "what"); // L: table
     funcs.call_end(pd->userdata);
@@ -278,18 +278,16 @@ interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, int fd)
         );
 
         lua_State *L = funcs.call_begin(pd->userdata);
-        lua_newtable(L); // L: table
+        lua_createtable(L, 0, 3); // L: table
 
         lua_pushstring(L, "update"); // L: table "update"
         lua_setfield(L, -2, "what"); // L: table
 
-        lua_newtable(L); // L: table table
-        kv_strarr_table_assign(kv_song, L); // L: table table
+        kv_strarr_table_push(kv_song, L); // L: table table
         ls_strarr_clear(&kv_song);
         lua_setfield(L, -2, "song"); // L: table
 
-        lua_newtable(L); // L: table table
-        kv_strarr_table_assign(kv_status, L); // L: table table
+        kv_strarr_table_push(kv_status, L); // L: table table
         ls_strarr_clear(&kv_status);
         lua_setfield(L, -2, "status"); // L: table
 

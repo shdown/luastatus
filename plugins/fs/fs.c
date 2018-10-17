@@ -86,7 +86,7 @@ push_for(LuastatusPluginData *pd, lua_State *L, const char *path)
         );
         return false;
     }
-    lua_newtable(L); // L: table
+    lua_createtable(L, 0, 3); // L: table
     lua_pushnumber(L, (double) st.f_frsize * st.f_blocks); // L: table n
     lua_setfield(L, -2, "total"); // L: table
     lua_pushnumber(L, (double) st.f_frsize * st.f_bfree); // L: table n
@@ -108,7 +108,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     while (1) {
         // make a call
         lua_State *L = funcs.call_begin(pd->userdata);
-        lua_newtable(L);
+        lua_createtable(L, 0, p->paths.size);
         for (size_t i = 0; i < p->paths.size; ++i) {
             const char *path = p->paths.data[i];
             if (push_for(pd, L, path)) {

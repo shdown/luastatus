@@ -137,7 +137,7 @@ store_volume_from_sink_cb(pa_context *c, const pa_sink_info *info, int eol, void
         if (info->index == ud->sink_idx) {
             lua_State *L = ud->funcs.call_begin(ud->pd->userdata);
             // L: ?
-            lua_newtable(L); // L: ? table
+            lua_createtable(L, 0, 3); // L: ? table
             lua_pushinteger(L, pa_cvolume_avg(&info->volume)); // L: ? table integer
             lua_setfield(L, -2, "cur"); // L: ? table
             lua_pushinteger(L, PA_VOLUME_NORM); // L: ? table integer

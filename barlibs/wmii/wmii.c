@@ -347,7 +347,7 @@ event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
         }
         lua_State *L = funcs.call_begin(bd->userdata, widget_idx);
         // L: ?
-        lua_newtable(L); // L: ? table
+        lua_createtable(L, 0, 2); // L: ? table
         lua_pushstring(L, evdetail); // L: ? table string
         lua_setfield(L, -2, "event"); // L: ? table
         lua_pushinteger(L, button); // L: ? table integer

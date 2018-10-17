@@ -665,7 +665,7 @@ inject_libs(lua_State *L)
 
     lua_pop(L, 1); // L: ?
 
-    lua_newtable(L); // L: ? table
+    lua_createtable(L, 0, 1); // L: ? table
 
     lua_newtable(L); // L: ? table table
     lua_pushcclosure(L, l_require_plugin, 1); // L: ? table l_require_plugin
