@@ -8,8 +8,8 @@
 #include "compdep.h"
 
 // Special "invalid" values for /struct timespec/ and /struct timeval/.
-static const struct timespec ls_timespec_invalid = {0, -1};
-static const struct timeval  ls_timeval_invalid  = {0, -1};
+static const struct timespec ls_timespec_invalid = {.tv_nsec = -1};
+static const struct timeval  ls_timeval_invalid  = {.tv_usec = -1};
 
 // Checks if the value of /ts/ is "invalid".
 LS_INHEADER

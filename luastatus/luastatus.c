@@ -12,7 +12,6 @@
 #include <signal.h>
 #include <pthread.h>
 #include <dlfcn.h>
-#include <search.h>
 #include <unistd.h>
 
 #include "include/barlib_data.h"
@@ -29,6 +28,7 @@
 #include "libls/string_.h"
 #include "libls/sig_utils.h"
 #include "libls/panic.h"
+#include "libls/algo.h"
 
 #include "config.generated.h"
 
@@ -192,18 +192,10 @@ static struct {
 //
 // Basically, it is a string-to-pointer mapping used by plugins and barlibs for synchronization.
 //
-// We use the search tree interface from /<search.h>/, which, in any sane implementation, should be
-// of logarithmic time complexity for search, insert and delete operations.
+// We use a "flat map": being cache-friendly, it outperforms a tree-based map for small numbers of
+// elements.
 
-// The map itself.
-static struct {
-    // An (opaque) pointer to the root node of the search tree. A /NULL/ represents an empty tree.
-    void *root;
-    // Whether the map is frozen after all plugins and widgets have been initialized.
-    bool frozen;
-} map = {NULL, false};
-
-// A structure we store in a node of the tree.
+// A single map entry.
 typedef struct {
     // The pointer value of this entry.
     void *value;
@@ -211,6 +203,15 @@ typedef struct {
     // A flexible array member containing the zero-terminated key string of this entry.
     char key[];
 } MapEntry;
+
+// The map itself.
+static struct {
+    // List of allocated entries.
+    LS_VECTOR_OF(MapEntry *) entries;
+
+    // Whether the map is frozen after all plugins and widgets have been initialized.
+    bool frozen;
+} map = {.entries = LS_VECTOR_NEW(), .frozen = false};
 
 // An implementation part for the /PTH_ASSERT/ macro.
 static
@@ -263,7 +264,7 @@ common_vsayf(int level, const char *subsystem, const char *fmt, va_list vl)
 
     char buf[1024];
     if (vsnprintf(buf, sizeof(buf), fmt, vl) < 0) {
-        ls_strlcpy(buf, "(vsnprintf failed)", sizeof(buf));
+        buf[0] = '\0';
     }
 
     if (subsystem) {
@@ -306,45 +307,31 @@ external_sayf(void *userdata, int level, const char *fmt, ...)
     va_end(vl);
 }
 
-// Compares two map entries by key.
-static
-int
-map_entry_cmp(const void *a, const void *b)
-{
-    return strcmp(((const MapEntry *) a)->key, ((const MapEntry *) b)->key);
-}
-
 // Returns a pointer to the value of the entry with key /key/.
 static
 void **
-map_get(const char *key)
+map_get(void *userdata, const char *key)
 {
+    TRACEF("map_get(userdata=%p, key='%s')", userdata, key);
+
     if (map.frozen) {
         LS_PANIC("map_get is called after the map has been frozen");
     }
 
+    for (size_t i = 0; i < map.entries.size; ++i) {
+        MapEntry *e = map.entries.data[i];
+        if (strcmp(key, e->key) == 0) {
+            return &e->value;
+        }
+    }
+
     const size_t nkey = strlen(key);
-    MapEntry *alloc = ls_xmalloc(sizeof(MapEntry) + nkey + 1, 1);
-    alloc->value = NULL;
-    memcpy(alloc->key, key, nkey + 1);
+    MapEntry *e = ls_xmalloc(sizeof(MapEntry) + nkey + 1, 1);
+    e->value = NULL;
+    memcpy(e->key, key, nkey + 1);
 
-    void *node = tsearch(alloc, &map.root, map_entry_cmp);
-    if (!node) {
-        ls_oom();
-    }
-    MapEntry *in_tree = *(MapEntry **) node;
-    if (in_tree != alloc) {
-        free(alloc);
-    }
-    return &in_tree->value;
-}
-
-static
-void **
-external_map_get(void *userdata, const char *key)
-{
-    TRACEF("map_get(userdata=%p, key='%s')", userdata, key);
-    return map_get(key);
+    LS_VECTOR_PUSH(map.entries, e);
+    return &e->value;
 }
 
 // Destroys the map.
@@ -352,11 +339,10 @@ static
 void
 map_destroy(void)
 {
-    while (map.root) {
-        MapEntry *ent = *(MapEntry **) map.root;
-        tdelete(ent, &map.root, map_entry_cmp);
-        free(ent);
+    for (size_t i = 0; i < map.entries.size; ++i) {
+        free(map.entries.data[i]);
     }
+    LS_VECTOR_FREE(map.entries);
 }
 
 // Loads /barlib/ from a file /filename/ and initializes with options /opts/ and the number of
@@ -393,7 +379,7 @@ barlib_init(const char *filename, const char *const *opts)
     barlib.data = (LuastatusBarlibData_v1) {
         .userdata = NULL,
         .sayf = external_sayf,
-        .map_get = external_map_get,
+        .map_get = map_get,
     };
 
     if (barlib.iface.init(&barlib.data, opts, nwidgets) == LUASTATUS_ERR) {
@@ -855,7 +841,7 @@ widget_init(Widget *w, const char *filename)
     w->data = (LuastatusPluginData_v1) {
         .userdata = w,
         .sayf = external_sayf,
-        .map_get = external_map_get,
+        .map_get = map_get,
     };
 
     if (w->plugin.iface.init(&w->data, L) == LUASTATUS_ERR) {

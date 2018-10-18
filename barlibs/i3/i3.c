@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
+#include <unistd.h>
 #include <lua.h>
 #include <lauxlib.h>
 
@@ -34,7 +35,7 @@ destroy(LuastatusBarlibData *bd)
     }
     free(p->bufs);
     LS_VECTOR_FREE(p->tmpbuf);
-    ls_close(p->in_fd);
+    close(p->in_fd);
     if (p->out) {
         fclose(p->out);
     }

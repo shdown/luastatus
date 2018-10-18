@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <unistd.h>
 #include <sys/select.h>
 
 #include "include/plugin_v1.h"
@@ -333,7 +334,7 @@ error:
     if (f) {
         fclose(f);
     }
-    ls_close(fd_to_close);
+    close(fd_to_close);
     free(buf);
     ls_strarr_destroy(kv_song);
     ls_strarr_destroy(kv_status);

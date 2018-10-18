@@ -9,14 +9,8 @@
 #include "panic.h"
 #include "compdep.h"
 
-// The behaviour is same as casting the result of
-//     /ls_xmalloc(NElems_, sizeof(Type_))/
-// to a pointer to /Type_/.
 #define LS_XNEW(Type_, NElems_)  ((Type_ *) ls_xmalloc(NElems_, sizeof(Type_)))
 
-// The behaviour is same as casting the result of
-//     /ls_xcalloc(NElems_, sizeof(Type_))/
-// to a pointer to /Type_/.
 #define LS_XNEW0(Type_, NElems_) ((Type_ *) ls_xcalloc(NElems_, sizeof(Type_)))
 
 // Out-of-memory handler; should be called when an allocation fails.
@@ -35,9 +29,8 @@ ls_xmalloc(size_t nelems, size_t elemsz)
     if (elemsz && nelems > SIZE_MAX / elemsz) {
         goto oom;
     }
-    const size_t n = nelems * elemsz;
-    void *r = malloc(n);
-    if (n && !r) {
+    void *r = malloc(nelems * elemsz);
+    if (nelems && elemsz && !r) {
         goto oom;
     }
     return r;
@@ -71,9 +64,8 @@ ls_xrealloc(void *p, size_t nelems, size_t elemsz)
     if (elemsz && nelems > SIZE_MAX / elemsz) {
         goto oom;
     }
-    const size_t n = nelems * elemsz;
-    void *r = realloc(p, n);
-    if (n && !r) {
+    void *r = realloc(p, nelems * elemsz);
+    if (nelems && elemsz && !r) {
         goto oom;
     }
     return r;
@@ -91,27 +83,21 @@ LS_INHEADER
 void *
 ls_x2realloc(void *p, size_t *pnelems, size_t elemsz)
 {
-    const size_t oldnelems = *pnelems;
-
-    size_t newnelems;
-    size_t n;
-
-    if (oldnelems) {
-        if (elemsz && oldnelems > SIZE_MAX / 2 / elemsz) {
+    size_t new_nelems;
+    if (*pnelems) {
+        if (elemsz && *pnelems > SIZE_MAX / 2 / elemsz) {
             goto oom;
         }
-        newnelems = oldnelems * 2;
-        n = newnelems * elemsz;
+        new_nelems = *pnelems * 2;
     } else {
-        newnelems = 1;
-        n = elemsz;
+        new_nelems = 1;
     }
 
-    void *r = realloc(p, n);
-    if (n && !r) {
+    void *r = realloc(p, new_nelems * elemsz);
+    if (elemsz && !r) {
         goto oom;
     }
-    *pnelems = newnelems;
+    *pnelems = new_nelems;
     return r;
 
 oom:
@@ -140,11 +126,7 @@ LS_INHEADER
 char *
 ls_xstrdup(const char *s)
 {
-    char *r = strdup(s);
-    if (!r) {
-        ls_oom();
-    }
-    return r;
+    return ls_xmemdup(s, strlen(s) + 1);
 }
 
 #endif

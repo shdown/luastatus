@@ -44,7 +44,7 @@ void
 destroy(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
-    ls_close(p->fd);
+    close(p->fd);
     for (size_t i = 0; i < p->init_watch.size; ++i) {
         free(p->init_watch.data[i].path);
     }

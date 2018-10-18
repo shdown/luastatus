@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <time.h>
 #include <poll.h>
 #include <alsa/asoundlib.h>
@@ -12,9 +13,9 @@
 #include "include/plugin_utils.h"
 
 #include "libls/alloc_utils.h"
-#include "libls/osdep.h"
 #include "libls/io_utils.h"
 #include "libls/errno_utils.h"
+#include "libls/osdep.h"
 
 typedef struct {
     char *card;
@@ -31,8 +32,8 @@ destroy(LuastatusPluginData *pd)
     Priv *p = pd->priv;
     free(p->card);
     free(p->channel);
-    ls_close(p->self_pipe[0]);
-    ls_close(p->self_pipe[1]);
+    close(p->self_pipe[0]);
+    close(p->self_pipe[1]);
     free(p);
 }
 

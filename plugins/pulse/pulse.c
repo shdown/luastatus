@@ -31,8 +31,8 @@ destroy(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
     free(p->sink_name);
-    ls_close(p->self_pipe[0]);
-    ls_close(p->self_pipe[1]);
+    close(p->self_pipe[0]);
+    close(p->self_pipe[1]);
     free(p);
 }
 

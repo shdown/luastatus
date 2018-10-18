@@ -5,6 +5,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <stdbool.h>
+#include <assert.h>
 
 #include "vector.h"
 #include "compdep.h"

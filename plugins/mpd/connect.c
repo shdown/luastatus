@@ -1,6 +1,7 @@
 #include "connect.h"
 
 #include <stddef.h>
+#include <unistd.h>
 #include <string.h>
 #include <sys/un.h>
 #include <sys/socket.h>
@@ -35,7 +36,7 @@ unixdom_open(LuastatusPluginData *pd, const char *path)
         LS_WITH_ERRSTR(s, errno,
             LS_ERRF(pd, "connect: %s: %s", path, s);
         );
-        ls_close(fd);
+        close(fd);
         return -1;
     }
     return fd;
@@ -78,7 +79,7 @@ inetdom_open(LuastatusPluginData *pd, const char *hostname, const char *service)
             LS_WITH_ERRSTR(s, errno,
                 LS_WARNF(pd, "(candiate) connect: %s", s);
             );
-            ls_close(fd);
+            close(fd);
             fd = -1;
             continue;
         }
