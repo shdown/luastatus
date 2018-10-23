@@ -12,13 +12,13 @@
 #endif
 
 #if __GNUC__ >= 2
-#   define LS_ATTR_UNUSED __attribute__((unused))
-#   define LS_ATTR_PRINTF(N_, M_) __attribute__((format(printf, N_, M_)))
-#   define LS_ATTR_NORETURN __attribute__((noreturn))
+#   define LS_ATTR_UNUSED           __attribute__((unused))
+#   define LS_ATTR_PRINTF(N_, M_)   __attribute__((format(printf, N_, M_)))
+#   define LS_ATTR_NORETURN         __attribute__((noreturn))
 #else
-#   define LS_ATTR_UNUSED          /*nothing*/
-#   define LS_ATTR_PRINTF          /*nothing*/
-#   define LS_ATTR_NORETURN        /*nothing*/
+#   define LS_ATTR_UNUSED           /*nothing*/
+#   define LS_ATTR_PRINTF           /*nothing*/
+#   define LS_ATTR_NORETURN         /*nothing*/
 #endif
 
 #if LS_GCC_VERSION >= 40500 || LS_CLANG_HAS_BUILTIN(__builtin_unreachable)
