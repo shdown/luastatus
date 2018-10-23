@@ -1,6 +1,6 @@
 This derived plugin periodically polls Linux `sysfs` for the state of a battery.
 
-It is also able to estimate time time remaining to full charge/discharge.
+It is also able to estimate the time remaining to full charge/discharge.
 
 Property naming schemes
 ===
