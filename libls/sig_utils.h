@@ -20,7 +20,7 @@ LS_INHEADER
 void
 ls_xsigemptyset(sigset_t *set)
 {
-    if (sigfillset(set) < 0) {
+    if (sigemptyset(set) < 0) {
         LS_PANIC("sigemptyset() failed");
     }
 }
