@@ -27,7 +27,6 @@
 #include "libls/vector.h"
 #include "libls/string_.h"
 #include "libls/sig_utils.h"
-#include "libls/panic.h"
 #include "libls/algo.h"
 
 #include "config.generated.h"
@@ -315,7 +314,8 @@ map_get(void *userdata, const char *key)
     TRACEF("map_get(userdata=%p, key='%s')", userdata, key);
 
     if (map.frozen) {
-        LS_PANIC("map_get is called after the map has been frozen");
+        FATALF("map_get() is called after the map has been frozen");
+        abort();
     }
 
     for (size_t i = 0; i < map.entries.size; ++i) {

@@ -10,7 +10,6 @@
 
 #include "libls/alloc_utils.h"
 #include "libls/lua_utils.h"
-#include "libls/panic.h"
 #include "libls/time_utils.h"
 #include "libls/errno_utils.h"
 #include "libls/wakeup_fifo.h"
@@ -45,7 +44,8 @@ init(LuastatusPluginData *pd, lua_State *L)
     };
 
     if (pthread_spin_init(&p->push_lock, PTHREAD_PROCESS_PRIVATE) != 0) {
-        LS_PANIC("pthread_spin_init() failed, which is impossible");
+        LS_FATALF(pd, "pthread_spin_init() failed (which is impossible)");
+        goto error;
     }
 
     PU_MAYBE_VISIT_NUM("period", NULL, n,
