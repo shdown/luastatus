@@ -1,10 +1,8 @@
 #!/bin/sh
 
-# Stop on error.
 set -e
 
-# Replace with your widgets directory:
-cd ~/.config/luastatus
+cd -- "$(dirname "$(readlink "$0")")"
 
 # List of your .moon widgets, with '.moon' replaced with '.lua'.
 targets='cpu-temperature.lua time.lua'
