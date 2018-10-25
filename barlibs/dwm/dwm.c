@@ -15,12 +15,9 @@
 #include "libls/vector.h"
 #include "libls/lua_utils.h"
 
-// Barlib's private data
 typedef struct {
-    // Number of widgets.
     size_t nwidgets;
 
-    // Content of the widgets.
     LSString *bufs;
 
     // Temporary buffer for secondary buffering, to avoid unneeded redraws.
@@ -29,13 +26,10 @@ typedef struct {
     // Buffer for the content of the widgets joined by /sep/.
     LSString joined;
 
-    // A zero-terminated separator string.
     char *sep;
 
-    // The XCB connection.
     xcb_connection_t *conn;
 
-    // The root window.
     xcb_window_t root;
 } Priv;
 

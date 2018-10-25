@@ -7,8 +7,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include <locale.h>
-#include <errno.h>
 #include <signal.h>
 #include <pthread.h>
 #include <dlfcn.h>
@@ -23,7 +21,6 @@
 #include "libls/errno_utils.h"
 #include "libls/getenv_r.h"
 #include "libls/lua_utils.h"
-#include "libls/cstring_utils.h"
 #include "libls/vector.h"
 #include "libls/string_.h"
 #include "libls/sig_utils.h"
@@ -135,7 +132,6 @@ typedef struct {
     char *filename;
 } Widget;
 
-// The list of log level names.
 static const char *loglevel_names[] = {
     [LUASTATUS_LOG_FATAL]   = "fatal",
     [LUASTATUS_LOG_ERR]     = "error",
@@ -194,16 +190,11 @@ static struct {
 // We use a "flat map": being cache-friendly, it outperforms a tree-based map for small numbers of
 // elements.
 
-// A single map entry.
 typedef struct {
-    // The pointer value of this entry.
     void *value;
-
-    // A flexible array member containing the zero-terminated key string of this entry.
-    char key[];
+    char key[]; // zero-terminated
 } MapEntry;
 
-// The map itself.
 static struct {
     // List of allocated entries.
     LS_VECTOR_OF(MapEntry *) entries;
@@ -334,7 +325,6 @@ map_get(void *userdata, const char *key)
     return &e->value;
 }
 
-// Destroys the map.
 static
 void
 map_destroy(void)
@@ -415,7 +405,6 @@ barlib_init_by_name(const char *name, const char *const *opts)
     }
 }
 
-// Destroys /barlib/.
 static
 void
 barlib_destroy(void)
@@ -425,7 +414,6 @@ barlib_destroy(void)
     PTH_ASSERT(pthread_mutex_destroy(&barlib.set_mtx));
 }
 
-// Loads a plugin /p/ with name /name/ from a file /filename/.
 static
 bool
 plugin_load(Plugin *p, const char *filename, const char *name)
@@ -467,8 +455,6 @@ error:
     return false;
 }
 
-// The result is same to calling /plugin_load(p, <filename>, name)/, where /<filename>/ is the file
-// name guessed for name /name/.
 static
 bool
 plugin_load_by_name(Plugin *p, const char *name)
@@ -483,13 +469,24 @@ plugin_load_by_name(Plugin *p, const char *name)
     }
 }
 
-// Unloads a plugin /p/.
 static
 void
 plugin_unload(Plugin *p)
 {
     free(p->name);
     dlclose(p->dlhandle);
+}
+
+static
+lua_State *
+xnew_lua_state(void)
+{
+    lua_State *L = luaL_newstate();
+    if (!L) {
+        FATALF("luaL_newstate() failed: out of memory?");
+        abort();
+    }
+    return L;
 }
 
 // Returns a string representation of an error object located at the position /pos/ of /L/'s stack.
@@ -660,7 +657,6 @@ inject_libs(lua_State *L)
     lua_setglobal(L, "luastatus"); // L: ?
 }
 
-// Initializes, if not already initialized, the separate state.
 static
 void
 sepstate_maybe_init(void)
@@ -669,16 +665,13 @@ sepstate_maybe_init(void)
         // already initialized
         return;
     }
-    if (!(sepstate.L = luaL_newstate())) {
-        ls_oom();
-    }
+    sepstate.L = xnew_lua_state();
     luaL_openlibs(sepstate.L);
     inject_libs(sepstate.L);
     lua_pushcfunction(sepstate.L, l_error_handler); // sepstate.L: l_error_handler
     PTH_ASSERT(pthread_mutex_init(&sepstate.L_mtx, NULL));
 }
 
-// Destroys, if needed, the separate state.
 static
 void
 sepstate_maybe_destroy(void)
@@ -788,21 +781,16 @@ widget_init_inspect_keep_opts(Widget *w)
     }
 }
 
-// Initializes widget /w/ from file /filename/.
 static
 bool
 widget_init(Widget *w, const char *filename)
 {
     DEBUGF("initializing widget '%s'", filename);
 
-    lua_State *L = w->L = luaL_newstate();
+    lua_State *L = w->L = xnew_lua_state();
     PTH_ASSERT(pthread_mutex_init(&w->L_mtx, NULL));
     w->filename = ls_xstrdup(filename);
     bool plugin_loaded = false;
-
-    if (!L) {
-        ls_oom();
-    }
 
     luaL_openlibs(L);
     // L: -
@@ -864,7 +852,6 @@ error:
     return false;
 }
 
-// Initializes widget /w/ and makes it stillborn.
 static
 void
 widget_init_stillborn(Widget *w)
@@ -875,7 +862,6 @@ widget_init_stillborn(Widget *w)
     w->sepstate_event = true;
 }
 
-// Checks whether a widget /w/ is stillborn.
 static inline
 bool
 widget_is_stillborn(Widget *w)
@@ -900,7 +886,6 @@ widget_event_L_mtx(Widget *w)
     return w->sepstate_event ? &sepstate.L_mtx : &w->L_mtx;
 }
 
-// Returns the index of a widget /w/.
 static inline
 size_t
 widget_index(Widget *w)
@@ -908,7 +893,6 @@ widget_index(Widget *w)
     return w - widgets;
 }
 
-// Destroys a (possibly stillborn) widget /w/.
 static
 void
 widget_destroy(Widget *w)
@@ -983,7 +967,6 @@ widgets_init(char *const *filenames, size_t nfilenames)
     }
 }
 
-// Destroys the widgets.
 static
 void
 widgets_destroy(void)

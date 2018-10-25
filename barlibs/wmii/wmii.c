@@ -25,7 +25,6 @@
 #define NPATH 32
 
 typedef struct {
-    // Number of widgets.
     size_t nwidgets;
 
     // /nfiles[i]/ is the largest /n/ such that the file named

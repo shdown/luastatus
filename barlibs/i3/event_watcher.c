@@ -47,7 +47,7 @@ typedef struct {
         STATE_EXPECTING_MAP_BEGIN,
         STATE_INSIDE_MAP,
     } state;
-    // An array in which the JSON strings, including keys, are stored.
+    // An array in which all the JSON strings, including keys, are stored.
     LSStringArray strarr;
     // Current event's parameters as key-value pairs.
     LS_VECTOR_OF(KeyValue) params;

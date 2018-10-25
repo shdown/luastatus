@@ -18,21 +18,17 @@
 #include "libls/lua_utils.h"
 #include "libls/alloc_utils.h"
 
-// Barlib's private data
 typedef struct {
-    // Number of widgets.
     size_t nwidgets;
 
-    // Content of the widgets.
     LSString *bufs;
 
     // Temporary buffer for secondary buffering, to avoid unneeded redraws.
     LSString tmpbuf;
 
-    // Zero-terminated separator string.
     char *sep;
 
-    // Zero-terminated content of an "error" segment.
+    // Content of an "error" segment.
     char *error;
 
     // /fdopen/'ed output file descriptor.

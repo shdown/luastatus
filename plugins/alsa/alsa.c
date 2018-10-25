@@ -345,7 +345,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     while (1) {
         if (!iteration(pd, funcs)) {
-            nanosleep((struct timespec[1]){{.tv_sec = 5}}, NULL);
+            nanosleep((struct timespec[1]) {{.tv_sec = 5}}, NULL);
         }
     }
 }

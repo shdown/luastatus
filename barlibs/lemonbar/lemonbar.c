@@ -21,18 +21,14 @@
 
 #include "markup_utils.h"
 
-// Barlib's private data
 typedef struct {
-    // Number of widgets.
     size_t nwidgets;
 
-    // Content of the widgets.
     LSString *bufs;
 
     // Temporary buffer for secondary buffering, to avoid unneeded redraws.
     LSString tmpbuf;
 
-    // A zero-terminated separator string.
     char *sep;
 
     // /fdopen/'ed input file descriptor.

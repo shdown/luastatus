@@ -268,7 +268,7 @@ append_segment(LuastatusBarlibData *bd, lua_State *L, int table_pos, size_t widg
             break;
         default:
             LS_ERRF(bd, "segment entry '%s': expected string, number, boolean or nil, found %s",
-                key, luaL_typename(L, LS_LUA_VALUE));
+                    key, luaL_typename(L, LS_LUA_VALUE));
             return false;
         }
     }
@@ -312,7 +312,7 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
                         break;
                     default:
                         LS_ERRF(bd, "array value: expected table or nil, found %s",
-                            luaL_typename(L, LS_LUA_VALUE));
+                                luaL_typename(L, LS_LUA_VALUE));
                         goto invalid_data;
                     }
                 }
