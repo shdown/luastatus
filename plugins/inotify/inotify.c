@@ -19,7 +19,7 @@
 #include "libls/lua_utils.h"
 #include "libls/osdep.h"
 #include "libls/alloc_utils.h"
-#include "libls/errno_utils.h"
+#include "libls/cstring_utils.h"
 #include "libls/vector.h"
 #include "libls/time_utils.h"
 #include "libls/sig_utils.h"
@@ -164,9 +164,7 @@ init(LuastatusPluginData *pd, lua_State *L)
     };
 
     if ((p->fd = compat_inotify_init(false, true)) < 0) {
-        LS_WITH_ERRSTR(s, errno,
-            LS_FATALF(pd, "inotify_init: %s", s);
-        );
+        LS_FATALF(pd, "inotify_init: %s", ls_strerror_onstack(errno));
         goto error;
     }
 
@@ -197,9 +195,7 @@ init(LuastatusPluginData *pd, lua_State *L)
 
         int wd = inotify_add_watch(p->fd, path, mask);
         if (wd < 0) {
-            LS_WITH_ERRSTR(s, errno,
-                LS_ERRF(pd, "inotify_add_watch: %s: %s", path, s);
-            );
+            LS_ERRF(pd, "inotify_add_watch: %s: %s", path, ls_strerror_onstack(errno));
         } else {
             LS_VECTOR_PUSH(p->init_watch, ((Watch) {
                 .path = ls_xstrdup(path),
@@ -241,9 +237,7 @@ l_add_watch(lua_State *L)
     }
     int wd = inotify_add_watch(p->fd, path, mask);
     if (wd < 0) {
-        LS_WITH_ERRSTR(s, errno,
-            LS_ERRF(pd, "inotify_add_watch: %s: %s", path, s);
-        );
+        LS_ERRF(pd, "inotify_add_watch: %s: %s", path, ls_strerror_onstack(errno));
         lua_pushnil(L);
     } else {
         lua_pushinteger(L, wd);
@@ -261,9 +255,7 @@ l_remove_watch(lua_State *L)
     Priv *p = pd->priv;
 
     if (inotify_rm_watch(p->fd, wd) < 0) {
-        LS_WITH_ERRSTR(s, errno,
-            LS_ERRF(pd, "inotify_rm_watch: %d: %s", wd, s);
-        );
+        LS_ERRF(pd, "inotify_rm_watch: %d: %s", wd, ls_strerror_onstack(errno));
         lua_pushboolean(L, false);
     } else {
         lua_pushboolean(L, true);
@@ -374,9 +366,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
             FD_SET(p->fd, &fds);
             int r = pselect(nfds, &fds, NULL, NULL, ptimeout, &allsigs);
             if (r < 0) {
-                LS_WITH_ERRSTR(s, errno,
-                    LS_FATALF(pd, "pselect: %s", s);
-                );
+                LS_FATALF(pd, "pselect: %s", ls_strerror_onstack(errno));
                 goto error;
             } else if (r == 0) {
                 lua_State *L = funcs.call_begin(pd->userdata);
@@ -393,9 +383,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
             if (errno == EINTR) {
                 continue;
             }
-            LS_WITH_ERRSTR(s, errno,
-                LS_FATALF(pd, "read: %s", s);
-            );
+            LS_FATALF(pd, "read: %s", ls_strerror_onstack(errno));
             goto error;
         } else if (r == 0) {
             LS_FATALF(pd, "read() from the inotify file descriptor returned 0");
@@ -416,7 +404,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     }
 
 error:
-    (void) 0;
+    return;
 }
 
 LuastatusPluginIface luastatus_plugin_iface_v1 = {

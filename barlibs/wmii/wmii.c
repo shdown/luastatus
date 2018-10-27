@@ -13,7 +13,6 @@
 
 #include "libls/alloc_utils.h"
 #include "libls/cstring_utils.h"
-#include "libls/errno_utils.h"
 #include "libls/vector.h"
 #include "libls/string_.h"
 #include "libls/getenv_r.h"
@@ -130,15 +129,12 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
 
     if (in_fd >= 0) {
         if (!(p->in = fdopen(in_fd, "r"))) {
-            LS_WITH_ERRSTR(s, errno,
-                LS_FATALF(bd, "cannot fdopen %d: %s", in_fd, s);
-            );
+            LS_FATALF(bd, "cannot fdopen %d: %s", in_fd, ls_strerror_onstack(errno));
             goto error;
         }
         if (ls_make_cloexec(in_fd) < 0) {
-            LS_WITH_ERRSTR(s, errno,
-                LS_FATALF(bd, "cannot make file descriptor %d CLOEXEC: %s", in_fd, s);
-            );
+            LS_FATALF(bd, "cannot make file descriptor %d CLOEXEC: %s",
+                      in_fd, ls_strerror_onstack(errno));
             goto error;
         }
     }
@@ -357,9 +353,7 @@ event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
     if (feof(p->in)) {
         LS_FATALF(bd, "(event watcher) event fd has been closed");
     } else {
-        LS_WITH_ERRSTR(s, errno,
-            LS_FATALF(bd, "(event watcher) cannot read from event fd: %s", s);
-        );
+        LS_FATALF(bd, "(event watcher) cannot read from event fd: %s", ls_strerror_onstack(errno));
     }
     free(line);
     return LUASTATUS_ERR;

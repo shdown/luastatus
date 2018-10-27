@@ -14,7 +14,7 @@
 #include "libls/alloc_utils.h"
 #include "libls/osdep.h"
 #include "libls/io_utils.h"
-#include "libls/errno_utils.h"
+#include "libls/cstring_utils.h"
 
 // Note: some parts of this file are stolen from i3status' src/pulse.c.
 // This is fine since the BSD 3-Clause licence, under which it is licenced, is compatible with
@@ -56,9 +56,7 @@ init(LuastatusPluginData *pd, lua_State *L)
     PU_MAYBE_VISIT_BOOL("make_self_pipe", NULL, b,
         if (b) {
             if (ls_cloexec_pipe(p->self_pipe) < 0) {
-                LS_WITH_ERRSTR(s, errno,
-                    LS_FATALF(pd, "ls_cloexec_pipe: %s", s);
-                );
+                LS_FATALF(pd, "ls_cloexec_pipe: %s", ls_strerror_onstack(errno));
                 p->self_pipe[0] = -1;
                 p->self_pipe[1] = -1;
                 goto error;

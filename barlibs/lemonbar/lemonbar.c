@@ -14,7 +14,6 @@
 #include "libls/vector.h"
 #include "libls/cstring_utils.h"
 #include "libls/parse_int.h"
-#include "libls/errno_utils.h"
 #include "libls/io_utils.h"
 #include "libls/lua_utils.h"
 #include "libls/alloc_utils.h"
@@ -113,29 +112,21 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
 
     // open
     if (!(p->in = fdopen(in_fd, "r"))) {
-        LS_WITH_ERRSTR(s, errno,
-            LS_FATALF(bd, "can't fdopen %d: %s", in_fd, s);
-        );
+        LS_FATALF(bd, "can't fdopen %d: %s", in_fd, ls_strerror_onstack(errno));
         goto error;
     }
     if (!(p->out = fdopen(out_fd, "w"))) {
-        LS_WITH_ERRSTR(s, errno,
-            LS_FATALF(bd, "can't fdopen %d: %s", out_fd, s);
-        );
+        LS_FATALF(bd, "can't fdopen %d: %s", out_fd, ls_strerror_onstack(errno));
         goto error;
     }
 
     // make CLOEXEC
     if (ls_make_cloexec(in_fd) < 0) {
-        LS_WITH_ERRSTR(s, errno,
-            LS_FATALF(bd, "can't make fd %d CLOEXEC: %s", in_fd, s);
-        );
+        LS_FATALF(bd, "can't make fd %d CLOEXEC: %s", in_fd, ls_strerror_onstack(errno));
         goto error;
     }
     if (ls_make_cloexec(out_fd) < 0) {
-        LS_WITH_ERRSTR(s, errno,
-            LS_FATALF(bd, "can't make fd %d CLOEXEC: %s", out_fd, s);
-        );
+        LS_FATALF(bd, "can't make fd %d CLOEXEC: %s", out_fd, ls_strerror_onstack(errno));
         goto error;
     }
 
@@ -191,9 +182,7 @@ redraw(LuastatusBarlibData *bd)
     putc_unlocked('\n', out);
     fflush(out);
     if (ferror(out)) {
-        LS_WITH_ERRSTR(s, errno,
-            LS_FATALF(bd, "write error: %s", s);
-        );
+        LS_FATALF(bd, "write error: %s", ls_strerror_onstack(errno));
         return false;
     }
     return true;
@@ -297,9 +286,7 @@ event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
     if (feof(p->in)) {
         LS_ERRF(bd, "lemonbar closed its pipe end");
     } else {
-        LS_WITH_ERRSTR(s, errno,
-            LS_ERRF(bd, "read error: %s", s);
-        );
+        LS_ERRF(bd, "read error: %s", ls_strerror_onstack(errno));
     }
 
     free(buf);

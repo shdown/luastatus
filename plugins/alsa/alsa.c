@@ -14,7 +14,7 @@
 
 #include "libls/alloc_utils.h"
 #include "libls/io_utils.h"
-#include "libls/errno_utils.h"
+#include "libls/cstring_utils.h"
 #include "libls/osdep.h"
 
 typedef struct {
@@ -75,9 +75,7 @@ init(LuastatusPluginData *pd, lua_State *L)
     PU_MAYBE_VISIT_BOOL("make_self_pipe", NULL, b,
         if (b) {
             if (ls_cloexec_pipe(p->self_pipe) < 0) {
-                LS_WITH_ERRSTR(s, errno,
-                    LS_FATALF(pd, "ls_cloexec_pipe: %s", s);
-                );
+                LS_FATALF(pd, "ls_cloexec_pipe: %s", ls_strerror_onstack(errno));
                 p->self_pipe[0] = -1;
                 p->self_pipe[1] = -1;
                 goto error;
@@ -306,9 +304,7 @@ iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         int r;
         while ((r = poll(pollfds.data, pollfds.size, -1)) < 0 && errno == EINTR) {}
         if (r < 0) {
-            LS_WITH_ERRSTR(s, errno,
-                LS_FATALF(pd, "poll: %s", s);
-            );
+            LS_FATALF(pd, "poll: %s", ls_strerror_onstack(errno));
             goto error;
         }
         if (pollfds.nprefix && (pollfds.data[0].revents & POLLIN)) {

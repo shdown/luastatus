@@ -16,7 +16,7 @@
 #include "include/plugin_utils.h"
 
 #include "libls/alloc_utils.h"
-#include "libls/errno_utils.h"
+#include "libls/cstring_utils.h"
 #include "libls/sig_utils.h"
 
 // some parts of this file (including the name) are proudly stolen from
@@ -243,9 +243,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         FD_SET(fd, &fds);
         const int nfds = pselect(fd + 1, &fds, NULL, NULL, NULL, &allsigs);
         if (nfds < 0) {
-            LS_WITH_ERRSTR(s, errno,
-                LS_FATALF(pd, "pselect: %s", s);
-            );
+            LS_FATALF(pd, "pselect: %s", ls_strerror_onstack(errno));
             goto error;
         } else if (nfds > 0) {
             xcb_generic_event_t *evt;

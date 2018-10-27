@@ -18,7 +18,7 @@
 #include "libls/string_.h"
 #include "libls/alloc_utils.h"
 #include "libls/vector.h"
-#include "libls/errno_utils.h"
+#include "libls/cstring_utils.h"
 #include "libls/time_utils.h"
 #include "libls/osdep.h"
 #include "libls/wakeup_fifo.h"
@@ -227,9 +227,7 @@ interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, int fd)
     } while (/*note infinite cycle here*/ 1)
 
     if (!(f = fdopen(fd, "r+"))) {
-        LS_WITH_ERRSTR(str, errno,
-            LS_ERRF(pd, "fdopen: %s", str);
-        );
+        LS_ERRF(pd, "fdopen: %s", ls_strerror_onstack(errno));
         goto error;
     }
     fd_to_close = -1;
@@ -301,9 +299,8 @@ interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, int fd)
                 FD_SET(fd, &fds);
                 int r = pselect(fd + 1, &fds, NULL, NULL, &p->timeout, &allsigs);
                 if (r < 0) {
-                    LS_WITH_ERRSTR(str, errno,
-                        LS_ERRF(pd, "pselect (on connection file descriptor): %s", str);
-                    );
+                    LS_ERRF(pd, "pselect (on connection file descriptor): %s",
+                            ls_strerror_onstack(errno));
                     goto error;
                 } else if (r == 0) {
                     report_status(pd, funcs, "timeout");
@@ -325,9 +322,7 @@ io_error:
     if (feof(f)) {
         LS_ERRF(pd, "server closed the connection");
     } else {
-        LS_WITH_ERRSTR(str, errno,
-            LS_ERRF(pd, "I/O error: %s", str);
-        );
+        LS_ERRF(pd, "I/O error: %s", ls_strerror_onstack(errno));
     }
 
 error:
@@ -370,14 +365,10 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         report_status(pd, funcs, "error");
 
         if (ls_wakeup_fifo_open(&w) < 0) {
-            LS_WITH_ERRSTR(s, errno,
-                LS_WARNF(pd, "ls_wakeup_fifo_open: %s: %s", p->retry_fifo, s);
-            );
+            LS_WARNF(pd, "ls_wakeup_fifo_open: %s: %s", p->retry_fifo, ls_strerror_onstack(errno));
         }
         if (ls_wakeup_fifo_wait(&w) < 0) {
-            LS_WITH_ERRSTR(s, errno,
-                LS_FATALF(pd, "ls_wakeup_fifo_wait: %s: %s", p->retry_fifo, s);
-            );
+            LS_FATALF(pd, "ls_wakeup_fifo_wait: %s: %s", p->retry_fifo, ls_strerror_onstack(errno));
             goto error;
         }
     }

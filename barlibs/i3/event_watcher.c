@@ -9,7 +9,7 @@
 
 #include "include/sayf_macros.h"
 
-#include "libls/errno_utils.h"
+#include "libls/cstring_utils.h"
 #include "libls/parse_int.h"
 #include "libls/strarr.h"
 #include "libls/vector.h"
@@ -282,9 +282,7 @@ event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
     while (1) {
         ssize_t nread = read(p->in_fd, buf, sizeof(buf));
         if (nread < 0) {
-            LS_WITH_ERRSTR(s, errno,
-                LS_ERRF(bd, "(event watcher) read error: %s", s);
-            );
+            LS_ERRF(bd, "(event watcher) read error: %s", ls_strerror_onstack(errno));
             goto error;
         } else if (nread == 0) {
             LS_ERRF(bd, "(event watcher) i3bar closed its end of the pipe");

@@ -16,7 +16,6 @@
 #include "libls/alloc_utils.h"
 #include "libls/parse_int.h"
 #include "libls/cstring_utils.h"
-#include "libls/errno_utils.h"
 #include "libls/io_utils.h"
 #include "libls/osdep.h"
 #include "libls/lua_utils.h"
@@ -102,23 +101,17 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
     // assign
     p->in_fd = in_fd;
     if (!(p->out = fdopen(out_fd, "w"))) {
-        LS_WITH_ERRSTR(s, errno,
-            LS_FATALF(bd, "can't fdopen %d: %s", out_fd, s);
-        );
+        LS_FATALF(bd, "can't fdopen %d: %s", out_fd, ls_strerror_onstack(errno));
         goto error;
     }
 
     // make CLOEXEC
     if (ls_make_cloexec(in_fd) < 0) {
-        LS_WITH_ERRSTR(s, errno,
-            LS_FATALF(bd, "can't make fd %d CLOEXEC: %s", in_fd, s);
-        );
+        LS_FATALF(bd, "can't make fd %d CLOEXEC: %s", in_fd, ls_strerror_onstack(errno));
         goto error;
     }
     if (ls_make_cloexec(out_fd) < 0) {
-        LS_WITH_ERRSTR(s, errno,
-            LS_FATALF(bd, "can't make fd %d CLOEXEC: %s", out_fd, s);
-        );
+        LS_FATALF(bd, "can't make fd %d CLOEXEC: %s", out_fd, ls_strerror_onstack(errno));
         goto error;
     }
 
@@ -130,9 +123,7 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
     fprintf(p->out, "}\n[\n");
     fflush(p->out);
     if (ferror(p->out)) {
-        LS_WITH_ERRSTR(s, errno,
-            LS_FATALF(bd, "write error: %s", s);
-        );
+        LS_FATALF(bd, "write error: %s", ls_strerror_onstack(errno));
         goto error;
     }
 
@@ -167,9 +158,7 @@ redraw(LuastatusBarlibData *bd)
     fputs("],\n", out);
     fflush(out);
     if (ferror(out)) {
-        LS_WITH_ERRSTR(s, errno,
-            LS_FATALF(bd, "write error: %s", s);
-        );
+        LS_FATALF(bd, "write error: %s", ls_strerror_onstack(errno));
         return false;
     }
     return true;

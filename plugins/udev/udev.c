@@ -12,7 +12,7 @@
 
 #include "libls/alloc_utils.h"
 #include "libls/time_utils.h"
-#include "libls/errno_utils.h"
+#include "libls/cstring_utils.h"
 #include "libls/wakeup_fifo.h"
 #include "libls/sig_utils.h"
 
@@ -165,9 +165,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         FD_SET(fd, &fds);
         const int r = pselect(fd + 1, &fds, NULL, NULL, ptimeout, &allsigs);
         if (r < 0) {
-            LS_WITH_ERRSTR(s, errno,
-                LS_FATALF(pd, "pselect: %s", s);
-            );
+            LS_FATALF(pd, "pselect: %s", ls_strerror_onstack(errno));
             break;
         } else if (r == 0) {
             report_status(pd, funcs, "timeout");

@@ -9,9 +9,10 @@
 #include "include/plugin_utils.h"
 
 #include "libls/alloc_utils.h"
+#include "libls/panic.h"
 #include "libls/lua_utils.h"
 #include "libls/time_utils.h"
-#include "libls/errno_utils.h"
+#include "libls/cstring_utils.h"
 #include "libls/wakeup_fifo.h"
 
 typedef struct {
@@ -44,8 +45,7 @@ init(LuastatusPluginData *pd, lua_State *L)
     };
 
     if (pthread_spin_init(&p->push_lock, PTHREAD_PROCESS_PRIVATE) != 0) {
-        LS_FATALF(pd, "pthread_spin_init() failed (which is impossible)");
-        goto error;
+        LS_PANIC("pthread_spin_init() failed, which is impossible");
     }
 
     PU_MAYBE_VISIT_NUM("period", NULL, n,
@@ -122,15 +122,11 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         pthread_spin_unlock(&p->push_lock);
         // wait
         if (ls_wakeup_fifo_open(&w) < 0) {
-            LS_WITH_ERRSTR(s, errno,
-                LS_WARNF(pd, "ls_wakeup_fifo_open: %s: %s", p->fifo, s);
-            );
+            LS_WARNF(pd, "ls_wakeup_fifo_open: %s: %s", p->fifo, ls_strerror_onstack(errno));
         }
         int r = ls_wakeup_fifo_wait(&w);
         if (r < 0) {
-            LS_WITH_ERRSTR(s, errno,
-                LS_FATALF(pd, "ls_wakeup_fifo_wait: %s", s);
-            );
+            LS_FATALF(pd, "ls_wakeup_fifo_wait: %s", ls_strerror_onstack(errno));
             goto error;
         } else if (r == 0) {
             what = "timeout";

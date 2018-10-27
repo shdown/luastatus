@@ -18,13 +18,13 @@
 
 #include "libls/alloc_utils.h"
 #include "libls/compdep.h"
-#include "libls/errno_utils.h"
 #include "libls/getenv_r.h"
 #include "libls/lua_utils.h"
 #include "libls/vector.h"
 #include "libls/string_.h"
 #include "libls/sig_utils.h"
 #include "libls/algo.h"
+#include "libls/cstring_utils.h"
 
 #include "config.generated.h"
 
@@ -209,9 +209,8 @@ void
 pth_assert_impl(int ret, const char *expr, const char *file, int line)
 {
     if (ret) {
-        LS_WITH_ERRSTR(s, ret,
-            fprintf(stderr, "PTH_ASSERT(%s) failed at %s:%d\nReason: %s\n", expr, file, line, s);
-        );
+        fprintf(stderr, "PTH_ASSERT(%s) failed at %s:%d\nReason: %s\n",
+                expr, file, line, ls_strerror_onstack(ret));
         abort();
     }
 }

@@ -11,7 +11,7 @@
 #include "include/plugin_data_v1.h"
 #include "include/sayf_macros.h"
 
-#include "libls/errno_utils.h"
+#include "libls/cstring_utils.h"
 #include "libls/osdep.h"
 
 int
@@ -27,15 +27,11 @@ unixdom_open(LuastatusPluginData *pd, const char *path)
     memcpy(saun.sun_path, path, npath + 1);
     int fd = ls_cloexec_socket(PF_UNIX, SOCK_STREAM, 0);
     if (fd < 0) {
-        LS_WITH_ERRSTR(s, errno,
-            LS_ERRF(pd, "socket: %s", s);
-        );
+        LS_ERRF(pd, "socket: %s", ls_strerror_onstack(errno));
         return -1;
     }
     if (connect(fd, (const struct sockaddr *) &saun, sizeof(saun)) < 0) {
-        LS_WITH_ERRSTR(s, errno,
-            LS_ERRF(pd, "connect: %s: %s", path, s);
-        );
+        LS_ERRF(pd, "connect: %s: %s", path, ls_strerror_onstack(errno));
         close(fd);
         return -1;
     }
@@ -58,9 +54,7 @@ inetdom_open(LuastatusPluginData *pd, const char *hostname, const char *service)
     int gai_r = getaddrinfo(hostname, service, &hints, &ai);
     if (gai_r) {
         if (gai_r == EAI_SYSTEM) {
-            LS_WITH_ERRSTR(s, errno,
-                LS_ERRF(pd, "getaddrinfo: %s", s);
-            );
+            LS_ERRF(pd, "getaddrinfo: %s", ls_strerror_onstack(errno));
         } else {
             LS_ERRF(pd, "getaddrinfo: %s", gai_strerror(gai_r));
         }
@@ -70,15 +64,11 @@ inetdom_open(LuastatusPluginData *pd, const char *hostname, const char *service)
 
     for (struct addrinfo *pai = ai; pai; pai = pai->ai_next) {
         if ((fd = ls_cloexec_socket(pai->ai_family, pai->ai_socktype, pai->ai_protocol)) < 0) {
-            LS_WITH_ERRSTR(s, errno,
-                LS_WARNF(pd, "(candiate) socket: %s", s);
-            );
+            LS_WARNF(pd, "(candiate) socket: %s", ls_strerror_onstack(errno));
             continue;
         }
         if (connect(fd, pai->ai_addr, pai->ai_addrlen) < 0) {
-            LS_WITH_ERRSTR(s, errno,
-                LS_WARNF(pd, "(candiate) connect: %s", s);
-            );
+            LS_WARNF(pd, "(candiate) connect: %s", ls_strerror_onstack(errno));
             close(fd);
             fd = -1;
             continue;
