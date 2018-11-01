@@ -683,8 +683,8 @@ sepstate_maybe_destroy(void)
     PTH_ASSERT(pthread_mutex_destroy(&sepstate.L_mtx));
 }
 
-// Inspects the 'plugin' field of /w/'s /widget/ table, which is assumed to be on top of /w.L/'s
-// stack (which is unchanged on return).
+// Inspects the 'plugin' field of /w/'s /widget/ table; the /widget/ table is assumed to be on top
+// of /w.L/'s stack. The stack itself is not changed by this function.
 static
 bool
 widget_init_inspect_plugin(Widget *w)
@@ -704,7 +704,8 @@ widget_init_inspect_plugin(Widget *w)
     return true;
 }
 
-// As /widget_init_inspect_plugin/, but inspects the 'cb' field instead.
+// Inspects the 'cb' field of /w/'s /widget/ table; the /widget/ table is assumed to be on top
+// of /w.L/'s stack. The stack itself is not changed by this function.
 static
 bool
 widget_init_inspect_cb(Widget *w)
@@ -720,7 +721,8 @@ widget_init_inspect_cb(Widget *w)
     return true;
 }
 
-// As /widget_init_inspect_plugin/, but inspects the 'event' field instead.
+// Inspects the 'event' field of /w/'s /widget/ table; the /widget/ table is assumed to be on top
+// of /w.L/'s stack. The stack itself is not changed by this function.
 static
 bool
 widget_init_inspect_event(Widget *w, const char *filename)
@@ -758,12 +760,13 @@ widget_init_inspect_event(Widget *w, const char *filename)
     }
 }
 
-// Inspects the 'opts' field of /w/'s /widget/ table, which is assumed to be on top of /w.L/'s
-// stack.
-// Additionally, pushes the 'opts' field to /w.L/'s stack.
+// Inspects the 'opts' field of /w/'s /widget/ table; the /widget/ table is assumed to be on top
+// of /w.L/'s stack.
+//
+// Pushes either the value of 'opts', or a new empty table if it is absent, onto the stack.
 static
 bool
-widget_init_inspect_keep_opts(Widget *w)
+widget_init_inspect_push_opts(Widget *w)
 {
     lua_State *L = w->L;
     ls_lua_rawgetf(L, "opts"); // L: ? widget opts
@@ -775,7 +778,7 @@ widget_init_inspect_keep_opts(Widget *w)
         lua_newtable(L); // L: ? widget table
         return true;
     default:
-        ERRF("'widget.opts': expected function or nil, found %s", luaL_typename(L, -1));
+        ERRF("'widget.opts': expected table or nil, found %s", luaL_typename(L, -1));
         return false;
     }
 }
@@ -819,7 +822,7 @@ widget_init(Widget *w, const char *filename)
     plugin_loaded = true;
     if (!widget_init_inspect_cb(w) ||
         !widget_init_inspect_event(w, filename) ||
-        !widget_init_inspect_keep_opts(w))
+        !widget_init_inspect_push_opts(w))
     {
         goto error;
     }
