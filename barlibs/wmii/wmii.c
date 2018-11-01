@@ -107,7 +107,7 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
             ls_string_append_s(&p->buf, v);
             ls_string_append_c(&p->buf, '\n');
         } else if ((v = ls_strfollow(*s, "event_fd="))) {
-            in_fd = ls_full_parse_uint_s(v);
+            in_fd = ls_full_strtou(v);
             if (in_fd < 0) {
                 LS_FATALF(bd, "event_fd value is not a valid unsigned integer");
                 goto error;
@@ -163,10 +163,6 @@ error:
     return LUASTATUS_ERR;
 }
 
-// If /file_idx/ < /p->nfiles[widget_idx]/, updates the content of the block file.
-//
-// If /file_idx/ == /p->nfiles[widget_idx]/, creates a new file and updates /p->nfiles[widget_idx]/.
-//
 // Passing /file_idx/ > /p->nfiles[widget_idx]/ is not allowed.
 static
 bool
@@ -184,19 +180,15 @@ set_content(
 
     // Why am I getting EPERM if passing (P9_OWRITE | P9_OCEXEC) flags?
     // libixp is really crappy.
-    IxpCFid *f;
-    if (file_idx < p->nfiles[widget_idx]) {
-        if (!(f = ixp_open(p->client, path, P9_OWRITE))) {
-            LS_ERRF(bd, "ixp_open: %s: %s", path, ixp_errbuf());
-            return false;
-        }
-    } else {
+    IxpCFid *f = ixp_create(p->client, path, 6 /* rw- */, P9_OWRITE);
+    if (!f) {
+        LS_ERRF(bd, "ixp_create: %s: %s", path, ixp_errbuf());
+        return false;
+    }
+
+    if (file_idx >= p->nfiles[widget_idx]) {
         assert(file_idx == p->nfiles[widget_idx]);
-        if (!(f = ixp_create(p->client, path, 6 /* rw- */, P9_OWRITE))) {
-            LS_ERRF(bd, "ixp_create: %s: %s", path, ixp_errbuf());
-            return false;
-        }
-        p->nfiles[widget_idx] = file_idx;
+        p->nfiles[widget_idx] = file_idx + 1;
     }
 
     p->buf.size = p->npreface;

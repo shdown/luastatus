@@ -81,12 +81,12 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
     for (const char *const *s = opts; *s; ++s) {
         const char *v;
         if ((v = ls_strfollow(*s, "in_fd="))) {
-            if ((in_fd = ls_full_parse_uint_s(v)) < 0) {
+            if ((in_fd = ls_full_strtou(v)) < 0) {
                 LS_FATALF(bd, "in_fd value is not a valid unsigned integer");
                 goto error;
             }
         } else if ((v = ls_strfollow(*s, "out_fd="))) {
-            if ((out_fd = ls_full_parse_uint_s(v)) < 0) {
+            if ((out_fd = ls_full_strtou(v)) < 0) {
                 LS_FATALF(bd, "out_fd value is not a valid unsigned integer");
                 goto error;
             }

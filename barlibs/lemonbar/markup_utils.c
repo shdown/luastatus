@@ -71,7 +71,7 @@ const char *
 parse_command(const char *line, size_t nline, size_t *ncommand, size_t *widget_idx)
 {
     const char *endptr;
-    const int idx = ls_parse_uint_b(line, nline, &endptr);
+    const int idx = ls_strtou_b(line, nline, &endptr);
     if (idx < 0 ||
         endptr == line ||
         endptr == line + nline ||
