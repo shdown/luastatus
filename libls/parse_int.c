@@ -16,17 +16,16 @@ ls_strtou_b(const char *s, size_t ns, const char **endptr)
         }
         if (ret > INT_MAX / 10) {
             ret = -ERANGE;
-            goto done;
+            break;
         }
         ret *= 10;
         if (ret > INT_MAX - digit) {
             ret = -ERANGE;
-            goto done;
+            break;
         }
         ret += digit;
     }
 
-done:
     *endptr = s + i;
     return ret;
 }
