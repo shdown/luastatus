@@ -9,6 +9,7 @@
 #include <lua.h>
 #include <lauxlib.h>
 #include <errno.h>
+
 #include <ixp.h>
 
 #include "libls/alloc_utils.h"
@@ -41,10 +42,11 @@ typedef struct {
     // Widget content buffer.
     LSString buf;
 
-    // /fdopen/'ed /event_fd/, if passed; otherwise /NULL/.
-    FILE *in;
+    // * The value of "address" option, if passed, or;
+    // * the value of "WMII_ADDRESS" environment variable, if exists, or;
+    // * /NULL/.
+    char *addr;
 
-    // libixp client handle.
     IxpClient *client;
 } Priv;
 
@@ -62,13 +64,75 @@ destroy(LuastatusBarlibData *bd)
     Priv *p = bd->priv;
     free(p->nfiles);
     LS_VECTOR_FREE(p->buf);
-    if (p->in) {
-        fclose(p->in);
-    }
     if (p->client) {
         ixp_unmount(p->client);
     }
+    free(p->addr);
     free(p);
+}
+
+static
+IxpClient *
+connect(LuastatusBarlibData *bd)
+{
+    Priv *p = bd->priv;
+    IxpClient *c;
+    if (p->addr) {
+        if (!(c = ixp_mount(p->addr))) {
+            LS_FATALF(bd, "ixp_mount: %s: %s", p->addr, ixp_errbuf());
+        }
+    } else {
+        if (!(c = ixp_nsmount("wmii"))) {
+            LS_FATALF(bd, "ixp_nsmount: wmii: %s", ixp_errbuf());
+        }
+    }
+    return c;
+}
+
+static
+bool
+remove_leftovers(LuastatusBarlibData *bd)
+{
+    Priv *p = bd->priv;
+
+    char dirpath[NPATH];
+    snprintf(dirpath, sizeof(dirpath), "/%cbar", p->barsym);
+    IxpCFid *f = ixp_open(p->client, dirpath, P9_OREAD | P9_OCEXEC);
+    if (!f) {
+        LS_FATALF(bd, "ixp_open: %s: %s", dirpath, ixp_errbuf());
+        return false;
+    }
+
+    char *buf = ls_xmalloc(f->iounit, 1);
+    long nread;
+    while ((nread = ixp_read(f, buf, f->iounit)) > 0) {
+        IxpMsg m = ixp_message(buf, nread, MsgUnpack);
+        while (m.pos < m.end) {
+            IxpStat s;
+            ixp_pstat(&m, &s);
+
+            size_t widget_idx;
+            unsigned file_idx;
+            if (sscanf(s.name, "LS%zu_%u", &widget_idx, &file_idx) == 2) {
+                char path[NPATH];
+                get_path(path, p, widget_idx, file_idx);
+                if (ixp_remove(p->client, path) != 1) {
+                    LS_WARNF(bd, "ixp_remove: %s: %s", path, ixp_errbuf());
+                }
+            }
+
+            ixp_freestat(&s);
+        }
+    }
+
+    bool ret = true;
+    if (nread < 0) {
+        ret = false;
+        LS_FATALF(bd, "ixp_read [%s]: %s", dirpath, ixp_errbuf());
+    }
+    free(buf);
+    ixp_close(f);
+    return ret;
 }
 
 static
@@ -82,13 +146,26 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
         .barsym = 'r',
         .npreface = 0,
         .buf = LS_VECTOR_NEW(),
-        .in = NULL,
+        .addr = NULL,
         .client = NULL,
     };
 
+    {
+        void **ptr = bd->map_get(bd->userdata, "flag:library_used:ixp");
+        if (*ptr) {
+            LS_FATALF(bd, "another entity is already using thread-unsafe library libixp");
+            goto error;
+        }
+        *ptr = "yes";
+    }
+
+    if (nwidgets > 1000) {
+        LS_FATALF(bd, "too many widgets (more than 1000)");
+        goto error;
+    }
+
     const char *addr = ls_getenv_r("WMII_ADDRESS");
     bool wmii3 = false;
-    int in_fd = -1;
 
     for (const char *const *s = opts; *s; ++s) {
         const char *v;
@@ -106,16 +183,6 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
             wmii3 = true;
             ls_string_append_s(&p->buf, v);
             ls_string_append_c(&p->buf, '\n');
-        } else if ((v = ls_strfollow(*s, "event_fd="))) {
-            in_fd = ls_full_strtou(v);
-            if (in_fd < 0) {
-                LS_FATALF(bd, "event_fd value is not a valid unsigned integer");
-                goto error;
-            }
-            if (in_fd < 3) {
-                LS_FATALF(bd, "event_fd < 3");
-                goto error;
-            }
         } else {
             LS_FATALF(bd, "unknown option '%s'", *s);
             goto error;
@@ -127,32 +194,12 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
     }
     p->npreface = p->buf.size;
 
-    if (in_fd >= 0) {
-        if (!(p->in = fdopen(in_fd, "r"))) {
-            LS_FATALF(bd, "cannot fdopen %d: %s", in_fd, ls_strerror_onstack(errno));
-            goto error;
-        }
-        if (ls_make_cloexec(in_fd) < 0) {
-            LS_FATALF(bd, "cannot make file descriptor %d CLOEXEC: %s",
-                      in_fd, ls_strerror_onstack(errno));
-            goto error;
-        }
-    }
+    p->addr = addr ? ls_xstrdup(addr) : NULL;
 
-    if (addr) {
-        if (!(p->client = ixp_mount(addr))) {
-            LS_FATALF(bd, "ixp_mount: %s: %s", addr, ixp_errbuf());
-            goto error;
-        }
-    } else {
-        if (!(p->client = ixp_nsmount("wmii"))) {
-            LS_FATALF(bd, "ixp_nsmount: wmii: %s", ixp_errbuf());
-            goto error;
-        }
+    if (!(p->client = connect(bd))) {
+        goto error;
     }
-
-    if (nwidgets > 1000) {
-        LS_FATALF(bd, "too many widgets (more than 1000)");
+    if (!remove_leftovers(bd)) {
         goto error;
     }
 
@@ -178,9 +225,7 @@ set_content(
     char path[NPATH];
     get_path(path, p, widget_idx, file_idx);
 
-    // Why am I getting EPERM if passing (P9_OWRITE | P9_OCEXEC) flags?
-    // libixp is really crappy.
-    IxpCFid *f = ixp_create(p->client, path, 6 /* rw- */, P9_OWRITE);
+    IxpCFid *f = ixp_create(p->client, path, 6 /* rw- */, P9_OWRITE | P9_OCEXEC);
     if (!f) {
         LS_ERRF(bd, "ixp_create: %s: %s", path, ixp_errbuf());
         return false;
@@ -202,10 +247,7 @@ set_content(
         LS_INFOF(bd, "try passing 'wmii3' option to this barlib, especially if getting 'bad value' "
                      "error");
     }
-    if (ixp_close(f) != 1) {
-        // only produce a warning
-        LS_WARNF(bd, "ixp_close [%s]: %s", path, ixp_errbuf());
-    }
+    ixp_close(f);
     return ret;
 }
 
@@ -309,19 +351,30 @@ static
 int
 event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
 {
-    Priv *p = bd->priv;
-
-    if (!p->in) {
-        return LUASTATUS_NONFATAL_ERR;
+    IxpClient *c = connect(bd);
+    if (!c) {
+        return LUASTATUS_ERR;
     }
 
-    char *line = NULL;
-    size_t line_alloc = 0;
-    for (ssize_t nline; (nline = getline(&line, &line_alloc, p->in)) >= 0;) {
+    const char *event_file = "/event";
+    Priv *p = bd->priv;
+
+    IxpCFid *f = ixp_open(c, event_file, P9_OREAD | P9_OCEXEC);
+    if (!f) {
+        LS_FATALF(bd, "ixp_open: %s: %s", event_file, ixp_errbuf());
+        return LUASTATUS_ERR;
+    }
+
+    char *line = ls_xmalloc(f->iounit + 1, 1);
+    long nread;
+    while ((nread = ixp_read(f, line, f->iounit)) > 0) {
+        line[nread] = '\0';
+
         char event[128];
         int button;
         size_t widget_idx;
-        if (sscanf(line, "%127s %d LS%zu\n", event, &button, &widget_idx) != 3) {
+        unsigned file_idx;
+        if (sscanf(line, "%127s %d LS%zu_%u\n", event, &button, &widget_idx, &file_idx) != 4) {
             continue;
         }
         if (widget_idx >= p->nwidgets) {
@@ -332,22 +385,22 @@ event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
         if (!evdetail) {
             continue;
         }
-        lua_State *L = funcs.call_begin(bd->userdata, widget_idx);
-        // L: ?
-        lua_createtable(L, 0, 2); // L: ? table
+
+        lua_State *L = funcs.call_begin(bd->userdata, widget_idx); // L: ?
+        lua_createtable(L, 0, 3); // L: ? table
         lua_pushstring(L, evdetail); // L: ? table string
         lua_setfield(L, -2, "event"); // L: ? table
         lua_pushinteger(L, button); // L: ? table integer
         lua_setfield(L, -2, "button"); // L: ? table
+        lua_pushinteger(L, file_idx); // L: ? table integer
+        lua_setfield(L, -2, "segment"); // L: ? table
         funcs.call_end(bd->userdata, widget_idx);
     }
 
-    if (feof(p->in)) {
-        LS_FATALF(bd, "(event watcher) event fd has been closed");
-    } else {
-        LS_FATALF(bd, "(event watcher) cannot read from event fd: %s", ls_strerror_onstack(errno));
-    }
+    LS_FATALF(bd, "ixp_read from %s failed", event_file);
     free(line);
+    ixp_close(f);
+    ixp_unmount(c);
     return LUASTATUS_ERR;
 }
 

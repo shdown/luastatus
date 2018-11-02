@@ -27,14 +27,6 @@ Options
   Address, in the Plan 9 resource format, at which to connect to the wmii 9P server.
   Default is to use `WMII_ADDRESS` environment variable.
 
-* `event_fd=<fd>`
-
-  libixp is crappy and just crashes the entire process when attempts to do multithreading while claiming to be totally thread-safe.
-
-  So, if you want your mouse clicks to be reported to widgets, use the `luastatus-wmii-wrapper` script to launch luastatus.
-
-  Note this option (and thus using the script) is not required.
-
 `event` argument
 ===
 
@@ -42,4 +34,6 @@ A table with the following entries:
 
 * `button`: an integer specifying the mouse button the block was clicked with;
 
-* `event`: a string; either `"MouseDown"` or `"Click"`.
+* `event`: a string; either `"MouseDown"` or `"Click"`;
+
+* `segment`: a 0-based segment index (to be able to discriminate which element of a string array was clicked).
