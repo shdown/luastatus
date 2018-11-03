@@ -100,39 +100,28 @@ static
 int
 callback_null(void *vctx)
 {
-    return value_helper(vctx, (Value) {
-        .type = TYPE_NULL,
-    });
+    return value_helper(vctx, (Value) {TYPE_NULL, {0}});
 }
 
 static
 int
 callback_boolean(void *vctx, int value)
 {
-    return value_helper(vctx, (Value) {
-        .type = TYPE_BOOL,
-        .as = { .flag = value },
-    });
+    return value_helper(vctx, (Value) {TYPE_BOOL, {.flag = value}});
 }
 
 static
 int
 callback_integer(void *vctx, long long value)
 {
-    return value_helper(vctx, (Value) {
-        .type = TYPE_NUMBER,
-        .as = { .num = value },
-    });
+    return value_helper(vctx, (Value) {TYPE_NUMBER, {.num = value}});
 }
 
 static
 int
 callback_double(void *vctx, double value)
 {
-    return value_helper(vctx, (Value) {
-        .type = TYPE_NUMBER,
-        .as = { .num = value },
-    });
+    return value_helper(vctx, (Value) {TYPE_NUMBER, {.num = value}});
 }
 
 static
@@ -140,8 +129,8 @@ int
 callback_string(void *vctx, const unsigned char *buf, size_t nbuf)
 {
     return value_helper(vctx, (Value) {
-        .type = TYPE_STRING,
-        .as = { .str_idx = append_to_strarr(vctx, (const char *) buf, nbuf) },
+        TYPE_STRING,
+        {.str_idx = append_to_strarr(vctx, (const char *) buf, nbuf)}
     });
 }
 
