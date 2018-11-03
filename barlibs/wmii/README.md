@@ -26,14 +26,3 @@ Options
 
   Address, in the Plan 9 resource format, at which to connect to the wmii 9P server.
   Default is to use `WMII_ADDRESS` environment variable.
-
-`event` argument
-===
-
-A table with the following entries:
-
-* `button`: an integer specifying the mouse button the block was clicked with;
-
-* `event`: a string; either `"MouseDown"` or `"Click"`;
-
-* `segment`: a 0-based segment index (to be able to discriminate which element of a string array was clicked).
