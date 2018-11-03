@@ -80,7 +80,7 @@ remove_leftovers(LuastatusBarlibData *bd)
         return false;
     }
 
-    char *buf = ls_xmalloc(f->iounit, 1);
+    char *buf = LS_XNEW(char, f->iounit);
     long nread;
     while ((nread = ixp_read(f, buf, f->iounit)) > 0) {
         IxpMsg m = ixp_message(buf, nread, MsgUnpack);
@@ -192,30 +192,32 @@ error:
     return LUASTATUS_ERR;
 }
 
-// Passing /file_idx/ > /p->nfiles[widget_idx]/ is not allowed.
+// Assuming /*counter/ is the number of files insofar written for the widget with index
+// /widget_idx/, writes the next file with the content given by /buf/ and /nbuf/, incrementing
+// /*counter/.
 static
 bool
-set_content(
+append_segment(
         LuastatusBarlibData *bd,
         size_t widget_idx,
-        unsigned file_idx,
+        unsigned *counter,
         const char *buf,
         size_t nbuf)
 {
     Priv *p = bd->priv;
 
+    if (*counter >= 1000) {
+        LS_WARNF(bd, "too many segments for a widget (more than 1000)");
+        return true;
+    }
     char path[NPATH];
-    snprintf(path, sizeof(path), PATH_PRI_FMT, p->barsym, widget_idx, file_idx);
+    snprintf(path, sizeof(path), PATH_PRI_FMT, p->barsym, widget_idx, *counter);
+    ++*counter;
 
     IxpCFid *f = ixp_create(p->client, path, 6 /* rw- */, P9_OWRITE | P9_OCEXEC);
     if (!f) {
         LS_ERRF(bd, "ixp_create: %s: %s", path, ixp_errbuf());
         return false;
-    }
-
-    if (file_idx >= p->nfiles[widget_idx]) {
-        assert(file_idx == p->nfiles[widget_idx]);
-        p->nfiles[widget_idx] = file_idx + 1;
     }
 
     p->buf.size = p->npreface;
@@ -233,17 +235,17 @@ set_content(
     return ret;
 }
 
-// Removes files corresponding to blocks /new_nfiles/ to /p->nfiles[widget_idx]/ and updates
+// Removes files corresponding to blocks from /counter/ to /p->nfiles[widget_idx]/ and updates
 // /p->nfiles[widget_idx]/ on success.
 //
 // If /false/ is returned, the state of the files is unspecified and /p->nfiles/ cannot be further
 // relied on.
 static
 bool
-clean_up(LuastatusBarlibData *bd, size_t widget_idx, unsigned new_nfiles)
+finalize(LuastatusBarlibData *bd, size_t widget_idx, unsigned counter)
 {
     Priv *p = bd->priv;
-    for (unsigned i = new_nfiles; i < p->nfiles[widget_idx]; ++i) {
+    for (unsigned i = counter; i < p->nfiles[widget_idx]; ++i) {
         char path[NPATH];
         snprintf(path, sizeof(path), PATH_PRI_FMT, p->barsym, widget_idx, i);
 
@@ -252,7 +254,7 @@ clean_up(LuastatusBarlibData *bd, size_t widget_idx, unsigned new_nfiles)
             return false;
         }
     }
-    p->nfiles[widget_idx] = new_nfiles;
+    p->nfiles[widget_idx] = counter;
     return true;
 }
 
@@ -260,49 +262,34 @@ static
 int
 set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
 {
+    unsigned counter = 0;
+
     switch (lua_type(L, -1)) {
     case LUA_TNIL:
-        if (!clean_up(bd, widget_idx, 0)) {
-            return LUASTATUS_ERR;
-        }
         break;
 
     case LUA_TSTRING:
         {
             size_t ns;
             const char *s = lua_tolstring(L, -1, &ns);
-            if (!set_content(bd, widget_idx, 0, s, ns)) {
-                return LUASTATUS_ERR;
-            }
-            if (!clean_up(bd, widget_idx, 1)) {
+            if (!append_segment(bd, widget_idx, &counter, s, ns)) {
                 return LUASTATUS_ERR;
             }
         }
         break;
 
     case LUA_TTABLE:
-        {
-            unsigned n = 0;
-            LS_LUA_TRAVERSE(L, -1) {
-                if (n == 1000) {
-                    LS_ERRF(bd, "table: too many elements (more than 1000)");
-                    return LUASTATUS_NONFATAL_ERR;
-                }
-                if (lua_isnil(L, LS_LUA_VALUE)) {
-                    continue;
-                }
-                if (!lua_isstring(L, LS_LUA_VALUE)) {
-                    LS_ERRF(bd, "table element: expected string, got %s", luaL_typename(L, -1));
-                    return LUASTATUS_NONFATAL_ERR;
-                }
-                size_t ns;
-                const char *s = lua_tolstring(L, LS_LUA_VALUE, &ns);
-                if (!set_content(bd, widget_idx, n, s, ns)) {
-                    return LUASTATUS_ERR;
-                }
-                ++n;
+        LS_LUA_TRAVERSE(L, -1) {
+            if (lua_isnil(L, LS_LUA_VALUE)) {
+                continue;
             }
-            if (!clean_up(bd, widget_idx, n)) {
+            if (!lua_isstring(L, LS_LUA_VALUE)) {
+                LS_ERRF(bd, "table element: expected string, got %s", luaL_typename(L, -1));
+                return LUASTATUS_NONFATAL_ERR;
+            }
+            size_t ns;
+            const char *s = lua_tolstring(L, LS_LUA_VALUE, &ns);
+            if (!append_segment(bd, widget_idx, &counter, s, ns)) {
                 return LUASTATUS_ERR;
             }
         }
@@ -312,6 +299,10 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
         LS_ERRF(bd, "expected string or nil, got %s", luaL_typename(L, -1));
         return LUASTATUS_NONFATAL_ERR;
     }
+
+    if (!finalize(bd, widget_idx, counter)) {
+        return LUASTATUS_ERR;
+    }
     return LUASTATUS_OK;
 }
 
@@ -320,10 +311,11 @@ int
 set_error(LuastatusBarlibData *bd, size_t widget_idx)
 {
     const char *text = "(Error)";
-    if (!set_content(bd, widget_idx, 0, text, strlen(text))) {
+    unsigned counter = 0;
+    if (!append_segment(bd, widget_idx, &counter, text, strlen(text))) {
         return LUASTATUS_ERR;
     }
-    if (!clean_up(bd, widget_idx, 1)) {
+    if (!finalize(bd, widget_idx, counter)) {
         return LUASTATUS_ERR;
     }
     return LUASTATUS_OK;
