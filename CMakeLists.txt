@@ -79,120 +79,39 @@ endfunction ()
 
 #------------------------------------------------------------------------------
 
-option (BUILD_BARLIB_DWM "build barlibs/dwm" ON)
-option (BUILD_BARLIB_I3 "build barlibs/i3" ON)
-option (BUILD_BARLIB_LEMONBAR "build barlibs/lemonbar" ON)
-option (BUILD_BARLIB_STDOUT "build barlibs/stdout" ON)
-option (BUILD_BARLIB_WMII "build barlibs/wmii" OFF)
-
-option (BUILD_PLUGIN_ALSA "build plugins/alsa" ON)
-option (BUILD_PLUGIN_BACKLIGHT_LINUX "build plugins/backlight-linux" ON)
-option (BUILD_PLUGIN_BATTERY_LINUX "build plugins/battery-linux" ON)
-option (BUILD_PLUGIN_CPU_USAGE_LINUX "build plugins/cpu-usage-linux" ON)
-option (BUILD_PLUGIN_DBUS "build plugins/dbus" ON)
-option (BUILD_PLUGIN_FILE_CONTENTS_LINUX "build plugins/file-contents-linux" ON)
-option (BUILD_PLUGIN_FS "build plugins/fs" ON)
-option (BUILD_PLUGIN_INOTIFY "build plugins/inotify" ON)
-option (BUILD_PLUGIN_IMAP "build plugins/imap" ON)
-option (BUILD_PLUGIN_MEM_USAGE_LINUX "build plugins/mem-usage-linux" ON)
-option (BUILD_PLUGIN_MPD "build plugins/mpd" ON)
-option (BUILD_PLUGIN_PIPE "build plugins/pipe" ON)
-option (BUILD_PLUGIN_PULSE "build plugins/pulse" OFF)
-option (BUILD_PLUGIN_TIMER "build plugins/timer" ON)
-option (BUILD_PLUGIN_UDEV "build plugins/udev" ON)
-option (BUILD_PLUGIN_XKB "build plugins/xkb" ON)
-option (BUILD_PLUGIN_XTITLE "build plugins/xtitle" ON)
-
-#------------------------------------------------------------------------------
-
 add_subdirectory (libls)
 add_subdirectory (luastatus)
 add_subdirectory (tests)
 
-if (BUILD_BARLIB_DWM)
-    add_subdirectory (barlibs/dwm)
-endif ()
+#------------------------------------------------------------------------------
 
-if (BUILD_BARLIB_I3)
-    add_subdirectory (barlibs/i3)
-endif ()
+macro (DEF_OPT optname subdir defvalue)
+    option (${optname} "build ${subdir}" ${defvalue})
+    if (${optname})
+        add_subdirectory (${subdir})
+    endif ()
+endmacro ()
 
-if (BUILD_BARLIB_LEMONBAR)
-    add_subdirectory (barlibs/lemonbar)
-endif ()
+DEF_OPT (BUILD_BARLIB_DWM                 "barlibs/dwm"                 ON)
+DEF_OPT (BUILD_BARLIB_I3                  "barlibs/i3"                  ON)
+DEF_OPT (BUILD_BARLIB_LEMONBAR            "barlibs/lemonbar"            ON)
+DEF_OPT (BUILD_BARLIB_STDOUT              "barlibs/stdout"              ON)
+DEF_OPT (BUILD_BARLIB_WMII                "barlibs/wmii"                OFF)
 
-if (BUILD_BARLIB_STDOUT)
-    add_subdirectory (barlibs/stdout)
-endif ()
-
-if (BUILD_BARLIB_WMII)
-    add_subdirectory (barlibs/wmii)
-endif ()
-
-if (BUILD_PLUGIN_ALSA)
-    add_subdirectory (plugins/alsa)
-endif ()
-
-if (BUILD_PLUGIN_BACKLIGHT_LINUX)
-    add_subdirectory (plugins/backlight-linux)
-endif ()
-
-if (BUILD_PLUGIN_BATTERY_LINUX)
-    add_subdirectory (plugins/battery-linux)
-endif ()
-
-if (BUILD_PLUGIN_CPU_USAGE_LINUX)
-    add_subdirectory (plugins/cpu-usage-linux)
-endif ()
-
-if (BUILD_PLUGIN_DBUS)
-    add_subdirectory (plugins/dbus)
-endif ()
-
-if (BUILD_PLUGIN_FILE_CONTENTS_LINUX)
-    add_subdirectory (plugins/file-contents-linux)
-endif ()
-
-if (BUILD_PLUGIN_FS)
-    add_subdirectory (plugins/fs)
-endif ()
-
-if (BUILD_PLUGIN_IMAP)
-    add_subdirectory (plugins/imap)
-endif ()
-
-if (BUILD_PLUGIN_INOTIFY)
-    add_subdirectory (plugins/inotify)
-endif ()
-
-if (BUILD_PLUGIN_MEM_USAGE_LINUX)
-    add_subdirectory (plugins/mem-usage-linux)
-endif ()
-
-if (BUILD_PLUGIN_MPD)
-    add_subdirectory (plugins/mpd)
-endif ()
-
-if (BUILD_PLUGIN_PIPE)
-    add_subdirectory (plugins/pipe)
-endif ()
-
-if (BUILD_PLUGIN_PULSE)
-    add_subdirectory (plugins/pulse)
-endif ()
-
-if (BUILD_PLUGIN_TIMER)
-    add_subdirectory (plugins/timer)
-endif ()
-
-if (BUILD_PLUGIN_UDEV)
-    add_subdirectory (plugins/udev)
-endif ()
-
-if (BUILD_PLUGIN_XKB)
-    add_subdirectory (plugins/xkb)
-endif ()
-
-if (BUILD_PLUGIN_XTITLE)
-    add_subdirectory (plugins/xtitle)
-endif ()
+DEF_OPT (BUILD_PLUGIN_ALSA                "plugins/alsa"                ON)
+DEF_OPT (BUILD_PLUGIN_BACKLIGHT_LINUX     "plugins/backlight-linux"     ON)
+DEF_OPT (BUILD_PLUGIN_BATTERY_LINUX       "plugins/battery-linux"       ON)
+DEF_OPT (BUILD_PLUGIN_CPU_USAGE_LINUX     "plugins/cpu-usage-linux"     ON)
+DEF_OPT (BUILD_PLUGIN_DBUS                "plugins/dbus"                ON)
+DEF_OPT (BUILD_PLUGIN_FILE_CONTENTS_LINUX "plugins/file-contents-linux" ON)
+DEF_OPT (BUILD_PLUGIN_FS                  "plugins/fs"                  ON)
+DEF_OPT (BUILD_PLUGIN_INOTIFY             "plugins/inotify"             ON)
+DEF_OPT (BUILD_PLUGIN_IMAP                "plugins/imap"                ON)
+DEF_OPT (BUILD_PLUGIN_MEM_USAGE_LINUX     "plugins/mem-usage-linux"     ON)
+DEF_OPT (BUILD_PLUGIN_MPD                 "plugins/mpd"                 ON)
+DEF_OPT (BUILD_PLUGIN_PIPE                "plugins/pipe"                ON)
+DEF_OPT (BUILD_PLUGIN_PULSE               "plugins/pulse"               OFF)
+DEF_OPT (BUILD_PLUGIN_TIMER               "plugins/timer"               ON)
+DEF_OPT (BUILD_PLUGIN_UDEV                "plugins/udev"                ON)
+DEF_OPT (BUILD_PLUGIN_XKB                 "plugins/xkb"                 ON)
+DEF_OPT (BUILD_PLUGIN_XTITLE              "plugins/xtitle"              ON)
