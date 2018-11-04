@@ -19,7 +19,7 @@ Redirections and `luastatus-lemonbar-launcher`
 `lemonbar` is not capable of creating a bidirectional pipe itself; instead, it requires all the data to be written to its stdin and read from its stdout.
 That’s why the input/output file descriptors of this barlib must be manually redirected.
 
-A launcher, `luastatus-lemonbar-launcher`, is shipped with it; it spawns `lemonbar` (or whatever is in `LEMONBAR` environment variable) connected to a bidirectional pipe and executes `luastatus` (or whatever is in `LUASTATUS` environment variable) with `-b lemonbar` (or whatever is in `LUASTATUS_LEMONBAR_BARLIB` environment variable), all the required `-B` options, and additional arguments passed by you.
+A launcher, `luastatus-lemonbar-launcher`, is shipped with it; it spawns `lemonbar` (or whatever is in `LEMONBAR` environment variable) connected to a bidirectional pipe and executes `luastatus` (or whatever is in `LUASTATUS` environment variable) with `-b lemonbar`, all the required `-B` options, and additional arguments passed by you.
 
 Pass each `lemonbar` argument with `-p`, then pass `--`, then pass luastatus arguments, e.g.:
 ````bash
