@@ -21,24 +21,27 @@
 #include "libls/parse_int.h"
 #include "libls/lua_utils.h"
 
-#define NDIR         10
-#define DIR_PRI_FMT  "/%cbar"
+#define MAX_NWIDGETS    1000
+#define MAX_NSEGMENTS   1000
 
-#define NFILE        20
-#define FILE_PRI_FMT "LS%03zu_%03u"
-#define FILE_SCN_FMT "LS%zu_%u"
+#define NDIR            10
+#define DIR_PRI_FMT     "/%cbar"
 
-#define NPATH        (NDIR + NFILE + 1)
-#define PATH_PRI_FMT DIR_PRI_FMT "/" FILE_PRI_FMT
+#define NFILE           20
+#define FILE_PRI_FMT    "LS%03zu_%03u"
+#define FILE_SCN_FMT    "LS%zu_%u"
+
+#define NPATH           (NDIR + NFILE + 1)
+#define PATH_PRI_FMT    DIR_PRI_FMT "/" FILE_PRI_FMT
 
 typedef struct {
     size_t nwidgets;
 
-    // /nfiles[i]/ is the largest /n/ such that the file named
+    // /nsegments[i]/ is the largest /n/ such that the file named
     //     "/?bar/LS###_@@@",
     // where "?" is the value of /barsym/, "###" is zero-padded /i/, and "@@@" is zero-padded /n/,
     // is expected to exist.
-    unsigned *nfiles;
+    unsigned *nsegments;
 
     // Bar side symbol: either 'l' or 'r'.
     char barsym;
@@ -57,7 +60,7 @@ void
 destroy(LuastatusBarlibData *bd)
 {
     Priv *p = bd->priv;
-    free(p->nfiles);
+    free(p->nsegments);
     LS_VECTOR_FREE(p->buf);
     if (p->client) {
         ixp_unmount(p->client);
@@ -89,10 +92,13 @@ remove_leftovers(LuastatusBarlibData *bd)
             ixp_pstat(&m, &s);
 
             size_t widget_idx;
-            unsigned file_idx;
-            if (sscanf(s.name, FILE_SCN_FMT, &widget_idx, &file_idx) == 2) {
+            unsigned segment_idx;
+            if (sscanf(s.name, FILE_SCN_FMT, &widget_idx, &segment_idx) == 2
+                    && widget_idx < MAX_NWIDGETS
+                    && segment_idx < MAX_NSEGMENTS)
+            {
                 char path[NPATH];
-                snprintf(path, sizeof(path), PATH_PRI_FMT, p->barsym, widget_idx, file_idx);
+                snprintf(path, sizeof(path), PATH_PRI_FMT, p->barsym, widget_idx, segment_idx);
                 if (ixp_remove(p->client, path) != 1) {
                     LS_WARNF(bd, "ixp_remove: %s: %s", path, ixp_errbuf());
                 }
@@ -119,7 +125,7 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
     Priv *p = bd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
         .nwidgets = nwidgets,
-        .nfiles = LS_XNEW0(unsigned, nwidgets),
+        .nsegments = LS_XNEW0(unsigned, nwidgets),
         .barsym = 'r',
         .npreface = 0,
         .buf = LS_VECTOR_NEW(),
@@ -135,8 +141,8 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
         *ptr = "yes";
     }
 
-    if (nwidgets > 1000) {
-        LS_FATALF(bd, "too many widgets (more than 1000)");
+    if (nwidgets > MAX_NWIDGETS) {
+        LS_FATALF(bd, "too many widgets (more than %d)", (int) MAX_NWIDGETS);
         goto error;
     }
 
@@ -192,7 +198,7 @@ error:
     return LUASTATUS_ERR;
 }
 
-// Assuming /*counter/ is the number of files insofar written for the widget with index
+// Assuming /*counter/ is the number of segments insofar written for the widget with index
 // /widget_idx/, writes the next file with the content given by /buf/ and /nbuf/, incrementing
 // /*counter/.
 static
@@ -206,8 +212,8 @@ append_segment(
 {
     Priv *p = bd->priv;
 
-    if (*counter >= 1000) {
-        LS_WARNF(bd, "too many segments for a widget (more than 1000)");
+    if (*counter >= MAX_NSEGMENTS) {
+        LS_WARNF(bd, "too many segments for a widget (more than %d)", (int) MAX_NSEGMENTS);
         return true;
     }
     char path[NPATH];
@@ -235,17 +241,17 @@ append_segment(
     return ret;
 }
 
-// Removes files corresponding to blocks from /counter/ to /p->nfiles[widget_idx]/ and updates
-// /p->nfiles[widget_idx]/ on success.
+// Removes files corresponding to blocks from /counter/ to /p->nsegments[widget_idx]/ and updates
+// /p->nsegments[widget_idx]/ on success.
 //
-// If /false/ is returned, the state of the files is unspecified and /p->nfiles/ cannot be further
-// relied on.
+// If /false/ is returned, the state of the files is unspecified and /p->nsegments/ cannot be
+// further relied on.
 static
 bool
 finalize(LuastatusBarlibData *bd, size_t widget_idx, unsigned counter)
 {
     Priv *p = bd->priv;
-    for (unsigned i = counter; i < p->nfiles[widget_idx]; ++i) {
+    for (unsigned i = counter; i < p->nsegments[widget_idx]; ++i) {
         char path[NPATH];
         snprintf(path, sizeof(path), PATH_PRI_FMT, p->barsym, widget_idx, i);
 
@@ -254,7 +260,7 @@ finalize(LuastatusBarlibData *bd, size_t widget_idx, unsigned counter)
             return false;
         }
     }
-    p->nfiles[widget_idx] = counter;
+    p->nsegments[widget_idx] = counter;
     return true;
 }
 
