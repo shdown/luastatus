@@ -9,5 +9,3 @@ find_library (IXP_LIBRARY ixp)
 target_link_libraries (barlib-wmii ${IXP_LIBRARY})
 
 include (GNUInstallDirs)
-
-install (PROGRAMS luastatus-wmii-wrapper DESTINATION ${CMAKE_INSTALL_BINDIR})
