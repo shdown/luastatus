@@ -18,6 +18,8 @@
 
 #include "priv.h"
 
+static const int DEPTH_LIMIT = 10;
+
 typedef struct {
     enum {
         TYPE_ARRAY_START,
@@ -41,7 +43,7 @@ typedef struct {
 } Token;
 
 typedef struct {
-    // Current JSON depth. Before the initial '[', depth == -1.
+    // Current JSON nesting depth. Before the initial '[', depth == -1.
     int depth;
 
     // Whether the last key (at depth == 1) was "name".
@@ -159,7 +161,10 @@ token_helper(Context *ctx, Token token)
         switch (token.type) {
         case TYPE_ARRAY_START:
         case TYPE_MAP_START:
-            ++ctx->depth;
+            if (++ctx->depth >= DEPTH_LIMIT) {
+                LS_ERRF(ctx->bd, "nesting depth limit (%d) exceeded", DEPTH_LIMIT);
+                return 0;
+            }
             break;
 
         case TYPE_ARRAY_END:
