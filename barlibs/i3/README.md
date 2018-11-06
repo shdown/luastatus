@@ -19,7 +19,7 @@ See http://i3wm.org/docs/i3bar-protocol.html#_blocks_in_detail.
 
 `event` argument
 ===
-A table with all click properties `i3bar` provides, with `name` excluded.
+A table with all click properties `i3bar` provides.
 
 See http://i3wm.org/docs/i3bar-protocol.html#_click_events.
 
@@ -68,7 +68,7 @@ widget = {
     event = function(t)
         local r = {'properties:'}
         for k, v in pairs(t) do
-            table.insert(r, k .. '=' .. v)
+            table.insert(r, k .. '=' .. tostring(v))
         end
         assert(os.execute('notify-send "Click event" \'' .. table.concat(r, ' ') .. '\''))
     end,
