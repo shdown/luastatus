@@ -62,6 +62,9 @@ typedef struct {
     LuastatusBarlibEWFuncs funcs;
 } Context;
 
+// Converts a JSON object that starts at the token with index /*index/ in /ctx->tokens/, to a Lua
+// object, and pushes it onto /L/'s stack.
+// Advances /*index/ so that it points to one token past the end of the object.
 static
 void
 push_object(lua_State *L, Context *ctx, size_t *index)
@@ -111,7 +114,6 @@ push_object(lua_State *L, Context *ctx, size_t *index)
     default:
         LS_UNREACHABLE();
     }
-
     // Now, /*index/ points to the last token of the object; increment it by one.
     ++*index;
 }
