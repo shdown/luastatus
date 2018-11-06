@@ -109,6 +109,6 @@ Special objects represent D-Bus objects that cannot be marshalled to Lua.
 
 A special object is a function that, when called, returns either:
 
-    * value;
+  * value;
 
-    * `nil`, error.
+  * `nil`, error.
