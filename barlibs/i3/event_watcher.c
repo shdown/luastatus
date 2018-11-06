@@ -144,7 +144,7 @@ token_helper(Context *ctx, Token token)
     switch (ctx->depth) {
     case -1:
         if (token.type != TYPE_ARRAY_START) {
-            LS_ERRF(ctx->bd, "expected '['");
+            LS_ERRF(ctx->bd, "(event watcher) expected '['");
             return 0;
         }
         ++ctx->depth;
@@ -152,7 +152,7 @@ token_helper(Context *ctx, Token token)
 
     case 0:
         if (token.type != TYPE_MAP_START) {
-            LS_ERRF(ctx->bd, "expected '{'");
+            LS_ERRF(ctx->bd, "(event watcher) expected '{'");
             return 0;
         }
         /* fall thru */
@@ -162,7 +162,7 @@ token_helper(Context *ctx, Token token)
         case TYPE_ARRAY_START:
         case TYPE_MAP_START:
             if (++ctx->depth >= DEPTH_LIMIT) {
-                LS_ERRF(ctx->bd, "nesting depth limit (%d) exceeded", DEPTH_LIMIT);
+                LS_ERRF(ctx->bd, "(event watcher) nesting depth limit exceeded");
                 return 0;
             }
             break;
