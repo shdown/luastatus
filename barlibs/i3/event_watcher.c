@@ -18,6 +18,8 @@
 
 #include "priv.h"
 
+// If this is to be incremented, /lua_checkstack()/ must be called in appropriate times, and the
+// depth of recursion in /push_object()/ potentially be limited in some way.
 static const int DEPTH_LIMIT = 10;
 
 typedef struct {
@@ -64,7 +66,7 @@ typedef struct {
 
 // Converts a JSON object that starts at the token with index /*index/ in /ctx->tokens/, to a Lua
 // object, and pushes it onto /L/'s stack.
-// Advances /*index/ so that it points to one token past the end of the object.
+// Advances /*index/ so that it points to one token past the last token of the object.
 static
 void
 push_object(lua_State *L, Context *ctx, size_t *index)
