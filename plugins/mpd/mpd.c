@@ -26,7 +26,7 @@
 #include "libls/sig_utils.h"
 
 #include "connect.h"
-#include "mpdproto_utils.h"
+#include "proto.h"
 
 typedef struct {
     char *hostname;
@@ -182,15 +182,20 @@ report_status(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, const char
     funcs.call_end(pd->userdata);
 }
 
-// Code below is pretty ugly and spaghetti-like. Rewrite it if you can.
 static
 void
 interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, int fd)
 {
     Priv *p = pd->priv;
 
-    FILE *f = NULL;
-    int fd_to_close = fd;
+    FILE *f = fdopen(fd, "r+");
+    if (!f) {
+        LS_ERRF(pd, "can't fdopen connection file descriptor %d: %s",
+                fd, ls_strerror_onstack(errno));
+        close(fd);
+        return;
+    }
+
     char *buf = NULL;
     size_t nbuf = 1024;
     LSStringArray kv_song   = ls_strarr_new();
@@ -215,22 +220,16 @@ interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, int fd)
 #define UNTIL_OK(...) \
     do { \
         GETLINE(); \
-        const MPDProtoResponseType rt_ = mpdproto_response_type(buf); \
-        if (rt_ == MPDPROTO_RESP_TYPE_OK) { \
+        const ResponseType rt_ = response_type(buf); \
+        if (rt_ == RESP_OK) { \
             break; \
-        } else if (rt_ == MPDPROTO_RESP_TYPE_ACK) { \
+        } else if (rt_ == RESP_ACK) { \
             LS_ERRF(pd, "server said: %.*s", (int) rstrip_nl_strlen(buf), buf); \
             goto error; \
         } else { \
             __VA_ARGS__ \
         } \
     } while (/*note infinite cycle here*/ 1)
-
-    if (!(f = fdopen(fd, "r+"))) {
-        LS_ERRF(pd, "fdopen: %s", ls_strerror_onstack(errno));
-        goto error;
-    }
-    fd_to_close = -1;
 
     // read and check the greeting
     GETLINE();
@@ -242,14 +241,14 @@ interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, int fd)
     // send the password, if specified
     if (p->password) {
         fputs("password ", f);
-        mpdproto_write_quoted(f, p->password);
+        write_quoted(f, p->password);
         putc_unlocked('\n', f);
         fflush(f);
         if (ferror(f)) {
             goto io_error;
         }
         GETLINE();
-        if (mpdproto_response_type(buf) != MPDPROTO_RESP_TYPE_OK) {
+        if (response_type(buf) != RESP_OK) {
             LS_ERRF(pd, "(password) server said: %.*s", (int) rstrip_nl_strlen(buf), buf);
             goto error;
         }
@@ -320,16 +319,13 @@ interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, int fd)
 
 io_error:
     if (feof(f)) {
-        LS_ERRF(pd, "server closed the connection");
+        LS_ERRF(pd, "connection closed");
     } else {
         LS_ERRF(pd, "I/O error: %s", ls_strerror_onstack(errno));
     }
 
 error:
-    if (f) {
-        fclose(f);
-    }
-    close(fd_to_close);
+    fclose(f);
     free(buf);
     ls_strarr_destroy(kv_song);
     ls_strarr_destroy(kv_status);
