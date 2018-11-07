@@ -8,8 +8,8 @@
 
 // Parses (locale-independently) a decimal unsigned integer, inspecting no more than first /ns/
 // characters of /s/. Once this limit is reached, or a non-digit character is found, this function
-// stops, writes the current position to /*endptr/, and returns what has been parsed insofar (if
-// nothing, /0/ is returned).
+// stops, writes the current position to /*endptr/, unless it is /NULL/; and returns what has been
+// parsed insofar (if nothing, /0/ is returned).
 //
 // If an overflow happens, /-ERANGE/ is returned.
 int

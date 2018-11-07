@@ -26,7 +26,9 @@ ls_strtou_b(const char *s, size_t ns, const char **endptr)
         ret += digit;
     }
 
-    *endptr = s + i;
+    if (endptr) {
+        *endptr = s + i;
+    }
     return ret;
 }
 
