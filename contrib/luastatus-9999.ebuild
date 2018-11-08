@@ -72,7 +72,7 @@ RDEPEND="${DEPEND}
     luajit? ( dev-lang/luajit:2 )
     !luajit? ( dev-lang/lua:0 )
     ${PN}_barlibs_dwm? ( x11-libs/libxcb )
-    ${PN}_barlibs_i3? ( >=dev-libs/yajl-2.1.0 )
+    ${PN}_barlibs_i3? ( >=dev-libs/yajl-2.0.4 )
     ${PN}_barlibs_wmii? ( sys-libs/libixp )
     ${PN}_plugins_alsa? ( media-libs/alsa-lib )
     ${PN}_plugins_dbus? ( dev-libs/glib )
