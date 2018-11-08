@@ -2,7 +2,7 @@
 
 set -e
 
-cd -- "$(dirname "$(readlink "$0")")"
+cd -- "$(dirname "$(readlink "$0" || echo "$0")")"
 
 (
     cd ..

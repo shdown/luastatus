@@ -2,7 +2,7 @@
 
 set -e
 
-cd -- "$(dirname "$(readlink "$0")")"
+cd -- "$(dirname "$(readlink "$0" || echo "$0")")"
 
 # List of your .moon widgets, with '.moon' replaced with '.lua'.
 targets='cpu-temperature.lua time.lua'
