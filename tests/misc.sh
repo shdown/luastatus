@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
+
 set -e
+
+cd -- "$(dirname "$(readlink "$0")")"
 
 (
     cd ..

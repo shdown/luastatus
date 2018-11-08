@@ -16,5 +16,5 @@ before_install:
 # run the build script
 script:
   - cmake -DWITH_LUA_LIBRARY=${WITH_LUA_LIB} -DBUILD_BARLIB_WMII=ON -DBUILD_PLUGIN_PULSE=ON . && make
-  - (cd tests && ./misc.sh)
-  - (cd tests && ./torture.sh)
+  - if [ ${WITH_LUA_LIB} != luajit ]; then ./tests/misc.sh; fi
+  - if [ ${WITH_LUA_LIB} != luajit ]; then ./tests/torture.sh; fi
