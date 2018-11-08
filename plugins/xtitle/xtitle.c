@@ -1,5 +1,5 @@
-#include <xcb/xproto.h>
 #include <xcb/xcb.h>
+#include <xcb/xproto.h>
 #include <xcb/xcb_event.h>
 #include <xcb/xcb_icccm.h>
 #include <xcb/xcb_ewmh.h>
