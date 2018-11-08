@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/shdown/luastatus.svg?branch=master)](https://travis-ci.org/shdown/luastatus)
+
 **luastatus** is a universal status bar content generator. It allows you to
 configure the way the data from event sources is processed and shown, with Lua.
 
