@@ -6,7 +6,7 @@ luastatus_target_compile_with (barlib-i3 LUA)
 target_include_directories (barlib-i3 PUBLIC "${PROJECT_SOURCE_DIR}")
 
 find_package (PkgConfig REQUIRED)
-pkg_check_modules (YAJL REQUIRED yajl>=2.1.0)
+pkg_check_modules (YAJL REQUIRED yajl>=2.0.4)
 luastatus_target_build_with (barlib-i3 YAJL)
 
 include (GNUInstallDirs)
