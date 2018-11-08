@@ -14,7 +14,7 @@ static const long NAMES_PROP_MAXLEN = 1024;
 bool
 rules_names_load(Display *dpy, RulesNames *out)
 {
-    *out = (RulesNames) {0};
+    *out = (RulesNames) {.data_ = NULL};
 
     Atom rules_atom = XInternAtom(dpy, NAMES_PROP_ATOM, True);
     if (rules_atom == None) {

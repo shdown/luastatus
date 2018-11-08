@@ -99,7 +99,8 @@ l_wake_up(lua_State *L)
     LuastatusPluginData *pd = lua_touserdata(L, lua_upvalueindex(1));
     Priv *p = pd->priv;
 
-    write(p->self_pipe[1], "", 1); // write '\0'
+    int unused = write(p->self_pipe[1], "", 1); // write '\0'
+    (void) unused;
 
     return 0;
 }
@@ -308,7 +309,8 @@ iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
             goto error;
         }
         if (pollfds.nprefix && (pollfds.data[0].revents & POLLIN)) {
-            read(p->self_pipe[0], (char [1]) {'\0'}, 1);
+            int unused = read(p->self_pipe[0], (char [1]) {'\0'}, 1);
+            (void) unused;
         }
 
         unsigned short revents;

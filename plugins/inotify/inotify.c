@@ -90,7 +90,7 @@ static const EventType EVENT_TYPES[] = {
     {IN_Q_OVERFLOW,    false, true,  "q_overflow"},
     {IN_UNMOUNT,       false, true,  "unmount"},
 
-    {0},
+    {.name = NULL},
 };
 
 // returns 0 on failure
