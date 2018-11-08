@@ -5,8 +5,10 @@ compiler:
 
 # install any dependencies required
 before_install:
-  - sudo apt-get install -y liblua5.2-dev cmake libxcb1-dev libyajl-dev libixp-dev libasound2-dev libglib2.0-dev libpulse-dev libudev-dev libx11-dev libxcb1-dev libxcb-ewmh-dev libxcb-icccm4-dev libxcb-util0-dev
+  - sudo apt-get install -y liblua5.2-dev cmake valgrind libxcb1-dev libyajl-dev libixp-dev libasound2-dev libglib2.0-dev libpulse-dev libudev-dev libx11-dev libxcb1-dev libxcb-ewmh-dev libxcb-icccm4-dev libxcb-util0-dev
 
 # run the build script
 script:
-    cmake -DWITH_LUA_LIBRARY=lua5.2 -DBUILD_BARLIB_WMII=ON -DBUILD_PLUGIN_PULSE=ON . && make
+  - cmake -DWITH_LUA_LIBRARY=lua5.2 -DBUILD_BARLIB_WMII=ON -DBUILD_PLUGIN_PULSE=ON . && make
+  - cd tests && ./misc.sh
+  - cd tests && ./torture.sh
