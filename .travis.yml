@@ -10,6 +10,7 @@ env:
 
 # install any dependencies required
 before_install:
+  - sudo apt-get update
   - sudo apt-get install -y ${WITH_LUA_PKG} cmake valgrind libxcb1-dev libyajl-dev libixp-dev libasound2-dev libglib2.0-dev libpulse-dev libudev-dev libx11-dev libxcb1-dev libxcb-ewmh-dev libxcb-icccm4-dev libxcb-util0-dev
 
 # run the build script
