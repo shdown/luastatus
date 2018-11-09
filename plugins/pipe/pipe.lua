@@ -15,7 +15,7 @@ function P.shell_escape(x)
     end
 end
 
-P.widget = function(tbl)
+function P.widget(tbl)
     local f = assert(io.popen(tbl.command, 'r'))
     return {
         plugin = 'timer',
