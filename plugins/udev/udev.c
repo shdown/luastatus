@@ -110,7 +110,7 @@ report_event(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, struct udev
         /* L: table */ \
         const char *r_ = Func_(dev); \
         if (r_) { \
-            lua_pushstring(L, r_);        /* L: table string */ \
+            lua_pushstring(L, r_);     /* L: table string */ \
             lua_setfield(L, -2, Key_); /* L: table */ \
         } \
     } while (0)
