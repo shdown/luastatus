@@ -8,3 +8,5 @@ target_include_directories (plugin-xtitle PUBLIC "${PROJECT_SOURCE_DIR}")
 find_package (PkgConfig REQUIRED)
 pkg_check_modules (XCBLIBS REQUIRED xcb xcb-ewmh xcb-icccm xcb-event)
 luastatus_target_build_with (plugin-xtitle XCBLIBS)
+
+luastatus_add_man_page (README.rst luastatus-plugin-xtitle 7)

@@ -12,3 +12,5 @@ luastatus_target_build_with (barlib-i3 YAJL)
 include (GNUInstallDirs)
 
 install (PROGRAMS luastatus-i3-wrapper DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+luastatus_add_man_page (README.rst luastatus-barlib-i3 7)

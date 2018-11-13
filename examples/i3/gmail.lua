@@ -1,3 +1,12 @@
+--[[
+-- Expects 'credentials.lua' to be present in the current directory; it may contain, e.g.,
+--     return {
+--         gmail = {
+--             login = 'john.smith',
+--             password = 'qwerty'
+--         }
+--     }
+--]]
 credentials = require 'credentials'
 
 widget = luastatus.require_plugin('imap').widget{

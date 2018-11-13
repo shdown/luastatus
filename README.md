@@ -1,12 +1,11 @@
 [![Build Status](https://travis-ci.org/shdown/luastatus.svg?branch=master)](https://travis-ci.org/shdown/luastatus)
 
-**luastatus** is a universal status bar content generator. It allows you to
-configure the way the data from event sources is processed and shown, with Lua.
+**luastatus** is a universal status bar content generator. It allows you to configure the way the
+data from event sources is processed and shown, with Lua.
 
-Its main feature is that the content can be updated immediately as some event
-occurs, be it a change of keyboard layout, active window title, volume or a song
-in your favorite music player (provided that there is a plugin for it) — a thing
-rather uncommon for tiling window managers.
+Its main feature is that the content can be updated immediately as some event occurs, be it a change
+of keyboard layout, active window title, volume or a song in your favorite music player (provided
+that there is a plugin for it) — a thing rather uncommon for tiling window managers.
 
 Its motto is:
 
@@ -15,58 +14,23 @@ Its motto is:
 Screenshot
 ===
 
-![...](https://user-images.githubusercontent.com/5462697/39099519-092459aa-4685-11e8-94fe-0ac1cf706d82.gif)
+![Screenshot](https://user-images.githubusercontent.com/5462697/39099519-092459aa-4685-11e8-94fe-0ac1cf706d82.gif)
 
-Above is i3bar with luastatus with Bitcoin price, time, volume, and keyboard
-layout widgets.
+Above is i3bar with luastatus with Bitcoin price, time, volume, and keyboard layout widgets.
 
 Key concepts
 ===
 
 ![Explanation](https://user-images.githubusercontent.com/5462697/42400208-5b54f5f2-8179-11e8-9836-70d4e46d5c13.png)
 
-Widgets
----
-A widget is a Lua program with a table named `widget` defined (except for
-`luastatus`, you can freely define and modify any other global variables).
+In short:
+  * plugin is a thing that decides when to call the callback function `widget.cb` and what to pass to it;
+  * barlib (**bar** **lib**rary) is a thing that decides what to with values that `widget.cb` function returns;
+  * there are also *derived plugins*, which are plugins written in Lua that use regular plugins.
 
-The `widget` table **must** contain the following entries:
-
-  * `plugin`: a string with the name of a *plugin* (see below) you want to
-  receive data from. If it contains a slash, it is treated as a path to a shared
-  library. If it does not, luastatus tries to load `plugin-<plugin>.so` from the
-  directory configured at the build time (CMake `PLUGINS_DIR` variable, defaults
-  to `${CMAKE_INSTALL_FULL_LIBDIR}/luastatus/plugins`).
-
-  * `cb`: a function that converts the data received from a *plugin* to the
-  format a *barlib* (see below) understands. It should take one argument (though
-  in Lua you can omit it if you don’t care about its value) and return one value
-  (`nil` is substituted if no values are returned).
-
-The `widget` table **may** contain the following entries:
-
-  * `opts`: a table with plugin’s options. If undefined, an empty table will be
-  substituted.
-
-  * `event`: a function or a string.
-    - If is a function, it will be called by the *barlib* whenever some event
-      with the widget occurs (typically a click). It should take one argument
-      and not return anything;
-    - if is a string, it is compiled as a function in a *separate state*. See
-     `DOCS/design/separate_state.md` for overview.
-
-Plugins
----
-A plugin is a thing that knows when to call the `cb` function and what
-to pass to.
-
-Plugins are shared libraries.
-
-These plugins are also referred to as *proper plugins*, as opposed to
-*dervied plugins*.
-
-Following is an example of widget for the `i3` barlib that uses a (proper)
-plugin.
+Examples
+===
+ALSA volume widget:
 
 ```lua
 widget = {
@@ -93,17 +57,18 @@ widget = {
 }
 ```
 
-Derived plugins
----
-Starting with version 0.3.0, luastatus features *derived plugins*, which are
-wrappers around proper plugins (or even other derived plugins) written in Lua.
-
-Derived plugins are loaded by calling `luastatus.require_plugin(name)`.
-
-Following is an example of widget for the `i3` barlib that uses a derived
-plugin.
+GMail widget (uses the derived plugin `imap`):
 
 ```lua
+--[[
+-- Expects 'credentials.lua' to be present in the current directory; it may contain, e.g.,
+--     return {
+--         gmail = {
+--             login = 'john.smith',
+--             password = 'qwerty'
+--         }
+--     }
+--]]
 credentials = require 'credentials'
 widget = luastatus.require_plugin('imap').widget{
     host = 'imap.gmail.com',
@@ -133,19 +98,7 @@ widget = luastatus.require_plugin('imap').widget{
 }
 ```
 
-Barlibs
----
-A barlib (**bar** **lib**rary) is a thing that knows:
-
-  * what to do with values the `cb` function returns;
-
-  * when to call the `event` function and what to pass to;
-
-  * how to indicate an error, should one happen.
-
-Barlibs are shared libraries, too.
-
-Barlibs are capable of taking options.
+See more examples [here](https://github.com/shdown/luastatus/tree/master/examples).
 
 Installation
 ===
@@ -155,69 +108,64 @@ You can specify a Lua library to build with: `cmake -DWITH_LUA_LIBRARY=luajit .`
 
 You can disable building certain barlibs and plugins, e.g. `cmake -DBUILD_PLUGIN_XTITLE=OFF .`
 
+You can disable building man pages: `cmake -DBUILD_DOCS=OFF .`
+
 Getting started
 ===
-First, find your barlib’s subdirectory in the `barlibs/` directory. Then read
-its `README.md` file for detailed instructions and documentation.
+It is recommended to first have a look at the
+[luastatus' man page](https://github.com/shdown/luastatus/blob/master/luastatus/README.rst).
 
-Similary, for plugins’ documentation, see `README.md` files in the
-subdirectories of `plugins/`.
+Then, read the barlib's and plugins' documentation, either via directly viewing
+`barlibs/<name>/README.rst` and `plugins/<name>/README.rst` files, or via installing the man pages
+and reading `luastatus-barlib-<name>(7)` and `luastatus-plugin-<name>(7)`.
 
-You will find widget examples in the `examples` directory.
+Barlib-specific notes on usage follow.
 
-Using luastatus binary
-===
-Note that some barlibs can provide their own wrappers for luastatus; that’s why
-you should consult your barlib’s `README.md` first.
-
-Pass a barlib with `-b`, then (optionally) its options with `-B`, then widget
-files.
-
-If `-b` argument contains a slash, it is treated as a path to a shared library.
-If it does not, luastatus tries to load `barlib-<argument>.so` from the
-directory configured at the build time (CMake `BARLIBS_DIR` variable, defaults
-to `${CMAKE_INSTALL_FULL_LIBDIR}/luastatus/barlibs`).
-
-Example:
-
-    luastatus -b dwm -B display=:0 -B separator=' ' widget1.lua widget2.lua
-
-How it works
-===
-Each widget runs in its own thread and has its own Lua interpreter instance.
-
-While Lua does support multiple interpreters running in separate threads, it
-does not support multithreading within one interpreter, which means `cb()` and
-`event()` of the same widget never overlap (a widget-local mutex is acquired
-before calling any of these functions, and is released afterwards).
-
-Also, due to luastatus’ architecture, no two `event()` functions, even from
-different widgets, can overlap. (Note that `cb()` functions from different
-widgets can overlap.)
-
-Lua libraries
-===
-
-The `luastatus` module
+i3
 ---
-luastatus provides the `luastatus` module, which currently contains only one
-function:
-  - `luastatus.require_plugin(name)` is like the `require` function, except that
-  it loads a file named `<name>.lua` from luastatus’ plugins directory.
+`luastatus-i3-wrapper` should be specified as the i3bar's status command in the i3 config, e.g.:
+```
+bar {
+    status_command cd ~/.config/luastatus && exec luastatus-i3-wrapper -B no_separators time-battery-combined.lua alsa.lua xkb.lua
+```
 
-Plugins’ and barlib’s Lua functions
----
-Plugins and barlibs can register Lua functions. They appear in
-`luastatus.plugin` and `luastatus.barlib` submodules, correspondingly.
+See also [README for i3](https://github.com/shdown/luastatus/blob/master/barlibs/i3/README.rst) and
+[examples for i3](https://github.com/shdown/luastatus/tree/master/examples/i3).
 
-Limitations
+dwm
 ---
-In luastatus, `os.setlocale` always fails as it is inherently not thread-safe.
+luastatus should simply be launched with `-b dwm`, e.g.:
+```
+luastatus -b dwm -B separator=' • ' alsa.lua time-battery-combined.lua
+```
+
+See also [README for dwm](https://github.com/shdown/luastatus/blob/master/barlibs/dwm/README.rst)
+and [examples for dwm](https://github.com/shdown/luastatus/tree/master/examples/dwm).
+
+lemonbar
+--------
+`lemonbar` should be launched with `luastatus-lemonbar-launcher`, e.g.:
+```
+luastatus-lemonbar-launcher -p -B#111111 -p -f'Droid Sans Mono for Powerline:pixelsize=12:weight=Bold' -- -Bseparator=' ' alsa.lua time-date.lua
+```
+
+See also
+[README for lemonbar](https://github.com/shdown/luastatus/blob/master/barlibs/lemonbar/README.rst)
+and [examples for lemonbar](https://github.com/shdown/luastatus/tree/master/examples/lemonbar).
+
+stdout
+------
+luastatus should be launched with `luastatus-stdout-wrapper`; or write your own wrapper, see e.g.
+the [wrapper for launching dvtm with luastatus](https://github.com/shdown/luastatus/blob/master/barlibs/stdout/luastatus-dvtm).
+
+See also
+[README for stdout](https://github.com/shdown/luastatus/blob/master/barlibs/stdout/README.rst) and
+and [examples for stdout](https://github.com/shdown/luastatus/tree/master/examples/stdout).
 
 Supported Lua versions
 ===
 * 5.1
-* LuaJIT, which is currently 5.1-compatible with “some language and library extensions from Lua 5.2”
+* LuaJIT, which is currently 5.1-compatible with "some language and library extensions from Lua 5.2"
 * 5.2
 * 5.3
 * 5.4 (`work1`, `work2` pre-release versions)
@@ -228,4 +176,4 @@ Feel free to open an issue or a pull request.
 
 Migrating from older versions
 ===
-See `DOCS/MIGRATION_GUIDE.md`.
+See the [Migration Guide](https://github.com/shdown/luastatus/blob/master/DOCS/MIGRATION_GUIDE.md).

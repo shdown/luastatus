@@ -66,8 +66,10 @@ REQUIRED_USE="
     ${PN}_plugins_pipe? ( ${PN}_plugins_timer )
 "
 
-DEPEND=""
-RDEPEND="${DEPEND}
+DEPEND="
+    doc? ( dev-python/docutils )
+"
+RDEPEND="
     luajit? ( dev-lang/luajit:2 )
     !luajit? ( dev-lang/lua:0 )
     ${PN}_barlibs_dwm? ( x11-libs/libxcb )
@@ -83,6 +85,7 @@ RDEPEND="${DEPEND}
 src_configure() {
     local mycmakeargs=(
         $(use luajit && echo -DWITH_LUA_LIBRARY=luajit)
+        -DBUILD_DOCS=$(usex doc)
         -DBUILD_BARLIB_DWM=$(usex ${PN}_barlibs_dwm)
         -DBUILD_BARLIB_I3=$(usex ${PN}_barlibs_i3)
         -DBUILD_BARLIB_LEMONBAR=$(usex ${PN}_barlibs_lemonbar)
@@ -110,7 +113,7 @@ src_configure() {
 
 src_install() {
     default
-    local i barlib plugin
+    local i
     if use examples; then
         dodir /usr/share/doc/${PF}/examples
         docinto examples
@@ -119,26 +122,6 @@ src_install() {
                 barlib=${i#${PN}_barlibs_}
                 dodoc -r examples/${barlib}
                 docompress -x /usr/share/doc/${PF}/examples/${barlib}
-            fi
-        done
-    fi
-
-    if use doc; then
-        for i in ${PLUGINS//+/}; do
-            if use ${i}; then
-                plugin=${i#${PN}_plugins_}
-                dodir /usr/share/doc/${PF}/plugins/${plugin}
-                docinto plugins/${plugin}
-                dodoc plugins/${plugin}/README.md
-            fi
-        done
-
-        for i in ${BARLIBS//+/}; do
-            if use ${i}; then
-                barlib=${i#${PN}_barlibs_}
-                dodir /usr/share/doc/${PF}/barlibs/${barlib}
-                docinto barlibs/${barlib}
-                dodoc barlibs/${barlib}/README.md
             fi
         done
     fi

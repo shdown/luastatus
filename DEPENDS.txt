@@ -1,4 +1,5 @@
 luastatus itself, without any barlibs and/or plugins, has the following dependencies:
+* docutils >=0.11 (rst2man program)
 * CMake >=3.0.0
 * pkg-config >=0.25
 * either Lua 5.1, Lua 5.2, Lua 5.3, or LuaJIT >=2.0.0
