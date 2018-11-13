@@ -8,3 +8,5 @@ target_include_directories (barlib-dwm PUBLIC "${PROJECT_SOURCE_DIR}")
 find_package (PkgConfig REQUIRED)
 pkg_check_modules (XCB REQUIRED xcb)
 luastatus_target_build_with (barlib-dwm XCB)
+
+luastatus_add_man_page (README.rst luastatus-barlib-dwm 7)

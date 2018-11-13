@@ -77,6 +77,23 @@ function (luastatus_add_plugin_noinstall)
     luastatus_add_barlib_or_plugin ("" ${ARGV})
 endfunction ()
 
+option (BUILD_DOCS "build man pages" ON)
+
+function (luastatus_add_man_page src basename section)
+    if (NOT BUILD_DOCS)
+        return ()
+    endif ()
+    set (dest "${basename}.${section}")
+    add_custom_command (
+        OUTPUT "${dest}"
+        COMMAND "${PROJECT_SOURCE_DIR}/generate-man.sh" ARGS "${CMAKE_CURRENT_SOURCE_DIR}/${src}" "${dest}"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+        MAIN_DEPENDENCY "${src}"
+        VERBATIM)
+    add_custom_target ("man${section}-${basename}" ALL DEPENDS "${dest}")
+    install (FILES "${dest}" DESTINATION "${CMAKE_INSTALL_MANDIR}/man${section}")
+endfunction ()
+
 #------------------------------------------------------------------------------
 
 add_subdirectory (libls)

@@ -8,3 +8,5 @@ target_include_directories (plugin-pulse PUBLIC "${PROJECT_SOURCE_DIR}")
 find_package (PkgConfig REQUIRED)
 pkg_check_modules (PULSE REQUIRED libpulse)
 luastatus_target_build_with (plugin-pulse PULSE)
+
+luastatus_add_man_page (README.rst luastatus-plugin-pulse 7)

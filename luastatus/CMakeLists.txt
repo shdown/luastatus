@@ -13,4 +13,4 @@ target_link_libraries (luastatus dl pthread)
 include (GNUInstallDirs)
 
 install (TARGETS luastatus DESTINATION ${CMAKE_INSTALL_BINDIR})
-install (FILES luastatus.1 DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
+luastatus_add_man_page (README.rst luastatus 1)

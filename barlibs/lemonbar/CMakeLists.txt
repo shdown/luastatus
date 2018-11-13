@@ -8,3 +8,5 @@ target_include_directories (barlib-lemonbar PUBLIC "${PROJECT_SOURCE_DIR}")
 include (GNUInstallDirs)
 
 install (PROGRAMS luastatus-lemonbar-launcher DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+luastatus_add_man_page (README.rst luastatus-barlib-lemonbar 7)

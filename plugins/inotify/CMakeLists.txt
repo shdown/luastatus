@@ -8,3 +8,5 @@ configure_file ("probes.in.h" "probes.generated.h")
 target_compile_definitions (plugin-inotify PUBLIC -D_POSIX_C_SOURCE=200809L)
 luastatus_target_compile_with (plugin-inotify LUA)
 target_include_directories (plugin-inotify PUBLIC "${PROJECT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}")
+
+luastatus_add_man_page (README.rst luastatus-plugin-inotify 7)

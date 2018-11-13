@@ -8,3 +8,5 @@ target_include_directories (plugin-udev PUBLIC "${PROJECT_SOURCE_DIR}")
 find_package (PkgConfig REQUIRED)
 pkg_check_modules (UDEV REQUIRED libudev)
 luastatus_target_build_with (plugin-udev UDEV)
+
+luastatus_add_man_page (README.rst luastatus-plugin-udev 7)
