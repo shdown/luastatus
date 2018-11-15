@@ -51,7 +51,7 @@ A table with ``what`` entry.
 * If ``what`` is ``"update"``, either the plugin has just connected to the server and queried its
   state, or the server has just changed its state. Additionally, the following entries are provided:
 
-  - ``song``: table with server’s response to the ``currentsong`` command. Surprisingly, it is not
+  - ``song``: table with server's response to the ``currentsong`` command. Surprisingly, it is not
     documented at all, so here is an example (all values are strings):
 
     .. rst2man does not support tables with headers, so let's just use bold.
@@ -86,7 +86,7 @@ A table with ``what`` entry.
     | Id                   | 4                           |
     +----------------------+-----------------------------+
 
-  - ``status``: table with server’s response to the ``status`` command. See the ``status`` command
+  - ``status``: table with server's response to the ``status`` command. See the ``status`` command
     description at https://www.musicpd.org/doc/html/protocol.html#querying-mpd-s-status.
 
     All values are strings.
