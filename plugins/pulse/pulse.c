@@ -80,7 +80,7 @@ l_wake_up(lua_State *L)
     LuastatusPluginData *pd = lua_touserdata(L, lua_upvalueindex(1));
     Priv *p = pd->priv;
 
-    int unused = write(p->self_pipe[1], "", 1); // write '\0'
+    ssize_t unused = write(p->self_pipe[1], "", 1); // write '\0'
     (void) unused;
 
     return 0;
@@ -114,7 +114,7 @@ self_pipe_cb(pa_mainloop_api *api, pa_io_event *e, int fd, pa_io_event_flags_t e
     (void) e;
     (void) events;
 
-    int unused = read(fd, (char[1]) {'\0'}, 1);
+    ssize_t unused = read(fd, (char[1]) {'\0'}, 1);
     (void) unused;
 
     UserData *ud = vud;
