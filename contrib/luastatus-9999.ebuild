@@ -78,7 +78,7 @@ RDEPEND="
 	${PN}_plugins_dbus? ( dev-libs/glib )
 	${PN}_plugins_pulse? ( media-sound/pulseaudio )
 	${PN}_plugins_udev? ( virtual/libudev )
-	${PN}_plugins_xtitle? ( x11-libs/libxcb x11-libs/xcb-util-wm )
+	${PN}_plugins_xtitle? ( x11-libs/libxcb x11-libs/xcb-util-wm x11-libs/xcb-util )
 	${PN}_plugins_xkb? ( x11-libs/libX11 )
 "
 
