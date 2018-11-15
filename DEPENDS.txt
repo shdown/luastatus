@@ -12,9 +12,6 @@ Barlib 'dwm' has the following dependencies:
 Barlib 'i3' has the following dependencies:
 * yajl >=2.0.4
 
-Barlib 'wmii' has the following dependencies:
-* libixp >=0.6
-
 Plugin 'alsa' has the following dependencies:
 * alsa >=1.0.27.2
 

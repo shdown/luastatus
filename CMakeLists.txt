@@ -96,7 +96,6 @@ DEF_OPT (BUILD_BARLIB_DWM                 "barlibs/dwm"                 ON)
 DEF_OPT (BUILD_BARLIB_I3                  "barlibs/i3"                  ON)
 DEF_OPT (BUILD_BARLIB_LEMONBAR            "barlibs/lemonbar"            ON)
 DEF_OPT (BUILD_BARLIB_STDOUT              "barlibs/stdout"              ON)
-DEF_OPT (BUILD_BARLIB_WMII                "barlibs/wmii"                OFF)
 
 DEF_OPT (BUILD_PLUGIN_ALSA                "plugins/alsa"                ON)
 DEF_OPT (BUILD_PLUGIN_BACKLIGHT_LINUX     "plugins/backlight-linux"     ON)

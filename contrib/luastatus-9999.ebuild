@@ -23,7 +23,6 @@ BARLIBS="
     ${PN}_barlibs_i3
     ${PN}_barlibs_lemonbar
     ${PN}_barlibs_stdout
-    ${PN}_barlibs_wmii
 "
 
 PROPER_PLUGINS="
@@ -73,7 +72,6 @@ RDEPEND="${DEPEND}
     !luajit? ( dev-lang/lua:0 )
     ${PN}_barlibs_dwm? ( x11-libs/libxcb )
     ${PN}_barlibs_i3? ( >=dev-libs/yajl-2.0.4 )
-    ${PN}_barlibs_wmii? ( sys-libs/libixp )
     ${PN}_plugins_alsa? ( media-libs/alsa-lib )
     ${PN}_plugins_dbus? ( dev-libs/glib )
     ${PN}_plugins_pulse? ( media-sound/pulseaudio )
@@ -89,7 +87,6 @@ src_configure() {
         -DBUILD_BARLIB_I3=$(usex ${PN}_barlibs_i3)
         -DBUILD_BARLIB_LEMONBAR=$(usex ${PN}_barlibs_lemonbar)
         -DBUILD_BARLIB_STDOUT=$(usex ${PN}_barlibs_stdout)
-        -DBUILD_BARLIB_WMII=$(usex ${PN}_barlibs_wmii)
         -DBUILD_PLUGIN_ALSA=$(usex ${PN}_plugins_alsa)
         -DBUILD_PLUGIN_BACKLIGHT_LINUX=$(usex ${PN}_plugins_backlight-linux)
         -DBUILD_PLUGIN_BATTERY_LINUX=$(usex ${PN}_plugins_battery-linux)
