@@ -65,6 +65,7 @@ Functions
 The following functions are provided:
 
 * ``escaped_str = luastatus.barlib.pango_escape(str)``
+
     Escapes text for the Pango markup.
 
 Example
