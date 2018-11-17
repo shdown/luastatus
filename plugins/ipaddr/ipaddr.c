@@ -22,6 +22,7 @@
 
 #include "libls/alloc_utils.h"
 #include "libls/cstring_utils.h"
+#include "libls/osdep.h"
 
 typedef struct {
     bool warn;
@@ -110,7 +111,7 @@ bool
 interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     bool ret = false;
-    int fd = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
+    int fd = ls_cloexec_socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
     if (fd < 0) {
         LS_FATALF(pd, "socket: %s", ls_strerror_onstack(errno));
         goto error;
