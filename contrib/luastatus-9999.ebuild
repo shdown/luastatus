@@ -30,6 +30,7 @@ PROPER_PLUGINS="
 	+${PN}_plugins_dbus
 	+${PN}_plugins_fs
 	+${PN}_plugins_inotify
+	+${PN}_plugins_ipaddr
 	+${PN}_plugins_mpd
 	+${PN}_plugins_pulse
 	+${PN}_plugins_timer
@@ -76,6 +77,7 @@ RDEPEND="
 	${PN}_barlibs_i3? ( >=dev-libs/yajl-2.0.4 )
 	${PN}_plugins_alsa? ( media-libs/alsa-lib )
 	${PN}_plugins_dbus? ( dev-libs/glib )
+	${PN}_plugins_ipaddr? ( sys-kernel/linux-headers )
 	${PN}_plugins_pulse? ( media-sound/pulseaudio )
 	${PN}_plugins_udev? ( virtual/libudev )
 	${PN}_plugins_xtitle? ( x11-libs/libxcb x11-libs/xcb-util-wm x11-libs/xcb-util )

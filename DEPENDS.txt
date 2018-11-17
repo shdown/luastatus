@@ -39,6 +39,9 @@ Plugin 'imap' has the following dependencies:
 Plugin 'inotify' has the following dependencies:
 * a Linux system with a libc that provides <sys/inotify.h> (preferably glibc)
 
+Plugin 'ipaddr' has the following dependencies:
+* a Linux system with Linux kernel headers
+
 Plugin 'mem-usage-linux' has the following dependencies:
 * plugin 'timer'
 
