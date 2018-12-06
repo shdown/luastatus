@@ -164,7 +164,7 @@ ls_string_eq(LSString a, LSString b)
 {
     // We have to check that the size is not zero before calling /memcmp/:
     // see DOCS/c_notes/empty-ranges-and-c-stdlib.md
-    return a.size == b.size && a.size && memcmp(a.data, b.data, a.size) == 0;
+    return a.size == b.size && (a.size == 0 || memcmp(a.data, b.data, a.size) == 0);
 }
 
 // Swaps two string efficiently (in O(1) time).
