@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.0.0)
+cmake_minimum_required (VERSION 3.1.3)
 project (luastatus C)
 
 if (NOT CMAKE_BUILD_TYPE)
@@ -40,8 +40,7 @@ endfunction ()
 
 function (luastatus_target_build_with target var)
     luastatus_target_compile_with ("${target}" "${var}")
-    target_link_libraries (${target}
-        ${${var}_LIBRARIES})
+    target_link_libraries (${target} PUBLIC ${${var}_LIBRARIES})
 endfunction ()
 
 #------------------------------------------------------------------------------

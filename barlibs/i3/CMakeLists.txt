@@ -9,6 +9,11 @@ find_package (PkgConfig REQUIRED)
 pkg_check_modules (YAJL REQUIRED yajl>=2.0.4)
 luastatus_target_build_with (barlib-i3 YAJL)
 
+find_library (MATH_LIBRARY m)
+if (MATH_LIBRARY)
+    target_link_libraries (barlib-i3 PUBLIC ${MATH_LIBRARY})
+endif()
+
 include (GNUInstallDirs)
 
 install (PROGRAMS luastatus-i3-wrapper DESTINATION ${CMAKE_INSTALL_BINDIR})
