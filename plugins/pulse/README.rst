@@ -1,5 +1,5 @@
 .. :X-man-page-only: luastatus-plugin-pulse
-.. :X-man-page-only: #####################
+.. :X-man-page-only: ######################
 .. :X-man-page-only:
 .. :X-man-page-only: ###############################
 .. :X-man-page-only: PulseAudio plugin for luastatus
