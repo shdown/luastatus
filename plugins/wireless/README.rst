@@ -41,7 +41,7 @@ A table with ``what`` entry.
 
   - ``ssid``: string
 
-    802.11 network service set identifier (also known as the “network name”).
+    802.11 network service set identifier (also known as the "network name").
 
   - ``signal_percent``: integer
 
@@ -49,7 +49,7 @@ A table with ``what`` entry.
 
   - ``signal_dbm``: number
 
-    Signal level, in dBms.
+    Signal level, in dBm.
     Generally, -90 corresponds to the worst quality, and -20 to the best quality.
 
   - ``frequency``: number
