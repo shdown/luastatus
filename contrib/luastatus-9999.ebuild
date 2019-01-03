@@ -35,6 +35,7 @@ PROPER_PLUGINS="
 	+${PN}_plugins_pulse
 	+${PN}_plugins_timer
 	+${PN}_plugins_udev
+	+${PN}_plugins_wireless
 	+${PN}_plugins_xkb
 	+${PN}_plugins_xtitle
 "
@@ -80,6 +81,7 @@ RDEPEND="
 	${PN}_plugins_ipaddr? ( sys-kernel/linux-headers )
 	${PN}_plugins_pulse? ( media-sound/pulseaudio )
 	${PN}_plugins_udev? ( virtual/libudev )
+	${PN}_plugins_wireless? ( sys-kernel/linux-headers dev-libs/libnl )
 	${PN}_plugins_xtitle? ( x11-libs/libxcb x11-libs/xcb-util-wm x11-libs/xcb-util )
 	${PN}_plugins_xkb? ( x11-libs/libX11 )
 "
@@ -107,6 +109,7 @@ src_configure() {
 		-DBUILD_PLUGIN_PULSE=$(usex ${PN}_plugins_pulse)
 		-DBUILD_PLUGIN_TIMER=$(usex ${PN}_plugins_timer)
 		-DBUILD_PLUGIN_UDEV=$(usex ${PN}_plugins_udev)
+		-DBUILD_PLUGIN_WIRELESS=$(usex ${PN}_plugins_wireless)
 		-DBUILD_PLUGIN_XKB=$(usex ${PN}_plugins_xkb)
 		-DBUILD_PLUGIN_XTITLE=$(usex ${PN}_plugins_xtitle)
 	)
