@@ -28,6 +28,7 @@
 #include "libls/time_utils.h"
 
 #include "wireless_info.h"
+#include "detect_iface.h"
 
 // This is to make gcc happy.
 #if EAGAIN == EWOULDBLOCK
@@ -39,6 +40,7 @@
 typedef struct {
     char *iface;
     struct timeval timeout;
+    char *detected_iface;
 } Priv;
 
 static
@@ -48,6 +50,7 @@ destroy(LuastatusPluginData *pd)
     Priv *p = pd->priv;
     free(p->iface);
     free(p);
+    free(p->detected_iface);
 }
 
 static
@@ -58,9 +61,10 @@ init(LuastatusPluginData *pd, lua_State *L)
     *p = (Priv) {
         .iface = NULL,
         .timeout = ls_timeval_invalid,
+        .detected_iface = NULL,
     };
 
-    PU_VISIT_STR("iface", NULL, s,
+    PU_MAYBE_VISIT_STR("iface", NULL, s,
         p->iface = ls_xstrdup(s);
     );
 
@@ -91,12 +95,30 @@ report_status(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, const char
 }
 
 static
+bool
+query(LuastatusPluginData *pd, WirelessInfo *info)
+{
+    Priv *p = pd->priv;
+    if (p->iface) {
+        return get_wireless_info(p->iface, info);
+    } else {
+        if (p->detected_iface && get_wireless_info(p->detected_iface, info)) {
+            return true;
+        }
+        if (!(p->detected_iface = detect_wlan_iface())) {
+            return false;
+        }
+        LS_DEBUGF(pd, "detected wlan interface: %s", p->detected_iface);
+        return get_wireless_info(p->detected_iface, info);
+    }
+}
+
+static
 void
 make_call(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
-    Priv *p = pd->priv;
     WirelessInfo info;
-    if (!get_wireless_info(p->iface, &info)) {
+    if (!query(pd, &info)) {
         report_status(pd, funcs, "error");
         return;
     }

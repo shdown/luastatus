@@ -16,10 +16,12 @@ Options
 =======
 The following options are supported:
 
-* ``iface``: string (**REQUIRED**)
+* ``iface``: string
 
     Network interface name (typically something like ``wlan0``, or ``wlp1s0`` if systemd is used).
     Run ``ls /sys/class/net`` to list available network interfaces.
+
+    Default is to auto-detect wireless interface.
 
 * ``timeout``: number
 
@@ -58,5 +60,4 @@ A table with ``what`` entry.
 
     Bitrate, in units of 100 kbit/s.
 
-* If ``what`` is ``"error"``, no data available for this interface (most likely, an interface with
-  the name specified does not exist).
+* If ``what`` is ``"error"``, no data available for the interface.
