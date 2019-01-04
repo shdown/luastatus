@@ -49,8 +49,8 @@ destroy(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
     free(p->iface);
-    free(p);
     free(p->detected_iface);
+    free(p);
 }
 
 static
