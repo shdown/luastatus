@@ -105,6 +105,7 @@ query(LuastatusPluginData *pd, WirelessInfo *info)
         if (p->detected_iface && get_wireless_info(p->detected_iface, info)) {
             return true;
         }
+        free(p->detected_iface);
         if (!(p->detected_iface = detect_wlan_iface())) {
             return false;
         }
