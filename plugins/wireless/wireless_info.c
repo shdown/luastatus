@@ -143,7 +143,9 @@ gwi_scan_cb(struct nl_msg *msg, void *vud)
     }
 
     if (bss[NL80211_BSS_SIGNAL_MBM]) {
-        const int32_t dbm = nla_get_u32(bss[NL80211_BSS_SIGNAL_MBM]) / 100;
+        // NB: this (int32_t) cast is important, because the actual value is always negative.
+        // Everything breaks if you touch it, so please don't.
+        const int32_t dbm = (int32_t) nla_get_u32(bss[NL80211_BSS_SIGNAL_MBM]) / 100;
         info->flags |= HAS_SIGNAL_DBM;
         info->signal_dbm = dbm;
     }
