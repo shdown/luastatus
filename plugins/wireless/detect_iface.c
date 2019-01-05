@@ -6,6 +6,8 @@
 #include <string.h>
 #include <sys/types.h>
 #include <ifaddrs.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 #include "libls/alloc_utils.h"
 
@@ -16,15 +18,20 @@ bool
 is_wlan_iface(const char *iface)
 {
     FILE *f = NULL;
+    int fd = 0;
     char *line = NULL;
     size_t nline = 0;
     bool ret = false;
 
     char path[256];
     snprintf(path, sizeof(path), "/sys/class/net/%s/uevent", iface);
-    if (!(f = fopen(path, "r"))) {
+    if ((fd = open(path, O_RDONLY | O_CLOEXEC)) < 0) {
         goto done;
     }
+    if (!(f = fdopen(fd, "r"))) {
+        goto done;
+    }
+    fd = -1;
     while (getline(&line, &nline, f) > 0) {
         if (strcmp(line, "DEVTYPE=wlan\n") == 0) {
             ret = true;
@@ -34,6 +41,7 @@ is_wlan_iface(const char *iface)
 
 done:
     free(line);
+    close(fd);
     if (f) {
         fclose(f);
     }
