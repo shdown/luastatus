@@ -10,7 +10,7 @@ end
 local function mk_gauge(dbm)
     if dbm < MIN_DBM then dbm = MIN_DBM end
     if dbm > MAX_DBM then dbm = MAX_DBM end
-    local nbright = round(NGAUGE * (dbm - MIN_DBM) / (MAX_DBM - MIN_DBM))
+    local nbright = round(NGAUGE * (1 - 0.7 * (MAX_DBM - dbm) / (MAX_DBM - MIN_DBM)))
     return {
         full_text = ORIGIN .. RAY:rep(nbright) .. '<span color="#709080">' .. RAY:rep(NGAUGE - nbright) .. '</span>',
         markup = 'pango',
