@@ -27,6 +27,9 @@ find_ssid(uint8_t *ies, uint32_t ies_len, uint8_t **ssid, uint32_t *ssid_len)
         ies_len -= ies[1] + 2;
         ies += ies[1] + 2;
     }
+    if (ies_len < 2) {
+        return;
+    }
     if (ies_len < (uint32_t) 2 + ies[1]) {
         return;
     }
