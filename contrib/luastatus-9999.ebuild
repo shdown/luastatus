@@ -30,12 +30,11 @@ PROPER_PLUGINS="
 	+${PN}_plugins_dbus
 	+${PN}_plugins_fs
 	+${PN}_plugins_inotify
-	+${PN}_plugins_ipaddr
 	+${PN}_plugins_mpd
+	+${PN}_plugins_network-linux
 	+${PN}_plugins_pulse
 	+${PN}_plugins_timer
 	+${PN}_plugins_udev
-	+${PN}_plugins_wireless
 	+${PN}_plugins_xkb
 	+${PN}_plugins_xtitle
 "
@@ -78,12 +77,11 @@ RDEPEND="
 	${PN}_barlibs_i3? ( >=dev-libs/yajl-2.0.4 )
 	${PN}_plugins_alsa? ( media-libs/alsa-lib )
 	${PN}_plugins_dbus? ( dev-libs/glib )
-	${PN}_plugins_ipaddr? ( sys-kernel/linux-headers )
+	${PN}_plugins_network-linux? ( sys-kernel/linux-headers dev-libs/libnl )
 	${PN}_plugins_pulse? ( media-sound/pulseaudio )
 	${PN}_plugins_udev? ( virtual/libudev )
-	${PN}_plugins_wireless? ( sys-kernel/linux-headers dev-libs/libnl )
-	${PN}_plugins_xtitle? ( x11-libs/libxcb x11-libs/xcb-util-wm x11-libs/xcb-util )
 	${PN}_plugins_xkb? ( x11-libs/libX11 )
+	${PN}_plugins_xtitle? ( x11-libs/libxcb x11-libs/xcb-util-wm x11-libs/xcb-util )
 "
 
 src_configure() {
@@ -105,11 +103,11 @@ src_configure() {
 		-DBUILD_PLUGIN_INOTIFY=$(usex ${PN}_plugins_inotify)
 		-DBUILD_PLUGIN_MEM_USAGE_LINUX=$(usex ${PN}_plugins_mem-usage-linux)
 		-DBUILD_PLUGIN_MPD=$(usex ${PN}_plugins_mpd)
+		-DBUILD_PLUGIN_NETWORK_LINUX=$(usex ${PN}_plugins_network-linux)
 		-DBUILD_PLUGIN_PIPE=$(usex ${PN}_plugins_pipe)
 		-DBUILD_PLUGIN_PULSE=$(usex ${PN}_plugins_pulse)
 		-DBUILD_PLUGIN_TIMER=$(usex ${PN}_plugins_timer)
 		-DBUILD_PLUGIN_UDEV=$(usex ${PN}_plugins_udev)
-		-DBUILD_PLUGIN_WIRELESS=$(usex ${PN}_plugins_wireless)
 		-DBUILD_PLUGIN_XKB=$(usex ${PN}_plugins_xkb)
 		-DBUILD_PLUGIN_XTITLE=$(usex ${PN}_plugins_xtitle)
 	)

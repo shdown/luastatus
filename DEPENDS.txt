@@ -39,11 +39,13 @@ Plugin 'imap' has the following dependencies:
 Plugin 'inotify' has the following dependencies:
 * a Linux system with a libc that provides <sys/inotify.h> (preferably glibc)
 
-Plugin 'ipaddr' has the following dependencies:
-* a Linux system with Linux kernel headers
-
 Plugin 'mem-usage-linux' has the following dependencies:
 * plugin 'timer'
+
+Plugin 'network' has the following dependencies:
+* a Linux system with Linux kernel headers
+* libnl >=3.0
+* libnl-genl >=3.0
 
 Plugin 'pipe' has the following dependencies:
 * plugin 'timer'
@@ -53,11 +55,6 @@ Plugin 'pulse' has the following dependencies:
 
 Plugin 'udev' has the following dependencies:
 * libudev >=204
-
-Plugin 'wireless' has the following dependencies:
-* a Linux system with Linux kernel headers
-* libnl >=3.0
-* libnl-genl >=3.0
 
 Plugin 'xkb' has the following dependencies:
 * x11 >=1.6.2
