@@ -74,4 +74,4 @@ are table with the following entries (all are optional):
 
   - ``speed``: number
 
-    Interface speed, in Mbit/s.
+    Interface speed, in Mbits/s.
