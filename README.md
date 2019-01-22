@@ -177,3 +177,8 @@ Feel free to open an issue or a pull request.
 Migrating from older versions
 ===
 See the [Migration Guide](https://github.com/shdown/luastatus/blob/master/DOCS/MIGRATION_GUIDE.md).
+
+Acknowledgements
+===
+* I would like to thank [wm4](https://github.com/wm4) for developing [mpv](https://mpv.io), which,
+  also being a “platform” for running Lua scripts, served as an inspiration for this project.
