@@ -1,6 +1,3 @@
-#ifndef __linux__
-#   error "This plugin currently only supports Linux."
-#endif
 #include <lua.h>
 #include <asm/types.h>
 #include <sys/types.h>
