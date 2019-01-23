@@ -1175,7 +1175,7 @@ main(int argc, char **argv)
     int ret = EXIT_FAILURE;
     char *barlib_name = NULL;
     LS_VECTOR_OF(const char *) barlib_args = LS_VECTOR_NEW();
-    bool no_hang = false;
+    bool eflag = false;
     LS_VECTOR_OF(pthread_t) threads = LS_VECTOR_NEW();
     bool barlib_inited = false;
 
@@ -1197,7 +1197,7 @@ main(int argc, char **argv)
             }
             break;
         case 'e':
-            no_hang = true;
+            eflag = true;
             break;
         case 'v':
             fprintf(stderr, "This is luastatus %s.\n", LUASTATUS_VERSION);
@@ -1290,7 +1290,7 @@ main(int argc, char **argv)
     // Either hang or exit.
 
     WARNF("all plugins' run() and barlib's event_watcher() have returned");
-    if (no_hang) {
+    if (eflag) {
         INFOF("-e passed, exiting");
         ret = EXIT_SUCCESS;
     } else {
