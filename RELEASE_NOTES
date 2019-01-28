@@ -1,3 +1,33 @@
+luastatus 0.4.0 (January 28, 2019)
+===
+- all barlibs: double-buffer everything to avoid unneeded redraws
+- “luastatus.map_get_handle” function was removed
+- moved “contrib/widget-examples/” directory to “examples/”
+- new plugin: “udev”
+- new derived plugin: “backlight-linux”
+- new barlib: “stdout”
+- new plugin: “pulse”
+- new plugin: “network-linux”
+- “alsa” plugin: added “self-pipe” option/“wake_up()” function
+- “timer” plugin: new “push_period()” function
+- new widget example: backlight.lua
+- new widget example: network-rate.lua
+- new widget example: tor.lua
+- new widget example: pulse.lua
+- new widget example: cpu-temperature.lua
+- new widget example: alsa-gauge.lua
+- new widget example: pulse-gauge.lua
+- new widget example: alsa-interactive-gauge.lua
+- new widget example: pulse-interactive-gauge.lua
+- new widget example: wireless.lua
+- new widget example: ip.lua
+- “examples/i3/moonscript”: examples of using MoonScript with luastatus
+- “i3”, “lemonbar” barlibs: barlib functions are now thread-safe
+- “i3” barlib: properly marshal JSON arrays/maps to Lua
+- all the documentation was moved to the .rst file format
+- man pages are now auto-generated from .rst files using “rst2man” utility
+- various bug fixes
+
 luastatus 0.3.0 (July 09, 2018)
 ===
 - tracebacks are now printed for Lua errors
