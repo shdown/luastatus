@@ -1,0 +1,243 @@
+luastatus
+#########
+
+######################################
+universal status bar content generator
+######################################
+
+:Copyright: LGPLv3
+:Manual section: 1
+
+SYNOPSIS
+========
+**luastatus** **-b** *barlib* [**-B** *barlib_option*]... [**-l** *loglevel*] [**-e**] *widget_file*...
+
+**luastatus** **-v**
+
+DESCRIPTION
+===========
+**luastatus** is a universal status bar content generator. It allows you to configure the way the
+data from event sources is processed and shown, with Lua.
+
+OPTIONS
+=======
+-b barlib
+   Specify a barlib to load. If *barlib* contains a slash, it is treated as a path to a shared
+   library. If it does not, the program tries to load barlib-*barlib*.so from the directory
+   configured at the build time.
+
+-B barlib_option
+   Pass an option to *barlib*. May be specified multiple times.
+
+-l loglevel
+   Specify a log level. *loglevel* is one of: *fatal error warning info verbose debug trace*.
+
+   Default is *info*.
+
+-e
+   Do not hang, but exit normally when *barlib*'s event watcher and all plugins' ``run()`` have
+   returned. Default behaviour is to hang, because there are status bars that require their
+   generator process not to terminate (namely i3bar).
+
+   Useful for testing.
+
+-v
+   Show version and exit.
+
+WIDGETS
+=======
+A widget is a Lua program with a table named ``widget`` defined. The ``widget`` table **must**
+contain the following entries:
+
+* ``plugin``: string
+
+    Name or the path to a *plugin* (see `PLUGINS`_) the widget wants to receive data from. If it
+    contains a slash, it is treated as a path to a shared library. If it does not, luastatus tries
+    to load ``plugin-<plugin>.so`` from the directory configured at the build time (CMake
+    ``PLUGINS_DIR`` variable, defaults to ``${CMAKE_INSTALL_FULL_LIBDIR}/luastatus/plugins``).
+
+* ``cb``: function
+
+    The callback that converts the data received from a *plugin* to the format a *barlib* (see
+    `BARLIBS`_) understands. It should take one argument and return one value. (Although in Lua one
+    can omit the argument if you don't care about its value, and not returning anything is the same
+    as returning ``nil``.)
+
+The ``widget`` table **may** contain the following entries:
+
+* ``opts``: table
+
+    Table with plugin's options. If undefined, an empty table will be substituted.
+
+* ``event``: function or string
+
+    - If is a function, it will be called by the *barlib* whenever some event with the widget occurs
+      (typically a click). It should take one argument and not return anything.
+
+    - If is a string, it is compiled as a function in a *separate state* (see `SEPARATE STATE`_).
+
+PLUGINS
+=======
+A plugin is a thing that knows when to call the ``cb`` function and what to pass to.
+
+Plugins are shared libraries.
+
+These plugins are also referred to as *proper plugins*, as opposed to *dervied plugins*.
+
+DERIVED PLUGINS
+===============
+Starting with version 0.3.0, luastatus features *derived plugins*, which are wrappers around proper
+plugins (or even other derived plugins) written in Lua.
+
+Derived plugins are loaded by calling ``luastatus.require_plugin(name)`` (see `LUA LIBRARIES`_).
+
+BARLIBS
+=======
+A barlib (**bar** **lib**\rary) is a thing that knows:
+
+  * what to do with values the ``cb`` function returns;
+
+  * when to call the ``event`` function and what to pass to;
+
+  * how to indicate an error, should one happen.
+
+Barlibs are shared libraries, too.
+
+Barlibs are capable of taking options.
+
+ARCHITECTURE
+============
+Each widget runs in its own thread and has its own Lua interpreter instance.
+
+While Lua does support multiple interpreters running in separate threads, it does not support
+multithreading within one interpreter, which means ``cb()`` and ``event()`` of the same widget never
+overlap (a widget-local mutex is acquired before calling any of these functions, and is released
+afterwards).
+
+Also, due to luastatus' architecture, no two ``event()`` functions, even from different widgets, can
+overlap. (Note that ``cb()`` functions from different widgets can overlap.)
+
+The takeaway is that the ``event()`` function should not block, or bad things will happen.
+
+LUA LIBRARIES
+=============
+
+The ``luastatus`` module
+------------------------
+luastatus provides the ``luastatus`` module, which currently contains only one function:
+
+  * ``luastatus.require_plugin(name)`` is like the ``require`` function, except that it loads a file
+    named ``<name>.lua`` from luastatus' plugins directory.
+
+Plugins' and barlib's Lua functions
+-----------------------------------
+Plugins and barlibs can register Lua functions. They appear in ``luastatus.plugin`` and
+``luastatus.barlib`` submodules, correspondingly.
+
+Limitations
+-----------
+In luastatus, ``os.setlocale`` always fails as it is inherently not thread-safe.
+
+SEPARATE STATE
+==============
+If ``widget.cb`` field has string type, it gets compiled as a function in a *separate state* (as if
+with Lua's ``loadstring`` function).
+Whenever an event on such a widget occurs, the compiled function will be called in that state (not
+in the widget's state, in which ``cb`` gets called).
+
+This is useful for widgets that want not to receive data from plugin, but to generate it themselves
+(possibly using some external modules). Such a widget may want to specify
+::
+
+   widget = {
+       plugin = 'timer',
+       opts = {period = 0},
+
+and block in ``cb`` until it wants to update. The problem is that in this case, widget's Lua mutex
+is almost always being acquired by ``cb``, and there is very little chance for ``event`` to get
+called.
+A separate-state ``event`` function solves that.
+
+EXAMPLES
+========
+* ``luastatus-i3-wrapper alsa.lua time.lua``
+
+  where ``alsa.lua`` is::
+
+      widget = {
+         plugin = 'alsa',
+         cb = function(t)
+             if t.mute then
+                 return {full_text = '[mute]', color = '#e03838'}
+             else
+                 local percent = (t.vol.cur - t.vol.min)
+                               / (t.vol.max - t.vol.min)
+                               * 100
+                 return {full_text = string.format('[%3d%%]', math.floor(0.5 + percent)),
+                         color = '#718ba6'}
+             end
+         end,
+         event = function(t)
+             if t.button == 1 then     -- left mouse button
+                 os.execute('urxvt -e alsamixer &')
+             end
+         end
+      }
+
+  and ``time.lua`` is::
+
+      widget = {
+         plugin = 'timer',
+         opts = {period = 2},
+         cb = function()
+            return {full_text = os.date('[%H:%M]')}
+         end,
+      }
+
+* ``luastatus -b dwm gmail.lua``
+
+  where ``gmail.lua`` is::
+
+      --[[
+      -- Expects 'credentials.lua' to be present in the current directory; it may contain, e.g.,
+      --     return {
+      --         gmail = {
+      --             login = 'john.smith',
+      --             password = 'qwerty'
+      --         }
+      --     }
+      --]]
+      credentials = require 'credentials'
+      widget = luastatus.require_plugin('imap').widget{
+          host = 'imap.gmail.com',
+          port = 993,
+          mailbox = 'Inbox',
+          use_ssl = true,
+          timeout = 2 * 60,
+          handshake_timeout = 10,
+          login = credentials.gmail.login,
+          password = credentials.gmail.password,
+          error_sleep_period = 60,
+          cb = function(unseen)
+              if unseen == nil then
+                  return nil
+              elseif unseen == 0 then
+                  return {full_text = '[-]', color = '#595959'}
+              else
+                  return {full_text = string.format('[%d unseen]', unseen)}
+              end
+          end,
+          event = [[                    -- separate-state event function
+              local t = ...             -- obtain argument of this implicit function
+              if t.button == 1 then     -- left mouse button
+                  os.execute('xdg-open https://gmail.com &')
+              end
+          ]]
+      }
+
+More examples can be found in the ``examples/`` directory in the luastatus' git repository
+(https://github.com/shdown/luastatus).
+
+CHANGELOG
+=========
+See https://github.com/shdown/luastatus/releases.

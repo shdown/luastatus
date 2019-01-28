@@ -1,2 +1,2 @@
 #!/bin/sh
-exec ${LUASTATUS:-luastatus} -b ${LUASTATUS_I3_BARLIB:-i3} 3<&0 0</dev/null -B in_fd=3 4>&1 1>&2 -B out_fd=4 "$@"
+exec ${LUASTATUS:-luastatus} -b i3 -B in_fd=3 -B out_fd=4 "$@" 3<&0 0</dev/null 4>&1 1>&2

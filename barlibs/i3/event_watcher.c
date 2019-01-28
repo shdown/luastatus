@@ -6,134 +6,236 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
+#include <assert.h>
 
 #include "include/sayf_macros.h"
 
-#include "libls/errno_utils.h"
+#include "libls/cstring_utils.h"
 #include "libls/parse_int.h"
 #include "libls/strarr.h"
 #include "libls/vector.h"
+#include "libls/compdep.h"
 
 #include "priv.h"
 
-typedef size_t StringIndex;
+// If this is to be incremented, /lua_checkstack()/ must be called in appropriate times, and the
+// depth of recursion in /push_object()/ potentially be limited in some way.
+static const int DEPTH_LIMIT = 10;
 
 typedef struct {
     enum {
+        TYPE_ARRAY_START,
+        TYPE_ARRAY_END,
+        TYPE_MAP_START,
+        TYPE_MAP_END,
+
+        TYPE_STRING_KEY,
+
         TYPE_STRING,
-        TYPE_DOUBLE,
+        TYPE_NUMBER,
         TYPE_BOOL,
         TYPE_NULL,
     } type;
+
     union {
-        StringIndex s_idx;
-        double d;
-        bool b;
-    } u;
-} Value;
+        size_t str_idx;
+        double num;
+        bool flag;
+    } as;
+} Token;
 
 typedef struct {
-    StringIndex key_idx;
-    Value value;
-} KeyValue;
+    // Current JSON nesting depth. Before the initial '[', depth == -1.
+    int depth;
 
-typedef struct {
-    enum {
-        STATE_EXPECTING_ARRAY_BEGIN,
-        STATE_EXPECTING_MAP_BEGIN,
-        STATE_INSIDE_MAP,
-    } state;
-    LSStringArray strs;
-    LS_VECTOR_OF(KeyValue) params;
-    StringIndex last_key_idx;
+    // Whether the last key (at depth == 1) was "name".
+    bool last_key_is_name;
+
+    // An array in which all the JSON strings, including keys, are stored.
+    LSStringArray strarr;
+
+    // Current event's parameters as key-value pairs.
+    LS_VECTOR_OF(Token) tokens;
+
+    // Current event's widget index, or a negative value if is not known yet or invalid.
     int widget;
 
     LuastatusBarlibData *bd;
     LuastatusBarlibEWFuncs funcs;
 } Context;
 
-static inline
-StringIndex
-append_to_strs(Context *ctx, const char *buf, size_t nbuf)
+// Converts a JSON object that starts at the token with index /*index/ in /ctx->tokens/, to a Lua
+// object, and pushes it onto /L/'s stack.
+// Advances /*index/ so that it points to one token past the last token of the object.
+static
+void
+push_object(lua_State *L, Context *ctx, size_t *index)
 {
-    ls_strarr_append(&ctx->strs, buf, nbuf);
-    return ls_strarr_size(ctx->strs) - 1;
+    Token t = ctx->tokens.data[*index];
+    switch (t.type) {
+    case TYPE_ARRAY_START:
+        lua_newtable(L); // L: table
+        ++*index;
+        for (int n = 1; ctx->tokens.data[*index].type != TYPE_ARRAY_END; ++n) {
+            push_object(L, ctx, index); // L: table elem
+            lua_rawseti(L, -2, n); // L: table
+        }
+        break;
+    case TYPE_MAP_START:
+        lua_newtable(L); // L: table
+        ++*index;
+        while (ctx->tokens.data[*index].type != TYPE_MAP_END) {
+            Token key = ctx->tokens.data[*index];
+            assert(key.type == TYPE_STRING_KEY);
+            size_t ns;
+            const char *s = ls_strarr_at(ctx->strarr, key.as.str_idx, &ns);
+            lua_pushlstring(L, s, ns); // L: table key
+
+            ++*index;
+            push_object(L, ctx, index); // L: table key value
+
+            lua_settable(L, -3); // L: table
+        }
+        break;
+    case TYPE_STRING:
+        {
+            size_t ns;
+            const char *s = ls_strarr_at(ctx->strarr, t.as.str_idx, &ns);
+            lua_pushlstring(L, s, ns);
+        }
+        break;
+    case TYPE_NUMBER:
+        lua_pushnumber(L, t.as.num);
+        break;
+    case TYPE_BOOL:
+        lua_pushboolean(L, t.as.flag);
+        break;
+    case TYPE_NULL:
+        lua_pushnil(L);
+        break;
+    default:
+        LS_UNREACHABLE();
+    }
+    // Now, /*index/ points to the last token of the object; increment it by one.
+    ++*index;
+}
+
+static
+void
+flush(Context *ctx)
+{
+    Priv *p = ctx->bd->priv;
+
+    if (ctx->widget >= 0 && (size_t) ctx->widget < p->nwidgets) {
+        lua_State *L = ctx->funcs.call_begin(ctx->bd->userdata, ctx->widget);
+        size_t index = 0;
+        push_object(L, ctx, &index);
+        assert(index == ctx->tokens.size);
+        ctx->funcs.call_end(ctx->bd->userdata, ctx->widget);
+    }
+
+    // reset the context
+    ctx->last_key_is_name = false;
+    ls_strarr_clear(&ctx->strarr);
+    LS_VECTOR_CLEAR(ctx->tokens);
+    ctx->widget = -1;
 }
 
 static
 int
-value_helper(Context *ctx, Value value)
+token_helper(Context *ctx, Token token)
 {
-    if (ctx->state != STATE_INSIDE_MAP) {
-        LS_ERRF(ctx->bd, "(event watcher) unexpected JSON value");
-        return 0;
-    }
-    size_t nkey;
-    const char *key = ls_strarr_at(ctx->strs, ctx->last_key_idx, &nkey);
-    if (nkey == 4 && memcmp("name", key, 4) == 0) {
-        if (value.type != TYPE_STRING) {
-            LS_ERRF(ctx->bd, "(event watcher) 'name' is not a string");
+    switch (ctx->depth) {
+    case -1:
+        if (token.type != TYPE_ARRAY_START) {
+            LS_ERRF(ctx->bd, "(event watcher) expected '['");
             return 0;
         }
-        size_t nname;
-        const char *name = ls_strarr_at(ctx->strs, value.u.s_idx, &nname);
-        // parse error is OK here, /ctx->widget/ is checked later
-        ctx->widget = ls_full_parse_uint_b(name, nname);
-    } else {
-        LS_VECTOR_PUSH(ctx->params, ((KeyValue) {
-            .key_idx = ctx->last_key_idx,
-            .value = value,
-        }));
+        ++ctx->depth;
+        break;
+
+    case 0:
+        if (token.type != TYPE_MAP_START) {
+            LS_ERRF(ctx->bd, "(event watcher) expected '{'");
+            return 0;
+        }
+        /* fall thru */
+    default:
+        LS_VECTOR_PUSH(ctx->tokens, token);
+        switch (token.type) {
+        case TYPE_ARRAY_START:
+        case TYPE_MAP_START:
+            if (++ctx->depth >= DEPTH_LIMIT) {
+                LS_ERRF(ctx->bd, "(event watcher) nesting depth limit exceeded");
+                return 0;
+            }
+            break;
+
+        case TYPE_ARRAY_END:
+        case TYPE_MAP_END:
+            if (--ctx->depth == 0) {
+                flush(ctx);
+            }
+            break;
+
+        default:
+            break;
+        }
+        break;
     }
+
     return 1;
+}
+
+static inline
+size_t
+append_to_strarr(Context *ctx, const char *buf, size_t nbuf)
+{
+    ls_strarr_append(&ctx->strarr, buf, nbuf);
+    return ls_strarr_size(ctx->strarr) - 1;
 }
 
 static
 int
 callback_null(void *vctx)
 {
-    return value_helper(vctx, (Value) {
-        .type = TYPE_NULL,
-    });
+    return token_helper(vctx, (Token) {TYPE_NULL, {0}});
 }
 
 static
 int
 callback_boolean(void *vctx, int value)
 {
-    return value_helper(vctx, (Value) {
-        .type = TYPE_BOOL,
-        .u = { .b = value },
-    });
+    return token_helper(vctx, (Token) {TYPE_BOOL, {.flag = value}});
 }
 
 static
 int
 callback_integer(void *vctx, long long value)
 {
-    return value_helper(vctx, (Value) {
-        .type = TYPE_DOUBLE,
-        .u = { .d = value },
-    });
+    return token_helper(vctx, (Token) {TYPE_NUMBER, {.num = value}});
 }
 
 static
 int
 callback_double(void *vctx, double value)
 {
-    return value_helper(vctx, (Value) {
-        .type = TYPE_DOUBLE,
-        .u = { .d = value },
-    });
+    return token_helper(vctx, (Token) {TYPE_NUMBER, {.num = value}});
 }
 
 static
 int
 callback_string(void *vctx, const unsigned char *buf, size_t nbuf)
 {
-    return value_helper(vctx, (Value) {
-        .type = TYPE_STRING,
-        .u = { .s_idx = append_to_strs(vctx, (const char *) buf, nbuf) },
+    Context *ctx = vctx;
+    if (ctx->depth == 1 && ctx->last_key_is_name) {
+        // parse error is OK here, /ctx->widget/ is checked in /flush()/.
+        ctx->widget = ls_full_strtou_b((const char *) buf, nbuf);
+    }
+
+    return token_helper(ctx, (Token) {
+        TYPE_STRING,
+        {.str_idx = append_to_strarr(ctx, (const char *) buf, nbuf)}
     });
 }
 
@@ -141,16 +243,7 @@ static
 int
 callback_start_map(void *vctx)
 {
-    Context *ctx = vctx;
-    if (ctx->state != STATE_EXPECTING_MAP_BEGIN) {
-        LS_ERRF(ctx->bd, "(event watcher) unexpected {");
-        return 0;
-    }
-    ctx->state = STATE_INSIDE_MAP;
-    ls_strarr_clear(&ctx->strs);
-    LS_VECTOR_CLEAR(ctx->params);
-    ctx->widget = -1;
-    return 1;
+    return token_helper(vctx, (Token) {TYPE_MAP_START, {0}});
 }
 
 static
@@ -158,83 +251,34 @@ int
 callback_map_key(void *vctx, const unsigned char *buf, size_t nbuf)
 {
     Context *ctx = vctx;
-    if (ctx->state != STATE_INSIDE_MAP) {
-        LS_ERRF(ctx->bd, "(event watcher) unexpected map key");
-        return 0;
+    if (ctx->depth == 1) {
+        ctx->last_key_is_name = (nbuf == 4 && memcmp(buf, "name", 4) == 0);
     }
-    ctx->last_key_idx = append_to_strs(vctx, (const char *) buf, nbuf);
-    return 1;
+    return token_helper(ctx, (Token) {
+        TYPE_STRING_KEY,
+        {.str_idx = append_to_strarr(ctx, (const char *) buf, nbuf)}
+    });
 }
 
 static
 int
 callback_end_map(void *vctx)
 {
-    Context *ctx = vctx;
-    if (ctx->state != STATE_INSIDE_MAP) {
-        LS_ERRF(ctx->bd, "(event watcher) unexpected }");
-        return 0;
-    }
-    ctx->state = STATE_EXPECTING_MAP_BEGIN;
-
-#define PUSH_STRS_ELEM(Idx_) \
-    do { \
-        size_t ns_; \
-        const char *s_ = ls_strarr_at(ctx->strs, Idx_, &ns_); \
-        lua_pushlstring(L, s_, ns_); \
-    } while (0)
-
-    Priv *p = ctx->bd->priv;
-    if (ctx->widget >= 0 || (size_t) ctx->widget < p->nwidgets) {
-        lua_State *L = ctx->funcs.call_begin(ctx->bd->userdata, ctx->widget);
-        // L: -
-        lua_newtable(L); // L: table
-        for (size_t i = 0; i < ctx->params.size; ++i) {
-            // L: table
-            KeyValue kv = ctx->params.data[i];
-            PUSH_STRS_ELEM(kv.key_idx); // L: table key
-            switch (kv.value.type) {
-            case TYPE_STRING:
-                PUSH_STRS_ELEM(kv.value.u.s_idx); // L: table key value
-                break;
-            case TYPE_DOUBLE:
-                lua_pushnumber(L, kv.value.u.d); // L: table key value
-                break;
-            case TYPE_BOOL:
-                lua_pushboolean(L, kv.value.u.b); // L: table key value
-                break;
-            case TYPE_NULL:
-                lua_pushnil(L); // L: table key value
-                break;
-            }
-            lua_rawset(L, -3); // L: table
-        }
-        ctx->funcs.call_end(ctx->bd->userdata, ctx->widget);
-#undef PUSH_STRS_ELEM
-    }
-    return 1;
+    return token_helper(vctx, (Token) {TYPE_MAP_END, {0}});
 }
 
 static
 int
 callback_start_array(void *vctx)
 {
-    Context *ctx = vctx;
-    if (ctx->state != STATE_EXPECTING_ARRAY_BEGIN) {
-        LS_ERRF(ctx->bd, "(event watcher) unexpected [");
-        return 0;
-    }
-    ctx->state = STATE_EXPECTING_MAP_BEGIN;
-    return 1;
+    return token_helper(vctx, (Token) {TYPE_ARRAY_START, {0}});
 }
 
 static
 int
 callback_end_array(void *vctx)
 {
-    Context *ctx = vctx;
-    LS_ERRF(ctx->bd, "(event watcher) unexpected ]");
-    return 0;
+    return token_helper(vctx, (Token) {TYPE_ARRAY_END, {0}});
 }
 
 int
@@ -246,9 +290,10 @@ event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
     }
 
     Context ctx = {
-        .state = STATE_EXPECTING_ARRAY_BEGIN,
-        .strs = ls_strarr_new(),
-        .params = LS_VECTOR_NEW(),
+        .depth = -1,
+        .last_key_is_name = false,
+        .strarr = ls_strarr_new(),
+        .tokens = LS_VECTOR_NEW(),
         .widget = -1,
         .bd = bd,
         .funcs = funcs,
@@ -274,9 +319,7 @@ event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
     while (1) {
         ssize_t nread = read(p->in_fd, buf, sizeof(buf));
         if (nread < 0) {
-            LS_WITH_ERRSTR(s, errno,
-                LS_ERRF(bd, "(event watcher) read error: %s", s);
-            );
+            LS_ERRF(bd, "(event watcher) read error: %s", ls_strerror_onstack(errno));
             goto error;
         } else if (nread == 0) {
             LS_ERRF(bd, "(event watcher) i3bar closed its end of the pipe");
@@ -298,8 +341,8 @@ event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
     }
 
 error:
-    ls_strarr_destroy(ctx.strs);
-    LS_VECTOR_FREE(ctx.params);
+    ls_strarr_destroy(ctx.strarr);
+    LS_VECTOR_FREE(ctx.tokens);
     yajl_free(hand);
     return LUASTATUS_ERR;
 }

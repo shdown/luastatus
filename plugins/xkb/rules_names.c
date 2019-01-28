@@ -6,17 +6,15 @@
 #include <X11/X.h>
 #include <X11/Xatom.h>
 
+#include "libls/algo.h"
+
 static const char *NAMES_PROP_ATOM = "_XKB_RULES_NAMES";
 static const long NAMES_PROP_MAXLEN = 1024;
 
 bool
 rules_names_load(Display *dpy, RulesNames *out)
 {
-    out->rules = NULL;
-    out->model = NULL;
-    out->layout = NULL;
-    out->options = NULL;
-    out->data_ = NULL;
+    *out = (RulesNames) {.data_ = NULL};
 
     Atom rules_atom = XInternAtom(dpy, NAMES_PROP_ATOM, True);
     if (rules_atom == None) {
@@ -36,22 +34,20 @@ rules_names_load(Display *dpy, RulesNames *out)
     }
 
     const char *ptr = (const char *) out->data_;
-    const char *end = ptr + ndata;
+    const char *const end = ptr + ndata;
 
-#define NEXTSTR(Dest_) \
-    do { \
-        if (ptr != end) { \
-            Dest_ = ptr; \
-            ptr += strlen(ptr) + 1; \
-        } \
-    } while (0)
-
-    NEXTSTR(out->rules);
-    NEXTSTR(out->model);
-    NEXTSTR(out->layout);
-    NEXTSTR(out->options);
-
-#undef NEXTSTR
+    const char **table[] = {
+        &out->rules,
+        &out->model,
+        &out->layout,
+        &out->options,
+    };
+    for (size_t i = 0;
+         i < LS_ARRAY_SIZE(table) && ptr != end;
+         ++i, ptr += strlen(ptr) + 1)
+    {
+        *table[i] = ptr;
+    }
 
     return true;
 
@@ -61,7 +57,7 @@ error:
 }
 
 void
-rules_names_destroy(const RulesNames *rn)
+rules_names_destroy(RulesNames *rn)
 {
     if (rn->data_) {
         XFree(rn->data_);

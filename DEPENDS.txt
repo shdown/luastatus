@@ -1,0 +1,66 @@
+luastatus itself, without any barlibs and/or plugins, has the following dependencies:
+* docutils >=0.11 (rst2man program)
+* CMake >=3.1.3
+* pkg-config >=0.25
+* either Lua 5.1, Lua 5.2, Lua 5.3, or LuaJIT >=2.0.0
+
+For running tests, you will also need:
+* valgrind (some older versions don't like LuaJIT; >=3.11.0 are known to be OK)
+
+Barlib 'dwm' has the following dependencies:
+* xcb >=1.10
+
+Barlib 'i3' has the following dependencies:
+* yajl >=2.0.4
+
+Plugin 'alsa' has the following dependencies:
+* alsa >=1.0.27.2
+
+Plugin 'backlight-linux' has the following dependencies:
+* plugin 'udev'
+
+Plugin 'battery-linux' has the following dependencies:
+* plugin 'timer'
+
+Plugin 'cpu-usage-linux' has the following dependencies:
+* plugin 'timer'
+
+Plugin 'dbus' has the following dependencies:
+* glib-2.0 >=2.40.2
+* gio-2.0 >=2.40.2
+
+Plugin 'file-contents-linux' has the following dependencies:
+* plugin 'inotify'
+
+Plugin 'imap' has the following dependencies:
+* LuaSocket library for the Lua version that luastatus was built with
+* LuaSec library for the Lua version that luastatus was built with
+
+Plugin 'inotify' has the following dependencies:
+* a Linux system with a libc that provides <sys/inotify.h> (preferably glibc)
+
+Plugin 'mem-usage-linux' has the following dependencies:
+* plugin 'timer'
+
+Plugin 'network' has the following dependencies:
+* a Linux system with Linux kernel headers
+* libnl >=3.0
+* libnl-genl >=3.0
+
+Plugin 'pipe' has the following dependencies:
+* plugin 'timer'
+
+Plugin 'pulse' has the following dependencies:
+* libpulse >=4.0
+
+Plugin 'udev' has the following dependencies:
+* libudev >=204
+
+Plugin 'xkb' has the following dependencies:
+* x11 >=1.6.2
+
+Plugin 'xtitle' has the following dependencies:
+* xcb >=1.10
+* xcb-ewmh >=0.4.1
+* xcb-icccm >=0.4.1
+* xcb-event >=0.3.8

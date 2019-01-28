@@ -7,8 +7,8 @@
 
 #include "compdep.h"
 
-static const struct timespec ls_timespec_invalid = {0, -1};
-static const struct timeval  ls_timeval_invalid = {0, -1};
+static const struct timespec ls_timespec_invalid = {.tv_nsec = -1};
+static const struct timeval  ls_timeval_invalid  = {.tv_usec = -1};
 
 LS_INHEADER
 bool
@@ -24,9 +24,13 @@ ls_timeval_is_invalid(struct timeval tv)
     return tv.tv_usec == -1;
 }
 
+// Converts the number of seconds specified by /seconds/ to a /struct timespec/.
+// Returns /ls_timespec_invalid/ if /seconds/ is either negative or too big.
 struct timespec
 ls_timespec_from_seconds(double seconds);
 
+// Converts the number of seconds specified by /seconds/ to a /struct timeval/.
+// Returns /ls_timeval_invalid/ if /seconds/ is either negative or too big.
 struct timeval
 ls_timeval_from_seconds(double seconds);
 

@@ -1,0 +1,20 @@
+#ifndef ls_panic_h_
+#define ls_panic_h_
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#define LS_PANIC__CAT(X_) #X_
+
+// ...because /LS_PANIC__CAT(__LINE__)/ would give "__LINE__".
+#define LS_PANIC__EVAL_CAT(X_) LS_PANIC__CAT(X_)
+
+// Logs /Msg_/ and aborts.
+#define LS_PANIC(Msg_) \
+    do { \
+        fputs("LS_PANIC at " __FILE__ ":" LS_PANIC__EVAL_CAT(__LINE__) ": " Msg_ "\n", \
+              stderr); \
+        abort(); \
+    } while (0)
+
+#endif

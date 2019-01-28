@@ -1,0 +1,21 @@
+dist: xenial
+language: c
+compiler:
+  - gcc
+  - clang
+env:
+  - WITH_LUA_LIB=lua5.1 WITH_LUA_PKG=liblua5.1-dev
+  - WITH_LUA_LIB=luajit WITH_LUA_PKG=libluajit-5.1-dev
+  - WITH_LUA_LIB=lua5.2 WITH_LUA_PKG=liblua5.2-dev
+  - WITH_LUA_LIB=lua5.3 WITH_LUA_PKG=liblua5.3-dev
+
+# install any dependencies required
+before_install:
+  - sudo apt-get update
+  - sudo apt-get install -y ${WITH_LUA_PKG} python3-docutils cmake valgrind libxcb1-dev libyajl-dev libixp-dev libasound2-dev libglib2.0-dev libpulse-dev libudev-dev libnl-3-dev libnl-genl-3-dev libx11-dev libxcb1-dev libxcb-ewmh-dev libxcb-icccm4-dev libxcb-util0-dev
+
+# run the build script
+script:
+  - cmake -DWITH_LUA_LIBRARY=${WITH_LUA_LIB} -DBUILD_PLUGIN_PULSE=ON . && make
+  - ./tests/misc.sh
+  - ./tests/torture.sh

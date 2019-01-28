@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <sys/inotify.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include <errno.h>
 
 #include "libls/io_utils.h"
@@ -35,7 +36,7 @@ compat_inotify_init(bool nonblock, bool cloexec)
 
 error:
     saved_errno = errno;
-    ls_close(fd);
+    close(fd);
     errno = saved_errno;
     return -1;
 #endif

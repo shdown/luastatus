@@ -1,0 +1,16 @@
+#!/bin/sh
+
+FIFO=~/.luastatus-dvtm
+
+set -e
+
+rm -f "$FIFO"
+mkfifo -m600 "$FIFO"
+
+exec ${LUASTATUS:-luastatus} -b stdout -B out_fd=3 3>"$FIFO" "$@" &
+status_pid=$!
+
+${DVTM:-dvtm} -s "$FIFO" 2>/dev/null
+
+kill "$status_pid"
+rm -f "$FIFO"

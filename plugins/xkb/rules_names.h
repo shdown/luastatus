@@ -5,10 +5,13 @@
 #include <stdbool.h>
 
 typedef struct {
+    // These all can be /NULL/.
     const char *rules;
     const char *model;
     const char *layout;
     const char *options;
+
+    // Private data; do not touch.
     unsigned char *data_;
 } RulesNames;
 
@@ -16,6 +19,6 @@ bool
 rules_names_load(Display *dpy, RulesNames *out);
 
 void
-rules_names_destroy(const RulesNames *rn);
+rules_names_destroy(RulesNames *rn);
 
 #endif

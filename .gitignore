@@ -12,3 +12,8 @@ CTestTestfile.cmake
 build/
 # generated headers
 *.generated.[ch]
+# rules for MoonScript directories
+!/examples/*/moonscript/Makefile
+/examples/*/moonscript/*.lua
+# generated man pages
+luastatus*.[1-8]

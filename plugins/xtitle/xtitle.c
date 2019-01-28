@@ -1,5 +1,5 @@
-#include <xcb/xproto.h>
 #include <xcb/xcb.h>
+#include <xcb/xproto.h>
 #include <xcb/xcb_event.h>
 #include <xcb/xcb_icccm.h>
 #include <xcb/xcb_ewmh.h>
@@ -16,7 +16,8 @@
 #include "include/plugin_utils.h"
 
 #include "libls/alloc_utils.h"
-#include "libls/errno_utils.h"
+#include "libls/cstring_utils.h"
+#include "libls/sig_utils.h"
 
 // some parts of this file (including the name) are proudly stolen from
 // xtitle (https://github.com/baskerville/xtitle).
@@ -63,6 +64,7 @@ error:
 typedef struct {
     xcb_connection_t *conn;
     xcb_ewmh_connection_t *ewmh;
+    bool ewmh_inited;
     xcb_window_t root;
     int screenp;
     bool visible;
@@ -177,67 +179,71 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
 
-    bool ewmh_inited = false; // d.ewmh
     Data d = {
+        .conn = NULL,
         .ewmh = LS_XNEW(xcb_ewmh_connection_t, 1),
+        .ewmh_inited = false,
         .visible = p->visible,
     };
-    // /xcb_disconnect/ should be called even if /xcb_connection_has_error/ returns non-zero!
-    d.conn = xcb_connect(p->dpyname, &d.screenp);
 
-#define CHECK_CONN_ERR(ErrCodeVarName_, ...) \
-    do { \
-        int ErrCodeVarName_ = xcb_connection_has_error(d.conn); \
-        if (ErrCodeVarName_) { \
-            LS_FATALF(pd, __VA_ARGS__); \
-            goto error; \
-        } \
-    } while (0)
-
-    CHECK_CONN_ERR(r, "can't connect to display: XCB error %d", r);
-
-    const xcb_setup_t *setup = xcb_get_setup(d.conn);
-    xcb_screen_iterator_t iter = xcb_setup_roots_iterator(setup);
-    for (int i = 0; i < d.screenp; ++i) {
-        xcb_screen_next(&iter);
+    // connect
+    {
+        d.conn = xcb_connect(p->dpyname, &d.screenp);
+        const int xcb_err = xcb_connection_has_error(d.conn);
+        if (xcb_err) {
+            LS_FATALF(pd, "xcb_connect(): XCB error %d", xcb_err);
+            // /xcb_disconnect/ should be called even if /xcb_connection_has_error/ returns non-zero,
+            // so we should not set /d.conn/ to /NULL/ here.
+            goto error;
+        }
     }
-    d.root = iter.data->root;
 
-    if (xcb_ewmh_init_atoms_replies(d.ewmh, xcb_ewmh_init_atoms(d.conn, d.ewmh), NULL) == 0) {
-        LS_FATALF(pd, "xcb_ewmh_init_atoms_replies failed");
-        goto error;
+    // iterate over screens to find our root window
+    {
+        const xcb_setup_t *setup = xcb_get_setup(d.conn);
+        xcb_screen_iterator_t iter = xcb_setup_roots_iterator(setup);
+        for (int i = 0; i < d.screenp; ++i) {
+            xcb_screen_next(&iter);
+        }
+        d.root = iter.data->root;
     }
-    ewmh_inited = true;
+
+    // initialize ewmh
+    {
+        if (xcb_ewmh_init_atoms_replies(d.ewmh, xcb_ewmh_init_atoms(d.conn, d.ewmh), NULL) == 0) {
+            LS_FATALF(pd, "xcb_ewmh_init_atoms_replies() failed");
+            goto error;
+        }
+        d.ewmh_inited = true;
+    }
 
     xcb_window_t win = XCB_NONE;
+    xcb_window_t last_win = XCB_NONE;
+
+    // get initial active window; make a call on success.
     if (get_active_window(&d, &win)) {
         push_arg(&d, funcs.call_begin(pd->userdata), win);
         funcs.call_end(pd->userdata);
     }
+
+    // set up initial watchers
     watch(&d, d.root, true);
     watch(&d, win, true);
-    xcb_window_t last_win = XCB_NONE;
 
+    // poll for changes
     sigset_t allsigs;
-    if (sigfillset(&allsigs) < 0) {
-        LS_WITH_ERRSTR(s, errno,
-            LS_FATALF(pd, "sigfillset: %s", s);
-        );
-        goto error;
-    }
+    ls_xsigfillset(&allsigs);
 
     fd_set fds;
     FD_ZERO(&fds);
 
-    int fd = xcb_get_file_descriptor(d.conn);
+    const int fd = xcb_get_file_descriptor(d.conn);
     xcb_flush(d.conn);
     while (1) {
         FD_SET(fd, &fds);
-        int nfds = pselect(fd + 1, &fds, NULL, NULL, NULL, &allsigs);
+        const int nfds = pselect(fd + 1, &fds, NULL, NULL, NULL, &allsigs);
         if (nfds < 0) {
-            LS_WITH_ERRSTR(s, errno,
-                LS_FATALF(pd, "pselect: %s", s);
-            );
+            LS_FATALF(pd, "pselect: %s", ls_strerror_onstack(errno));
             goto error;
         } else if (nfds > 0) {
             xcb_generic_event_t *evt;
@@ -248,17 +254,22 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
                 }
                 free(evt);
             }
-            CHECK_CONN_ERR(r, "XCB error %d occurred", r);
+
+            const int xcb_err = xcb_connection_has_error(d.conn);
+            if (xcb_err) {
+                LS_FATALF(pd, "XCB error %d", xcb_err);
+                goto error;
+            }
         }
     }
 
-#undef CHECK_CONN_ERR
-
 error:
-    if (ewmh_inited) {
+    if (d.ewmh_inited) {
        xcb_ewmh_connection_wipe(d.ewmh);
     }
-    xcb_disconnect(d.conn);
+    if (d.conn) {
+        xcb_disconnect(d.conn);
+    }
     free(d.ewmh);
 }
 

@@ -5,6 +5,12 @@
 
 #include "alloc_utils.h"
 
+// To be able to pass vectors as function arguments and/or return them, use, e.g.,
+//
+// typedef LS_VECTOR_OF(int) IntVector;
+//
+// Note this is not required for any other use.
+
 #define LS_VECTOR_OF(Type_) \
     struct { \
         Type_ *data; \
@@ -63,16 +69,6 @@
             (Vec_).data = ls_x2realloc((Vec_).data, &(Vec_).capacity, sizeof(*(Vec_).data)); \
         } \
         (Vec_).data[(Vec_).size++] = (Elem_); \
-    } while (0)
-
-#define LS_VECTOR_REMOVE(Vec_, StartPos_, NRemove_) \
-    do { \
-        if ((Vec_).size != (StartPos_) + (NRemove_)) { \
-            memmove((Vec_).data + (StartPos_), \
-                    (Vec_).data + (StartPos_) + (NRemove_), \
-                    ((Vec_).size - (StartPos_) - (NRemove_)) * sizeof(*(Vec_).data)); \
-        } \
-        (Vec_).size -= (NRemove_); \
     } while (0)
 
 #define LS_VECTOR_FREE(Vec_) free((Vec_).data)

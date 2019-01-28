@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
+#include <unistd.h>
 #include <lua.h>
 #include <lauxlib.h>
 
@@ -15,7 +16,6 @@
 #include "libls/alloc_utils.h"
 #include "libls/parse_int.h"
 #include "libls/cstring_utils.h"
-#include "libls/errno_utils.h"
 #include "libls/io_utils.h"
 #include "libls/osdep.h"
 #include "libls/lua_utils.h"
@@ -33,11 +33,11 @@ destroy(LuastatusBarlibData *bd)
         LS_VECTOR_FREE(p->bufs[i]);
     }
     free(p->bufs);
-    ls_close(p->in_fd);
+    LS_VECTOR_FREE(p->tmpbuf);
+    close(p->in_fd);
     if (p->out) {
         fclose(p->out);
     }
-    LS_VECTOR_FREE(p->luabuf);
     free(p);
 }
 
@@ -49,11 +49,11 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
     *p = (Priv) {
         .nwidgets = nwidgets,
         .bufs = LS_XNEW(LSString, nwidgets),
+        .tmpbuf = LS_VECTOR_NEW(),
         .in_fd = -1,
         .out = NULL,
         .noclickev = false,
         .noseps = false,
-        .luabuf = LS_VECTOR_NEW(),
     };
     for (size_t i = 0; i < nwidgets; ++i) {
         LS_VECTOR_INIT_RESERVE(p->bufs[i], 1024);
@@ -66,12 +66,12 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
     for (const char *const *s = opts; *s; ++s) {
         const char *v;
         if ((v = ls_strfollow(*s, "in_fd="))) {
-            if ((in_fd = ls_full_parse_uint_s(v)) < 0) {
+            if ((in_fd = ls_full_strtou(v)) < 0) {
                 LS_FATALF(bd, "in_fd value is not a valid unsigned integer");
                 goto error;
             }
         } else if ((v = ls_strfollow(*s, "out_fd="))) {
-            if ((out_fd = ls_full_parse_uint_s(v)) < 0) {
+            if ((out_fd = ls_full_strtou(v)) < 0) {
                 LS_FATALF(bd, "out_fd value is not a valid unsigned integer");
                 goto error;
             }
@@ -101,23 +101,17 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
     // assign
     p->in_fd = in_fd;
     if (!(p->out = fdopen(out_fd, "w"))) {
-        LS_WITH_ERRSTR(s, errno,
-            LS_FATALF(bd, "can't fdopen %d: %s", out_fd, s);
-        );
+        LS_FATALF(bd, "can't fdopen %d: %s", out_fd, ls_strerror_onstack(errno));
         goto error;
     }
 
     // make CLOEXEC
     if (ls_make_cloexec(in_fd) < 0) {
-        LS_WITH_ERRSTR(s, errno,
-            LS_FATALF(bd, "can't make fd %d CLOEXEC: %s", in_fd, s);
-        );
+        LS_FATALF(bd, "can't make fd %d CLOEXEC: %s", in_fd, ls_strerror_onstack(errno));
         goto error;
     }
     if (ls_make_cloexec(out_fd) < 0) {
-        LS_WITH_ERRSTR(s, errno,
-            LS_FATALF(bd, "can't make fd %d CLOEXEC: %s", out_fd, s);
-        );
+        LS_FATALF(bd, "can't make fd %d CLOEXEC: %s", out_fd, ls_strerror_onstack(errno));
         goto error;
     }
 
@@ -129,9 +123,7 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
     fprintf(p->out, "}\n[\n");
     fflush(p->out);
     if (ferror(p->out)) {
-        LS_WITH_ERRSTR(s, errno,
-            LS_FATALF(bd, "write error: %s", s);
-        );
+        LS_FATALF(bd, "write error: %s", ls_strerror_onstack(errno));
         goto error;
     }
 
@@ -166,9 +158,7 @@ redraw(LuastatusBarlibData *bd)
     fputs("],\n", out);
     fflush(out);
     if (ferror(out)) {
-        LS_WITH_ERRSTR(s, errno,
-            LS_FATALF(bd, "write error: %s", s);
-        );
+        LS_FATALF(bd, "write error: %s", ls_strerror_onstack(errno));
         return false;
     }
     return true;
@@ -182,14 +172,27 @@ l_pango_escape(lua_State *L)
     // WARNING: luaL_check*() functions do a long jump on error!
     const char *s = luaL_checklstring(L, 1, &ns);
 
-    LuastatusBarlibData *bd = lua_touserdata(L, lua_upvalueindex(1));
-    Priv *p = bd->priv;
+    luaL_Buffer b;
+    luaL_buffinit(L, &b);
 
-    LSString *buf = &p->luabuf;
-    LS_VECTOR_CLEAR(*buf);
-    pango_ls_string_append_escaped_b(buf, s, ns);
-    // L: -
-    lua_pushlstring(L, buf->data, buf->size); // L: string
+    size_t prev = 0;
+    for (size_t i = 0; i < ns; ++i) {
+        const char *esc;
+        switch (s[i]) {
+        case '&':  esc = "&amp;";   break;
+        case '<':  esc = "&lt;";    break;
+        case '>':  esc = "&gt;";    break;
+        case '\'': esc = "&apos;";  break;
+        case '"':  esc = "&quot;";  break;
+        default: continue;
+        }
+        luaL_addlstring(&b, s + prev, i - prev);
+        luaL_addstring(&b, esc);
+        prev = i + 1;
+    }
+    luaL_addlstring(&b, s + prev, ns - prev);
+
+    luaL_pushresult(&b);
     return 1;
 }
 
@@ -197,26 +200,28 @@ static
 void
 register_funcs(LuastatusBarlibData *bd, lua_State *L)
 {
+    (void) bd;
     // L: table
-    lua_pushlightuserdata(L, bd); // L: table bd
-    lua_pushcclosure(L, l_pango_escape, 1); // L: table bd l_pango_escape
+    lua_pushcfunction(L, l_pango_escape); // L: table l_pango_escape
     ls_lua_rawsetf(L, "pango_escape"); // L: table
 }
 
-// Appends a JSON segment to
-//     /((Priv *) bd->priv)->bufs[widget_idx]/
-// from the table at position /table_pos/ on /L/'s stack.
+// Appends a JSON segment generated from table at position /table_pos/ on /L/'s stack, to
+// /((Priv *) bd->priv)->tmpbuf/.
 static
 bool
 append_segment(LuastatusBarlibData *bd, lua_State *L, int table_pos, size_t widget_idx)
 {
     Priv *p = bd->priv;
-    LSString *s = &p->bufs[widget_idx];
+    LSString *s = &p->tmpbuf;
 
+    // add a "prologue"
     if (s->size) {
         ls_string_append_c(s, ',');
     }
     ls_string_append_f(s, "{\"name\":\"%zu\"", widget_idx);
+
+    // traverse the table
     bool separator_key_found = false;
     LS_LUA_TRAVERSE(L, table_pos) {
         if (!lua_isstring(L, LS_LUA_KEY)) {
@@ -232,17 +237,17 @@ append_segment(LuastatusBarlibData *bd, lua_State *L, int table_pos, size_t widg
             separator_key_found = true;
         }
         ls_string_append_c(s, ',');
-        json_ls_string_append_escaped_s(s, key);
+        append_json_escaped_s(s, key);
         ls_string_append_c(s, ':');
         switch (lua_type(L, LS_LUA_VALUE)) {
         case LUA_TNUMBER:
-            if (!json_ls_string_append_number(s, lua_tonumber(L, LS_LUA_VALUE))) {
+            if (!append_json_number(s, lua_tonumber(L, LS_LUA_VALUE))) {
                 LS_ERRF(bd, "segment entry '%s': invalid number (NaN/Inf)", key);
                 return false;
             }
             break;
         case LUA_TSTRING:
-            json_ls_string_append_escaped_s(s, lua_tostring(L, LS_LUA_VALUE));
+            append_json_escaped_s(s, lua_tostring(L, LS_LUA_VALUE));
             break;
         case LUA_TBOOLEAN:
             ls_string_append_s(s, lua_toboolean(L, LS_LUA_VALUE) ? "true" : "false");
@@ -252,14 +257,17 @@ append_segment(LuastatusBarlibData *bd, lua_State *L, int table_pos, size_t widg
             break;
         default:
             LS_ERRF(bd, "segment entry '%s': expected string, number, boolean or nil, found %s",
-                key, luaL_typename(L, LS_LUA_VALUE));
+                    key, luaL_typename(L, LS_LUA_VALUE));
             return false;
         }
     }
+
+    // add an "epilogue"
     if (p->noseps && !separator_key_found) {
         ls_string_append_s(s, ",\"separator\":false");
     }
     ls_string_append_c(s, '}');
+
     return true;
 }
 
@@ -268,7 +276,7 @@ int
 set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
 {
     Priv *p = bd->priv;
-    LS_VECTOR_CLEAR(p->bufs[widget_idx]);
+    LS_VECTOR_CLEAR(p->tmpbuf);
 
     switch (lua_type(L, -1)) {
     case LUA_TNIL:
@@ -293,7 +301,7 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
                         break;
                     default:
                         LS_ERRF(bd, "array value: expected table or nil, found %s",
-                            luaL_typename(L, LS_LUA_VALUE));
+                                luaL_typename(L, LS_LUA_VALUE));
                         goto invalid_data;
                     }
                 }
@@ -309,13 +317,15 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
         goto invalid_data;
     }
 
-    if (!redraw(bd)) {
-        return LUASTATUS_ERR;
+    if (!ls_string_eq(p->tmpbuf, p->bufs[widget_idx])) {
+        ls_string_swap(&p->tmpbuf, &p->bufs[widget_idx]);
+        if (!redraw(bd)) {
+            return LUASTATUS_ERR;
+        }
     }
     return LUASTATUS_OK;
 
 invalid_data:
-    // the buffer may contain an invalid JSON at this point; just clear it.
     LS_VECTOR_CLEAR(p->bufs[widget_idx]);
     return LUASTATUS_NONFATAL_ERR;
 }
@@ -327,8 +337,8 @@ set_error(LuastatusBarlibData *bd, size_t widget_idx)
     Priv *p = bd->priv;
     LSString *s = &p->bufs[widget_idx];
 
-    ls_string_assign_s(s, "{\"full_text\":\"(Error)\",\"color\":\"#ff0000\""
-        ",\"background\":\"#000000\"");
+    ls_string_assign_s(
+        s, "{\"full_text\":\"(Error)\",\"color\":\"#ff0000\",\"background\":\"#000000\"");
     if (p->noseps) {
         ls_string_append_s(s, ",\"separator\":false");
     }

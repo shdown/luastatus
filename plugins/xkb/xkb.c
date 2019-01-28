@@ -4,7 +4,6 @@
 #include <limits.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include <setjmp.h>
 #include <lua.h>
 
 #include "include/plugin_v1.h"
@@ -16,7 +15,13 @@
 #include "libls/strarr.h"
 
 #include "rules_names.h"
-#include "parse_groups.h"
+
+// If this plugin is used, the whole process gets killed if a connection to the display is lost,
+// because Xlib is terrible.
+//
+// See:
+// * https://tronche.com/gui/x/xlib/event-handling/protocol-errors/XSetIOErrorHandler.html
+// * https://tronche.com/gui/x/xlib/event-handling/protocol-errors/XSetErrorHandler.html
 
 typedef struct {
     char *dpyname;
@@ -64,7 +69,7 @@ init(LuastatusPluginData *pd, lua_State *L)
             LS_FATALF(pd, "XInitThreads failed");
             goto error;
         }
-        *ptr = p;
+        *ptr = "yes";
     }
 
     return LUASTATUS_OK;
@@ -119,39 +124,30 @@ query_groups(Display *dpy, LSStringArray *groups)
     if (!rules_names_load(dpy, &rn)) {
         return false;
     }
-    parse_groups(groups, rn.layout ? rn.layout : "");
+
+    ls_strarr_clear(groups);
+    if (rn.layout) {
+        // split /rn.layout/ by non-parenthesized commas
+        int balance = 0;
+        size_t prev = 0;
+        const size_t nlayout = strlen(rn.layout);
+        for (size_t i = 0; i < nlayout; ++i) {
+            switch (rn.layout[i]) {
+            case '(': ++balance; break;
+            case ')': --balance; break;
+            case ',':
+                if (balance == 0) {
+                    ls_strarr_append(groups, rn.layout + prev, i - prev);
+                    prev = i + 1;
+                }
+                break;
+            }
+        }
+        ls_strarr_append(groups, rn.layout + prev, nlayout - prev);
+    }
+
     rules_names_destroy(&rn);
     return true;
-}
-
-static LuastatusPluginData *global_pd;
-static jmp_buf global_jmpbuf;
-
-// https://tronche.com/gui/x/xlib/event-handling/protocol-errors/XSetIOErrorHandler.html
-//
-// > Xlib calls the program's supplied error handler if any sort of system call
-// > error occurs (for example, the connection to the server was lost). This is
-// > assumed to be a fatal condition, and the called routine should not return.
-// > If the I/O error handler does return, the client process exits.
-static
-int
-x11_io_error_handler(LS_ATTR_UNUSED_ARG Display *dpy)
-{
-    LS_FATALF(global_pd, "X11 I/O error occurred");
-    longjmp(global_jmpbuf, 1);
-}
-
-// https://tronche.com/gui/x/xlib/event-handling/protocol-errors/XSetErrorHandler.html
-//
-// > Because this condition is not assumed to be fatal, it is acceptable for
-// > your error handler to return; the returned value is ignored.
-static
-int
-x11_error_handler(LS_ATTR_UNUSED_ARG Display *dpy, XErrorEvent *ev)
-{
-    LS_ERRF(global_pd, "X11 error: serial=%ld, error_code=%d, request_code=%d, minor_code=%d",
-        ev->serial, ev->error_code, ev->request_code, ev->minor_code);
-    return 0;
 }
 
 static
@@ -161,16 +157,6 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     Priv *p = pd->priv;
     LSStringArray groups = ls_strarr_new();
     Display *dpy = NULL;
-
-    global_pd = pd;
-    if (setjmp(global_jmpbuf) != 0) {
-        // We have jumped here.
-        // We don't bother to clean up because we could not call /XCloseDisplay(dpy)/ anyway.
-        // The amount of leaked memory is constant, and nobody cares.
-        return;
-    }
-    XSetIOErrorHandler(x11_io_error_handler);
-    XSetErrorHandler(x11_error_handler);
 
     if (!(dpy = open_dpy(pd, p->dpyname))) {
         goto error;
@@ -205,7 +191,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 
         // make a call
         lua_State *L = funcs.call_begin(pd->userdata); // L: -
-        lua_newtable(L); // L: table
+        lua_createtable(L, 0, 2); // L: table
         lua_pushinteger(L, group); // L: table n
         lua_setfield(L, -2, "id"); // L: table
         if (group >= 0 && (size_t) group < ls_strarr_size(groups)) {

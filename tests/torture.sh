@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
+
 set -e
+
+cd -- "$(dirname "$(readlink "$0" || echo "$0")")"
 
 LUASTATUS=(../luastatus/luastatus ${DEBUG:+-l trace})
 
@@ -20,10 +23,10 @@ run1() {
         local event_beg='[['         event_end=']]'
     fi
     shift 3
-    "${VALGRIND[@]}" "$@" "${LUASTATUS[@]}" -e -b ./mock_barlib.so -B gen_events="$m" <(cat <<__EOF__
+    "${VALGRIND[@]}" "$@" "${LUASTATUS[@]}" -e -b ./barlib-mock.so -B gen_events="$m" <(cat <<__EOF__
 n = 0
 widget = {
-    plugin = './mock_plugin.so',
+    plugin = './plugin-mock.so',
     opts = {
         make_calls = $n,
     },

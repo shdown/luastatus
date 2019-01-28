@@ -1,4 +1,6 @@
 #include <lua.h>
+#include <lauxlib.h>
+#include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,9 +16,14 @@
 #include "include/sayf_macros.h"
 #include "include/plugin_utils.h"
 
-#include "libls/errno_utils.h"
+#include "libls/lua_utils.h"
+#include "libls/osdep.h"
+#include "libls/alloc_utils.h"
+#include "libls/cstring_utils.h"
 #include "libls/vector.h"
 #include "libls/time_utils.h"
+#include "libls/sig_utils.h"
+#include "libls/compdep.h"
 
 #include "inotify_compat.h"
 
@@ -37,7 +44,7 @@ void
 destroy(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
-    ls_close(p->fd);
+    close(p->fd);
     for (size_t i = 0; i < p->init_watch.size; ++i) {
         free(p->init_watch.data[i].path);
     }
@@ -83,7 +90,7 @@ static const EventType EVENT_TYPES[] = {
     {IN_Q_OVERFLOW,    false, true,  "q_overflow"},
     {IN_UNMOUNT,       false, true,  "unmount"},
 
-    {0},
+    {.name = NULL},
 };
 
 // returns 0 on failure
@@ -157,9 +164,7 @@ init(LuastatusPluginData *pd, lua_State *L)
     };
 
     if ((p->fd = compat_inotify_init(false, true)) < 0) {
-        LS_WITH_ERRSTR(s, errno,
-            LS_FATALF(pd, "inotify_init: %s", s);
-        );
+        LS_FATALF(pd, "inotify_init: %s", ls_strerror_onstack(errno));
         goto error;
     }
 
@@ -190,9 +195,7 @@ init(LuastatusPluginData *pd, lua_State *L)
 
         int wd = inotify_add_watch(p->fd, path, mask);
         if (wd < 0) {
-            LS_WITH_ERRSTR(s, errno,
-                LS_ERRF(pd, "inotify_add_watch: %s: %s", path, s);
-            );
+            LS_ERRF(pd, "inotify_add_watch: %s: %s", path, ls_strerror_onstack(errno));
         } else {
             LS_VECTOR_PUSH(p->init_watch, ((Watch) {
                 .path = ls_xstrdup(path),
@@ -212,6 +215,9 @@ static
 int
 l_add_watch(lua_State *L)
 {
+    if (lua_gettop(L) != 2) {
+        return luaL_error(L, "expected exactly 2 arguments");
+    }
     const char *path;
     uint32_t mask;
 
@@ -231,9 +237,7 @@ l_add_watch(lua_State *L)
     }
     int wd = inotify_add_watch(p->fd, path, mask);
     if (wd < 0) {
-        LS_WITH_ERRSTR(s, errno,
-            LS_ERRF(pd, "inotify_add_watch: %s: %s", path, s);
-        );
+        LS_ERRF(pd, "inotify_add_watch: %s: %s", path, ls_strerror_onstack(errno));
         lua_pushnil(L);
     } else {
         lua_pushinteger(L, wd);
@@ -251,9 +255,7 @@ l_remove_watch(lua_State *L)
     Priv *p = pd->priv;
 
     if (inotify_rm_watch(p->fd, wd) < 0) {
-        LS_WITH_ERRSTR(s, errno,
-            LS_ERRF(pd, "inotify_rm_watch: %d: %s", wd, s);
-        );
+        LS_ERRF(pd, "inotify_rm_watch: %d: %s", wd, ls_strerror_onstack(errno));
         lua_pushboolean(L, false);
     } else {
         lua_pushboolean(L, true);
@@ -280,19 +282,20 @@ static
 void
 register_funcs(LuastatusPluginData *pd, lua_State *L)
 {
-#define REG_CLOSURE(Func_, Name_) \
-    do { \
-        /* L: table */ \
-        lua_pushlightuserdata(L, pd); /* L: table bd */ \
-        lua_pushcclosure(L, Func_, 1); /* L: table bd Func_ */ \
-        ls_lua_rawsetf(L, Name_); /* L: table */ \
-    } while (0)
+    // L: table
+    lua_pushlightuserdata(L, pd); // L: table pd
+    lua_pushcclosure(L, l_add_watch, 1); // L: table closure
+    ls_lua_rawsetf(L, "add_watch"); // L: table
 
-    REG_CLOSURE(l_add_watch, "add_watch");
-    REG_CLOSURE(l_remove_watch, "remove_watch");
-    REG_CLOSURE(l_get_initial_wds, "get_initial_wds");
+    // L: table
+    lua_pushlightuserdata(L, pd); // L: table pd
+    lua_pushcclosure(L, l_remove_watch, 1); // L: table closure
+    ls_lua_rawsetf(L, "remove_watch"); // L: table
 
-#undef REG_CLOSURE
+    // L: table
+    lua_pushlightuserdata(L, pd); // L: table pd
+    lua_pushcclosure(L, l_get_initial_wds, 1); // L: table closure
+    ls_lua_rawsetf(L, "get_initial_wds"); // L: table
 }
 
 static
@@ -300,7 +303,7 @@ void
 push_event(lua_State *L, const struct inotify_event *event)
 {
     // L: -
-    lua_newtable(L); // L: table
+    lua_createtable(L, 0, 4); // L: table
 
     lua_pushstring(L, "event"); // L: table string
     lua_setfield(L, -2, "what"); // L: table
@@ -334,14 +337,19 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 
     if (p->greet) {
         lua_State *L = funcs.call_begin(pd->userdata);
-        lua_newtable(L); // L: table
+        lua_createtable(L, 0, 1); // L: table
         lua_pushstring(L, "hello"); // L: table string
         lua_setfield(L, -2, "what"); // L: table
         funcs.call_end(pd->userdata);
     }
 
+    // This /__attribute__((aligned(__alignof__(struct inotify_event))))/ thing is in inotify's
+    // man page.
+    // Since inotify is Linux-specific, and you need gcc to build the Linux kernel, it's probably
+    // justified that gcc (or at least a GNU C-compatible compiler) is also needed to build this
+    // plugin.
     char buf[sizeof(struct inotify_event) + NAME_MAX + 2]
-        __attribute__ ((aligned(__alignof__(struct inotify_event))));
+        __attribute__((aligned(__alignof__(struct inotify_event))));
 
     fd_set fds;
     FD_ZERO(&fds);
@@ -351,25 +359,18 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         ls_timespec_is_invalid(p->timeout) ? NULL : &p->timeout;
 
     sigset_t allsigs;
-    if (sigfillset(&allsigs) < 0) {
-        LS_WITH_ERRSTR(str, errno,
-            LS_ERRF(pd, "sigfillset: %s", str);
-        );
-        goto error;
-    }
+    ls_xsigfillset(&allsigs);
 
     while (1) {
         {
             FD_SET(p->fd, &fds);
             int r = pselect(nfds, &fds, NULL, NULL, ptimeout, &allsigs);
             if (r < 0) {
-                LS_WITH_ERRSTR(s, errno,
-                    LS_FATALF(pd, "pselect: %s", s);
-                );
+                LS_FATALF(pd, "pselect: %s", ls_strerror_onstack(errno));
                 goto error;
             } else if (r == 0) {
                 lua_State *L = funcs.call_begin(pd->userdata);
-                lua_newtable(L); // L: table
+                lua_createtable(L, 0, 1); // L: table
                 lua_pushstring(L, "timeout"); // L: table string
                 lua_setfield(L, -2, "what"); // L: table
                 funcs.call_end(pd->userdata);
@@ -382,9 +383,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
             if (errno == EINTR) {
                 continue;
             }
-            LS_WITH_ERRSTR(s, errno,
-                LS_FATALF(pd, "read: %s", s);
-            );
+            LS_FATALF(pd, "read: %s", ls_strerror_onstack(errno));
             goto error;
         } else if (r == 0) {
             LS_FATALF(pd, "read() from the inotify file descriptor returned 0");
@@ -405,7 +404,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     }
 
 error:
-    (void) 0;
+    return;
 }
 
 LuastatusPluginIface luastatus_plugin_iface_v1 = {

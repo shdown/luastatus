@@ -3,25 +3,27 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <unistd.h>
 
-#include "osdep.h"
 #include "time_utils.h"
+#include "sig_utils.h"
 
-int
-ls_wakeup_fifo_init(LSWakeupFifo *w, const char *fifo, struct timespec timeout, sigset_t *sigmask)
+void
+ls_wakeup_fifo_init(
+    LSWakeupFifo *w,
+    const char *fifo,
+    struct timespec timeout,
+    const sigset_t *sigmask)
 {
     w->fifo = fifo;
     w->timeout = timeout;
-    FD_ZERO(&w->fds_);
-    w->fd_ = -1;
     if (sigmask) {
         w->sigmask = *sigmask;
     } else {
-        if (sigfillset(&w->sigmask) < 0) {
-            return -1;
-        }
+        ls_xsigfillset(&w->sigmask);
     }
-    return 0;
+    FD_ZERO(&w->fds_);
+    w->fd_ = -1;
 }
 
 int
@@ -33,7 +35,7 @@ ls_wakeup_fifo_open(LSWakeupFifo *w)
             return -1;
         }
         if (w->fd_ >= FD_SETSIZE) {
-            ls_close(w->fd_);
+            close(w->fd_);
             w->fd_ = -1;
             errno = EMFILE;
             return -1;
@@ -59,7 +61,7 @@ ls_wakeup_fifo_wait(LSWakeupFifo *w)
         if (w->fd_ >= 0) {
             FD_CLR(w->fd_, &w->fds_);
         }
-        ls_close(w->fd_);
+        close(w->fd_);
         w->fd_ = -1;
         errno = saved_errno;
         return -1;
@@ -67,7 +69,7 @@ ls_wakeup_fifo_wait(LSWakeupFifo *w)
         return 0;
     } else {
         FD_CLR(w->fd_, &w->fds_);
-        ls_close(w->fd_);
+        close(w->fd_);
         w->fd_ = -1;
         return 1;
     }
@@ -76,5 +78,5 @@ ls_wakeup_fifo_wait(LSWakeupFifo *w)
 void
 ls_wakeup_fifo_destroy(LSWakeupFifo *w)
 {
-    ls_close(w->fd_);
+    close(w->fd_);
 }

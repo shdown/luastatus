@@ -49,7 +49,7 @@ end
 
 function P.est_rem_time(props)
     local ef, en, pn = props[pns.EF], props[pns.EN], props[pns.PN]
-    if not (ef and en and pn) then
+    if (not ef) or (not en) or (not pn or pn == 0) then
         return nil
     end
     if props.status == 'Charging' then

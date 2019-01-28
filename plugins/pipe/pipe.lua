@@ -15,23 +15,8 @@ function P.shell_escape(x)
     end
 end
 
-local function make_eof_handler()
-    local hang = false
-    return function()
-        if hang then
-            while true do
-                os.execute('sleep 3600')
-            end
-        else
-            hang = true
-            error('child process has closed its stdout')
-        end
-    end
-end
-
-P.widget = function(tbl)
+function P.widget(tbl)
     local f = assert(io.popen(tbl.command, 'r'))
-    local on_eof = tbl.on_eof or make_eof_handler()
     return {
         plugin = 'timer',
         opts = {period = 0},
@@ -40,7 +25,12 @@ P.widget = function(tbl)
             if r ~= nil then
                 return tbl.cb(r)
             end
-            on_eof()
+            if tbl.on_eof ~= nil then
+                tbl.on_eof()
+            else
+                luastatus.plugin.push_period(3600)
+                error('child process has closed its stdout')
+            end
         end,
         event = tbl.event,
     }

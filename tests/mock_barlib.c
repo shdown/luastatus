@@ -37,7 +37,7 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
     for (const char *const *s = opts; *s; ++s) {
         const char *v;
         if ((v = ls_strfollow(*s, "gen_events="))) {
-            if ((p->nevents = ls_full_parse_uint_s(v)) < 0) {
+            if ((p->nevents = ls_full_strtou(v)) < 0) {
                 LS_FATALF(bd, "gen_events value is not a proper integer");
                 goto error;
             }

@@ -1,0 +1,2 @@
+%.lua: %.moon
+	moonc -o $@ -- $<

@@ -5,34 +5,23 @@
 #include <string.h>
 
 #include "compdep.h"
-#include "algo.h"
 
-// If /nbuf/ is not /0/, copies /min(strlen(src), nbuf - 1)/ characters from /src/ to /buf/,
-// zero-terminating the result.
-// Returns /strlen(src)/.
-LS_INHEADER
-size_t
-ls_strlcpy(char *buf, const char *src, size_t nbuf)
-{
-    const size_t nsrc = strlen(src);
-    if (nbuf) {
-        const size_t ncopy = LS_MIN(nsrc, nbuf - 1);
-        // both /buf/ and /src/ are safe to dereference here, so it's safe to call memcpy without
-        // additional checks (see /DOCS/c_notes/empty-ranges-and-c-stdlib.md).
-        memcpy(buf, src, ncopy);
-        buf[ncopy] = '\0';
-    }
-    return nsrc;
-}
-
-// If zero-terminated string /a/ starts with zero-terminated string /b/, returns /a + strlen(b)/.
-// Otherwise, returns /NULL/.
+// If zero-terminated string /str/ starts with zero-terminated string /prefix/, returns
+// /str + strlen(prefix)/; otherwise, returns /NULL/.
 LS_INHEADER
 const char *
-ls_strfollow(const char *a, const char *b)
+ls_strfollow(const char *str, const char *prefix)
 {
-    const size_t nb = strlen(b);
-    return strncmp(a, b, nb) == 0 ? a + nb : NULL;
+    const size_t nprefix = strlen(prefix);
+    return strncmp(str, prefix, nprefix) == 0 ? str + nprefix : NULL;
 }
+
+// Behaves like the GNU-specific /strerror_r/: either fills /buf/ and returns it, or returns a
+// pointer to a static string.
+const char *
+ls_strerror_r(int errnum, char *buf, size_t nbuf);
+
+// Yes, this actually works.
+#define ls_strerror_onstack(Errnum_) ls_strerror_r(Errnum_, (char [256]) {'\0'}, 256)
 
 #endif

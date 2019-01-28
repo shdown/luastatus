@@ -2,10 +2,9 @@
 
 #include <limits.h>
 #include <errno.h>
-#include <string.h>
 
 int
-ls_parse_uint_b(const char *s, size_t ns, char const **endptr)
+ls_strtou_b(const char *s, size_t ns, const char **endptr)
 {
     int ret = 0;
     size_t i = 0;
@@ -17,29 +16,30 @@ ls_parse_uint_b(const char *s, size_t ns, char const **endptr)
         }
         if (ret > INT_MAX / 10) {
             ret = -ERANGE;
-            goto done;
+            break;
         }
         ret *= 10;
         if (ret > INT_MAX - digit) {
             ret = -ERANGE;
-            goto done;
+            break;
         }
         ret += digit;
     }
 
-done:
-    *endptr = s + i;
+    if (endptr) {
+        *endptr = s + i;
+    }
     return ret;
 }
 
 int
-ls_full_parse_uint_b(const char *s, size_t ns)
+ls_full_strtou_b(const char *s, size_t ns)
 {
     if (!ns) {
         return -EINVAL;
     }
     const char *endptr;
-    int r = ls_parse_uint_b(s, ns, &endptr);
+    int r = ls_strtou_b(s, ns, &endptr);
     if (r < 0) {
         return r;
     }
@@ -47,10 +47,4 @@ ls_full_parse_uint_b(const char *s, size_t ns)
         return -EINVAL;
     }
     return r;
-}
-
-int
-ls_full_parse_uint_s(const char *s)
-{
-    return ls_full_parse_uint_b(s, strlen(s));
 }

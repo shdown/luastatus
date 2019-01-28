@@ -1,8 +1,18 @@
 #!/usr/bin/env bash
+
 set -e
 
-LUASTATUS=(../luastatus/luastatus ${DEBUG:+-l trace})
-HANG_TIMEOUT=${TIMEOUT:-2}
+cd -- "$(dirname "$(readlink "$0" || echo "$0")")"
+
+(
+    cd ..
+    cmake -DCMAKE_BUILD_TYPE=Debug .
+    make -C luastatus
+    make -C tests
+)
+
+LUASTATUS=(valgrind --error-exitcode=42 ../luastatus/luastatus ${DEBUG:+-l trace})
+HANG_TIMEOUT=${TIMEOUT:-7}
 
 fail()
 {
@@ -52,17 +62,33 @@ assert_works()
     assert_succeeds -e "$@"
 }
 
+assert_works_1W()
+{
+    local tail=${@:$#}
+    local init=("${@:1:$#-1}")
+    assert_hangs "${init[@]}" <(printf '%s\n' "$tail")
+    assert_succeeds -e "${init[@]}" <(printf '%s\n' "$tail")
+}
+
 assert_fails
 assert_fails /dev/null
 assert_fails /dev/nil
 assert_fails -e
 assert_fails -TheseFlagsDoNotExist
+assert_fails -l ''
+assert_fails -l nosuchloglevel
+assert_fails -l '•÷¢˝Q⅓'
 assert_fails -l
 assert_fails -l -l
 assert_fails -ы
 assert_fails -v
+assert_fails -b
 
-B='-b ./mock_barlib.so'
+assert_fails -b '§n”™°£'
+assert_fails -b '/'
+assert_fails -b 'nosuchbarlibforsure'
+
+B='-b ./barlib-mock.so'
 
 assert_succeeds $B -eeeeeeee -e
 
@@ -72,9 +98,9 @@ assert_works $B . . . . .
 assert_works $B /dev/null
 assert_works $B /dev/null /dev/null /dev/null
 
-assert_works $B <(echo 'luastatus = nil')
+assert_works_1W $B 'luastatus = nil'
 
-assert_works $B <(cat <<EOF
+assert_works_1W $B '
 widget = setmetatable(
     {
         plugin = setmetatable({}, {
@@ -84,10 +110,9 @@ widget = setmetatable(
     }, {
         __index = function() error("hi there (__index)") end,
         __pairs = function() error("hi there (__pairs)") end,
-    })
-EOF
-)
+    }
+)'
 
-assert_works $B <(echo 'widget = {plugin = "./mock_plugin.so", cb = function() end}')
+assert_works_1W $B 'widget = {plugin = "./plugin-mock.so", cb = function() end}'
 
 echo >&2 "=== PASSED ==="

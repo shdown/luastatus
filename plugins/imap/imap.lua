@@ -82,6 +82,11 @@ end
 local P = {}
 
 function P.widget(tbl)
+    local error_sleep_period = tbl.error_sleep_period
+    -- to prevent busy-looping if an invalid value is passed to /luastatus.plugin.push_period/.
+    assert(type(error_sleep_period) == 'number' and error_sleep_period > 0,
+           'invalid "error_sleep_period" value')
+
     local mbox = nil
 
     local function connect()
@@ -135,17 +140,11 @@ function P.widget(tbl)
         return get_unseen()
     end
 
-    local err_flag = false
     local last_content
     return {
         plugin = 'timer',
         opts = {period = 0},
         cb = function()
-            if err_flag then
-                tbl.sleep_on_error()
-                err_flag = false
-            end
-
             local is_ok, obj = pcall(iteration)
             if is_ok then
                 last_content = tbl.cb(obj)
@@ -160,10 +159,10 @@ function P.widget(tbl)
             if obj == IMAP_TIMEOUT_ERROR then
                 return last_content
             else
-                err_flag = true
                 if tbl.verbose then
                     log('!', obj)
                 end
+                luastatus.plugin.push_period(error_sleep_period)
                 return tbl.cb(nil)
             end
         end,

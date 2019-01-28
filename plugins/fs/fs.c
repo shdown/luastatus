@@ -14,7 +14,7 @@
 #include "libls/lua_utils.h"
 #include "libls/vector.h"
 #include "libls/time_utils.h"
-#include "libls/errno_utils.h"
+#include "libls/cstring_utils.h"
 #include "libls/wakeup_fifo.h"
 
 typedef struct {
@@ -81,12 +81,10 @@ push_for(LuastatusPluginData *pd, lua_State *L, const char *path)
 {
     struct statvfs st;
     if (statvfs(path, &st) < 0) {
-        LS_WITH_ERRSTR(s, errno,
-            LS_WARNF(pd, "statvfs: %s: %s", path, s);
-        );
+        LS_WARNF(pd, "statvfs: %s: %s", path, ls_strerror_onstack(errno));
         return false;
     }
-    lua_newtable(L); // L: table
+    lua_createtable(L, 0, 3); // L: table
     lua_pushnumber(L, (double) st.f_frsize * st.f_blocks); // L: table n
     lua_setfield(L, -2, "total"); // L: table
     lua_pushnumber(L, (double) st.f_frsize * st.f_bfree); // L: table n
@@ -101,19 +99,14 @@ void
 run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
-    LSWakeupFifo w;
 
-    if (ls_wakeup_fifo_init(&w, p->fifo, p->period, NULL) < 0) {
-        LS_WITH_ERRSTR(s, errno,
-            LS_FATALF(pd, "ls_wakeup_fifo_init: %s", s);
-        );
-        goto error;
-    }
+    LSWakeupFifo w;
+    ls_wakeup_fifo_init(&w, p->fifo, p->period, NULL);
 
     while (1) {
         // make a call
         lua_State *L = funcs.call_begin(pd->userdata);
-        lua_newtable(L);
+        lua_createtable(L, 0, p->paths.size);
         for (size_t i = 0; i < p->paths.size; ++i) {
             const char *path = p->paths.data[i];
             if (push_for(pd, L, path)) {
@@ -123,14 +116,10 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         funcs.call_end(pd->userdata);
         // wait
         if (ls_wakeup_fifo_open(&w) < 0) {
-            LS_WITH_ERRSTR(s, errno,
-                LS_WARNF(pd, "ls_wakeup_fifo_open: %s: %s", p->fifo, s);
-            );
+            LS_WARNF(pd, "ls_wakeup_fifo_open: %s: %s", p->fifo, ls_strerror_onstack(errno));
         }
         if (ls_wakeup_fifo_wait(&w) < 0) {
-            LS_WITH_ERRSTR(s, errno,
-                LS_FATALF(pd, "ls_wakeup_fifo_wait: %s: %s", p->fifo, s);
-            );
+            LS_FATALF(pd, "ls_wakeup_fifo_wait: %s: %s", p->fifo, ls_strerror_onstack(errno));
             goto error;
         }
     }

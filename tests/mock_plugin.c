@@ -1,4 +1,7 @@
 #include <stdlib.h>
+#include <limits.h>
+
+#include <lua.h>
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
@@ -28,6 +31,10 @@ init(LuastatusPluginData *pd, lua_State *L)
     };
 
     PU_MAYBE_VISIT_NUM("make_calls", NULL, n,
+        if (n < 0 || n > INT_MAX) {
+            LS_FATALF(pd, "invalid 'make_calls' value");
+            goto error;
+        }
         p->ncalls = n;
     );
 

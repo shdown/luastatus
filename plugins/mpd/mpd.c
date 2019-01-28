@@ -6,22 +6,27 @@
 #include <signal.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
+#include <unistd.h>
 #include <sys/select.h>
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
 #include "include/plugin_utils.h"
 
+#include "libls/lua_utils.h"
+#include "libls/string_.h"
 #include "libls/alloc_utils.h"
-#include "libls/errno_utils.h"
+#include "libls/vector.h"
+#include "libls/cstring_utils.h"
 #include "libls/time_utils.h"
-#include "libls/sprintf_utils.h"
 #include "libls/osdep.h"
 #include "libls/wakeup_fifo.h"
 #include "libls/strarr.h"
+#include "libls/sig_utils.h"
 
 #include "connect.h"
-#include "mpdproto_utils.h"
+#include "proto.h"
 
 typedef struct {
     char *hostname;
@@ -150,11 +155,11 @@ kv_strarr_line_append(LSStringArray *sa, const char *line)
 
 static
 void
-kv_strarr_table_assign(LSStringArray sa, lua_State *L)
+kv_strarr_table_push(LSStringArray sa, lua_State *L)
 {
-    // L: table
     const size_t n = ls_strarr_size(sa);
     assert(n % 2 == 0);
+    lua_createtable(L, 0, n / 2); // L: table
     for (size_t i = 0; i < n; i += 2) {
         size_t nkey;
         const char *key = ls_strarr_at(sa, i, &nkey);
@@ -171,21 +176,26 @@ void
 report_status(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, const char *what)
 {
     lua_State *L = funcs.call_begin(pd->userdata);
-    lua_newtable(L); // L: table
+    lua_createtable(L, 0, 1); // L: table
     lua_pushstring(L, what); // L: table what
     lua_setfield(L, -2, "what"); // L: table
     funcs.call_end(pd->userdata);
 }
 
-// Code below is pretty ugly and spaghetti-like. Rewrite it if you can.
 static
 void
 interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, int fd)
 {
     Priv *p = pd->priv;
 
-    FILE *f = NULL;
-    int fd_to_close = fd;
+    FILE *f = fdopen(fd, "r+");
+    if (!f) {
+        LS_ERRF(pd, "can't fdopen connection file descriptor %d: %s",
+                fd, ls_strerror_onstack(errno));
+        close(fd);
+        return;
+    }
+
     char *buf = NULL;
     size_t nbuf = 1024;
     LSStringArray kv_song   = ls_strarr_new();
@@ -210,24 +220,16 @@ interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, int fd)
 #define UNTIL_OK(...) \
     do { \
         GETLINE(); \
-        const MPDProtoResponseType rt_ = mpdproto_response_type(buf); \
-        if (rt_ == MPDPROTO_RESP_TYPE_OK) { \
+        const ResponseType rt_ = response_type(buf); \
+        if (rt_ == RESP_OK) { \
             break; \
-        } else if (rt_ == MPDPROTO_RESP_TYPE_ACK) { \
+        } else if (rt_ == RESP_ACK) { \
             LS_ERRF(pd, "server said: %.*s", (int) rstrip_nl_strlen(buf), buf); \
             goto error; \
         } else { \
             __VA_ARGS__ \
         } \
     } while (/*note infinite cycle here*/ 1)
-
-    if (!(f = fdopen(fd, "r+"))) {
-        LS_WITH_ERRSTR(str, errno,
-            LS_ERRF(pd, "fdopen: %s", str);
-        );
-        goto error;
-    }
-    fd_to_close = -1;
 
     // read and check the greeting
     GETLINE();
@@ -239,26 +241,21 @@ interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, int fd)
     // send the password, if specified
     if (p->password) {
         fputs("password ", f);
-        mpdproto_write_quoted(f, p->password);
-        fputc('\n', f);
+        write_quoted(f, p->password);
+        putc_unlocked('\n', f);
         fflush(f);
         if (ferror(f)) {
             goto io_error;
         }
         GETLINE();
-        if (mpdproto_response_type(buf) != MPDPROTO_RESP_TYPE_OK) {
+        if (response_type(buf) != RESP_OK) {
             LS_ERRF(pd, "(password) server said: %.*s", (int) rstrip_nl_strlen(buf), buf);
             goto error;
         }
     }
 
     sigset_t allsigs;
-    if (sigfillset(&allsigs) < 0) {
-        LS_WITH_ERRSTR(str, errno,
-            LS_ERRF(pd, "sigfillset: %s", str);
-        );
-        goto error;
-    }
+    ls_xsigfillset(&allsigs);
 
     if (fd >= FD_SETSIZE && !ls_timespec_is_invalid(p->timeout)) {
         LS_WARNF(pd, "connection file descriptor is too large, will not report time outs");
@@ -279,18 +276,16 @@ interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, int fd)
         );
 
         lua_State *L = funcs.call_begin(pd->userdata);
-        lua_newtable(L); // L: table
+        lua_createtable(L, 0, 3); // L: table
 
         lua_pushstring(L, "update"); // L: table "update"
         lua_setfield(L, -2, "what"); // L: table
 
-        lua_newtable(L); // L: table table
-        kv_strarr_table_assign(kv_song, L); // L: table table
+        kv_strarr_table_push(kv_song, L); // L: table table
         ls_strarr_clear(&kv_song);
         lua_setfield(L, -2, "song"); // L: table
 
-        lua_newtable(L); // L: table table
-        kv_strarr_table_assign(kv_status, L); // L: table table
+        kv_strarr_table_push(kv_status, L); // L: table table
         ls_strarr_clear(&kv_status);
         lua_setfield(L, -2, "status"); // L: table
 
@@ -303,9 +298,8 @@ interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, int fd)
                 FD_SET(fd, &fds);
                 int r = pselect(fd + 1, &fds, NULL, NULL, &p->timeout, &allsigs);
                 if (r < 0) {
-                    LS_WITH_ERRSTR(str, errno,
-                        LS_ERRF(pd, "pselect (on connection file descriptor): %s", str);
-                    );
+                    LS_ERRF(pd, "pselect (on connection file descriptor): %s",
+                            ls_strerror_onstack(errno));
                     goto error;
                 } else if (r == 0) {
                     report_status(pd, funcs, "timeout");
@@ -325,18 +319,13 @@ interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, int fd)
 
 io_error:
     if (feof(f)) {
-        LS_ERRF(pd, "server closed the connection");
+        LS_ERRF(pd, "connection closed");
     } else {
-        LS_WITH_ERRSTR(str, errno,
-            LS_ERRF(pd, "I/O error: %s", str);
-        );
+        LS_ERRF(pd, "I/O error: %s", ls_strerror_onstack(errno));
     }
 
 error:
-    if (f) {
-        fclose(f);
-    }
-    ls_close(fd_to_close);
+    fclose(f);
     free(buf);
     ls_strarr_destroy(kv_song);
     ls_strarr_destroy(kv_status);
@@ -347,16 +336,9 @@ void
 run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
-    LSWakeupFifo w;
 
-    if (ls_wakeup_fifo_init(&w, p->retry_fifo, p->retry_in, NULL) < 0) {
-        LS_WITH_ERRSTR(s, errno,
-            LS_FATALF(pd, "ls_wakeup_fifo_init: %s", s);
-        );
-        goto error;
-    }
-    w.fifo = p->retry_fifo;
-    w.timeout = p->retry_in;
+    LSWakeupFifo w;
+    ls_wakeup_fifo_init(&w, p->retry_fifo, p->retry_in, NULL);
 
     char portstr[8];
     snprintf(portstr, sizeof(portstr), "%d", p->port);
@@ -379,14 +361,10 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         report_status(pd, funcs, "error");
 
         if (ls_wakeup_fifo_open(&w) < 0) {
-            LS_WITH_ERRSTR(s, errno,
-                LS_WARNF(pd, "ls_wakeup_fifo_open: %s: %s", p->retry_fifo, s);
-            );
+            LS_WARNF(pd, "ls_wakeup_fifo_open: %s: %s", p->retry_fifo, ls_strerror_onstack(errno));
         }
         if (ls_wakeup_fifo_wait(&w) < 0) {
-            LS_WITH_ERRSTR(s, errno,
-                LS_FATALF(pd, "ls_wakeup_fifo_wait: %s: %s", p->retry_fifo, s);
-            );
+            LS_FATALF(pd, "ls_wakeup_fifo_wait: %s: %s", p->retry_fifo, ls_strerror_onstack(errno));
             goto error;
         }
     }

@@ -11,7 +11,7 @@
     for (lua_pushnil(L_); \
          /* if /StackIndex_/ is relative to the top, decrease it by one because the previous key
           * will be pushed onto the stack each time lua_next() is called. */ \
-         lua_next(L_, (StackIndex_) < 0 ? (StackIndex_) - 1 : (StackIndex_)); \
+         lua_next(L_, (StackIndex_) - ((StackIndex_) < 0 ? 1 : 0)); \
          lua_pop(L_, 1))
 
 // Stack index of the key when in a /LS_LUA_TRAVERSE/ cycle.
