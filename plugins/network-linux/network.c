@@ -158,7 +158,7 @@ inject_wireless_info(lua_State *L, struct ifaddrs *addr)
     }
 
     // L: ? ifacetbl
-    lua_newtable(L); // L: ? ifacetbl table
+    lua_createtable(L, 0, 4); // L: ? ifacetbl table
     if (info.flags & HAS_ESSID) {
         lua_pushstring(L, info.essid); // L: ? ifacetbl table str
         lua_setfield(L, -2, "ssid"); // L: ? ifacetbl table
@@ -191,7 +191,7 @@ inject_ethernet_info(lua_State *L, struct ifaddrs *addr, int sockfd)
         return;
     }
     // L: ? ifacetbl
-    lua_newtable(L); // L: ? ifacetbl table
+    lua_createtable(L, 0, 1); // L: ? ifacetbl table
 
     lua_pushnumber(L, speed); // L: ? ifacetbl table number
     lua_setfield(L, -2, "speed"); // L: ? ifacetbl table
