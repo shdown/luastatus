@@ -296,7 +296,8 @@ external_sayf(void *userdata, int level, const char *fmt, ...)
     va_end(vl);
 }
 
-// Returns a pointer to the value of the entry with key /key/.
+// Returns a pointer to the value of the entry with key /key/; or creates a new entry with the given
+// key and /NULL/ value, and returns a pointer to that value.
 static
 void **
 map_get(void *userdata, const char *key)
@@ -315,6 +316,7 @@ map_get(void *userdata, const char *key)
         }
     }
 
+    // Not found; create a new entry with /NULL/ value.
     const size_t nkey = strlen(key);
     MapEntry *e = ls_xmalloc(sizeof(MapEntry) + nkey + 1, 1);
     e->value = NULL;
