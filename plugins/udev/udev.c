@@ -50,30 +50,30 @@ init(LuastatusPluginData *pd, lua_State *L)
         .timeout = ls_timespec_invalid,
     };
 
-    PU_MAYBE_VISIT_STR("subsystem", NULL, s,
+    PU_MAYBE_VISIT_STR_FIELD(-1, "subsystem", "'subsystem'", s,
         p->subsystem = ls_xstrdup(s);
     );
 
-    PU_MAYBE_VISIT_STR("devtype", NULL, s,
+    PU_MAYBE_VISIT_STR_FIELD(-1, "devtype", "'devtype'", s,
         p->devtype = ls_xstrdup(s);
     );
 
-    PU_MAYBE_VISIT_STR("tag", NULL, s,
+    PU_MAYBE_VISIT_STR_FIELD(-1, "tag", "'tag'", s,
         p->tag = ls_xstrdup(s);
     );
 
-    PU_MAYBE_VISIT_BOOL("kernel_events", NULL, b,
+    PU_MAYBE_VISIT_BOOL_FIELD(-1, "kernel_events", "'kernel_events'", b,
         p->kernel_ev = b;
     );
 
-    PU_MAYBE_VISIT_NUM("timeout", NULL, n,
+    PU_MAYBE_VISIT_NUM_FIELD(-1, "timeout", "'timeout'", n,
         if (n >= 0 && ls_timespec_is_invalid(p->timeout = ls_timespec_from_seconds(n))) {
             LS_FATALF(pd, "invalid 'timeout' value");
             goto error;
         }
     );
 
-    PU_MAYBE_VISIT_BOOL("greet", NULL, b,
+    PU_MAYBE_VISIT_BOOL_FIELD(-1, "greet", "'greet'", b,
         p->greet = b;
     );
 

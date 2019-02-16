@@ -66,11 +66,11 @@ init(LuastatusPluginData *pd, lua_State *L)
     };
     LSString idle_str = ls_string_new_from_s("idle");
 
-    PU_MAYBE_VISIT_STR("hostname", NULL, s,
+    PU_MAYBE_VISIT_STR_FIELD(-1, "hostname", "'hostname'", s,
         p->hostname = ls_xstrdup(s);
     );
 
-    PU_MAYBE_VISIT_NUM("port", NULL, n,
+    PU_MAYBE_VISIT_NUM_FIELD(-1, "port", "'port'", n,
         if (n < 0 || n > 65535) {
             LS_FATALF(pd, "port (%g) is not a valid port number", (double) n);
             goto error;
@@ -78,7 +78,7 @@ init(LuastatusPluginData *pd, lua_State *L)
         p->port = n;
     );
 
-    PU_MAYBE_VISIT_STR("password", NULL, s,
+    PU_MAYBE_VISIT_STR_FIELD(-1, "password", "'password'", s,
         if ((strchr(s, '\n'))) {
             LS_FATALF(pd, "password contains a line break");
             goto error;
@@ -86,29 +86,29 @@ init(LuastatusPluginData *pd, lua_State *L)
         p->password = ls_xstrdup(s);
     );
 
-    PU_MAYBE_VISIT_NUM("timeout", NULL, n,
+    PU_MAYBE_VISIT_NUM_FIELD(-1, "timeout", "'timeout'", n,
         if (ls_timespec_is_invalid(p->timeout = ls_timespec_from_seconds(n)) && n >= 0) {
             LS_FATALF(pd, "'timeout' is invalid");
             goto error;
         }
     );
 
-    PU_MAYBE_VISIT_NUM("retry_in", NULL, n,
+    PU_MAYBE_VISIT_NUM_FIELD(-1, "retry_in", "'retry_in'", n,
         if (ls_timespec_is_invalid(p->retry_in = ls_timespec_from_seconds(n)) && n >= 0) {
             LS_FATALF(pd, "'retry_in' is invalid");
             goto error;
         }
     );
 
-    PU_MAYBE_VISIT_STR("retry_fifo", NULL, s,
+    PU_MAYBE_VISIT_STR_FIELD(-1, "retry_fifo", "'retry_fifo'", s,
         p->retry_fifo = ls_xstrdup(s);
     );
 
     bool has_events = false;
-    PU_MAYBE_TRAVERSE_TABLE("events", NULL,
+    PU_MAYBE_VISIT_TABLE_FIELD(-1, "events", "'events'",
         has_events = true;
-        PU_CHECK_TYPE_AT(LS_LUA_KEY, "'events' key", LUA_TNUMBER);
-        PU_VISIT_STR_AT(LS_LUA_VALUE, "'events' element", s,
+        PU_CHECK_TYPE(LS_LUA_KEY, "'events' key", LUA_TNUMBER);
+        PU_VISIT_STR(LS_LUA_VALUE, "'events' element", s,
             ls_string_append_c(&idle_str, ' ');
             ls_string_append_s(&idle_str, s);
         );

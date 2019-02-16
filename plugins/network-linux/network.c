@@ -80,19 +80,19 @@ init(LuastatusPluginData *pd, lua_State *L)
         .eth_sockfd = -1,
     };
 
-    PU_MAYBE_VISIT_BOOL("ip", NULL, b,
+    PU_MAYBE_VISIT_BOOL_FIELD(-1, "ip", "'ip'", b,
         modify_bit(&p->flags, REPORT_IP, b);
     );
 
-    PU_MAYBE_VISIT_BOOL("wireless", NULL, b,
+    PU_MAYBE_VISIT_BOOL_FIELD(-1, "wireless", "'wireless'", b,
         modify_bit(&p->flags, REPORT_WIRELESS, b);
     );
 
-    PU_MAYBE_VISIT_BOOL("ethernet", NULL, b,
+    PU_MAYBE_VISIT_BOOL_FIELD(-1, "ethernet", "'ethernet'", b,
         modify_bit(&p->flags, REPORT_ETHERNET, b);
     );
 
-    PU_MAYBE_VISIT_NUM("timeout", NULL, n,
+    PU_MAYBE_VISIT_NUM_FIELD(-1, "timeout", "'timeout'", n,
         if (ls_timeval_is_invalid(p->timeout = ls_timeval_from_seconds(n)) && n > 0) {
             LS_FATALF(pd, "'timeout' is invalid");
             goto error;

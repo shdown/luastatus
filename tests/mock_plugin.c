@@ -30,7 +30,7 @@ init(LuastatusPluginData *pd, lua_State *L)
         .ncalls = 0,
     };
 
-    PU_MAYBE_VISIT_NUM("make_calls", NULL, n,
+    PU_MAYBE_VISIT_NUM_FIELD(-1, "make_calls", "'make_calls'", n,
         if (n < 0 || n > INT_MAX) {
             LS_FATALF(pd, "invalid 'make_calls' value");
             goto error;

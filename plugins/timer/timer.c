@@ -48,14 +48,14 @@ init(LuastatusPluginData *pd, lua_State *L)
         LS_PANIC("pthread_spin_init() failed, which is impossible");
     }
 
-    PU_MAYBE_VISIT_NUM("period", NULL, n,
+    PU_MAYBE_VISIT_NUM_FIELD(-1, "period", "'period'", n,
         if (ls_timespec_is_invalid(p->period = ls_timespec_from_seconds(n))) {
             LS_FATALF(pd, "invalid 'period' value");
             goto error;
         }
     );
 
-    PU_MAYBE_VISIT_STR("fifo", NULL, s,
+    PU_MAYBE_VISIT_STR_FIELD(-1, "fifo", "'fifo'", s,
         p->fifo = ls_xstrdup(s);
     );
 

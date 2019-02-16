@@ -46,14 +46,14 @@ init(LuastatusPluginData *pd, lua_State *L)
         .self_pipe = {-1, -1},
     };
 
-    PU_MAYBE_VISIT_STR("sink", NULL, s,
+    PU_MAYBE_VISIT_STR_FIELD(-1, "sink", "'sink'", s,
         p->sink_name = ls_xstrdup(s);
     );
     if (!p->sink_name) {
         p->sink_name = ls_xstrdup("@DEFAULT_SINK@");
     }
 
-    PU_MAYBE_VISIT_BOOL("make_self_pipe", NULL, b,
+    PU_MAYBE_VISIT_BOOL_FIELD(-1, "make_self_pipe", "'make_self_pipe'", b,
         if (b) {
             if (ls_cloexec_pipe(p->self_pipe) < 0) {
                 LS_FATALF(pd, "ls_cloexec_pipe: %s", ls_strerror_onstack(errno));

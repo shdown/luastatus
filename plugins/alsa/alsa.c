@@ -50,29 +50,29 @@ init(LuastatusPluginData *pd, lua_State *L)
         .self_pipe = {-1, -1},
     };
 
-    PU_MAYBE_VISIT_STR("card", NULL, s,
+    PU_MAYBE_VISIT_STR_FIELD(-1, "card", "'card'", s,
         p->card = ls_xstrdup(s);
     );
     if (!p->card) {
         p->card = ls_xstrdup("default");
     }
 
-    PU_MAYBE_VISIT_STR("channel", NULL, s,
+    PU_MAYBE_VISIT_STR_FIELD(-1, "channel", "'channel'", s,
         p->channel = ls_xstrdup(s);
     );
     if (!p->channel) {
         p->channel = ls_xstrdup("Master");
     }
 
-    PU_MAYBE_VISIT_BOOL("capture", NULL, b,
+    PU_MAYBE_VISIT_BOOL_FIELD(-1, "capture", "'capture'", b,
         p->capture = b;
     );
 
-    PU_MAYBE_VISIT_BOOL("in_db", NULL, b,
+    PU_MAYBE_VISIT_BOOL_FIELD(-1, "in_db", "'in_db'", b,
         p->in_db = b;
     );
 
-    PU_MAYBE_VISIT_BOOL("make_self_pipe", NULL, b,
+    PU_MAYBE_VISIT_BOOL_FIELD(-1, "make_self_pipe", "'make_self_pipe'", b,
         if (b) {
             if (ls_cloexec_pipe(p->self_pipe) < 0) {
                 LS_FATALF(pd, "ls_cloexec_pipe: %s", ls_strerror_onstack(errno));

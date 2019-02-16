@@ -168,11 +168,11 @@ init(LuastatusPluginData *pd, lua_State *L)
         goto error;
     }
 
-    PU_MAYBE_VISIT_BOOL("greet", NULL, b,
+    PU_MAYBE_VISIT_BOOL_FIELD(-1, "greet", "'greet'", b,
         p->greet = b;
     );
 
-    PU_MAYBE_VISIT_NUM("timeout", NULL, n,
+    PU_MAYBE_VISIT_NUM_FIELD(-1, "timeout", "'timeout'", n,
         if (ls_timespec_is_invalid(p->timeout = ls_timespec_from_seconds(n)) && n >= 0) {
             LS_FATALF(pd, "'timeout' is invalid");
             goto error;
@@ -180,7 +180,7 @@ init(LuastatusPluginData *pd, lua_State *L)
     );
 
     char err[256];
-    PU_TRAVERSE_TABLE("watch", NULL,
+    PU_VISIT_TABLE_FIELD(-1, "watch", "'watch'",
         const char *path;
         uint32_t mask;
 
