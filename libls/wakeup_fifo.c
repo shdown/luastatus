@@ -51,11 +51,13 @@ ls_wakeup_fifo_wait(LSWakeupFifo *w)
     if (w->fd_ >= 0) {
         FD_SET(w->fd_, &w->fds_);
     }
+
     const int r = pselect(
         w->fd_ >= 0 ? w->fd_ + 1 : 0,
         &w->fds_, NULL, NULL,
         ls_timespec_is_invalid(w->timeout) ? NULL : &w->timeout,
         &w->sigmask);
+
     if (r < 0) {
         int saved_errno = errno;
         if (w->fd_ >= 0) {

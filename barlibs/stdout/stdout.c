@@ -184,12 +184,12 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
             LS_LUA_TRAVERSE(L, -1) {
                 if (!lua_isnumber(L, LS_LUA_KEY)) {
                     LS_ERRF(bd, "table key: expected number, found %s",
-                        luaL_typename(L, LS_LUA_KEY));
+                            luaL_typename(L, LS_LUA_KEY));
                     goto invalid_data;
                 }
                 if (!lua_isstring(L, LS_LUA_VALUE)) {
                     LS_ERRF(bd, "table value: expected string, found %s",
-                        luaL_typename(L, LS_LUA_VALUE));
+                            luaL_typename(L, LS_LUA_VALUE));
                     goto invalid_data;
                 }
                 size_t ns;
