@@ -9,9 +9,11 @@ function P.shell_escape(x)
     elseif type(x) == 'table' then
         local t = {}
         for _, arg in ipairs(x) do
-            t[#t + 1] = shell_escape(arg)
+            t[#t + 1] = P.shell_escape(arg)
         end
         return table.concat(t, ' ')
+    else
+        error('argument type is neither string nor table')
     end
 end
 
