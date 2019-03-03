@@ -203,7 +203,7 @@ static struct {
     bool frozen;
 } map = {.entries = LS_VECTOR_NEW(), .frozen = false};
 
-// An implementation part for the /PTH_ASSERT/ macro.
+// The implementation part for the /PTH_ASSERT/ macro.
 static
 void
 pth_assert_impl(int ret, const char *expr, const char *file, int line)
@@ -276,7 +276,7 @@ sayf(int level, const char *fmt, ...)
     va_end(vl);
 }
 
-// An "external" logging function: generates a log message from the subsystem denoted by /userdata/
+// The "external" logging function: generates a log message from the subsystem denoted by /userdata/
 // with level /level/ using the format string /fmt/ and the variable arguments supplied as /.../, as
 // if with /vsnprintf(<unspecified>, fmt, <... variable arguments>/.
 static
@@ -990,8 +990,8 @@ fatal_error_reported(void)
     _exit(EXIT_FAILURE);
 }
 
-// Invokes /barlib/'s /set_error()/ method on a widget with index /widget_idx/ and performs all the
-// error-checking required.
+// Invokes /barlib/'s /set_error()/ method on the widget with index /widget_idx/ and performs all
+// the error-checking required.
 //
 // Does not do any locking/unlocking.
 static
