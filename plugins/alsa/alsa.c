@@ -140,12 +140,12 @@ xalloc_card_realname(const char *nicename)
     if (snd_ctl_card_info_malloc(&info) < 0) {
         ls_oom();
     }
-    static const size_t BUF_SZ = 32;
-    char *buf = LS_XNEW(char, BUF_SZ);
+    enum { NBUF = 32 };
+    char *buf = LS_XNEW(char, NBUF);
 
     int rcard = -1;
     while (snd_card_next(&rcard) >= 0 && rcard >= 0) {
-        snprintf(buf, BUF_SZ, "hw:%d", rcard);
+        snprintf(buf, NBUF, "hw:%d", rcard);
         if (card_has_nicename(buf, info, nicename)) {
             goto cleanup;
         }
