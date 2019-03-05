@@ -77,6 +77,10 @@ Each file being watched is assigned a *watch descriptor*, which is a non-negativ
 
     Removes a watch by its watch descriptor. Returns ``true`` on success, or ``false`` on failure.
 
+* ``luastatus.plugin.push_timeout(seconds)``
+
+    Changes the timeout for one iteration.
+
 Events and flag names
 =====================
 Each ``IN_*`` constant defined in ``<sys/inotify.h>`` corresponds to a string obtained from its name

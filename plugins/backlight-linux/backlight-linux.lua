@@ -8,26 +8,26 @@ local function read_all(path)
 end
 
 function P.widget(tbl)
-    local last_content
+    local timeout = tbl.timeout or 2
     return {
         plugin = 'udev',
         opts = {
             subsystem = 'backlight',
-            timeout = tbl.timeout or 2,
         },
         cb = function(t)
             if t.what ~= 'event' then
-                last_content = nil
-                return last_content
+                return nil
             end
             local s = t.syspath
             if tbl.syspath and tbl.syspath ~= s then
-                return last_content
+                return nil
             end
+
+            luastatus.plugin.push_timeout(timeout)
+
             local b = read_all(s .. '/brightness')
             local mb = read_all(s .. '/max_brightness')
-            last_content = tbl.cb(b / mb)
-            return last_content
+            return tbl.cb(b / mb)
         end,
         event = tbl.event,
     }

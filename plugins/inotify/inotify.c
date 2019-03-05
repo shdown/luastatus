@@ -11,6 +11,7 @@
 #include <sys/inotify.h>
 #include <sys/select.h>
 #include <signal.h>
+#include <pthread.h>
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
@@ -35,8 +36,11 @@ typedef struct {
 typedef struct {
     int fd;
     LS_VECTOR_OF(Watch) init_watch;
-    struct timespec timeout;
     bool greet;
+    struct timespec timeout;
+
+    struct timespec pushed_timeout;
+    pthread_spinlock_t push_lock;
 } Priv;
 
 static
@@ -49,6 +53,7 @@ destroy(LuastatusPluginData *pd)
         free(p->init_watch.data[i].path);
     }
     LS_VECTOR_FREE(p->init_watch);
+    pthread_spin_destroy(&p->push_lock);
     free(p);
 }
 
@@ -159,9 +164,14 @@ init(LuastatusPluginData *pd, lua_State *L)
     *p = (Priv) {
         .fd = -1,
         .init_watch = LS_VECTOR_NEW(),
-        .timeout = ls_timespec_invalid,
         .greet = false,
+        .timeout = ls_timespec_invalid,
+        .pushed_timeout = ls_timespec_invalid,
     };
+
+    if (pthread_spin_init(&p->push_lock, PTHREAD_PROCESS_PRIVATE) != 0) {
+        LS_PANIC("pthread_spin_init() failed, which is impossible");
+    }
 
     if ((p->fd = compat_inotify_init(false, true)) < 0) {
         LS_FATALF(pd, "inotify_init: %s", ls_strerror_onstack(errno));
@@ -279,6 +289,25 @@ l_get_initial_wds(lua_State *L)
 }
 
 static
+int
+l_push_timeout(lua_State *L)
+{
+    LuastatusPluginData *pd = lua_touserdata(L, lua_upvalueindex(1));
+    Priv *p = pd->priv;
+
+    struct timespec timeout = ls_timespec_from_seconds(luaL_checknumber(L, 1));
+    if (ls_timespec_is_invalid(timeout)) {
+        return luaL_error(L, "invalid timeout");
+    }
+
+    pthread_spin_lock(&p->push_lock);
+    p->pushed_timeout = timeout;
+    pthread_spin_unlock(&p->push_lock);
+
+    return 0;
+}
+
+static
 void
 register_funcs(LuastatusPluginData *pd, lua_State *L)
 {
@@ -296,6 +325,11 @@ register_funcs(LuastatusPluginData *pd, lua_State *L)
     lua_pushlightuserdata(L, pd); // L: table pd
     lua_pushcclosure(L, l_get_initial_wds, 1); // L: table closure
     ls_lua_rawsetf(L, "get_initial_wds"); // L: table
+
+    // L: table
+    lua_pushlightuserdata(L, pd); // L: table pd
+    lua_pushcclosure(L, l_push_timeout, 1); // L: table pd l_push_timeout
+    ls_lua_rawsetf(L, "push_timeout"); // L: table
 }
 
 static
@@ -353,29 +387,38 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 
     fd_set fds;
     FD_ZERO(&fds);
-    const int nfds = p->fd + 1;
-
-    const struct timespec *ptimeout =
-        ls_timespec_is_invalid(p->timeout) ? NULL : &p->timeout;
 
     sigset_t allsigs;
     ls_xsigfillset(&allsigs);
 
     while (1) {
-        {
-            FD_SET(p->fd, &fds);
-            int r = pselect(nfds, &fds, NULL, NULL, ptimeout, &allsigs);
-            if (r < 0) {
-                LS_FATALF(pd, "pselect: %s", ls_strerror_onstack(errno));
-                goto error;
-            } else if (r == 0) {
-                lua_State *L = funcs.call_begin(pd->userdata);
-                lua_createtable(L, 0, 1); // L: table
-                lua_pushstring(L, "timeout"); // L: table string
-                lua_setfield(L, -2, "what"); // L: table
-                funcs.call_end(pd->userdata);
-                continue;
-            }
+        struct timespec timeout;
+        pthread_spin_lock(&p->push_lock);
+        if (ls_timespec_is_invalid(p->pushed_timeout)) {
+            timeout = p->timeout;
+        } else {
+            timeout = p->pushed_timeout;
+            p->pushed_timeout = ls_timespec_invalid;
+        }
+        pthread_spin_unlock(&p->push_lock);
+
+        FD_SET(p->fd, &fds);
+        const int nfds = pselect(
+            p->fd + 1,
+            &fds, NULL, NULL,
+            ls_timespec_is_invalid(timeout) ? NULL : &timeout,
+            &allsigs);
+
+        if (nfds < 0) {
+            LS_FATALF(pd, "pselect: %s", ls_strerror_onstack(errno));
+            goto error;
+        } else if (nfds == 0) {
+            lua_State *L = funcs.call_begin(pd->userdata);
+            lua_createtable(L, 0, 1); // L: table
+            lua_pushstring(L, "timeout"); // L: table string
+            lua_setfield(L, -2, "what"); // L: table
+            funcs.call_end(pd->userdata);
+            continue;
         }
 
         ssize_t r = read(p->fd, buf, sizeof(buf));

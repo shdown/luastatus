@@ -5,6 +5,7 @@
 #include <lua.h>
 #include <stdlib.h>
 #include <libudev.h>
+#include <pthread.h>
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
@@ -15,6 +16,7 @@
 #include "libls/cstring_utils.h"
 #include "libls/wakeup_fifo.h"
 #include "libls/sig_utils.h"
+#include "libls/panic.h"
 
 typedef struct {
     char *subsystem;
@@ -23,6 +25,9 @@ typedef struct {
     bool kernel_ev;
     bool greet;
     struct timespec timeout;
+
+    struct timespec pushed_timeout;
+    pthread_spinlock_t push_lock;
 } Priv;
 
 static
@@ -33,6 +38,7 @@ destroy(LuastatusPluginData *pd)
     free(p->subsystem);
     free(p->devtype);
     free(p->tag);
+    pthread_spin_destroy(&p->push_lock);
     free(p);
 }
 
@@ -48,7 +54,12 @@ init(LuastatusPluginData *pd, lua_State *L)
         .kernel_ev = false,
         .greet = false,
         .timeout = ls_timespec_invalid,
+        .pushed_timeout = ls_timespec_invalid,
     };
+
+    if (pthread_spin_init(&p->push_lock, PTHREAD_PROCESS_PRIVATE) != 0) {
+        LS_PANIC("pthread_spin_init() failed, which is impossible");
+    }
 
     PU_MAYBE_VISIT_STR_FIELD(-1, "subsystem", "'subsystem'", s,
         p->subsystem = ls_xstrdup(s);
@@ -82,6 +93,35 @@ init(LuastatusPluginData *pd, lua_State *L)
 error:
     destroy(pd);
     return LUASTATUS_ERR;
+}
+
+static
+int
+l_push_timeout(lua_State *L)
+{
+    LuastatusPluginData *pd = lua_touserdata(L, lua_upvalueindex(1));
+    Priv *p = pd->priv;
+
+    struct timespec timeout = ls_timespec_from_seconds(luaL_checknumber(L, 1));
+    if (ls_timespec_is_invalid(timeout)) {
+        return luaL_error(L, "invalid timeout");
+    }
+
+    pthread_spin_lock(&p->push_lock);
+    p->pushed_timeout = timeout;
+    pthread_spin_unlock(&p->push_lock);
+
+    return 0;
+}
+
+static
+void
+register_funcs(LuastatusPluginData *pd, lua_State *L)
+{
+    // L: table
+    lua_pushlightuserdata(L, pd); // L: table pd
+    lua_pushcclosure(L, l_push_timeout, 1); // L: table pd l_push_timeout
+    ls_lua_rawsetf(L, "push_timeout"); // L: table
 }
 
 static inline
@@ -149,8 +189,6 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     udev_monitor_enable_receiving(mon);
     const int fd = udev_monitor_get_fd(mon);
 
-    const struct timespec *ptimeout = ls_timespec_is_invalid(p->timeout) ? NULL : &p->timeout;
-
     fd_set fds;
     FD_ZERO(&fds);
 
@@ -162,8 +200,23 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     }
 
     while (1) {
+        struct timespec timeout;
+        pthread_spin_lock(&p->push_lock);
+        if (ls_timespec_is_invalid(p->pushed_timeout)) {
+            timeout = p->timeout;
+        } else {
+            timeout = p->pushed_timeout;
+            p->pushed_timeout = ls_timespec_invalid;
+        }
+        pthread_spin_unlock(&p->push_lock);
+
         FD_SET(fd, &fds);
-        const int r = pselect(fd + 1, &fds, NULL, NULL, ptimeout, &allsigs);
+        const int r = pselect(
+            fd + 1,
+            &fds, NULL, NULL,
+            ls_timespec_is_invalid(timeout) ? NULL : &timeout,
+            &allsigs);
+
         if (r < 0) {
             LS_FATALF(pd, "pselect: %s", ls_strerror_onstack(errno));
             break;
@@ -185,6 +238,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 
 LuastatusPluginIface luastatus_plugin_iface_v1 = {
     .init = init,
+    .register_funcs = register_funcs,
     .run = run,
     .destroy = destroy,
 };
