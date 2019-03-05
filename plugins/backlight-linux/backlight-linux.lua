@@ -16,11 +16,11 @@ function P.widget(tbl)
         },
         cb = function(t)
             if t.what ~= 'event' then
-                return nil
+                return tbl.cb(nil)
             end
             local s = t.syspath
             if tbl.syspath and tbl.syspath ~= s then
-                return nil
+                return tbl.cb(nil)
             end
 
             luastatus.plugin.push_timeout(timeout)
