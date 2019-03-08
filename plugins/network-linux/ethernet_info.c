@@ -13,8 +13,6 @@
 #include <limits.h>
 #include <unistd.h>
 
-#include "libls/osdep.h"
-
 int
 get_ethernet_speed(int sockfd, const char *iface)
 {
