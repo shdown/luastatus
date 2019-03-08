@@ -633,6 +633,7 @@ l_require_plugin(lua_State *L)
 // 1. Replaces some of the functions in the standard library with our thread-safe counterparts.
 // 2. Registers the /luastatus/ module (just creates a global table actually) except for the
 //    /luastatus.plugin/ and /luastatus.barlib/ submodules (created later).
+static
 void
 inject_libs(lua_State *L)
 {
