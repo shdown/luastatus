@@ -62,6 +62,9 @@ are table with the following entries (all are optional):
     Signal level, in dBm.
     Generally, -90 corresponds to the worst quality, and -20 to the best quality.
 
+  .. note:: Some drivers may only report ``signal_percent`` (presumably, rare), while others
+            may only report ``signal_dbm`` (presumably, the majority of drivers).
+
   - ``frequency``: number
 
     Radio frequency, in Hz.
