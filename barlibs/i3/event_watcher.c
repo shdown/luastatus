@@ -18,8 +18,8 @@
 
 #include "priv.h"
 
-// If this is to be incremented, /lua_checkstack()/ must be called in appropriate times, and the
-// depth of recursion in /push_object()/ potentially be limited in some way.
+// If this is to be incremented, /lua_checkstack()/ must be called at appropriate times, and the
+// depth of the recursion in /push_object()/ be potentially limited somehow.
 static const int DEPTH_LIMIT = 10;
 
 typedef struct {
@@ -145,22 +145,17 @@ static
 int
 token_helper(Context *ctx, Token token)
 {
-    switch (ctx->depth) {
-    case -1:
+    if (ctx->depth == -1) {
         if (token.type != TYPE_ARRAY_START) {
             LS_ERRF(ctx->bd, "(event watcher) expected '['");
             return 0;
         }
         ++ctx->depth;
-        break;
-
-    case 0:
-        if (token.type != TYPE_MAP_START) {
+    } else {
+        if (ctx->depth == 0 && token.type != TYPE_MAP_START) {
             LS_ERRF(ctx->bd, "(event watcher) expected '{'");
             return 0;
         }
-        /* fall thru */
-    default:
         LS_VECTOR_PUSH(ctx->tokens, token);
         switch (token.type) {
         case TYPE_ARRAY_START:
@@ -181,9 +176,7 @@ token_helper(Context *ctx, Token token)
         default:
             break;
         }
-        break;
     }
-
     return 1;
 }
 
