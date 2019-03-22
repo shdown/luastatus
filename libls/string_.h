@@ -132,7 +132,7 @@ ls_string_new_from_c(char c)
 
 // If an encoding error occurs:
 //   * if /NDEBUG/ is not defined, it aborts;
-//   * if /DDEBUG/ is defined, the behaviour is undefined.
+//   * if /DDEBUG/ is defined, an empty string is returned.
 LS_INHEADER
 LSString
 ls_string_new_from_vf(const char *fmt, va_list vl)
@@ -146,7 +146,7 @@ ls_string_new_from_vf(const char *fmt, va_list vl)
 
 // If an encoding error occurs:
 //   * if /NDEBUG/ is not defined, it aborts;
-//   * if /DDEBUG/ is defined, the behaviour is undefined.
+//   * if /DDEBUG/ is defined, an empty string is returned.
 LS_INHEADER LS_ATTR_PRINTF(1, 2)
 LSString
 ls_string_new_from_f(const char *fmt, ...)
