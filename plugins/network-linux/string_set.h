@@ -22,6 +22,9 @@ LS_INHEADER
 void
 string_set_reset(StringSet *s)
 {
+    for (size_t i = 0; i < s->size; ++i) {
+        free(s->data[i]);
+    }
     LS_VECTOR_CLEAR(*s);
 }
 
