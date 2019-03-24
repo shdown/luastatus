@@ -140,7 +140,7 @@ function P.widget(tbl)
         return get_unseen()
     end
 
-    local last_content
+    local last_content = tbl.cb(nil)
     return {
         plugin = 'timer',
         opts = {period = 0},
@@ -163,7 +163,8 @@ function P.widget(tbl)
                     log('!', obj)
                 end
                 luastatus.plugin.push_period(error_sleep_period)
-                return tbl.cb(nil)
+                last_content = tbl.cb(nil)
+                return last_content
             end
         end,
         event = tbl.event,
