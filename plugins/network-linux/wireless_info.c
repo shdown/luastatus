@@ -176,6 +176,15 @@ get_wireless_info(const char *iface, WirelessInfo *info)
     struct nl_sock *sk = NULL;
     struct nl_msg *msg = NULL;
 
+#define SEND() \
+    do { \
+        const int r_ = nl_send_sync(sk, msg); \
+        msg = NULL; /* nl_send_sync() calls nlmsg_free(), even on error */ \
+        if (r_ < 0) { \
+            goto done; \
+        } \
+    } while (0)
+
     if (!(sk = nl_socket_alloc())) {
         goto done;
     }
@@ -210,11 +219,7 @@ get_wireless_info(const char *iface, WirelessInfo *info)
         goto done;
     }
 
-    if (nl_send_sync(sk, msg) < 0) {
-        goto done;
-    }
-    // /nl_send_sync()/ calls /nlmsg_free()/
-    msg = NULL;
+    SEND();
 
     if (nl_socket_modify_cb(sk, NL_CB_VALID, NL_CB_CUSTOM, gwi_sta_cb, info) < 0) {
         goto done;
@@ -236,11 +241,7 @@ get_wireless_info(const char *iface, WirelessInfo *info)
         goto done;
     }
 
-    if (nl_send_sync(sk, msg) < 0) {
-        goto done;
-    }
-    // /nl_send_sync()/ calls /nlmsg_free()/
-    msg = NULL;
+    SEND();
 
     ok = true;
 done:
@@ -251,4 +252,5 @@ done:
         nl_socket_free(sk);
     }
     return ok;
+#undef SEND
 }
