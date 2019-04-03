@@ -10,7 +10,7 @@ bool
 is_wlan_iface(const char *iface)
 {
     FILE *f = NULL;
-    int fd = 0;
+    int fd = -1;
     char *line = NULL;
     size_t nline = 0;
     bool ret = false;
