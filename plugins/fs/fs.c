@@ -43,7 +43,7 @@ init(LuastatusPluginData *pd, lua_State *L)
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
         .paths = LS_VECTOR_NEW(),
-        .period = (struct timespec) {10, 0},
+        .period = (struct timespec) {.tv_sec = 10},
         .fifo = NULL,
     };
 

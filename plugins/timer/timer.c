@@ -39,7 +39,7 @@ init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
-        .period = (struct timespec) {1, 0},
+        .period = (struct timespec) {.tv_sec = 1},
         .fifo = NULL,
         .pushed_period = ls_timespec_invalid,
     };

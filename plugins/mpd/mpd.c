@@ -60,7 +60,7 @@ init(LuastatusPluginData *pd, lua_State *L)
         .port = 6600,
         .password = NULL,
         .timeout = ls_timespec_invalid,
-        .retry_in = (struct timespec) {10, 0},
+        .retry_in = (struct timespec) {.tv_sec = 10},
         .retry_fifo = NULL,
         .idle_str = NULL,
     };
