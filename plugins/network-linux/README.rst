@@ -53,17 +53,10 @@ are tables with the following entries (all are optional):
 
     802.11 network service set identifier (also known as the "network name").
 
-  - ``signal_percent``: integer
-
-    Signal level, in percents.
-
   - ``signal_dbm``: number
 
     Signal level, in dBm.
     Generally, -90 corresponds to the worst quality, and -20 to the best quality.
-
-  .. note:: Some drivers may only report ``signal_percent`` (presumably, rare), while others
-            may only report ``signal_dbm`` (presumably, the majority of drivers).
 
   - ``frequency``: number
 

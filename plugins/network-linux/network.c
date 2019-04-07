@@ -163,10 +163,6 @@ inject_wireless_info(lua_State *L, struct ifaddrs *addr)
         lua_pushstring(L, info.essid); // L: ? ifacetbl table str
         lua_setfield(L, -2, "ssid"); // L: ? ifacetbl table
     }
-    if (info.flags & HAS_SIGNAL_PERC) {
-        lua_pushinteger(L, info.signal_perc); // L: ? ifacetbl table int
-        lua_setfield(L, -2, "signal_percent"); // L: ? ifacetbl table
-    }
     if (info.flags & HAS_SIGNAL_DBM) {
         lua_pushnumber(L, info.signal_dbm); // L: ? ifacetbl table number
         lua_setfield(L, -2, "signal_dbm"); // L: ? ifacetbl table

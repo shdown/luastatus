@@ -50,6 +50,7 @@ gwi_sta_cb(struct nl_msg *msg, void *vud)
     struct nlattr *rinfo[NL80211_RATE_INFO_MAX + 1];
     struct nla_policy stats_policy[NL80211_STA_INFO_MAX + 1] = {
         [NL80211_STA_INFO_RX_BITRATE] = {.type = NLA_NESTED},
+        [NL80211_STA_INFO_SIGNAL] = {.type = NLA_U8},
     };
     struct nla_policy rate_policy[NL80211_RATE_INFO_MAX + 1] = {
         [NL80211_RATE_INFO_BITRATE] = {.type = NLA_U16},
@@ -69,6 +70,12 @@ gwi_sta_cb(struct nl_msg *msg, void *vud)
     {
         return NL_SKIP;
     }
+
+    if (sinfo[NL80211_STA_INFO_SIGNAL]) {
+        info->flags |= HAS_SIGNAL_DBM;
+        info->signal_dbm = (int8_t) nla_get_u8(sinfo[NL80211_STA_INFO_SIGNAL]);
+    }
+
     if (!sinfo[NL80211_STA_INFO_RX_BITRATE]) {
         return NL_SKIP;
     }
@@ -100,8 +107,6 @@ gwi_scan_cb(struct nl_msg *msg, void *vud)
         [NL80211_BSS_FREQUENCY] = {.type = NLA_U32},
         [NL80211_BSS_BSSID] = {.type = NLA_UNSPEC},
         [NL80211_BSS_INFORMATION_ELEMENTS] = {.type = NLA_UNSPEC},
-        [NL80211_BSS_SIGNAL_MBM] = {.type = NLA_U32},
-        [NL80211_BSS_SIGNAL_UNSPEC] = {.type = NLA_U8},
         [NL80211_BSS_STATUS] = {.type = NLA_U32},
     };
 
@@ -138,19 +143,6 @@ gwi_scan_cb(struct nl_msg *msg, void *vud)
     if (bss[NL80211_BSS_FREQUENCY]) {
         info->flags |= HAS_FREQUENCY;
         info->frequency = (double) nla_get_u32(bss[NL80211_BSS_FREQUENCY]) * 1e6;
-    }
-
-    if (bss[NL80211_BSS_SIGNAL_UNSPEC]) {
-        info->flags |= HAS_SIGNAL_PERC;
-        info->signal_perc = nla_get_u8(bss[NL80211_BSS_SIGNAL_UNSPEC]);
-    }
-
-    if (bss[NL80211_BSS_SIGNAL_MBM]) {
-        // NB: this (int32_t) cast is important, because the actual value is always negative.
-        // Everything breaks if you touch it, so please don't.
-        const int32_t dbm = (int32_t) nla_get_u32(bss[NL80211_BSS_SIGNAL_MBM]) / 100;
-        info->flags |= HAS_SIGNAL_DBM;
-        info->signal_dbm = dbm;
     }
 
     if (bss[NL80211_BSS_INFORMATION_ELEMENTS]) {

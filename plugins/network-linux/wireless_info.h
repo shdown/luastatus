@@ -8,19 +8,17 @@
 #define ESSID_MAX 32
 
 enum {
-    HAS_ESSID        = 1 << 0,
-    HAS_SIGNAL_PERC  = 1 << 1,
-    HAS_SIGNAL_DBM   = 1 << 2,
-    HAS_BITRATE      = 1 << 3,
-    HAS_FREQUENCY    = 1 << 4,
+    HAS_ESSID         = 1 << 0,
+    HAS_SIGNAL_DBM    = 1 << 1,
+    HAS_BITRATE       = 1 << 2,
+    HAS_FREQUENCY     = 1 << 3,
 };
 
 typedef struct {
     int      flags;
     char     essid[ESSID_MAX + 1];
     uint8_t  bssid[ETH_ALEN];
-    int      signal_perc;
-    int32_t  signal_dbm;
+    int      signal_dbm;
     unsigned bitrate;         // in units of 100 kbit/s
     double   frequency;
 } WirelessInfo;
