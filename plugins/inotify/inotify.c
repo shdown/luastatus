@@ -11,20 +11,18 @@
 #include <sys/inotify.h>
 #include <sys/select.h>
 #include <signal.h>
-#include <pthread.h>
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
 #include "include/plugin_utils.h"
 
 #include "libls/lua_utils.h"
-#include "libls/osdep.h"
 #include "libls/alloc_utils.h"
 #include "libls/cstring_utils.h"
 #include "libls/vector.h"
 #include "libls/time_utils.h"
 #include "libls/sig_utils.h"
-#include "libls/compdep.h"
+#include "libls/evloop_utils.h"
 
 #include "inotify_compat.h"
 
@@ -38,9 +36,7 @@ typedef struct {
     LS_VECTOR_OF(Watch) init_watch;
     bool greet;
     struct timespec timeout;
-
-    struct timespec pushed_timeout;
-    pthread_spinlock_t push_lock;
+    LSPushedTimeout pushed_timeout;
 } Priv;
 
 static
@@ -53,7 +49,7 @@ destroy(LuastatusPluginData *pd)
         free(p->init_watch.data[i].path);
     }
     LS_VECTOR_FREE(p->init_watch);
-    pthread_spin_destroy(&p->push_lock);
+    ls_pushed_timeout_destroy(&p->pushed_timeout);
     free(p);
 }
 
@@ -166,12 +162,8 @@ init(LuastatusPluginData *pd, lua_State *L)
         .init_watch = LS_VECTOR_NEW(),
         .greet = false,
         .timeout = ls_timespec_invalid,
-        .pushed_timeout = ls_timespec_invalid,
     };
-
-    if (pthread_spin_init(&p->push_lock, PTHREAD_PROCESS_PRIVATE) != 0) {
-        LS_PANIC("pthread_spin_init() failed, which is impossible");
-    }
+    ls_pushed_timeout_init(&p->pushed_timeout);
 
     if ((p->fd = compat_inotify_init(false, true)) < 0) {
         LS_FATALF(pd, "inotify_init: %s", ls_strerror_onstack(errno));
@@ -289,25 +281,6 @@ l_get_initial_wds(lua_State *L)
 }
 
 static
-int
-l_push_timeout(lua_State *L)
-{
-    LuastatusPluginData *pd = lua_touserdata(L, lua_upvalueindex(1));
-    Priv *p = pd->priv;
-
-    struct timespec timeout = ls_timespec_from_seconds(luaL_checknumber(L, 1));
-    if (ls_timespec_is_invalid(timeout)) {
-        return luaL_error(L, "invalid timeout");
-    }
-
-    pthread_spin_lock(&p->push_lock);
-    p->pushed_timeout = timeout;
-    pthread_spin_unlock(&p->push_lock);
-
-    return 0;
-}
-
-static
 void
 register_funcs(LuastatusPluginData *pd, lua_State *L)
 {
@@ -326,9 +299,9 @@ register_funcs(LuastatusPluginData *pd, lua_State *L)
     lua_pushcclosure(L, l_get_initial_wds, 1); // L: table closure
     ls_lua_rawsetf(L, "get_initial_wds"); // L: table
 
+    Priv *p = pd->priv;
     // L: table
-    lua_pushlightuserdata(L, pd); // L: table pd
-    lua_pushcclosure(L, l_push_timeout, 1); // L: table pd l_push_timeout
+    ls_pushed_timeout_push_luafunc(&p->pushed_timeout, L); // L: table func
     ls_lua_rawsetf(L, "push_timeout"); // L: table
 }
 
@@ -392,16 +365,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     ls_xsigfillset(&allsigs);
 
     while (1) {
-        struct timespec timeout;
-        pthread_spin_lock(&p->push_lock);
-        if (ls_timespec_is_invalid(p->pushed_timeout)) {
-            timeout = p->timeout;
-        } else {
-            timeout = p->pushed_timeout;
-            p->pushed_timeout = ls_timespec_invalid;
-        }
-        pthread_spin_unlock(&p->push_lock);
-
+        struct timespec timeout = ls_pushed_timeout_fetch(&p->pushed_timeout, p->timeout);
         FD_SET(p->fd, &fds);
         const int nfds = pselect(
             p->fd + 1,

@@ -13,16 +13,15 @@
 #include "include/plugin_utils.h"
 
 #include "libls/alloc_utils.h"
-#include "libls/io_utils.h"
 #include "libls/cstring_utils.h"
-#include "libls/osdep.h"
+#include "libls/evloop_utils.h"
 
 typedef struct {
     char *card;
     char *channel;
     bool capture;
     bool in_db;
-    int self_pipe[2];
+    LSSelfPipe self_pipe;
 } Priv;
 
 static
@@ -32,8 +31,7 @@ destroy(LuastatusPluginData *pd)
     Priv *p = pd->priv;
     free(p->card);
     free(p->channel);
-    close(p->self_pipe[0]);
-    close(p->self_pipe[1]);
+    ls_self_pipe_close(&p->self_pipe);
     free(p);
 }
 
@@ -47,7 +45,7 @@ init(LuastatusPluginData *pd, lua_State *L)
         .channel = NULL,
         .capture = false,
         .in_db = false,
-        .self_pipe = {-1, -1},
+        .self_pipe = LS_SELF_PIPE_NEW(),
     };
 
     PU_MAYBE_VISIT_STR_FIELD(-1, "card", "'card'", s,
@@ -74,14 +72,10 @@ init(LuastatusPluginData *pd, lua_State *L)
 
     PU_MAYBE_VISIT_BOOL_FIELD(-1, "make_self_pipe", "'make_self_pipe'", b,
         if (b) {
-            if (ls_cloexec_pipe(p->self_pipe) < 0) {
-                LS_FATALF(pd, "ls_cloexec_pipe: %s", ls_strerror_onstack(errno));
-                p->self_pipe[0] = -1;
-                p->self_pipe[1] = -1;
+            if (ls_self_pipe_open(&p->self_pipe) < 0) {
+                LS_FATALF(pd, "ls_self_pipe_open: %s", ls_strerror_onstack(errno));
                 goto error;
             }
-            ls_make_nonblock(p->self_pipe[0]);
-            ls_make_nonblock(p->self_pipe[1]);
         }
     );
 
@@ -93,27 +87,13 @@ error:
 }
 
 static
-int
-l_wake_up(lua_State *L)
-{
-    LuastatusPluginData *pd = lua_touserdata(L, lua_upvalueindex(1));
-    Priv *p = pd->priv;
-
-    ssize_t unused = write(p->self_pipe[1], "", 1); // write '\0'
-    (void) unused;
-
-    return 0;
-}
-
-static
 void
 register_funcs(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv;
-    if (p->self_pipe[0] >= 0) {
+    if (ls_self_pipe_is_opened(&p->self_pipe)) {
         // L: table
-        lua_pushlightuserdata(L, pd); // L: table bd
-        lua_pushcclosure(L, l_wake_up, 1); // L: table pd l_wake_up
+        ls_self_pipe_push_luafunc(&p->self_pipe, L); // L: table func
         ls_lua_rawsetf(L, "wake_up"); // L: table
     }
 }
@@ -205,8 +185,8 @@ iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     snd_mixer_selem_id_t *sid;
     bool sid_alloced = false;
     char *realname = NULL;
-    PollFdSet pollfds = (p->self_pipe[0] >= 0)
-        ? pollfd_set_new((struct pollfd [1]) {{.fd = p->self_pipe[0], .events = POLLIN}}, 1)
+    PollFdSet pollfds = ls_self_pipe_is_opened(&p->self_pipe)
+        ? pollfd_set_new((struct pollfd [1]) {{.fd = p->self_pipe.fds[0], .events = POLLIN}}, 1)
         : pollfd_set_new(NULL, 0);
 
     if (!(realname = xalloc_card_realname(p->card))) {
@@ -309,7 +289,7 @@ iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
             goto error;
         }
         if (pollfds.nprefix && (pollfds.data[0].revents & POLLIN)) {
-            ssize_t unused = read(p->self_pipe[0], (char [1]) {'\0'}, 1);
+            ssize_t unused = read(p->self_pipe.fds[0], (char [1]) {'\0'}, 1);
             (void) unused;
         }
 

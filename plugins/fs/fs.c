@@ -15,7 +15,7 @@
 #include "libls/vector.h"
 #include "libls/time_utils.h"
 #include "libls/cstring_utils.h"
-#include "libls/wakeup_fifo.h"
+#include "libls/evloop_utils.h"
 
 typedef struct {
     LS_VECTOR_OF(char *) paths;
@@ -43,7 +43,7 @@ init(LuastatusPluginData *pd, lua_State *L)
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
         .paths = LS_VECTOR_NEW(),
-        .period = (struct timespec) {.tv_sec = 10},
+        .period = {.tv_sec = 10},
         .fifo = NULL,
     };
 
@@ -101,7 +101,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     Priv *p = pd->priv;
 
     LSWakeupFifo w;
-    ls_wakeup_fifo_init(&w, p->fifo, p->period, NULL);
+    ls_wakeup_fifo_init(&w, p->fifo, NULL);
 
     while (1) {
         // make a call
@@ -118,7 +118,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         if (ls_wakeup_fifo_open(&w) < 0) {
             LS_WARNF(pd, "ls_wakeup_fifo_open: %s: %s", p->fifo, ls_strerror_onstack(errno));
         }
-        if (ls_wakeup_fifo_wait(&w) < 0) {
+        if (ls_wakeup_fifo_wait(&w, p->period) < 0) {
             LS_FATALF(pd, "ls_wakeup_fifo_wait: %s: %s", p->fifo, ls_strerror_onstack(errno));
             goto error;
         }

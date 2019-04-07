@@ -20,8 +20,7 @@
 #include "libls/vector.h"
 #include "libls/cstring_utils.h"
 #include "libls/time_utils.h"
-#include "libls/osdep.h"
-#include "libls/wakeup_fifo.h"
+#include "libls/evloop_utils.h"
 #include "libls/strarr.h"
 #include "libls/sig_utils.h"
 
@@ -60,7 +59,7 @@ init(LuastatusPluginData *pd, lua_State *L)
         .port = 6600,
         .password = NULL,
         .timeout = ls_timespec_invalid,
-        .retry_in = (struct timespec) {.tv_sec = 10},
+        .retry_in = {.tv_sec = 10},
         .retry_fifo = NULL,
         .idle_str = NULL,
     };
@@ -338,7 +337,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     Priv *p = pd->priv;
 
     LSWakeupFifo w;
-    ls_wakeup_fifo_init(&w, p->retry_fifo, p->retry_in, NULL);
+    ls_wakeup_fifo_init(&w, p->retry_fifo, NULL);
 
     char portstr[8];
     snprintf(portstr, sizeof(portstr), "%d", p->port);
@@ -363,7 +362,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         if (ls_wakeup_fifo_open(&w) < 0) {
             LS_WARNF(pd, "ls_wakeup_fifo_open: %s: %s", p->retry_fifo, ls_strerror_onstack(errno));
         }
-        if (ls_wakeup_fifo_wait(&w) < 0) {
+        if (ls_wakeup_fifo_wait(&w, p->retry_in) < 0) {
             LS_FATALF(pd, "ls_wakeup_fifo_wait: %s: %s", p->retry_fifo, ls_strerror_onstack(errno));
             goto error;
         }

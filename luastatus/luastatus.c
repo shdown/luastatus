@@ -25,11 +25,9 @@
 #include "libls/sig_utils.h"
 #include "libls/algo.h"
 #include "libls/cstring_utils.h"
+#include "libls/panic.h"
 
 #include "config.generated.h"
-
-// Assert that a /pthread_*/ function call was successful.
-#define PTH_ASSERT(Expr_) pth_assert_impl(Expr_, #Expr_, __FILE__, __LINE__)
 
 // Logging macros.
 #define FATALF(...)    sayf(LUASTATUS_LOG_FATAL,    __VA_ARGS__)
@@ -40,16 +38,16 @@
 #define DEBUGF(...)    sayf(LUASTATUS_LOG_DEBUG,    __VA_ARGS__)
 #define TRACEF(...)    sayf(LUASTATUS_LOG_TRACE,    __VA_ARGS__)
 
-// These ones are implemented as macros so that /pth_assert_impl/ calls receive the correct line
+// These ones are implemented as macros so that /LS_PTH_CHECK()/ calls receive the correct line
 // they are called at.
-#define LOCK_B()   PTH_ASSERT(pthread_mutex_lock(&barlib.set_mtx))
-#define UNLOCK_B() PTH_ASSERT(pthread_mutex_unlock(&barlib.set_mtx))
+#define LOCK_B()   LS_PTH_CHECK(pthread_mutex_lock(&barlib.set_mtx))
+#define UNLOCK_B() LS_PTH_CHECK(pthread_mutex_unlock(&barlib.set_mtx))
 
-#define LOCK_L(W_)   PTH_ASSERT(pthread_mutex_lock(&(W_)->L_mtx))
-#define UNLOCK_L(W_) PTH_ASSERT(pthread_mutex_unlock(&(W_)->L_mtx))
+#define LOCK_L(W_)   LS_PTH_CHECK(pthread_mutex_lock(&(W_)->L_mtx))
+#define UNLOCK_L(W_) LS_PTH_CHECK(pthread_mutex_unlock(&(W_)->L_mtx))
 
-#define LOCK_E(W_)   PTH_ASSERT(pthread_mutex_lock(widget_event_L_mtx(W_)))
-#define UNLOCK_E(W_) PTH_ASSERT(pthread_mutex_unlock(widget_event_L_mtx(W_)))
+#define LOCK_E(W_)   LS_PTH_CHECK(pthread_mutex_lock(widget_event_L_mtx(W_)))
+#define UNLOCK_E(W_) LS_PTH_CHECK(pthread_mutex_unlock(widget_event_L_mtx(W_)))
 
 // Allocates (as if with /malloc/) a buffer of sufficient size, prints the formatted zero-terminated
 // string into it (as if with /sprintf(<...>, Fmt_, __VA_ARGS__)/), and returns it as a /char */.
@@ -202,18 +200,6 @@ static struct {
     // Whether the map is frozen after all plugins and widgets have been initialized.
     bool frozen;
 } map = {.entries = LS_VECTOR_NEW(), .frozen = false};
-
-// The implementation part for the /PTH_ASSERT/ macro.
-static
-void
-pth_assert_impl(int ret, const char *expr, const char *file, int line)
-{
-    if (ret) {
-        fprintf(stderr, "PTH_ASSERT(%s) failed at %s:%d\nReason: %s\n",
-                expr, file, line, ls_strerror_onstack(ret));
-        abort();
-    }
-}
 
 // This function exists because /dlerror()/ may return /NULL/ even if /dlsym()/ returned /NULL/.
 static inline
@@ -378,7 +364,7 @@ barlib_init(const char *filename, const char *const *opts)
         goto error;
     }
 
-    PTH_ASSERT(pthread_mutex_init(&barlib.set_mtx, NULL));
+    LS_PTH_CHECK(pthread_mutex_init(&barlib.set_mtx, NULL));
 
     DEBUGF("barlib successfully initialized");
     return true;
@@ -412,7 +398,7 @@ barlib_destroy(void)
 {
     barlib.iface.destroy(&barlib.data);
     dlclose(barlib.dlhandle);
-    PTH_ASSERT(pthread_mutex_destroy(&barlib.set_mtx));
+    LS_PTH_CHECK(pthread_mutex_destroy(&barlib.set_mtx));
 }
 
 static
@@ -671,7 +657,7 @@ sepstate_maybe_init(void)
     luaL_openlibs(sepstate.L);
     inject_libs(sepstate.L);
     lua_pushcfunction(sepstate.L, l_error_handler); // sepstate.L: l_error_handler
-    PTH_ASSERT(pthread_mutex_init(&sepstate.L_mtx, NULL));
+    LS_PTH_CHECK(pthread_mutex_init(&sepstate.L_mtx, NULL));
 }
 
 static
@@ -683,7 +669,7 @@ sepstate_maybe_destroy(void)
         return;
     }
     lua_close(sepstate.L);
-    PTH_ASSERT(pthread_mutex_destroy(&sepstate.L_mtx));
+    LS_PTH_CHECK(pthread_mutex_destroy(&sepstate.L_mtx));
 }
 
 // Inspects the 'plugin' field of /w/'s /widget/ table; the /widget/ table is assumed to be on top
@@ -793,7 +779,7 @@ widget_init(Widget *w, const char *filename)
     DEBUGF("initializing widget '%s'", filename);
 
     lua_State *L = w->L = xnew_lua_state();
-    PTH_ASSERT(pthread_mutex_init(&w->L_mtx, NULL));
+    LS_PTH_CHECK(pthread_mutex_init(&w->L_mtx, NULL));
     w->filename = ls_xstrdup(filename);
     bool plugin_loaded = false;
 
@@ -849,7 +835,7 @@ widget_init(Widget *w, const char *filename)
 
 error:
     lua_close(L);
-    PTH_ASSERT(pthread_mutex_destroy(&w->L_mtx));
+    LS_PTH_CHECK(pthread_mutex_destroy(&w->L_mtx));
     free(w->filename);
     if (plugin_loaded) {
         plugin_unload(&w->plugin);
@@ -906,7 +892,7 @@ widget_destroy(Widget *w)
         w->plugin.iface.destroy(&w->data);
         plugin_unload(&w->plugin);
         lua_close(w->L);
-        PTH_ASSERT(pthread_mutex_destroy(&w->L_mtx));
+        LS_PTH_CHECK(pthread_mutex_destroy(&w->L_mtx));
         free(w->filename);
     }
 }
@@ -1264,7 +1250,7 @@ main(int argc, char **argv)
         } else {
             register_funcs(w->L, w);
             pthread_t t;
-            PTH_ASSERT(pthread_create(&t, NULL, widget_thread, w));
+            LS_PTH_CHECK(pthread_create(&t, NULL, widget_thread, w));
             LS_VECTOR_PUSH(threads, t);
         }
     }
@@ -1287,7 +1273,7 @@ main(int argc, char **argv)
 
     DEBUGF("joining all the widget threads");
     for (size_t i = 0; i < threads.size; ++i) {
-        PTH_ASSERT(pthread_join(threads.data[i], NULL));
+        LS_PTH_CHECK(pthread_join(threads.data[i], NULL));
     }
 
     // Either hang or exit.

@@ -5,7 +5,6 @@
 #include <lua.h>
 #include <stdlib.h>
 #include <libudev.h>
-#include <pthread.h>
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
@@ -14,9 +13,8 @@
 #include "libls/alloc_utils.h"
 #include "libls/time_utils.h"
 #include "libls/cstring_utils.h"
-#include "libls/wakeup_fifo.h"
+#include "libls/evloop_utils.h"
 #include "libls/sig_utils.h"
-#include "libls/panic.h"
 
 typedef struct {
     char *subsystem;
@@ -25,9 +23,7 @@ typedef struct {
     bool kernel_ev;
     bool greet;
     struct timespec timeout;
-
-    struct timespec pushed_timeout;
-    pthread_spinlock_t push_lock;
+    LSPushedTimeout pushed_timeout;
 } Priv;
 
 static
@@ -38,7 +34,7 @@ destroy(LuastatusPluginData *pd)
     free(p->subsystem);
     free(p->devtype);
     free(p->tag);
-    pthread_spin_destroy(&p->push_lock);
+    ls_pushed_timeout_destroy(&p->pushed_timeout);
     free(p);
 }
 
@@ -54,12 +50,8 @@ init(LuastatusPluginData *pd, lua_State *L)
         .kernel_ev = false,
         .greet = false,
         .timeout = ls_timespec_invalid,
-        .pushed_timeout = ls_timespec_invalid,
     };
-
-    if (pthread_spin_init(&p->push_lock, PTHREAD_PROCESS_PRIVATE) != 0) {
-        LS_PANIC("pthread_spin_init() failed, which is impossible");
-    }
+    ls_pushed_timeout_init(&p->pushed_timeout);
 
     PU_MAYBE_VISIT_STR_FIELD(-1, "subsystem", "'subsystem'", s,
         p->subsystem = ls_xstrdup(s);
@@ -96,31 +88,12 @@ error:
 }
 
 static
-int
-l_push_timeout(lua_State *L)
-{
-    LuastatusPluginData *pd = lua_touserdata(L, lua_upvalueindex(1));
-    Priv *p = pd->priv;
-
-    struct timespec timeout = ls_timespec_from_seconds(luaL_checknumber(L, 1));
-    if (ls_timespec_is_invalid(timeout)) {
-        return luaL_error(L, "invalid timeout");
-    }
-
-    pthread_spin_lock(&p->push_lock);
-    p->pushed_timeout = timeout;
-    pthread_spin_unlock(&p->push_lock);
-
-    return 0;
-}
-
-static
 void
 register_funcs(LuastatusPluginData *pd, lua_State *L)
 {
+    Priv *p = pd->priv;
     // L: table
-    lua_pushlightuserdata(L, pd); // L: table pd
-    lua_pushcclosure(L, l_push_timeout, 1); // L: table pd l_push_timeout
+    ls_pushed_timeout_push_luafunc(&p->pushed_timeout, L); // L: table func
     ls_lua_rawsetf(L, "push_timeout"); // L: table
 }
 
@@ -200,16 +173,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     }
 
     while (1) {
-        struct timespec timeout;
-        pthread_spin_lock(&p->push_lock);
-        if (ls_timespec_is_invalid(p->pushed_timeout)) {
-            timeout = p->timeout;
-        } else {
-            timeout = p->pushed_timeout;
-            p->pushed_timeout = ls_timespec_invalid;
-        }
-        pthread_spin_unlock(&p->push_lock);
-
+        struct timespec timeout = ls_pushed_timeout_fetch(&p->pushed_timeout, p->timeout);
         FD_SET(fd, &fds);
         const int r = pselect(
             fd + 1,
