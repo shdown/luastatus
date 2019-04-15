@@ -258,6 +258,19 @@ make_call(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, bool timeout)
 }
 
 static
+void
+setup_sock_timeout(LuastatusPluginData *pd, int fd)
+{
+    Priv *p = pd->priv;
+    const struct timeval timeout = p->timeout;
+    if (!ls_timeval_is_invalid(timeout)) {
+        if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0) {
+            LS_WARNF(pd, "setsockopt: %s", ls_strerror_onstack(errno));
+        }
+    }
+}
+
+static
 bool
 interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
@@ -276,12 +289,7 @@ interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         goto error;
     }
 
-    const struct timeval timeout = ((Priv *) pd->priv)->timeout;
-    if (!ls_timeval_is_invalid(timeout)) {
-        if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0) {
-            LS_WARNF(pd, "setsockopt: %s", ls_strerror_onstack(errno));
-        }
-    }
+    setup_sock_timeout(pd, fd);
 
     // netlink(7) says "8192 to avoid message truncation on platforms with page size > 4096"
     char buf[8192];
