@@ -72,11 +72,9 @@ void
 register_funcs(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv;
-    if (ls_self_pipe_is_opened(&p->self_pipe)) {
-        // L: table
-        ls_self_pipe_push_luafunc(&p->self_pipe, L); // L: table func
-        lua_setfield(L, -2, "wake_up"); // L: table
-    }
+    // L: table
+    ls_self_pipe_push_luafunc(&p->self_pipe, L); // L: table func
+    lua_setfield(L, -2, "wake_up"); // L: table
 }
 
 typedef struct {

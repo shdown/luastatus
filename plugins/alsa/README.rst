@@ -34,7 +34,8 @@ The following options are supported:
 
 * ``make_self_pipe``: boolean
 
-  If true, the ``wake_up()`` (see the `Functions`_ section) function will be available. Defaults to false.
+  If true, the ``wake_up()`` (see the `Functions`_ section) function will be available. Defaults to
+  false.
 
 ``cb`` argument
 ===============
@@ -62,4 +63,5 @@ The following functions are provided:
 
     Forces a call to ``cb``.
 
-    (Only provided if the ``make_self_pipe`` option is set to ``true``.)
+    Only available if the ``make_self_pipe`` option was set to ``true``; otherwise, it throws an
+    error.
