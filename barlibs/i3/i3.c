@@ -203,7 +203,7 @@ register_funcs(LuastatusBarlibData *bd, lua_State *L)
     (void) bd;
     // L: table
     lua_pushcfunction(L, l_pango_escape); // L: table l_pango_escape
-    ls_lua_rawsetf(L, "pango_escape"); // L: table
+    lua_setfield(L, -2, "pango_escape"); // L: table
 }
 
 // Appends a JSON segment generated from table at position /table_pos/ on /L/'s stack, to

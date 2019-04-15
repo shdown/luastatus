@@ -9,7 +9,6 @@
 #include "include/plugin_utils.h"
 
 #include "libls/alloc_utils.h"
-#include "libls/lua_utils.h"
 #include "libls/time_utils.h"
 #include "libls/cstring_utils.h"
 #include "libls/evloop_utils.h"
@@ -66,7 +65,7 @@ register_funcs(LuastatusPluginData *pd, lua_State *L)
     Priv *p = pd->priv;
     // L: table
     ls_pushed_timeout_push_luafunc(&p->pushed_timeout, L); // L: table func
-    ls_lua_rawsetf(L, "push_period"); // L: table
+    lua_setfield(L, -2, "push_period"); // L: table
 }
 
 static

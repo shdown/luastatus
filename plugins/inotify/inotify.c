@@ -287,22 +287,22 @@ register_funcs(LuastatusPluginData *pd, lua_State *L)
     // L: table
     lua_pushlightuserdata(L, pd); // L: table pd
     lua_pushcclosure(L, l_add_watch, 1); // L: table closure
-    ls_lua_rawsetf(L, "add_watch"); // L: table
+    lua_setfield(L, -2, "add_watch"); // L: table
 
     // L: table
     lua_pushlightuserdata(L, pd); // L: table pd
     lua_pushcclosure(L, l_remove_watch, 1); // L: table closure
-    ls_lua_rawsetf(L, "remove_watch"); // L: table
+    lua_setfield(L, -2, "remove_watch"); // L: table
 
     // L: table
     lua_pushlightuserdata(L, pd); // L: table pd
     lua_pushcclosure(L, l_get_initial_wds, 1); // L: table closure
-    ls_lua_rawsetf(L, "get_initial_wds"); // L: table
+    lua_setfield(L, -2, "get_initial_wds"); // L: table
 
     Priv *p = pd->priv;
     // L: table
     ls_pushed_timeout_push_luafunc(&p->pushed_timeout, L); // L: table func
-    ls_lua_rawsetf(L, "push_timeout"); // L: table
+    lua_setfield(L, -2, "push_timeout"); // L: table
 }
 
 static

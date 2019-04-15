@@ -532,7 +532,7 @@ l_error_handler(lua_State *L)
 {
     // L: error
     ls_lua_pushg(L); // L: error _G
-    ls_lua_rawgetf(L, LUA_DBLIBNAME); // L: error _G debug
+    lua_getfield(L, -1, LUA_DBLIBNAME); // L: error _G debug
     lua_getfield(L, -1, "traceback"); // L: error _G debug traceback
     lua_pushstring(L, get_lua_error_msg(L, 1)); // L: error _G debug traceback msg
     lua_pushinteger(L, 2); // L: error _G debug traceback msg level
@@ -626,13 +626,13 @@ inject_libs(lua_State *L)
     lua_getglobal(L, "os"); // L: ? os
 
     lua_pushcfunction(L, l_os_exit); // L: ? os l_os_exit
-    ls_lua_rawsetf(L, "exit"); // L: ? os
+    lua_setfield(L, -2, "exit"); // L: ? os
 
     lua_pushcfunction(L, l_os_getenv); // L: ? os l_os_getenv
-    ls_lua_rawsetf(L, "getenv"); // L: ? os
+    lua_setfield(L, -2, "getenv"); // L: ? os
 
     lua_pushcfunction(L, l_os_setlocale); // L: ? os l_os_setlocale
-    ls_lua_rawsetf(L, "setlocale"); // L: ? os
+    lua_setfield(L, -2, "setlocale"); // L: ? os
 
     lua_pop(L, 1); // L: ?
 
@@ -680,7 +680,7 @@ widget_init_inspect_plugin(Widget *w)
 {
     lua_State *L = w->L;
     // L: ? widget
-    ls_lua_rawgetf(L, "plugin"); // L: ? widget plugin
+    lua_getfield(L, -1, "plugin"); // L: ? widget plugin
     if (!lua_isstring(L, -1)) {
         ERRF("'widget.plugin': expected string, found %s", luaL_typename(L, -1));
         return false;
@@ -701,7 +701,7 @@ widget_init_inspect_cb(Widget *w)
 {
     lua_State *L = w->L;
     // L: ? widget
-    ls_lua_rawgetf(L, "cb"); // L: ? widget plugin
+    lua_getfield(L, -1, "cb"); // L: ? widget plugin
     if (!lua_isfunction(L, -1)) {
         ERRF("'widget.cb': expected function, found %s", luaL_typename(L, -1));
         return false;
@@ -718,7 +718,7 @@ widget_init_inspect_event(Widget *w, const char *filename)
 {
     lua_State *L = w->L;
     // L: ? widget
-    ls_lua_rawgetf(L, "event"); // L: ? widget event
+    lua_getfield(L, -1, "event"); // L: ? widget event
     switch (lua_type(L, -1)) {
     case LUA_TNIL:
     case LUA_TFUNCTION:
@@ -758,7 +758,7 @@ bool
 widget_init_inspect_push_opts(Widget *w)
 {
     lua_State *L = w->L;
-    ls_lua_rawgetf(L, "opts"); // L: ? widget opts
+    lua_getfield(L, -1, "opts"); // L: ? widget opts
     switch (lua_type(L, -1)) {
     case LUA_TTABLE:
         return true;
@@ -799,7 +799,7 @@ widget_init(Widget *w, const char *filename)
     // L: l_error_handler
 
     ls_lua_pushg(L); // L: l_error_handler _G
-    ls_lua_rawgetf(L, "widget"); // L: l_error_handler _G widget
+    lua_getfield(L, -1, "widget"); // L: l_error_handler _G widget
     if (!lua_istable(L, -1)) {
         ERRF("'widget': expected table, found %s", luaL_typename(L, -1));
         goto error;
@@ -905,7 +905,7 @@ register_funcs(lua_State *L, Widget *w)
 {
     // L: ?
     ls_lua_pushg(L); // L: ? _G
-    ls_lua_rawgetf(L, "luastatus"); // L: ? _G luastatus
+    lua_getfield(L, -1, "luastatus"); // L: ? _G luastatus
 
     if (!lua_istable(L, -1)) {
         assert(w);
@@ -924,7 +924,7 @@ register_funcs(lua_State *L, Widget *w)
         barlib.iface.register_funcs(&barlib.data, L); // L: ? _G luastatus table
         assert(lua_gettop(L) == old_top);
 
-        ls_lua_rawsetf(L, "barlib"); // L: ? _G luastatus
+        lua_setfield(L, -2, "barlib"); // L: ? _G luastatus
     }
     if (w && w->plugin.iface.register_funcs) {
         lua_newtable(L); // L: ? _G luastatus table
@@ -934,7 +934,7 @@ register_funcs(lua_State *L, Widget *w)
         w->plugin.iface.register_funcs(&w->data, L); // L: ? _G luastatus table
         assert(lua_gettop(L) == old_top);
 
-        ls_lua_rawsetf(L, "plugin"); // L: ? _G luastatus
+        lua_setfield(L, -2, "plugin"); // L: ? _G luastatus
     }
 
 done:

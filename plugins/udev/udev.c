@@ -94,7 +94,7 @@ register_funcs(LuastatusPluginData *pd, lua_State *L)
     Priv *p = pd->priv;
     // L: table
     ls_pushed_timeout_push_luafunc(&p->pushed_timeout, L); // L: table func
-    ls_lua_rawsetf(L, "push_timeout"); // L: table
+    lua_setfield(L, -2, "push_timeout"); // L: table
 }
 
 static inline
