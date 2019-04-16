@@ -23,7 +23,9 @@ ls_string_append_vf(LSString *s, const char *fmt, va_list vl)
     }
     if ((size_t) r >= navail) {
         LS_VECTOR_ENSURE(*s, s->size + r + 1);
-        vsnprintf(s->data + s->size, (size_t) r + 1, fmt, vl2);
+        if (vsnprintf(s->data + s->size, (size_t) r + 1, fmt, vl2) < 0) {
+            goto cleanup;
+        }
     }
     s->size += (size_t) r;
     ret = true;
