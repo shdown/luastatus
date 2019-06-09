@@ -21,6 +21,7 @@ typedef struct {
     char *channel;
     bool capture;
     bool in_db;
+    int timeout_ms;
     LSSelfPipe self_pipe;
 } Priv;
 
@@ -45,6 +46,7 @@ init(LuastatusPluginData *pd, lua_State *L)
         .channel = NULL,
         .capture = false,
         .in_db = false,
+        .timeout_ms = -1,
         .self_pipe = LS_SELF_PIPE_NEW(),
     };
 
@@ -68,6 +70,15 @@ init(LuastatusPluginData *pd, lua_State *L)
 
     PU_MAYBE_VISIT_BOOL_FIELD(-1, "in_db", "'in_db'", b,
         p->in_db = b;
+    );
+
+    PU_MAYBE_VISIT_NUM_FIELD(-1, "timeout", "'timeout'", sec,
+        const double msec = sec * 1000;
+        if (msec < 0 || msec > INT_MAX) {
+            LS_FATALF(pd, "invalid 'timeout'");
+            goto error;
+        }
+        p->timeout_ms = msec;
     );
 
     PU_MAYBE_VISIT_BOOL_FIELD(-1, "make_self_pipe", "'make_self_pipe'", b,
@@ -247,31 +258,35 @@ iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 
     ret = true;
 
+    bool is_timeout = false;
     while (1) {
         lua_State *L = funcs.call_begin(pd->userdata);
-        lua_createtable(L, 0, 2); // L: table
+        if (is_timeout) {
+            lua_pushnil(L); // L: nil
+        } else {
+            lua_createtable(L, 0, 2); // L: table
 
-        lua_createtable(L, 0, 3); // L: table table
-        long pmin, pmax;
-        if (get_range(elem, &pmin, &pmax) >= 0) {
-            lua_pushnumber(L, pmin); // L: table table pmin
-            lua_setfield(L, -2, "min"); // L: table table
-            lua_pushnumber(L, pmax); // L: table table pmax
-            lua_setfield(L, -2, "max"); // L: table table
-        }
-        long pcur;
-        if (get_cur(elem, 0, &pcur) >= 0) {
-            lua_pushnumber(L, pcur); // L: table table pcur
-            lua_setfield(L, -2, "cur"); // L: table table
-        }
-        lua_setfield(L, -2, "vol"); // L: table
+            lua_createtable(L, 0, 3); // L: table table
+            long pmin, pmax;
+            if (get_range(elem, &pmin, &pmax) >= 0) {
+                lua_pushnumber(L, pmin); // L: table table pmin
+                lua_setfield(L, -2, "min"); // L: table table
+                lua_pushnumber(L, pmax); // L: table table pmax
+                lua_setfield(L, -2, "max"); // L: table table
+            }
+            long pcur;
+            if (get_cur(elem, 0, &pcur) >= 0) {
+                lua_pushnumber(L, pcur); // L: table table pcur
+                lua_setfield(L, -2, "cur"); // L: table table
+            }
+            lua_setfield(L, -2, "vol"); // L: table
 
-        int notmute;
-        if (get_switch(elem, 0, &notmute) >= 0) {
-            lua_pushboolean(L, !notmute); // L: table !notmute
-            lua_setfield(L, -2, "mute"); // L: table
+            int notmute;
+            if (get_switch(elem, 0, &notmute) >= 0) {
+                lua_pushboolean(L, !notmute); // L: table !notmute
+                lua_setfield(L, -2, "mute"); // L: table
+            }
         }
-
         funcs.call_end(pd->userdata);
 
         pollfd_set_resize(&pollfds, pollfds.nprefix + snd_mixer_poll_descriptors_count(mixer));
@@ -280,15 +295,32 @@ iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
             pollfds.data + pollfds.nprefix,
             pollfds.size - pollfds.nprefix);
 
-        int r;
-        while ((r = poll(pollfds.data, pollfds.size, -1)) < 0 && errno == EINTR) {}
+        const int r = poll(pollfds.data, pollfds.size, p->timeout_ms);
         if (r < 0) {
-            LS_FATALF(pd, "poll: %s", ls_strerror_onstack(errno));
-            goto error;
-        }
-        if (pollfds.nprefix && (pollfds.data[0].revents & POLLIN)) {
-            ssize_t unused = read(p->self_pipe.fds[0], (char [1]) {'\0'}, 1);
-            (void) unused;
+            if (errno == EINTR) {
+                if (p->timeout_ms == -1) {
+                    is_timeout = false;
+                    continue;
+                } else {
+                    LS_WARNF(pd, "poll: interrupted by signal, reporting as timeout");
+                    is_timeout = true;
+                    continue;
+                }
+            } else {
+                LS_FATALF(pd, "poll: %s", ls_strerror_onstack(errno));
+                goto error;
+            }
+
+        } else if (r == 0) {
+            is_timeout = true;
+
+        } else {
+            is_timeout = false;
+
+            if (pollfds.nprefix && (pollfds.data[0].revents & POLLIN)) {
+                ssize_t unused = read(p->self_pipe.fds[0], (char [1]) {'\0'}, 1);
+                (void) unused;
+            }
         }
 
         unsigned short revents;
