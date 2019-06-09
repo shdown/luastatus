@@ -32,6 +32,11 @@ The following options are supported:
 
   Whether or not this is a capture stream, as opposed to a playback one. Defaults to false.
 
+* ``timeout``: number
+
+  If specified and not negative, this plugin will call ``cb`` with ``nil`` argument whenever the
+  channel does not change its state in ``timeout`` seconds since the previous call to ``cb``.
+
 * ``make_self_pipe``: boolean
 
   If true, the ``wake_up()`` (see the `Functions`_ section) function will be available. Defaults to
@@ -39,7 +44,9 @@ The following options are supported:
 
 ``cb`` argument
 ===============
-A table with the following entries:
+On timeout, ``nil`` (if the ``timeout`` option has been specified).
+
+Otherwise, the argument is a table with the following entries:
 
 * ``mute``: boolean
 

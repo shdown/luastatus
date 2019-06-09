@@ -72,13 +72,15 @@ init(LuastatusPluginData *pd, lua_State *L)
         p->in_db = b;
     );
 
-    PU_MAYBE_VISIT_NUM_FIELD(-1, "timeout", "'timeout'", sec,
-        const double msec = sec * 1000;
-        if (msec < 0 || msec > INT_MAX) {
-            LS_FATALF(pd, "invalid 'timeout'");
-            goto error;
+    PU_MAYBE_VISIT_NUM_FIELD(-1, "timeout", "'timeout'", nsec,
+        if (nsec >= 0) {
+            double nmillis = nsec * 1000;
+            if (nmillis > INT_MAX) {
+                LS_FATALF(pd, "'timeout' is too large");
+                goto error;
+            }
+            p->timeout_ms = nmillis;
         }
-        p->timeout_ms = msec;
     );
 
     PU_MAYBE_VISIT_BOOL_FIELD(-1, "make_self_pipe", "'make_self_pipe'", b,
@@ -146,6 +148,64 @@ xalloc_card_realname(const char *nicename)
 cleanup:
     snd_ctl_card_info_free(info);
     return buf;
+}
+
+typedef struct {
+    int (*get_range)(snd_mixer_elem_t *, long *, long *);
+    int (*get_cur)(snd_mixer_elem_t *, snd_mixer_selem_channel_id_t, long *);
+    int (*get_switch)(snd_mixer_elem_t *, snd_mixer_selem_channel_id_t, int *);
+} GetVolFuncs;
+
+static
+GetVolFuncs
+select_gv_funcs(bool capture, bool in_db)
+{
+    return (GetVolFuncs) {
+        .get_range =
+            capture ? (in_db ? snd_mixer_selem_get_capture_dB_range
+                             : snd_mixer_selem_get_capture_volume_range)
+                    : (in_db ? snd_mixer_selem_get_playback_dB_range
+                             : snd_mixer_selem_get_playback_volume_range),
+        .get_cur =
+            capture ? (in_db ? snd_mixer_selem_get_capture_dB
+                             : snd_mixer_selem_get_capture_volume)
+                    : (in_db ? snd_mixer_selem_get_playback_dB
+                             : snd_mixer_selem_get_playback_volume),
+
+        .get_switch =
+            capture ? snd_mixer_selem_get_capture_switch
+                    : snd_mixer_selem_get_playback_switch,
+    };
+
+}
+
+static
+void
+push_vol_info(lua_State *L, snd_mixer_elem_t *elem, GetVolFuncs gv_funcs)
+{
+    lua_createtable(L, 0, 2); // L: table
+
+    lua_createtable(L, 0, 3); // L: table table
+    long pmin, pmax;
+    if (gv_funcs.get_range(elem, &pmin, &pmax) >= 0) {
+        lua_pushnumber(L, pmin); // L: table table pmin
+        lua_setfield(L, -2, "min"); // L: table table
+        lua_pushnumber(L, pmax); // L: table table pmax
+        lua_setfield(L, -2, "max"); // L: table table
+    }
+    long pcur;
+    if (gv_funcs.get_cur(elem, 0, &pcur) >= 0) {
+        lua_pushnumber(L, pcur); // L: table table pcur
+        lua_setfield(L, -2, "cur"); // L: table table
+    }
+    lua_setfield(L, -2, "vol"); // L: table
+
+    int notmute;
+    if (gv_funcs.get_switch(elem, 0, &notmute) >= 0) {
+        lua_pushboolean(L, !notmute); // L: table !notmute
+        lua_setfield(L, -2, "mute"); // L: table
+    }
+    // L: table
 }
 
 typedef struct {
@@ -240,52 +300,16 @@ iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         goto error;
     }
 
-    int (*get_range)(snd_mixer_elem_t *, long *, long *) =
-        p->capture ? (p->in_db ? snd_mixer_selem_get_capture_dB_range
-                               : snd_mixer_selem_get_capture_volume_range)
-                   : (p->in_db ? snd_mixer_selem_get_playback_dB_range
-                               : snd_mixer_selem_get_playback_volume_range);
-
-    int (*get_cur)(snd_mixer_elem_t *, snd_mixer_selem_channel_id_t, long *) =
-        p->capture ? (p->in_db ? snd_mixer_selem_get_capture_dB
-                               : snd_mixer_selem_get_capture_volume)
-                   : (p->in_db ? snd_mixer_selem_get_playback_dB
-                               : snd_mixer_selem_get_playback_volume);
-
-    int (*get_switch)(snd_mixer_elem_t *, snd_mixer_selem_channel_id_t, int *) =
-        p->capture ? snd_mixer_selem_get_capture_switch
-                   : snd_mixer_selem_get_playback_switch;
-
     ret = true;
 
+    GetVolFuncs gv_funcs = select_gv_funcs(p->capture, p->in_db);
     bool is_timeout = false;
     while (1) {
         lua_State *L = funcs.call_begin(pd->userdata);
         if (is_timeout) {
             lua_pushnil(L); // L: nil
         } else {
-            lua_createtable(L, 0, 2); // L: table
-
-            lua_createtable(L, 0, 3); // L: table table
-            long pmin, pmax;
-            if (get_range(elem, &pmin, &pmax) >= 0) {
-                lua_pushnumber(L, pmin); // L: table table pmin
-                lua_setfield(L, -2, "min"); // L: table table
-                lua_pushnumber(L, pmax); // L: table table pmax
-                lua_setfield(L, -2, "max"); // L: table table
-            }
-            long pcur;
-            if (get_cur(elem, 0, &pcur) >= 0) {
-                lua_pushnumber(L, pcur); // L: table table pcur
-                lua_setfield(L, -2, "cur"); // L: table table
-            }
-            lua_setfield(L, -2, "vol"); // L: table
-
-            int notmute;
-            if (get_switch(elem, 0, &notmute) >= 0) {
-                lua_pushboolean(L, !notmute); // L: table !notmute
-                lua_setfield(L, -2, "mute"); // L: table
-            }
+            push_vol_info(L, elem, gv_funcs); // L: table
         }
         funcs.call_end(pd->userdata);
 
