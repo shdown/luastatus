@@ -54,7 +54,7 @@ typedef struct {
     // An array in which all the JSON strings, including keys, are stored.
     LSStringArray strarr;
 
-    // Current event's parameters as key-value pairs.
+    // A flat list of current event's tokens.
     LS_VECTOR_OF(Token) tokens;
 
     // Current event's widget index, or a negative value if is not known yet or invalid.
