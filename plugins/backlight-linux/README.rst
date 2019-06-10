@@ -34,11 +34,11 @@ The following functions are provided:
 
         Path to the device directory, e.g.::
 
-            /sys/devices/pci0000:00/0000:00:02.0/drm/card0/card0-eDP-1/intel_backlight/brightness
+            /sys/devices/pci0000:00/0000:00:02.0/drm/card0/card0-eDP-1/intel_backlight
 
     - ``timeout``: number
 
-        Backlight infomation show timeout in seconds (default is 2).
+        Backlight information is hidden after the timeout in seconds (default is 2).
 
     - ``event``
 
