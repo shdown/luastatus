@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <assert.h>
+#include <limits.h>
+#include <stdbool.h>
 #include <pulse/pulseaudio.h>
 
 #include "include/plugin_v1.h"

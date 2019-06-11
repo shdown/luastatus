@@ -1,6 +1,7 @@
 #include <errno.h>
 #include <lua.h>
 #include <stdbool.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
