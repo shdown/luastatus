@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <lauxlib.h>
+#include <sys/stat.h>
 
 #include "time_utils.h"
 #include "panic.h"
@@ -127,19 +128,34 @@ ls_wakeup_fifo_init(LSWakeupFifo *w, const char *fifo, sigset_t *sigmask)
 int
 ls_wakeup_fifo_open(LSWakeupFifo *w)
 {
+    int err;
     if (w->fifo_fd < 0 && w->fifo) {
         w->fifo_fd = open(w->fifo, O_RDONLY | O_CLOEXEC | O_NONBLOCK);
         if (w->fifo_fd < 0) {
             return -1;
         }
+
+        struct stat sb;
+        if (fstat(w->fifo_fd, &sb) < 0) {
+            err = errno;
+            goto error;
+        } else if (!S_ISFIFO(sb.st_mode)) {
+            err = -EINVAL;
+            goto error;
+        }
+
         if (w->fifo_fd >= FD_SETSIZE) {
-            close(w->fifo_fd);
-            w->fifo_fd = -1;
-            errno = EMFILE;
-            return -1;
+            err = EMFILE;
+            goto error;
         }
     }
     return 0;
+
+error:
+    close(w->fifo_fd);
+    w->fifo_fd = -1;
+    errno = err;
+    return -1;
 }
 
 int
