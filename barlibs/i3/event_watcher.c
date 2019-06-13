@@ -87,13 +87,19 @@ push_object(lua_State *L, Context *ctx, size_t *index)
         while (ctx->tokens.data[*index].type != TYPE_MAP_END) {
             Token key = ctx->tokens.data[*index];
             assert(key.type == TYPE_STRING_KEY);
-            size_t ns;
-            const char *s = ls_strarr_at(ctx->strarr, key.as.str_idx, &ns);
-            lua_pushlstring(L, s, ns); // L: table key
+
+            // To limit the depth of recursion to /N + O(1)/, where /N/ is the maximum /ctx->depth/
+            // encountered, we have to push the value first. Unfortunately, /lua_settable()/ expects
+            // the key to be pushed first. So we simply swap them with /lua_insert()/.
 
             ++*index;
-            push_object(L, ctx, index); // L: table key value
+            push_object(L, ctx, index); // L: table value
 
+            size_t ns;
+            const char *s = ls_strarr_at(ctx->strarr, key.as.str_idx, &ns);
+            lua_pushlstring(L, s, ns); // L: table value key
+
+            lua_insert(L, -2); // L: table key value
             lua_settable(L, -3); // L: table
         }
         break;
