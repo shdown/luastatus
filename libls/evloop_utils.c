@@ -128,33 +128,34 @@ ls_wakeup_fifo_init(LSWakeupFifo *w, const char *fifo, sigset_t *sigmask)
 int
 ls_wakeup_fifo_open(LSWakeupFifo *w)
 {
-    int err;
     if (w->fifo_fd < 0 && w->fifo) {
         w->fifo_fd = open(w->fifo, O_RDONLY | O_CLOEXEC | O_NONBLOCK);
         if (w->fifo_fd < 0) {
-            return -1;
+            goto error;
         }
 
         struct stat sb;
         if (fstat(w->fifo_fd, &sb) < 0) {
-            err = errno;
             goto error;
-        } else if (!S_ISFIFO(sb.st_mode)) {
-            err = -EINVAL;
+        }
+        if (!S_ISFIFO(sb.st_mode)) {
+            errno = -EINVAL;
             goto error;
         }
 
         if (w->fifo_fd >= FD_SETSIZE) {
-            err = EMFILE;
+            errno = EMFILE;
             goto error;
         }
     }
     return 0;
 
 error:
+    (void) 0;
+    int saved_errno = errno;
     close(w->fifo_fd);
     w->fifo_fd = -1;
-    errno = err;
+    errno = saved_errno;
     return -1;
 }
 
