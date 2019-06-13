@@ -8,6 +8,7 @@
 #include <limits.h>
 #include <stdbool.h>
 #include <pulse/pulseaudio.h>
+#include <poll.h>
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
@@ -23,6 +24,7 @@
 
 typedef struct {
     char *sink_name;
+    int timeout_ms;
     LSSelfPipe self_pipe;
 } Priv;
 
@@ -44,6 +46,7 @@ init(LuastatusPluginData *pd, lua_State *L)
     *p = (Priv) {
         .sink_name = NULL,
         .self_pipe = LS_SELF_PIPE_NEW(),
+        .timeout_ms = -1,
     };
 
     PU_MAYBE_VISIT_STR_FIELD(-1, "sink", "'sink'", s,
@@ -52,6 +55,17 @@ init(LuastatusPluginData *pd, lua_State *L)
     if (!p->sink_name) {
         p->sink_name = ls_xstrdup("@DEFAULT_SINK@");
     }
+
+    PU_MAYBE_VISIT_NUM_FIELD(-1, "timeout", "'timeout'", nsec,
+        if (nsec >= 0) {
+            double nmillis = nsec * 1000;
+            if (nmillis > INT_MAX) {
+                LS_FATALF(pd, "'timeout' is too large");
+                goto error;
+            }
+            p->timeout_ms = nmillis;
+        }
+    );
 
     PU_MAYBE_VISIT_BOOL_FIELD(-1, "make_self_pipe", "'make_self_pipe'", b,
         if (b) {
@@ -82,9 +96,38 @@ register_funcs(LuastatusPluginData *pd, lua_State *L)
 typedef struct {
     LuastatusPluginData *pd;
     LuastatusPluginRunFuncs funcs;
+    pa_context *ctx;
     pa_mainloop *ml;
     uint32_t sink_idx;
 } UserData;
+
+static
+void
+store_volume_from_sink_cb(pa_context *c, const pa_sink_info *info, int eol, void *vud)
+{
+    UserData *ud = vud;
+
+    if (eol == 0 && info->index == ud->sink_idx) {
+        lua_State *L = ud->funcs.call_begin(ud->pd->userdata); // L: ?
+        lua_createtable(L, 0, 3); // L: ? table
+        lua_pushinteger(L, pa_cvolume_avg(&info->volume)); // L: ? table integer
+        lua_setfield(L, -2, "cur"); // L: ? table
+        lua_pushinteger(L, PA_VOLUME_NORM); // L: ? table integer
+        lua_setfield(L, -2, "norm"); // L: ? table
+        lua_pushboolean(L, info->mute); // L: ? table boolean
+        lua_setfield(L, -2, "mute"); // L: ? table
+        ud->funcs.call_end(ud->pd->userdata);
+
+    } else {
+        if (eol < 0 && pa_context_errno(c) != PA_ERR_NOENTITY) {
+            LS_ERRF(ud->pd, "PulseAudio error: %s", pa_strerror(pa_context_errno(c)));
+        }
+
+        lua_State *L = ud->funcs.call_begin(ud->pd->userdata); // L: ?
+        lua_createtable(L, 0, 0); // L: ? table
+        ud->funcs.call_end(ud->pd->userdata);
+    }
+}
 
 static
 void
@@ -98,34 +141,15 @@ self_pipe_cb(pa_mainloop_api *api, pa_io_event *e, int fd, pa_io_event_flags_t e
     (void) unused;
 
     UserData *ud = vud;
-    lua_State *L = ud->funcs.call_begin(ud->pd->userdata);
-    lua_pushnil(L);
-    ud->funcs.call_end(ud->pd->userdata);
-}
+    pa_context *c = ud->ctx;
 
-static
-void
-store_volume_from_sink_cb(pa_context *c, const pa_sink_info *info, int eol, void *vud)
-{
-    UserData *ud = vud;
-    if (eol < 0) {
-        if (pa_context_errno(c) == PA_ERR_NOENTITY) {
-            return;
-        }
-        LS_ERRF(ud->pd, "PulseAudio error: %s", pa_strerror(pa_context_errno(c)));
-    } else if (eol == 0) {
-        if (info->index == ud->sink_idx) {
-            lua_State *L = ud->funcs.call_begin(ud->pd->userdata);
-            // L: ?
-            lua_createtable(L, 0, 3); // L: ? table
-            lua_pushinteger(L, pa_cvolume_avg(&info->volume)); // L: ? table integer
-            lua_setfield(L, -2, "cur"); // L: ? table
-            lua_pushinteger(L, PA_VOLUME_NORM); // L: ? table integer
-            lua_setfield(L, -2, "norm"); // L: ? table
-            lua_pushboolean(L, info->mute); // L: ? table boolean
-            lua_setfield(L, -2, "mute"); // L: ? table
-            ud->funcs.call_end(ud->pd->userdata);
-        }
+    pa_operation *o = pa_context_get_sink_info_by_index(
+        c, ud->sink_idx, store_volume_from_sink_cb, vud);
+
+    if (o) {
+        pa_operation_unref(o);
+    } else {
+        LS_ERRF(ud->pd, "pa_context_get_sink_info_by_index: %s", pa_strerror(pa_context_errno(c)));
     }
 }
 
@@ -145,12 +169,12 @@ store_sink_cb(pa_context *c, const pa_sink_info *info, int eol, void *vud)
 
 static
 void
-update_sink(pa_context *c, void *vud)
+update_sink(UserData *ud)
 {
-    UserData *ud = vud;
+    pa_context *c = ud->ctx;
     Priv *p = ud->pd->priv;
 
-    pa_operation *o = pa_context_get_sink_info_by_name(c, p->sink_name, store_sink_cb, vud);
+    pa_operation *o = pa_context_get_sink_info_by_name(c, p->sink_name, store_sink_cb, ud);
     if (o) {
         pa_operation_unref(o);
     } else {
@@ -171,7 +195,7 @@ subscribe_cb(pa_context *c, pa_subscription_event_type_t t, uint32_t idx, void *
     switch (facility) {
     case PA_SUBSCRIPTION_EVENT_SERVER:
         // server change event, see if the sink has changed
-        update_sink(c, vud);
+        update_sink(ud);
         break;
     case PA_SUBSCRIPTION_EVENT_SINK:
         {
@@ -208,7 +232,7 @@ context_state_cb(pa_context *c, void *vud)
     case PA_CONTEXT_READY:
         {
             pa_context_set_subscribe_callback(c, subscribe_cb, vud);
-            update_sink(c, vud);
+            update_sink(ud);
             pa_operation *o = pa_context_subscribe(
                 c, PA_SUBSCRIPTION_MASK_SINK | PA_SUBSCRIPTION_MASK_SERVER, NULL, NULL);
 
@@ -228,6 +252,27 @@ context_state_cb(pa_context *c, void *vud)
 }
 
 static
+int
+my_poll_func(struct pollfd *fds, unsigned long nfds, int timeout, void *vud)
+{
+    UserData *ud = vud;
+    Priv *p = ud->pd->priv;
+
+    if (timeout >= 0) {
+        LS_VERBOSEF(ud->pd, "PulseAudio requested a timed poll (%d ms)", timeout);
+        return poll(fds, nfds, timeout);
+    }
+
+    int r;
+    while ((r = poll(fds, nfds, p->timeout_ms)) == 0) {
+        lua_State *L = ud->funcs.call_begin(ud->pd->userdata);
+        lua_pushnil(L);
+        ud->funcs.call_end(ud->pd->userdata);
+    }
+    return r;
+}
+
+static
 bool
 iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
@@ -235,7 +280,6 @@ iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     Priv *p = pd->priv;
     UserData ud = {.pd = pd, .funcs = funcs, .sink_idx = UINT32_MAX};
     pa_mainloop_api *api = NULL;
-    pa_context *ctx = NULL;
     pa_io_event *pipe_ev = NULL;
 
     if (!(ud.ml = pa_mainloop_new())) {
@@ -250,16 +294,16 @@ iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     pa_proplist_sets(proplist, PA_PROP_APPLICATION_NAME, "luastatus-plugin-pulse");
     pa_proplist_sets(proplist, PA_PROP_APPLICATION_ID, "io.github.shdown.luastatus");
     pa_proplist_sets(proplist, PA_PROP_APPLICATION_VERSION, "0.0.1");
-    ctx = pa_context_new_with_proplist(api, "luastatus-plugin-pulse", proplist);
+    ud.ctx = pa_context_new_with_proplist(api, "luastatus-plugin-pulse", proplist);
     pa_proplist_free(proplist);
-    if (!ctx) {
+    if (!ud.ctx) {
         LS_FATALF(pd, "pa_context_new_with_proplist() failed");
         goto error;
     }
 
-    pa_context_set_state_callback(ctx, context_state_cb, &ud);
-    if (pa_context_connect(ctx, NULL, PA_CONTEXT_NOFAIL | PA_CONTEXT_NOAUTOSPAWN, NULL) < 0) {
-        LS_FATALF(pd, "pa_context_connect: %s", pa_strerror(pa_context_errno(ctx)));
+    pa_context_set_state_callback(ud.ctx, context_state_cb, &ud);
+    if (pa_context_connect(ud.ctx, NULL, PA_CONTEXT_NOFAIL | PA_CONTEXT_NOAUTOSPAWN, NULL) < 0) {
+        LS_FATALF(pd, "pa_context_connect: %s", pa_strerror(pa_context_errno(ud.ctx)));
         goto error;
     }
 
@@ -273,9 +317,11 @@ iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 
     ret = true;
 
-    int ignored;
-    if (pa_mainloop_run(ud.ml, &ignored) < 0) {
-        LS_FATALF(pd, "pa_mainloop_run: %s", pa_strerror(pa_context_errno(ctx)));
+    if (p->timeout_ms >= 0) {
+        pa_mainloop_set_poll_func(ud.ml, my_poll_func, &ud);
+    }
+    if (pa_mainloop_run(ud.ml, NULL) < 0) {
+        LS_FATALF(pd, "pa_mainloop_run: %s", pa_strerror(pa_context_errno(ud.ctx)));
         goto error;
     }
 
@@ -284,8 +330,8 @@ error:
         assert(api);
         api->io_free(pipe_ev);
     }
-    if (ctx) {
-        pa_context_unref(ctx);
+    if (ud.ctx) {
+        pa_context_unref(ud.ctx);
     }
     if (ud.ml) {
         pa_mainloop_free(ud.ml);

@@ -20,29 +20,32 @@ The following options are supported:
 
     Sink name; default is ``"@DEFAULT_SINK@"``.
 
+* ``timeout``: number
+
+    If specified and not negative, this plugin will call ``cb`` with ``nil`` argument whenever the
+    channel does not change its state in ``timeout`` seconds since the previous call to ``cb``.
+
 * ``make_self_pipe``: boolean
 
     If ``true``, the ``wake_up()`` function (see `Functions`_) will be available.
 
 ``cb`` argument
 ===============
+On timeout, ``nil`` (if the ``timeout`` option has been specified).
 
-* If the ``make_self_pipe`` option is set to ``true``, and the callback is invoked because of the
-  call to ``wake_up()``, then the argument is ``nil``;
+Otherwise, the argument is a table with the following entries:
 
-* otherwise, the argument is a table with the following entries:
+* ``cur``: integer
 
-  - ``cur``: integer
+    Current volume level.
 
-      Current volume level.
+* ``norm``: integer
 
-  - ``norm``: integer
+    "Normal" (corresponding to 100%) volume level.
 
-      "Normal" (corresponding to 100%) volume level.
+* ``mute``: boolean
 
-  - ``mute``: boolean
-
-      Whether the sink is mute.
+    Whether the sink is mute.
 
 Functions
 =========
@@ -50,7 +53,7 @@ The following functions are provided:
 
 * ``wake_up()``
 
-    Forces a call to ``cb`` (with ``nil`` argument).
+    Forces a call to ``cb``.
 
     Only available if the ``make_self_pipe`` option was set to ``true``; otherwise, it throws an
     error.
