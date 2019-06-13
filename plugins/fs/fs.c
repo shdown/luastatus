@@ -18,9 +18,21 @@
 #include "libls/cstring_utils.h"
 #include "libls/evloop_utils.h"
 
+typedef LS_VECTOR_OF(char *) StringList;
+
+static
+void
+string_list_free(StringList sl)
+{
+    for (size_t i = 0; i < sl.size; ++i) {
+        free(sl.data[i]);
+    }
+    LS_VECTOR_FREE(sl);
+}
+
 typedef struct {
-    LS_VECTOR_OF(char *) paths;
-    LS_VECTOR_OF(char *) globs;
+    StringList paths;
+    StringList globs;
     struct timespec period;
     char *fifo;
 } Priv;
@@ -30,14 +42,8 @@ void
 destroy(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
-    for (size_t i = 0; i < p->paths.size; ++i) {
-        free(p->paths.data[i]);
-    }
-    LS_VECTOR_FREE(p->paths);
-    for (size_t i = 0; i < p->globs.size; ++i) {
-        free(p->globs.data[i]);
-    }
-    LS_VECTOR_FREE(p->globs);
+    string_list_free(p->paths);
+    string_list_free(p->globs);
     free(p->fifo);
     free(p);
 }
