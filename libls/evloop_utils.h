@@ -153,6 +153,7 @@ ls_wakeup_fifo_init(LSWakeupFifo *w, const char *fifo, sigset_t *sigmask);
 // it.
 //
 // On success, /0/ is returned; on failure, /-1/ is returned and /errno/ is set.
+// /errno/ equals /-EINVAL/ if the file is not a FIFO.
 int
 ls_wakeup_fifo_open(LSWakeupFifo *w);
 

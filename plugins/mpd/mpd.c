@@ -360,7 +360,8 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         report_status(pd, funcs, "error");
 
         if (ls_wakeup_fifo_open(&w) < 0) {
-            LS_WARNF(pd, "ls_wakeup_fifo_open: %s: %s", p->retry_fifo, ls_strerror_onstack(errno));
+            LS_WARNF(pd, "ls_wakeup_fifo_open: %s: %s", p->retry_fifo,
+                errno == -EINVAL ? "The file is not a FIFO" : ls_strerror_onstack(errno));
         }
         if (ls_wakeup_fifo_wait(&w, p->retry_in) < 0) {
             LS_FATALF(pd, "ls_wakeup_fifo_wait: %s: %s", p->retry_fifo, ls_strerror_onstack(errno));
