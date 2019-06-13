@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <glob.h>
 #include <stdbool.h>
 #include <lua.h>
 #include <signal.h>
@@ -19,6 +20,7 @@
 
 typedef struct {
     LS_VECTOR_OF(char *) paths;
+    LS_VECTOR_OF(char *) globs;
     struct timespec period;
     char *fifo;
 } Priv;
@@ -32,6 +34,10 @@ destroy(LuastatusPluginData *pd)
         free(p->paths.data[i]);
     }
     LS_VECTOR_FREE(p->paths);
+    for (size_t i = 0; i < p->globs.size; ++i) {
+        free(p->globs.data[i]);
+    }
+    LS_VECTOR_FREE(p->globs);
     free(p->fifo);
     free(p);
 }
@@ -43,18 +49,27 @@ init(LuastatusPluginData *pd, lua_State *L)
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
         .paths = LS_VECTOR_NEW(),
+        .globs = LS_VECTOR_NEW(),
         .period = {.tv_sec = 10},
         .fifo = NULL,
     };
 
-    PU_VISIT_TABLE_FIELD(-1, "paths", "'paths'",
+    PU_MAYBE_VISIT_TABLE_FIELD(-1, "paths", "'paths'",
         PU_CHECK_TYPE(LS_LUA_KEY, "'paths' key", LUA_TNUMBER);
         PU_VISIT_STR(LS_LUA_VALUE, "'paths' element", s,
             LS_VECTOR_PUSH(p->paths, ls_xstrdup(s));
         );
     );
-    if (!p->paths.size) {
-        LS_WARNF(pd, "paths are empty");
+
+    PU_MAYBE_VISIT_TABLE_FIELD(-1, "globs", "'globs'",
+        PU_CHECK_TYPE(LS_LUA_KEY, "'globs' key", LUA_TNUMBER);
+        PU_VISIT_STR(LS_LUA_VALUE, "'globs' element", s,
+            LS_VECTOR_PUSH(p->globs, ls_xstrdup(s));
+        );
+    );
+
+    if (!p->paths.size && !p->globs.size) {
+        LS_WARNF(pd, "both paths and globs are empty");
     }
 
     PU_MAYBE_VISIT_NUM_FIELD(-1, "period", "'period'", n,
@@ -112,6 +127,22 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
             if (push_for(pd, L, path)) {
                 lua_setfield(L, -2, path);
             }
+        }
+        for (size_t i = 0; i < p->globs.size; ++i) {
+            glob_t gbuf;
+            switch(glob(p->globs.data[i], GLOB_NOSORT, NULL, &gbuf)) {
+            case 0:
+            case GLOB_NOMATCH:
+                break;
+            default:
+                LS_WARNF(pd, "glob() failed (out of memory?)");
+            }
+            for (size_t j = 0; j < gbuf.gl_pathc; ++j) {
+                if (push_for(pd, L, gbuf.gl_pathv[j])) {
+                    lua_setfield(L, -2, gbuf.gl_pathv[j]);
+                }
+            }
+            globfree(&gbuf);
         }
         funcs.call_end(pd->userdata);
         // wait
