@@ -113,7 +113,7 @@ The following functions are provided:
         If ``true``, data will be read from individual property files, not from the ``uevent``
         file.
 
-    - ``props_naming_scheme``: boolean
+    - ``props_naming_scheme``: string
 
         If present, ``use_props_naming_scheme`` will be called with it before anything else is done.
 
