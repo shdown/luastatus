@@ -6,9 +6,11 @@
 #include <pthread.h>
 #include <lua.h>
 #include <signal.h>
+#include <errno.h>
 #include <sys/select.h>
 
 #include "compdep.h"
+#include "cstring_utils.h"
 
 // Some plugins provide a "push_timeout"/"push_period" function that allows a widget to specify the
 // next timeout for an otherwise constant timeout-based plugin's event loop.
@@ -153,9 +155,24 @@ ls_wakeup_fifo_init(LSWakeupFifo *w, const char *fifo, sigset_t *sigmask);
 // it.
 //
 // On success, /0/ is returned; on failure, /-1/ is returned and /errno/ is set.
-// /errno/ equals /-EINVAL/ if the file is not a FIFO.
+//
+// <!!!>
+// If the file is not a FIFO, /errno/ is set to (the non-standard value of) /-EINVAL/.
+//
+// It is suggested that you use /LS_WAKEUP_FIFO_STRERROR_ONSTACK()/ to get the string description of
+// the error by the /errno/ value set by this function.
+// </!!!>
 int
 ls_wakeup_fifo_open(LSWakeupFifo *w);
+
+// Produces a string description of an /errno/ value set by /ls_wakeup_fifo_open()/.
+//
+// Currently, it differs from /ls_strerror_onstack()/ in that it may produce a "Not a FIFO" message
+// if /w/ was configured to use a non-FIFO file as a FIFO.
+//
+// Note that /E_/ may be evaluated several times.
+#define LS_WAKEUP_FIFO_STRERROR_ONSTACK(E_) \
+    ((E_) == -EINVAL ? "Not a FIFO" : ls_strerror_onstack(E_))
 
 // Blocks until either:
 //
