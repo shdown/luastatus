@@ -19,12 +19,4 @@
 // Call before using /break/ to leave a /LS_LUA_TRAVERSE/ cycle.
 #define LS_LUA_BREAK(L_) lua_pop(L_, 2)
 
-// Pushes the global table onto the stack. The behaviour is same as calling
-// /lua_pushglobaltable(L_)/ in Lua >=5.2.
-#if LUA_VERSION_NUM >= 502
-#   define ls_lua_pushg     lua_pushglobaltable
-#else
-#   define ls_lua_pushg(L_) lua_pushvalue(L_, LUA_GLOBALSINDEX)
-#endif
-
 #endif

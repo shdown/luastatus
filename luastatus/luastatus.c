@@ -531,12 +531,11 @@ int
 l_error_handler(lua_State *L)
 {
     // L: error
-    ls_lua_pushg(L); // L: error _G
-    lua_getfield(L, -1, LUA_DBLIBNAME); // L: error _G debug
-    lua_getfield(L, -1, "traceback"); // L: error _G debug traceback
-    lua_pushstring(L, get_lua_error_msg(L, 1)); // L: error _G debug traceback msg
-    lua_pushinteger(L, 2); // L: error _G debug traceback msg level
-    lua_call(L, 2, 1); // L: error _G debug result
+    lua_getglobal(L, LUA_DBLIBNAME); // L: error debug
+    lua_getfield(L, -1, "traceback"); // L: error debug traceback
+    lua_pushstring(L, get_lua_error_msg(L, 1)); // L: error debug traceback msg
+    lua_pushinteger(L, 2); // L: error debug traceback msg level
+    lua_call(L, 2, 1); // L: error debug result
     return 1;
 }
 
@@ -798,8 +797,7 @@ widget_init(Widget *w, const char *filename)
     }
     // L: l_error_handler
 
-    ls_lua_pushg(L); // L: l_error_handler _G
-    lua_getfield(L, -1, "widget"); // L: l_error_handler _G widget
+    lua_getglobal(L, "widget"); // L: l_error_handler widget
     if (!lua_istable(L, -1)) {
         ERRF("'widget': expected table, found %s", luaL_typename(L, -1));
         goto error;
@@ -815,7 +813,7 @@ widget_init(Widget *w, const char *filename)
     {
         goto error;
     }
-    // L: l_error_handler _G widget opts
+    // L: l_error_handler widget opts
 
     w->data = (LuastatusPluginData_v1) {
         .userdata = w,
@@ -827,8 +825,8 @@ widget_init(Widget *w, const char *filename)
         ERRF("plugin's init() failed");
         goto error;
     }
-    assert(lua_gettop(L) == 4); // L: l_error_handler _G widget opts
-    lua_pop(L, 3); // L: l_error_handler
+    assert(lua_gettop(L) == 3); // L: l_error_handler widget opts
+    lua_pop(L, 2); // L: l_error_handler
 
     DEBUGF("widget successfully initialized");
     return true;
@@ -904,8 +902,7 @@ void
 register_funcs(lua_State *L, Widget *w)
 {
     // L: ?
-    ls_lua_pushg(L); // L: ? _G
-    lua_getfield(L, -1, "luastatus"); // L: ? _G luastatus
+    lua_getglobal(L, "luastatus"); // L: ? luastatus
 
     if (!lua_istable(L, -1)) {
         assert(w);
@@ -917,28 +914,28 @@ register_funcs(lua_State *L, Widget *w)
         goto done;
     }
     if (barlib.iface.register_funcs) {
-        lua_newtable(L); // L: ? _G luastatus table
+        lua_newtable(L); // L: ? luastatus table
 
         int old_top = lua_gettop(L);
         (void) old_top;
-        barlib.iface.register_funcs(&barlib.data, L); // L: ? _G luastatus table
+        barlib.iface.register_funcs(&barlib.data, L); // L: ? luastatus table
         assert(lua_gettop(L) == old_top);
 
-        lua_setfield(L, -2, "barlib"); // L: ? _G luastatus
+        lua_setfield(L, -2, "barlib"); // L: ? luastatus
     }
     if (w && w->plugin.iface.register_funcs) {
-        lua_newtable(L); // L: ? _G luastatus table
+        lua_newtable(L); // L: ? luastatus table
 
         int old_top = lua_gettop(L);
         (void) old_top;
-        w->plugin.iface.register_funcs(&w->data, L); // L: ? _G luastatus table
+        w->plugin.iface.register_funcs(&w->data, L); // L: ? luastatus table
         assert(lua_gettop(L) == old_top);
 
-        lua_setfield(L, -2, "plugin"); // L: ? _G luastatus
+        lua_setfield(L, -2, "plugin"); // L: ? luastatus
     }
 
 done:
-    lua_pop(L, 2); // L: ?
+    lua_pop(L, 1); // L: ?
 }
 
 // Initializes the /widgets/ and /nwidgets/ global variables from the given list of file names:
