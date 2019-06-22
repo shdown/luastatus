@@ -59,7 +59,7 @@ SLOT="0"
 IUSE="doc examples luajit ${BARLIBS} ${PLUGINS}"
 REQUIRED_USE="
 	${PN}_plugins_backlight-linux? ( ${PN}_plugins_udev )
-	${PN}_plugins_battery-linux? ( ${PN}_plugins_timer )
+	${PN}_plugins_battery-linux? ( ${PN}_plugins_udev )
 	${PN}_plugins_cpu-usage-linux? ( ${PN}_plugins_timer )
 	${PN}_plugins_file-contents-linux? ( ${PN}_plugins_inotify )
 	${PN}_plugins_imap? ( ${PN}_plugins_timer )
