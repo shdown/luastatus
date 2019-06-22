@@ -1,8 +1,8 @@
 local P = {}
 
-local function read_all(path)
+local function read_num(path)
     local f = assert(io.open(path, 'r'))
-    local r = f:read('*all')
+    local r = f:read('*number')
     f:close()
     return r
 end
@@ -25,8 +25,8 @@ function P.widget(tbl)
 
             luastatus.plugin.push_timeout(timeout)
 
-            local b = read_all(s .. '/brightness')
-            local mb = read_all(s .. '/max_brightness')
+            local b = read_num(s .. '/brightness')
+            local mb = read_num(s .. '/max_brightness')
             return tbl.cb(b / mb)
         end,
         event = tbl.event,
