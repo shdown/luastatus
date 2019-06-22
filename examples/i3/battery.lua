@@ -1,6 +1,5 @@
 widget = luastatus.require_plugin('battery-linux').widget{
-    est_rem_time = true,
-    timer_opts = {period = 2},
+    period = 2,
     cb = function(t)
         local symbol = ({
             Charging    = '↑',
@@ -13,7 +12,7 @@ widget = luastatus.require_plugin('battery-linux').widget{
             rem_seg = {full_text = string.format('%2dh %02dm', h, m), color = '#595959'}
         end
         return {
-            {full_text = string.format('%3s%%%s', t.capacity, symbol)},
+            {full_text = string.format('%3d%%%s', t.capacity, symbol)},
             rem_seg,
         }
     end,

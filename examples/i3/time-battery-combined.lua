@@ -1,6 +1,5 @@
 bat = luastatus.require_plugin('battery-linux')
-function get_bat_seg()
-    local t = bat.read_uevent('BAT0')
+function get_bat_seg(t)
     if not t then
         return {full_text = '[--×--]'}
     end
@@ -15,16 +14,15 @@ function get_bat_seg()
         sym = '↑'
         color = '#60b48a'
     end
-    return {full_text = string.format('[%3s%%%s]', t.capacity, sym), color = color}
+    return {full_text = string.format('[%3d%%%s]', t.capacity, sym), color = color}
 end
 
-widget = {
-    plugin = 'timer',
-    opts = {period = 2},
-    cb = function()
+widget = luastatus.require_plugin('battery-linux').widget{
+    period = 2,
+    cb = function(t)
         return {
             {full_text = os.date('[%H:%M]'), color = '#dc8cc3'},
-            get_bat_seg(),
+            get_bat_seg(t),
         }
     end,
 }
