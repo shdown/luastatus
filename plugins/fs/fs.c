@@ -136,7 +136,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         }
         for (size_t i = 0; i < p->globs.size; ++i) {
             glob_t gbuf;
-            switch(glob(p->globs.data[i], GLOB_NOSORT, NULL, &gbuf)) {
+            switch (glob(p->globs.data[i], GLOB_NOSORT, NULL, &gbuf)) {
             case 0:
             case GLOB_NOMATCH:
                 break;
