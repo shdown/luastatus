@@ -42,6 +42,13 @@ Options
     Path to an existent FIFO. The plugin does not create FIFO itself. To force a reconnect,
     ``touch(1)`` the FIFO, that is, open it for writing and then close.
 
+* ``events``: array of strings
+
+    List of MPD subsystems to poll for changes in. See the description of ``idle`` command at
+    https://www.musicpd.org/doc/html/protocol.html#querying-mpd-s-status for the complete list.
+    Default is ``{"mixer","player"}``.
+
+
 ``cb`` argument
 ===============
 A table with ``what`` entry.
