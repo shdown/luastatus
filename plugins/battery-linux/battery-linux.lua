@@ -36,7 +36,7 @@ local function get_battery_info(dev)
         r.consumption = p.power_now / 1e6
         if p.status == 'Charging' then
             r.rem_time = (p.energy_full - p.energy_now) / p.power_now
-        elseif p.status == 'Discharging' then
+        elseif p.status == 'Discharging' or p.status == 'Not charging' then
             r.rem_time = p.energy_now / p.power_now
         end
     end
