@@ -1,4 +1,3 @@
-bat = luastatus.require_plugin('battery-linux')
 function get_bat_seg(t)
     if not t then
         return {full_text = '[--×--]'}
@@ -7,7 +6,7 @@ function get_bat_seg(t)
         return nil
     end
     local sym, color = '?', '#dcdcdc'
-    if t.status == 'Discharging' then
+    if t.status == 'Discharging' or t.status == 'Not charging' then
         sym = '↓'
         color = '#dca3a3'
     elseif t.status == 'Charging' then

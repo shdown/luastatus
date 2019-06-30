@@ -6,7 +6,7 @@ function get_bat_seg(t)
         return nil
     end
     local sym = '?'
-    if t.status == 'Discharging' then
+    if t.status == 'Discharging' or t.status == 'Not charging' then
         sym = '↓'
     elseif t.status == 'Charging' then
         sym = '↑'
