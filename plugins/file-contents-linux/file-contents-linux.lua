@@ -9,7 +9,7 @@ function P.widget(tbl)
             watch = {},
             greet = true,
         },
-        cb = function(t)
+        cb = function()
             if not luastatus.plugin.add_watch(tbl.filename, flags) then
                 luastatus.plugin.push_timeout(timeout)
                 error('add_watch() failed')
