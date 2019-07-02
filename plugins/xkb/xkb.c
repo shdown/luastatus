@@ -13,6 +13,7 @@
 #include "libls/alloc_utils.h"
 #include "libls/compdep.h"
 #include "libls/strarr.h"
+#include "libls/algo.h"
 
 #include "rules_names.h"
 
@@ -52,12 +53,8 @@ init(LuastatusPluginData *pd, lua_State *L)
     );
 
     PU_MAYBE_VISIT_NUM_FIELD(-1, "device_id", "'device_id'", n,
-        if (n < 0) {
-            LS_FATALF(pd, "device_id < 0");
-            goto error;
-        }
-        if (n > UINT_MAX) {
-            LS_FATALF(pd, "device_id > UINT_MAX");
+        if (!ls_is_between_d(n, 0, UINT_MAX)) {
+            LS_FATALF(pd, "'device_id' is invalid");
             goto error;
         }
         p->deviceid = n;

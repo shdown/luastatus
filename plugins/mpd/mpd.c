@@ -19,6 +19,7 @@
 #include "libls/alloc_utils.h"
 #include "libls/vector.h"
 #include "libls/cstring_utils.h"
+#include "libls/algo.h"
 #include "libls/time_utils.h"
 #include "libls/evloop_utils.h"
 #include "libls/strarr.h"
@@ -70,7 +71,7 @@ init(LuastatusPluginData *pd, lua_State *L)
     );
 
     PU_MAYBE_VISIT_NUM_FIELD(-1, "port", "'port'", n,
-        if (n < 0 || n > 65535) {
+        if (!ls_is_between_d(n, 0, 65535)) {
             LS_FATALF(pd, "port (%g) is not a valid port number", (double) n);
             goto error;
         }
@@ -86,14 +87,14 @@ init(LuastatusPluginData *pd, lua_State *L)
     );
 
     PU_MAYBE_VISIT_NUM_FIELD(-1, "timeout", "'timeout'", n,
-        if (ls_timespec_is_invalid(p->timeout = ls_timespec_from_seconds(n)) && n >= 0) {
+        if (!ls_opt_timespec_from_seconds(n, &p->timeout)) {
             LS_FATALF(pd, "'timeout' is invalid");
             goto error;
         }
     );
 
     PU_MAYBE_VISIT_NUM_FIELD(-1, "retry_in", "'retry_in'", n,
-        if (ls_timespec_is_invalid(p->retry_in = ls_timespec_from_seconds(n)) && n >= 0) {
+        if (!ls_opt_timespec_from_seconds(n, &p->retry_in)) {
             LS_FATALF(pd, "'retry_in' is invalid");
             goto error;
         }

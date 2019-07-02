@@ -93,7 +93,7 @@ init(LuastatusPluginData *pd, lua_State *L)
     );
 
     PU_MAYBE_VISIT_NUM_FIELD(-1, "timeout", "'timeout'", n,
-        if (ls_timeval_is_invalid(p->timeout = ls_timeval_from_seconds(n)) && n > 0) {
+        if (!ls_opt_timeval_from_seconds(n, &p->timeout)) {
             LS_FATALF(pd, "'timeout' is invalid");
             goto error;
         }

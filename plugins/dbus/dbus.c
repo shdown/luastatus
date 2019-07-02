@@ -88,6 +88,7 @@ init(LuastatusPluginData *pd, lua_State *L)
     );
 
     PU_MAYBE_VISIT_NUM_FIELD(-1, "timeout", "'timeout'", nsec,
+        // Note: this also implicitly checks that /nsec/ is not NaN.
         if (nsec >= 0) {
             double nmillis = nsec * 1000;
             if (nmillis > INT_MAX) {

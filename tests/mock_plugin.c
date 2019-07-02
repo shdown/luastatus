@@ -8,6 +8,7 @@
 #include "include/plugin_utils.h"
 
 #include "libls/alloc_utils.h"
+#include "libls/algo.h"
 
 typedef struct {
     int ncalls;
@@ -31,8 +32,8 @@ init(LuastatusPluginData *pd, lua_State *L)
     };
 
     PU_MAYBE_VISIT_NUM_FIELD(-1, "make_calls", "'make_calls'", n,
-        if (n < 0 || n > INT_MAX || /* check for NaN */ n != n) {
-            LS_FATALF(pd, "invalid 'make_calls' value");
+        if (!ls_is_between_d(n, 0, INT_MAX)) {
+            LS_FATALF(pd, "'make_calls' is invalid");
             goto error;
         }
         p->ncalls = n;
