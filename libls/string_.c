@@ -27,7 +27,7 @@ ls_string_append_vf(LSString *s, const char *fmt, va_list vl)
             goto cleanup;
         }
     }
-    s->size += (size_t) r;
+    s->size += r;
     ret = true;
 
 cleanup:
