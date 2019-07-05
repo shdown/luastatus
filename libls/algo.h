@@ -1,8 +1,9 @@
 #ifndef ls_algo_h_
 #define ls_algo_h_
 
-#include "compdep.h"
 #include <stdbool.h>
+
+#include "compdep.h"
 
 #define LS_ARRAY_SIZE(X_) (sizeof(X_) / sizeof((X_)[0]))
 

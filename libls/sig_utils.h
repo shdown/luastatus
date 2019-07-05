@@ -3,6 +3,7 @@
 
 #include <signal.h>
 #include <stdio.h>
+
 #include "compdep.h"
 
 // Like /sigfillset/, but panics on failure.
