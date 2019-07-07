@@ -30,7 +30,7 @@ unixdom_open(LuastatusPluginData *pd, const char *path)
         LS_ERRF(pd, "socket: %s", ls_strerror_onstack(errno));
         return -1;
     }
-    if (connect(fd, (const struct sockaddr *) &saun, sizeof(saun)) < 0) {
+    if (connect(fd, (void *) &saun, sizeof(saun)) < 0) {
         LS_ERRF(pd, "connect: %s: %s", path, ls_strerror_onstack(errno));
         close(fd);
         return -1;

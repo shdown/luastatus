@@ -284,7 +284,7 @@ interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         .nl_family = AF_NETLINK,
         .nl_groups = RTMGRP_LINK | RTMGRP_IPV4_IFADDR | RTMGRP_IPV6_IFADDR,
     };
-    if (bind(fd, (struct sockaddr *) &sa, sizeof(sa)) < 0) {
+    if (bind(fd, (void *) &sa, sizeof(sa)) < 0) {
         LS_FATALF(pd, "bind: %s", ls_strerror_onstack(errno));
         goto error;
     }
@@ -325,9 +325,13 @@ interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
                 break;
             }
             if (nh->nlmsg_type == NLMSG_ERROR) {
-                char *payload = (char *) (nh + 1);
-                struct nlmsgerr *e = (struct nlmsgerr *) payload;
-                int errnum = e->error;
+                if (nh->nlmsg_len < NLMSG_LENGTH(sizeof(struct nlmsgerr))) {
+                    LS_ERRF(pd, "netlink error message truncated");
+                    ret = true;
+                    goto error;
+                }
+                struct nlmsgerr *e = NLMSG_DATA(nh);
+                const int errnum = e->error;
                 if (errnum) {
                     LS_ERRF(pd, "netlink error: %s", ls_strerror_onstack(-errnum));
                     ret = true;
