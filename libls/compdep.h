@@ -17,7 +17,7 @@
 #   define LS_ATTR_NORETURN         __attribute__((noreturn))
 #else
 #   define LS_ATTR_UNUSED           /*nothing*/
-#   define LS_ATTR_PRINTF           /*nothing*/
+#   define LS_ATTR_PRINTF(N_, M_)   /*nothing*/
 #   define LS_ATTR_NORETURN         /*nothing*/
 #endif
 
