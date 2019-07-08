@@ -142,7 +142,7 @@ gwi_scan_cb(struct nl_msg *msg, void *vud)
 
     if (bss[NL80211_BSS_FREQUENCY]) {
         info->flags |= HAS_FREQUENCY;
-        info->frequency = (double) nla_get_u32(bss[NL80211_BSS_FREQUENCY]) * 1e6;
+        info->frequency = ((double) nla_get_u32(bss[NL80211_BSS_FREQUENCY])) * 1e6;
     }
 
     if (bss[NL80211_BSS_INFORMATION_ELEMENTS]) {
@@ -153,7 +153,7 @@ gwi_scan_cb(struct nl_msg *msg, void *vud)
                   &ssid, &ssid_len);
         if (ssid && ssid_len) {
             info->flags |= HAS_ESSID;
-            snprintf(info->essid, sizeof(info->essid), "%.*s", ssid_len, ssid);
+            snprintf(info->essid, sizeof(info->essid), "%.*s", (int) ssid_len, ssid);
         }
     }
 
