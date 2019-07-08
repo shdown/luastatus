@@ -297,8 +297,7 @@ interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         make_call(pd, funcs, false);
 
         struct iovec iov = {buf, sizeof(buf)};
-        struct sockaddr_nl sender;
-        struct msghdr msg = {&sender, sizeof(sender), &iov, 1, NULL, 0, 0};
+        struct msghdr msg = {NULL, 0, &iov, 1, NULL, 0, 0};
         ssize_t len = recvmsg(fd, &msg, 0);
         if (len < 0) {
             if (errno == EINTR) {
