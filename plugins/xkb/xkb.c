@@ -60,13 +60,14 @@ init(LuastatusPluginData *pd, lua_State *L)
         p->deviceid = n;
     );
 
+    static char dummy[1];
     void **ptr = pd->map_get(pd->userdata, "flag:library_used:x11");
     if (!*ptr) {
         if (!XInitThreads()) {
             LS_FATALF(pd, "XInitThreads failed");
             goto error;
         }
-        *ptr = "yes";
+        *ptr = dummy;
     }
 
     return LUASTATUS_OK;
