@@ -251,10 +251,8 @@ iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     Priv *p = pd->priv;
     bool ret = false;
 
-    snd_mixer_t *mixer;
-    bool mixer_opened = false;
-    snd_mixer_selem_id_t *sid;
-    bool sid_alloced = false;
+    snd_mixer_t *mixer = NULL;
+    snd_mixer_selem_id_t *sid = NULL;
     char *realname = NULL;
     PollFdSet pollfds = ls_self_pipe_is_opened(&p->self_pipe)
         ? pollfd_set_new((struct pollfd [1]) {{.fd = p->self_pipe.fds[0], .events = POLLIN}}, 1)
@@ -286,14 +284,10 @@ iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     } while (0)
 
     ALSA_CALL(snd_mixer_open, &mixer, 0);
-    mixer_opened = true;
-
     ALSA_CALL(snd_mixer_attach, mixer, realname);
     ALSA_CALL(snd_mixer_selem_register, mixer, NULL, NULL);
     ALSA_CALL(snd_mixer_load, mixer);
-
     ALSA_CALL(snd_mixer_selem_id_malloc, &sid);
-    sid_alloced = true;
 
     snd_mixer_selem_id_set_name(sid, p->channel);
     snd_mixer_elem_t *elem = snd_mixer_find_selem(mixer, sid);
@@ -321,6 +315,8 @@ iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
             pollfds.data + pollfds.nprefix,
             pollfds.size - pollfds.nprefix);
 
+        // TODO: call sigprocmask() before and after poll() to emulate ppoll() (if it worth the
+        // trouble).
         const int r = poll(pollfds.data, pollfds.size, p->timeout_ms);
         if (r < 0) {
             if (errno == EINTR) {
@@ -362,10 +358,10 @@ iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     }
 #undef ALSA_CALL
 error:
-    if (sid_alloced) {
+    if (sid) {
         snd_mixer_selem_id_free(sid);
     }
-    if (mixer_opened) {
+    if (mixer) {
         snd_mixer_close(mixer);
     }
     free(realname);
