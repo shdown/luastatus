@@ -7,8 +7,8 @@
 
 #include "compdep.h"
 
-static const struct timespec ls_timespec_invalid = {.tv_nsec = -1};
-static const struct timeval  ls_timeval_invalid  = {.tv_usec = -1};
+static const LS_ATTR_UNUSED struct timespec ls_timespec_invalid = {.tv_nsec = -1};
+static const LS_ATTR_UNUSED struct timeval  ls_timeval_invalid  = {.tv_usec = -1};
 
 LS_INHEADER
 bool
