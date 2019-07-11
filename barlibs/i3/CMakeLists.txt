@@ -12,7 +12,7 @@ luastatus_target_build_with (barlib-i3 YAJL)
 find_library (MATH_LIBRARY m)
 if (MATH_LIBRARY)
     target_link_libraries (barlib-i3 PUBLIC ${MATH_LIBRARY})
-endif()
+endif ()
 
 include (GNUInstallDirs)
 

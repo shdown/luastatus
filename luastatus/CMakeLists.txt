@@ -10,9 +10,9 @@ luastatus_target_build_with (luastatus LUA)
 target_include_directories (luastatus PUBLIC "${PROJECT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}")
 
 # find pthreads
-set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
-set(THREADS_PREFER_PTHREAD_FLAG TRUE)
-find_package(Threads REQUIRED)
+set (CMAKE_THREAD_PREFER_PTHREAD TRUE)
+set (THREADS_PREFER_PTHREAD_FLAG TRUE)
+find_package (Threads REQUIRED)
 # link against dl and pthread
 target_link_libraries (luastatus PUBLIC ${CMAKE_DL_LIBS} Threads::Threads)
 
