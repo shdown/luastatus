@@ -2,6 +2,7 @@
 #define ls_strarr_h_
 
 #include <stddef.h>
+#include <string.h>
 
 #include "string_.h"
 #include "vector.h"
@@ -40,6 +41,13 @@ ls_strarr_append(LSStringArray *sa, const char *buf, size_t nbuf)
 {
     LS_VECTOR_PUSH(sa->offsets, sa->buf.size);
     ls_string_append_b(&sa->buf, buf, nbuf);
+}
+
+LS_INHEADER
+void
+ls_strarr_append_s(LSStringArray *sa, const char *s)
+{
+    ls_strarr_append(sa, s, strlen(s) + 1);
 }
 
 LS_INHEADER

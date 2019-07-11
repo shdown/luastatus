@@ -13,26 +13,14 @@
 
 #include "libls/alloc_utils.h"
 #include "libls/lua_utils.h"
-#include "libls/vector.h"
+#include "libls/strarr.h"
 #include "libls/time_utils.h"
 #include "libls/cstring_utils.h"
 #include "libls/evloop_utils.h"
 
-typedef LS_VECTOR_OF(char *) StringList;
-
-static
-void
-string_list_free(StringList sl)
-{
-    for (size_t i = 0; i < sl.size; ++i) {
-        free(sl.data[i]);
-    }
-    LS_VECTOR_FREE(sl);
-}
-
 typedef struct {
-    StringList paths;
-    StringList globs;
+    LSStringArray paths;
+    LSStringArray globs;
     struct timespec period;
     char *fifo;
 } Priv;
@@ -42,8 +30,8 @@ void
 destroy(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
-    string_list_free(p->paths);
-    string_list_free(p->globs);
+    ls_strarr_destroy(p->paths);
+    ls_strarr_destroy(p->globs);
     free(p->fifo);
     free(p);
 }
@@ -54,8 +42,8 @@ init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
-        .paths = LS_VECTOR_NEW(),
-        .globs = LS_VECTOR_NEW(),
+        .paths = ls_strarr_new(),
+        .globs = ls_strarr_new(),
         .period = {.tv_sec = 10},
         .fifo = NULL,
     };
@@ -63,18 +51,18 @@ init(LuastatusPluginData *pd, lua_State *L)
     PU_MAYBE_VISIT_TABLE_FIELD(-1, "paths", "'paths'",
         PU_CHECK_TYPE(LS_LUA_KEY, "'paths' key", LUA_TNUMBER);
         PU_VISIT_STR(LS_LUA_VALUE, "'paths' element", s,
-            LS_VECTOR_PUSH(p->paths, ls_xstrdup(s));
+            ls_strarr_append_s(&p->paths, s);
         );
     );
 
     PU_MAYBE_VISIT_TABLE_FIELD(-1, "globs", "'globs'",
         PU_CHECK_TYPE(LS_LUA_KEY, "'globs' key", LUA_TNUMBER);
         PU_VISIT_STR(LS_LUA_VALUE, "'globs' element", s,
-            LS_VECTOR_PUSH(p->globs, ls_xstrdup(s));
+            ls_strarr_append_s(&p->globs, s);
         );
     );
 
-    if (!p->paths.size && !p->globs.size) {
+    if (!ls_strarr_size(p->paths) && !ls_strarr_size(p->globs)) {
         LS_WARNF(pd, "both paths and globs are empty");
     }
 
@@ -127,16 +115,17 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     while (1) {
         // make a call
         lua_State *L = funcs.call_begin(pd->userdata);
-        lua_createtable(L, 0, p->paths.size);
-        for (size_t i = 0; i < p->paths.size; ++i) {
-            const char *path = p->paths.data[i];
+        lua_newtable(L);
+        for (size_t i = 0; i < ls_strarr_size(p->paths); ++i) {
+            const char *path = ls_strarr_at(p->paths, i, NULL);
             if (push_for(pd, L, path)) {
                 lua_setfield(L, -2, path);
             }
         }
-        for (size_t i = 0; i < p->globs.size; ++i) {
+        for (size_t i = 0; i < ls_strarr_size(p->globs); ++i) {
+            const char *pattern = ls_strarr_at(p->globs, i, NULL);
             glob_t gbuf;
-            switch (glob(p->globs.data[i], GLOB_NOSORT, NULL, &gbuf)) {
+            switch (glob(pattern, GLOB_NOSORT, NULL, &gbuf)) {
             case 0:
             case GLOB_NOMATCH:
                 break;
@@ -154,7 +143,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         // wait
         if (ls_wakeup_fifo_open(&w) < 0) {
             LS_WARNF(pd, "ls_wakeup_fifo_open: %s: %s", p->fifo,
-                     LS_WAKEUP_FIFO_STRERROR_ONSTACK(errno));
+                     LS_WAKEUP_FIFO_STRERROR_ONSTACK(&w, errno));
         }
         if (ls_wakeup_fifo_wait(&w, p->period) < 0) {
             LS_FATALF(pd, "ls_wakeup_fifo_wait: %s: %s", p->fifo, ls_strerror_onstack(errno));
