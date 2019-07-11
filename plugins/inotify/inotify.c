@@ -272,7 +272,7 @@ l_get_initial_wds(lua_State *L)
     LuastatusPluginData *pd = lua_touserdata(L, lua_upvalueindex(1));
     Priv *p = pd->priv;
 
-    lua_createtable(L, 0, p->init_watch.size); // L: table
+    lua_newtable(L); // L: table
     for (size_t i = 0; i < p->init_watch.size; ++i) {
         lua_pushinteger(L, p->init_watch.data[i].wd); // L: table wd
         lua_setfield(L, -2, p->init_watch.data[i].path); // L: table

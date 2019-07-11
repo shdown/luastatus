@@ -159,7 +159,7 @@ kv_strarr_table_push(LSStringArray sa, lua_State *L)
 {
     const size_t n = ls_strarr_size(sa);
     assert(n % 2 == 0);
-    lua_createtable(L, 0, n / 2); // L: table
+    lua_newtable(L); // L: table
     for (size_t i = 0; i < n; i += 2) {
         size_t nkey;
         const char *key = ls_strarr_at(sa, i, &nkey);
