@@ -143,7 +143,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         // wait
         if (ls_wakeup_fifo_open(&w) < 0) {
             LS_WARNF(pd, "ls_wakeup_fifo_open: %s: %s", p->fifo,
-                     LS_WAKEUP_FIFO_STRERROR_ONSTACK(&w, errno));
+                     LS_WAKEUP_FIFO_STRERROR_ONSTACK(errno));
         }
         if (ls_wakeup_fifo_wait(&w, p->period) < 0) {
             LS_FATALF(pd, "ls_wakeup_fifo_wait: %s: %s", p->fifo, ls_strerror_onstack(errno));
