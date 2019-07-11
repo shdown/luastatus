@@ -173,7 +173,6 @@ select_gv_funcs(bool capture, bool in_db)
                              : snd_mixer_selem_get_capture_volume)
                     : (in_db ? snd_mixer_selem_get_playback_dB
                              : snd_mixer_selem_get_playback_volume),
-
         .get_switch =
             capture ? snd_mixer_selem_get_capture_switch
                     : snd_mixer_selem_get_playback_switch,
