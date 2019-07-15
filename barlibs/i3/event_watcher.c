@@ -76,7 +76,7 @@ push_object(lua_State *L, Context *ctx, size_t *index)
     case TYPE_ARRAY_START:
         lua_newtable(L); // L: table
         ++*index;
-        for (int n = 1; ctx->tokens.data[*index].type != TYPE_ARRAY_END; ++n) {
+        for (unsigned n = 1; ctx->tokens.data[*index].type != TYPE_ARRAY_END; ++n) {
             push_object(L, ctx, index); // L: table elem
             lua_rawseti(L, -2, n); // L: table
         }
