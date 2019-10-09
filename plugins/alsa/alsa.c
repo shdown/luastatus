@@ -177,7 +177,6 @@ select_gv_funcs(bool capture, bool in_db)
             capture ? snd_mixer_selem_get_capture_switch
                     : snd_mixer_selem_get_playback_switch,
     };
-
 }
 
 static
@@ -261,21 +260,10 @@ iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         realname = ls_xstrdup(p->card);
     }
 
-    // We do not check for /r_ == -EINTR/ as the only function that can
-    // return /-EINTR/ is /snd_mixer_wait/, because it uses one of the
-    // multiplexing interfaces mentioned below:
-    //
-    // http://man7.org/linux/man-pages/man7/signal.7.html
-    //
-    // > The following interfaces are never restarted after being interrupted
-    // > by a signal handler, regardless of the use of SA_RESTART; they always
-    // > fail with the error EINTR when interrupted by a signal handler:
-    // [...]
-    // >     * File descriptor multiplexing interfaces: epoll_wait(2),
-    // >       epoll_pwait(2), poll(2), ppoll(2), select(2), and pselect(2).
 #define ALSA_CALL(Func_, ...) \
     do { \
-        int r_ = Func_(__VA_ARGS__); \
+        int r_; \
+        while ((r_ = Func_(__VA_ARGS__)) == -EINTR) {} \
         if (r_ < 0) { \
             LS_FATALF(pd, "%s: %s", #Func_, snd_strerror(r_)); \
             goto error; \
