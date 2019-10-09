@@ -16,7 +16,8 @@ Options
 =======
 * ``watch``: table
 
-    A table in which keys are the paths to watch and values are comma-separated event names (see the
+    A table in which keys are the paths to watch and values are the tables with event names,
+    for example, ``{["/home/user"] = {"create", "delete", "move"}}`` (see the
     `Events and flag names`_ section).
 
 * ``greet``: boolean
