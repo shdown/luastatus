@@ -35,7 +35,7 @@ typedef struct {
     struct timespec timeout;
     struct timespec retry_in;
     char *retry_fifo;
-    char *idle_str;
+    LSString idle_str;
 } Priv;
 
 static
@@ -46,7 +46,7 @@ destroy(LuastatusPluginData *pd)
     free(p->hostname);
     free(p->password);
     free(p->retry_fifo);
-    free(p->idle_str);
+    LS_VECTOR_FREE(p->idle_str);
     free(p);
 }
 
@@ -62,9 +62,8 @@ init(LuastatusPluginData *pd, lua_State *L)
         .timeout = ls_timespec_invalid,
         .retry_in = {.tv_sec = 10},
         .retry_fifo = NULL,
-        .idle_str = NULL,
+        .idle_str = ls_string_new_from_s("idle"),
     };
-    LSString idle_str = ls_string_new_from_s("idle");
 
     PU_MAYBE_VISIT_STR_FIELD(-1, "hostname", "'hostname'", s,
         p->hostname = ls_xstrdup(s);
@@ -109,20 +108,18 @@ init(LuastatusPluginData *pd, lua_State *L)
         has_events = true;
         PU_CHECK_TYPE(LS_LUA_KEY, "'events' key", LUA_TNUMBER);
         PU_VISIT_STR(LS_LUA_VALUE, "'events' element", s,
-            ls_string_append_c(&idle_str, ' ');
-            ls_string_append_s(&idle_str, s);
+            ls_string_append_c(&p->idle_str, ' ');
+            ls_string_append_s(&p->idle_str, s);
         );
     );
     if (!has_events) {
-        ls_string_append_s(&idle_str, " mixer player");
+        ls_string_append_s(&p->idle_str, " mixer player");
     }
-    ls_string_append_b(&idle_str, "\n", 2); // append '\n' and '\0'
-    p->idle_str = idle_str.data;
+    ls_string_append_b(&p->idle_str, "\n", 2); // append '\n' and '\0'
 
     return LUASTATUS_OK;
 
 error:
-    LS_VECTOR_FREE(idle_str);
     destroy(pd);
     return LUASTATUS_ERR;
 }
@@ -291,7 +288,7 @@ interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, int fd)
 
         funcs.call_end(pd->userdata);
 
-        WRITE(p->idle_str);
+        WRITE(p->idle_str.data);
 
         if (fd < FD_SETSIZE && !ls_timespec_is_invalid(p->timeout)) {
             while (1) {

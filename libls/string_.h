@@ -158,6 +158,19 @@ ls_string_new_from_f(const char *fmt, ...)
     return s;
 }
 
+// Like /ls_string_new_from_f/, but appends the terminating NUL ('\0') byte to the resulting string.
+LS_INHEADER LS_ATTR_PRINTF(1, 2)
+LSString
+ls_string_newz_from_f(const char *fmt, ...)
+{
+    va_list vl;
+    va_start(vl, fmt);
+    LSString s = ls_string_new_from_vf(fmt, vl);
+    LS_VECTOR_PUSH(s, '\0');
+    va_end(vl);
+    return s;
+}
+
 LS_INHEADER
 bool
 ls_string_eq(LSString a, LSString b)
