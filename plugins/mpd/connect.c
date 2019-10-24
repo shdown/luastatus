@@ -17,13 +17,12 @@
 int
 unixdom_open(LuastatusPluginData *pd, const char *path)
 {
-    struct sockaddr_un saun;
+    struct sockaddr_un saun = {.sun_family = AF_UNIX};
     const size_t npath = strlen(path);
     if (npath + 1 > sizeof(saun.sun_path)) {
         LS_ERRF(pd, "socket path is too long: %s", path);
         return -1;
     }
-    saun.sun_family = AF_UNIX;
     memcpy(saun.sun_path, path, npath + 1);
     int fd = ls_cloexec_socket(PF_UNIX, SOCK_STREAM, 0);
     if (fd < 0) {
