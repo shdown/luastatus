@@ -14,7 +14,7 @@ local function read_uevent(dev)
     return r
 end
 
-local function get_battery_info(dev)
+local function get_battery_info(dev, use_energy_full_design)
     local p = read_uevent(dev)
     if not p then
         return {}
@@ -28,16 +28,18 @@ local function get_battery_info(dev)
     end
 
     local r = {status = p.status}
+    local ef = use_energy_full_design and p.energy_full_design or p.energy_full
     -- A buggy driver can report energy_now as energy_full_design, which
     -- will lead to an overshoot in capacity.
-    r.capacity = math.min(math.floor(p.energy_now / p.energy_full * 100 + 0.5), 100)
+    r.capacity = math.min(math.floor(p.energy_now / ef * 100 + 0.5), 100)
 
-    if p.power_now ~= 0 then
-        r.consumption = p.power_now / 1e6
+    local pn = tonumber(p.power_now)
+    if pn ~= 0 then
+        r.consumption = pn / 1e6
         if p.status == 'Charging' then
-            r.rem_time = (p.energy_full - p.energy_now) / p.power_now
+            r.rem_time = (p.energy_full - p.energy_now) / pn
         elseif p.status == 'Discharging' or p.status == 'Not charging' then
-            r.rem_time = p.energy_now / p.power_now
+            r.rem_time = p.energy_now / pn
         end
     end
 
@@ -55,7 +57,7 @@ function P.widget(tbl)
             greet = true
         },
         cb = function()
-            return tbl.cb(get_battery_info(dev))
+            return tbl.cb(get_battery_info(dev, tbl.use_energy_full_design))
         end,
         event = tbl.event,
     }

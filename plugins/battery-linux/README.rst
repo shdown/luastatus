@@ -69,6 +69,11 @@ The following functions are provided:
         battery state changes (such as cable (un-)plugging) immediately, irrespective of
         the value of the period.
 
+    - ``use_energy_full_design``: boolean
+
+        If ``true``, the ``energy_full_design`` property (not ``energy_full``) will be used for
+        capacity calculation.
+
     - ``event``
 
         The ``event`` entry of the resulting table (see ``luastatus`` documentation for the
