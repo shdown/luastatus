@@ -320,9 +320,10 @@ static
 bool
 barlib_init(const char *filename, const char *const *opts)
 {
-    DEBUGF("initializing barlib from file '%s'", filename);
+    barlib.dlhandle = NULL;
+    LS_PTH_CHECK(pthread_mutex_init(&barlib.set_mtx, NULL));
 
-    barlib.dlhandle = NULL; // this is an indicator whether or not to call /dlclose()/ on error.
+    DEBUGF("initializing barlib from file '%s'", filename);
 
     (void) dlerror(); // clear last error
     if (!(barlib.dlhandle = dlopen(filename, RTLD_NOW | RTLD_LOCAL))) {
@@ -336,7 +337,7 @@ barlib_init(const char *filename, const char *const *opts)
     }
     if (*p_lua_ver != LUA_VERSION_NUM) {
         ERRF("barlib '%s' was compiled with LUA_VERSION_NUM=%d and luastatus with %d",
-            filename, *p_lua_ver, LUA_VERSION_NUM);
+             filename, *p_lua_ver, LUA_VERSION_NUM);
         goto error;
     }
     LuastatusBarlibIface_v1 *p_iface = dlsym(barlib.dlhandle, "luastatus_barlib_iface_v1");
@@ -355,9 +356,6 @@ barlib_init(const char *filename, const char *const *opts)
         ERRF("barlib's init() failed");
         goto error;
     }
-
-    LS_PTH_CHECK(pthread_mutex_init(&barlib.set_mtx, NULL));
-
     DEBUGF("barlib successfully initialized");
     return true;
 
@@ -365,6 +363,7 @@ error:
     if (barlib.dlhandle) {
         dlclose(barlib.dlhandle);
     }
+    LS_PTH_CHECK(pthread_mutex_destroy(&barlib.set_mtx));
     return false;
 }
 
@@ -397,9 +396,10 @@ static
 bool
 plugin_load(Plugin *p, const char *filename, const char *name)
 {
-    DEBUGF("loading plugin from file '%s'", filename);
+    p->dlhandle = NULL;
+    p->name = ls_xstrdup(name);
 
-    p->dlhandle = NULL; // this is an indicator whether or not to call /dlclose()/ on error.
+    DEBUGF("loading plugin from file '%s'", filename);
 
     (void) dlerror(); // clear last error
     if (!(p->dlhandle = dlopen(filename, RTLD_NOW | RTLD_LOCAL))) {
@@ -413,7 +413,7 @@ plugin_load(Plugin *p, const char *filename, const char *name)
     }
     if (*p_lua_ver != LUA_VERSION_NUM) {
         ERRF("plugin '%s' was compiled with LUA_VERSION_NUM=%d and luastatus with %d",
-            filename, *p_lua_ver, LUA_VERSION_NUM);
+             filename, *p_lua_ver, LUA_VERSION_NUM);
         goto error;
     }
     LuastatusPluginIface_v1 *p_iface = dlsym(p->dlhandle, "luastatus_plugin_iface_v1");
@@ -422,8 +422,6 @@ plugin_load(Plugin *p, const char *filename, const char *name)
         goto error;
     }
     p->iface = *p_iface;
-
-    p->name = ls_xstrdup(name);
     DEBUGF("plugin successfully loaded");
     return true;
 
@@ -431,6 +429,7 @@ error:
     if (p->dlhandle) {
         dlclose(p->dlhandle);
     }
+    free(p->name);
     return false;
 }
 
@@ -770,31 +769,31 @@ static
 bool
 widget_init(Widget *w, const char *filename)
 {
-    DEBUGF("initializing widget '%s'", filename);
-
-    lua_State *L = w->L = xnew_lua_state();
+    w->L = xnew_lua_state();
     LS_PTH_CHECK(pthread_mutex_init(&w->L_mtx, NULL));
     w->filename = ls_xstrdup(filename);
     bool plugin_loaded = false;
 
-    luaL_openlibs(L);
-    // L: -
-    inject_libs(L); // L: -
-    lua_pushcfunction(L, l_error_handler); // L: l_error_handler
+    DEBUGF("initializing widget '%s'", filename);
+
+    luaL_openlibs(w->L);
+    // w->L: -
+    inject_libs(w->L); // w->L: -
+    lua_pushcfunction(w->L, l_error_handler); // w->L: l_error_handler
 
     DEBUGF("running file '%s'", filename);
-    if (!check_lua_call(L, luaL_loadfile(L, filename))) {
+    if (!check_lua_call(w->L, luaL_loadfile(w->L, filename))) {
         goto error;
     }
-    // L: l_error_handler chunk
-    if (!do_lua_call(L, 0, 0)) {
+    // w->L: l_error_handler chunk
+    if (!do_lua_call(w->L, 0, 0)) {
         goto error;
     }
-    // L: l_error_handler
+    // w->L: l_error_handler
 
-    lua_getglobal(L, "widget"); // L: l_error_handler widget
-    if (!lua_istable(L, -1)) {
-        ERRF("'widget': expected table, found %s", luaL_typename(L, -1));
+    lua_getglobal(w->L, "widget"); // w->L: l_error_handler widget
+    if (!lua_istable(w->L, -1)) {
+        ERRF("'widget': expected table, found %s", luaL_typename(w->L, -1));
         goto error;
     }
 
@@ -808,7 +807,7 @@ widget_init(Widget *w, const char *filename)
     {
         goto error;
     }
-    // L: l_error_handler widget opts
+    // w->L: l_error_handler widget opts
 
     w->data = (LuastatusPluginData_v1) {
         .userdata = w,
@@ -816,18 +815,18 @@ widget_init(Widget *w, const char *filename)
         .map_get = map_get,
     };
 
-    if (w->plugin.iface.init(&w->data, L) == LUASTATUS_ERR) {
+    if (w->plugin.iface.init(&w->data, w->L) == LUASTATUS_ERR) {
         ERRF("plugin's init() failed");
         goto error;
     }
-    assert(lua_gettop(L) == 3); // L: l_error_handler widget opts
-    lua_pop(L, 2); // L: l_error_handler
+    assert(lua_gettop(w->L) == 3); // w->L: l_error_handler widget opts
+    lua_pop(w->L, 2); // w->L: l_error_handler
 
     DEBUGF("widget successfully initialized");
     return true;
 
 error:
-    lua_close(L);
+    lua_close(w->L);
     LS_PTH_CHECK(pthread_mutex_destroy(&w->L_mtx));
     free(w->filename);
     if (plugin_loaded) {
