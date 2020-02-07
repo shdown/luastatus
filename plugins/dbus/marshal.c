@@ -125,7 +125,11 @@ push_gvariant(lua_State *L, GVariant *var, unsigned recurlim)
             break;
 
         case G_VARIANT_CLASS_VARIANT:
-            push_gvariant(L, g_variant_get_variant(var), recurlim);
+            {
+                GVariant *boxed = g_variant_get_variant(var);
+                push_gvariant(L, boxed, recurlim);
+                g_variant_unref(boxed);
+            }
             break;
 
         case G_VARIANT_CLASS_MAYBE:
@@ -133,6 +137,7 @@ push_gvariant(lua_State *L, GVariant *var, unsigned recurlim)
                 GVariant *maybe = g_variant_get_maybe(var);
                 if (maybe) {
                     push_gvariant(L, maybe, recurlim);
+                    g_variant_unref(maybe);
                 } else {
                     lua_pushstring(L, "nothing"); // L: str
                     lua_pushcclosure(L, l_special_object, 1); // L: closure
