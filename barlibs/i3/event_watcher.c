@@ -88,9 +88,10 @@ push_object(lua_State *L, Context *ctx, size_t *index)
             Token key = ctx->tokens.data[*index];
             assert(key.type == TYPE_STRING_KEY);
 
-            // To limit the depth of recursion to /N + O(1)/, where /N/ is the maximum /ctx->depth/
-            // encountered, we have to push the value first. Unfortunately, /lua_settable()/ expects
-            // the key to be pushed first. So we simply swap them with /lua_insert()/.
+            // To limit the maximum number of slots pushed onto /L/'s stack to /N + O(1)/, where /N/
+            // is the maximum /ctx->depth/ encountered, we have to push the value first.
+            // Unfortunately, /lua_settable()/ expects the key to be pushed first. So we simply swap
+            // them with /lua_insert()/.
 
             ++*index;
             push_object(L, ctx, index); // L: table value
