@@ -126,7 +126,7 @@ query_groups(Display *dpy, LSStringArray *groups)
     ls_strarr_clear(groups);
     if (rn.layout) {
         // split /rn.layout/ by non-parenthesized commas
-        int balance = 0;
+        size_t balance = 0;
         size_t prev = 0;
         const size_t nlayout = strlen(rn.layout);
         for (size_t i = 0; i < nlayout; ++i) {
