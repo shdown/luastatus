@@ -274,12 +274,28 @@ static
 bool
 interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
+    // We allocate the buffer for netlink messages on the heap rather than on the stack, for two
+    // reasons:
+    //
+    // 1. Alignment. The code in the netlink(7) man page seems to be wrong as it does not use
+    // __attribute__((aligned(...))) or something, as does, for example, the inotify(7) man page.
+    //
+    // 2. Stack space is not free, and allocating 8K on the stack does not seem to worth it here.
+    //
+    // As for the buffer size, netlink(7) says "8192 to avoid message truncation on platforms with
+    // page size > 4096".
+    enum { NBUF = 8192 };
+
     bool ret = false;
-    int fd = ls_cloexec_socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
+    char *buf = LS_XNEW(char, NBUF);
+    int fd = -1;
+
+    fd = ls_cloexec_socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
     if (fd < 0) {
         LS_FATALF(pd, "socket: %s", ls_strerror_onstack(errno));
         goto error;
     }
+
     struct sockaddr_nl sa = {
         .nl_family = AF_NETLINK,
         .nl_groups = RTMGRP_LINK | RTMGRP_IPV4_IFADDR | RTMGRP_IPV6_IFADDR,
@@ -291,12 +307,10 @@ interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 
     setup_sock_timeout(pd, fd);
 
-    // netlink(7) says "8192 to avoid message truncation on platforms with page size > 4096"
-    char buf[8192];
     while (1) {
         make_call(pd, funcs, false);
 
-        struct iovec iov = {buf, sizeof(buf)};
+        struct iovec iov = {buf, NBUF};
         struct msghdr msg = {NULL, 0, &iov, 1, NULL, 0, 0};
         ssize_t len = recvmsg(fd, &msg, 0);
         if (len < 0) {
@@ -345,6 +359,7 @@ interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     }
 
 error:
+    free(buf);
     close(fd);
     return ret;
 }

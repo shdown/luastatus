@@ -341,6 +341,11 @@ void
 run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
+    // We allocate the buffer for /struct inotify_event/'s on the heap rather than on the stack in
+    // order to get the maximum possible alignment for it and not resort to compiler-dependent hacks
+    // like this one recommended by inotify(7):
+    //     /__attribute__ ((aligned(__alignof__(struct inotify_event))))/.
+    char *buf = NULL;
 
     if (p->greet) {
         lua_State *L = funcs.call_begin(pd->userdata);
@@ -350,13 +355,10 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         funcs.call_end(pd->userdata);
     }
 
-    // This /__attribute__((aligned(__alignof__(struct inotify_event))))/ thing is in inotify's
-    // man page.
-    // Since inotify is Linux-specific, and you need gcc to build the Linux kernel, it's probably
-    // justified that gcc (or at least a GNU C-compatible compiler) is also needed to build this
-    // plugin.
-    char buf[sizeof(struct inotify_event) + NAME_MAX + 2]
-        __attribute__((aligned(__alignof__(struct inotify_event))));
+    enum {
+        NBUF = sizeof(struct inotify_event) + NAME_MAX + 2
+    };
+    buf = LS_XNEW(char, NBUF);
 
     fd_set fds;
     FD_ZERO(&fds);
@@ -385,7 +387,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
             continue;
         }
 
-        ssize_t r = read(p->fd, buf, sizeof(buf));
+        ssize_t r = read(p->fd, buf, NBUF);
         if (r < 0) {
             if (errno == EINTR) {
                 continue;
@@ -395,7 +397,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         } else if (r == 0) {
             LS_FATALF(pd, "read() from the inotify file descriptor returned 0");
             goto error;
-        } else if ((size_t) r == sizeof(buf)) {
+        } else if (r == NBUF) {
             LS_FATALF(pd, "got an event with filename length > NAME_MAX+1");
             goto error;
         }
@@ -411,7 +413,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     }
 
 error:
-    return;
+    free(buf);
 }
 
 LuastatusPluginIface luastatus_plugin_iface_v1 = {
