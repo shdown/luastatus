@@ -278,9 +278,9 @@ interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     // reasons:
     //
     // 1. Alignment. The code in the netlink(7) man page seems to be wrong as it does not use
-    // __attribute__((aligned(...))) or something, as does, for example, the inotify(7) man page.
+    // /__attribute__((aligned(...)))/, which is used, e.g., in the inotify(7) example.
     //
-    // 2. Stack space is not free, and allocating 8K on the stack does not seem to worth it here.
+    // 2. Stack space is not free, and 8K is quite a large allocation for the stack.
     //
     // As for the buffer size, netlink(7) says "8192 to avoid message truncation on platforms with
     // page size > 4096".
