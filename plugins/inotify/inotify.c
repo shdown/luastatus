@@ -345,7 +345,8 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     // order to get the maximum possible alignment for it and not resort to compiler-dependent hacks
     // like this one recommended by inotify(7):
     //     /__attribute__ ((aligned(__alignof__(struct inotify_event))))/.
-    char *buf = NULL;
+    enum { NBUF = sizeof(struct inotify_event) + NAME_MAX + 2 };
+    char *buf = LS_XNEW(char, NBUF);
 
     if (p->greet) {
         lua_State *L = funcs.call_begin(pd->userdata);
@@ -355,10 +356,6 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         funcs.call_end(pd->userdata);
     }
 
-    enum {
-        NBUF = sizeof(struct inotify_event) + NAME_MAX + 2
-    };
-    buf = LS_XNEW(char, NBUF);
 
     fd_set fds;
     FD_ZERO(&fds);

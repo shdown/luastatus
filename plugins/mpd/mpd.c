@@ -136,6 +136,15 @@ rstrip_nl_strlen(const char *s)
     return len;
 }
 
+static inline
+int
+rstrip_nl_strlen_limit(const char *s)
+{
+    enum { LIMIT = 8192 };
+    const size_t r = rstrip_nl_strlen(s);
+    return r > LIMIT ? LIMIT : r;
+}
+
 // If /line/ is of form "key: value\n", appends /key/ and /value/ to /sa/.
 static
 void
@@ -221,7 +230,7 @@ interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, int fd)
         if (rt_ == RESP_OK) { \
             break; \
         } else if (rt_ == RESP_ACK) { \
-            LS_ERRF(pd, "server said: %.*s", (int) rstrip_nl_strlen(buf), buf); \
+            LS_ERRF(pd, "server said: %.*s", rstrip_nl_strlen_limit(buf), buf); \
             goto error; \
         } else { \
             __VA_ARGS__ \
@@ -231,7 +240,7 @@ interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, int fd)
     // read and check the greeting
     GETLINE();
     if (strncmp(buf, "OK MPD ", 7) != 0) {
-        LS_ERRF(pd, "bad greeting: %.*s", (int) rstrip_nl_strlen(buf), buf);
+        LS_ERRF(pd, "bad greeting: %.*s", rstrip_nl_strlen_limit(buf), buf);
         goto error;
     }
 
@@ -246,7 +255,7 @@ interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, int fd)
         }
         GETLINE();
         if (response_type(buf) != RESP_OK) {
-            LS_ERRF(pd, "(password) server said: %.*s", (int) rstrip_nl_strlen(buf), buf);
+            LS_ERRF(pd, "(password) server said: %.*s", rstrip_nl_strlen_limit(buf), buf);
             goto error;
         }
     }
