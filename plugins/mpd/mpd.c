@@ -239,7 +239,7 @@ interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, int fd)
 
     // read and check the greeting
     GETLINE();
-    if (strncmp(buf, "OK MPD ", 7) != 0) {
+    if (!ls_strfollow(buf, "OK MPD ")) {
         LS_ERRF(pd, "bad greeting: %.*s", rstrip_nl_strlen_limit(buf), buf);
         goto error;
     }

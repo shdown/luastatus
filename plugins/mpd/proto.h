@@ -19,7 +19,7 @@ response_type(const char *s)
     if (strcmp(s, "OK\n") == 0) {
         return RESP_OK;
     }
-    if (strncmp(s, "ACK ", 4) == 0) {
+    if ((ls_strfollow(s, "ACK "))) {
         return RESP_ACK;
     }
     return RESP_OTHER;
