@@ -467,6 +467,13 @@ xnew_lua_state(void)
     return L;
 }
 
+static
+void
+do_gc(lua_State *L)
+{
+    lua_gc(L, LUA_GCCOLLECT, 0);
+}
+
 // Returns a string representation of an error object located at the position /pos/ of /L/'s stack.
 static inline
 const char *
@@ -1030,6 +1037,9 @@ plugin_call_end(void *userdata)
         // L: l_error_handler
         set_error_unlocked(widget_idx);
     }
+
+    do_gc(L);
+
     UNLOCK_B();
     UNLOCK_L(w);
 }
@@ -1082,6 +1092,9 @@ ew_call_end(void *userdata, size_t widget_idx)
         }
         // L: l_error_handler
     }
+
+    do_gc(L);
+
     UNLOCK_E(w);
 }
 
@@ -1233,6 +1246,7 @@ main(int argc, char **argv)
             UNLOCK_B();
         } else {
             register_funcs(w->L, w);
+            do_gc(w->L);
             pthread_t t;
             LS_PTH_CHECK(pthread_create(&t, NULL, widget_thread, w));
             LS_VECTOR_PUSH(threads, t);
