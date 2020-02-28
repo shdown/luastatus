@@ -91,7 +91,7 @@ An example that uses all possible features::
                 -- no markup unless you specify markup='pango'
                 return {full_text = '<Hello!>', color = '#aaaa00'}
             elseif i == 3 then
-                -- see https://developer.gnome.org/pango/stable/PangoMarkupFormat.html
+                -- see https://developer.gnome.org/pygtk/stable/pango-markup-language.html
                 return {full_text = 'Hello, <span color="#aaaa00">'
                                     .. luastatus.barlib.pango_escape(get_user_name())
                                     .. '</span>!',
