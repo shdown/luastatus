@@ -3,6 +3,7 @@
 
 #include <time.h>
 #include <sys/time.h>
+#include <errno.h>
 #include <stdbool.h>
 
 #include "compdep.h"
@@ -64,6 +65,16 @@ ls_opt_timeval_from_seconds(double seconds, struct timeval *out)
 {
     *out = ls_timeval_from_seconds(seconds);
     return !(ls_timeval_is_invalid(*out) && seconds >= 0);
+}
+
+LS_INHEADER
+void
+ls_nanosleep(struct timespec ts)
+{
+    struct timespec rem;
+    while (nanosleep(&ts, &rem) < 0 && errno == EINTR) {
+        ts = rem;
+    }
 }
 
 #endif

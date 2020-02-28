@@ -371,7 +371,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     while (interact(pd, funcs)) {
         // some non-fatal error occurred
         report_error(pd, funcs);
-        nanosleep((struct timespec [1]) {{.tv_sec = 5}}, NULL);
+        ls_nanosleep((struct timespec) {.tv_sec = 5});
         LS_INFOF(pd, "resynchronizing");
     }
 }
