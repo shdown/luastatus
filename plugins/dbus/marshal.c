@@ -13,10 +13,10 @@ l_special_object(lua_State *L)
 {
     lua_pushvalue(L, lua_upvalueindex(1)); // L: upvalue1
     if (lua_isnil(L, -1)) {
-        lua_pushvalue(L, lua_upvalueindex(2)); // L: upvalue1 upvalue 2
+        lua_pushvalue(L, lua_upvalueindex(2)); // L: upvalue1 upvalue2
         return 2;
     } else {
-        // L: upvalue 1
+        // L: upvalue1
         return 1;
     }
 }

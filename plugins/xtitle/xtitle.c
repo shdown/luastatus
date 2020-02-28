@@ -259,6 +259,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     watch(&d, win, true);
 
     // poll for changes
+
     sigset_t allsigs;
     ls_xsigfillset(&allsigs);
 
