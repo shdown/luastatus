@@ -16,6 +16,7 @@
 #include "libls/alloc_utils.h"
 #include "libls/cstring_utils.h"
 #include "libls/evloop_utils.h"
+#include "libls/time_utils.h"
 
 // Note: some parts of this file are stolen from i3status' src/pulse.c.
 // This is fine since the BSD 3-Clause licence, under which it is licenced, is compatible with
@@ -299,7 +300,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     while (1) {
         if (!iteration(pd, funcs)) {
-            nanosleep((struct timespec[1]) {{.tv_sec = 5}}, NULL);
+            ls_nanosleep((struct timespec) {.tv_sec = 5});
         }
     }
 }
