@@ -223,12 +223,16 @@ append_segment(LuastatusBarlibData *bd, lua_State *L, int table_pos, size_t widg
 
     // traverse the table
     bool separator_key_found = false;
+
     LS_LUA_TRAVERSE(L, table_pos) {
+
         if (!lua_isstring(L, LS_LUA_KEY)) {
             LS_ERRF(bd, "segment key: expected string, found %s", luaL_typename(L, -2));
             return false;
         }
+
         const char *key = lua_tostring(L, LS_LUA_KEY);
+
         if (strcmp(key, "name") == 0) {
             LS_WARNF(bd, "segment: ignoring 'name', it is set automatically; use 'instance' "
                          "instead");
@@ -236,9 +240,11 @@ append_segment(LuastatusBarlibData *bd, lua_State *L, int table_pos, size_t widg
         } else if (strcmp(key, "separator") == 0) {
             separator_key_found = true;
         }
+
         ls_string_append_c(s, ',');
         append_json_escaped_s(s, key);
         ls_string_append_c(s, ':');
+
         switch (lua_type(L, LS_LUA_VALUE)) {
         case LUA_TNUMBER:
             if (!append_json_number(s, lua_tonumber(L, LS_LUA_VALUE))) {
@@ -281,13 +287,14 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
     switch (lua_type(L, -1)) {
     case LUA_TNIL:
         break;
+
     case LUA_TTABLE:
         // L: table
         lua_pushnil(L); // L: table nil
         if (lua_next(L, -2)) {
-            // table is not empty
+            // The table is not empty!
             // L: table key value
-            bool is_array = lua_isnumber(L, -2);
+            const bool is_array = lua_isnumber(L, -2);
             lua_pop(L, 2); // L: table
             if (is_array) {
                 LS_LUA_TRAVERSE(L, -1) {
@@ -312,6 +319,7 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
             }
         } // else: L: table
         break;
+
     default:
         LS_ERRF(bd, "expected table or nil, found %s", luaL_typename(L, -1));
         goto invalid_data;

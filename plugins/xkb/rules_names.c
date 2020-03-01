@@ -11,6 +11,18 @@
 static const char *NAMES_PROP_ATOM = "_XKB_RULES_NAMES";
 static const long NAMES_PROP_MAXLEN = 1024;
 
+static
+const char *
+maybe_advance(const char **pcur, const char *end)
+{
+    const char *cur = *pcur;
+    if (cur == end) {
+        return NULL;
+    }
+    *pcur += strlen(cur) + 1;
+    return cur;
+}
+
 bool
 rules_names_load(Display *dpy, RulesNames *out)
 {
@@ -33,21 +45,13 @@ rules_names_load(Display *dpy, RulesNames *out)
         goto error;
     }
 
-    const char *ptr = (const char *) out->data_;
-    const char *const end = ptr + ndata;
+    const char *cur = (const char *) out->data_;
+    const char *const end = cur + ndata;
 
-    const char **table[] = {
-        &out->rules,
-        &out->model,
-        &out->layout,
-        &out->options,
-    };
-    for (size_t i = 0;
-         i < LS_ARRAY_SIZE(table) && ptr != end;
-         ++i, ptr += strlen(ptr) + 1)
-    {
-        *table[i] = ptr;
-    }
+    out->rules = maybe_advance(&cur, end);
+    out->model = maybe_advance(&cur, end);
+    out->layout = maybe_advance(&cur, end);
+    out->options = maybe_advance(&cur, end);
 
     return true;
 

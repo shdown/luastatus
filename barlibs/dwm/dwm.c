@@ -51,6 +51,28 @@ destroy(LuastatusBarlibData *bd)
     free(p);
 }
 
+// Returns zero on success, non-zero XCB error code on failure. In either case, /*out_conn/ is
+// written to, and should be closed with /xcb_disconnect()/.
+static
+int
+connect(const char *dpyname, xcb_connection_t **out_conn, xcb_window_t *out_root)
+{
+    int screenp;
+    *out_conn = xcb_connect(dpyname, &screenp);
+    const int r = xcb_connection_has_error(*out_conn);
+    if (r != 0) {
+        return r;
+    }
+
+    const xcb_setup_t *setup = xcb_get_setup(*out_conn);
+    xcb_screen_iterator_t iter = xcb_setup_roots_iterator(setup);
+    for (int i = 0; i < screenp; ++i) {
+        xcb_screen_next(&iter);
+    }
+    *out_root = iter.data->root;
+    return 0;
+}
+
 static
 bool
 redraw(LuastatusBarlibData *bd)
@@ -75,8 +97,16 @@ redraw(LuastatusBarlibData *bd)
     xcb_generic_error_t *err = xcb_request_check(
         p->conn,
         xcb_change_property_checked(
-            p->conn, XCB_PROP_MODE_REPLACE, p->root, XCB_ATOM_WM_NAME, XCB_ATOM_STRING, 8,
-            joined->size, joined->data));
+            p->conn,
+            XCB_PROP_MODE_REPLACE,
+            p->root,
+            XCB_ATOM_WM_NAME,
+            XCB_ATOM_STRING,
+            8,
+            joined->size,
+            joined->data
+        )
+    );
     if (err) {
         LS_FATALF(bd, "XCB error %d occured", err->error_code);
         free(err);
@@ -117,20 +147,11 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
     }
     p->sep = ls_xstrdup(sep ? sep : " | ");
 
-    // Initialize /p->conn/ and /p->root/.
-    int screenp;
-    p->conn = xcb_connect(dpyname, &screenp);
-    int r = xcb_connection_has_error(p->conn);
+    const int r = connect(dpyname, &p->conn, &p->root);
     if (r != 0) {
         LS_FATALF(bd, "can't connect to display: XCB error %d", r);
         goto error;
     }
-    const xcb_setup_t *setup = xcb_get_setup(p->conn);
-    xcb_screen_iterator_t iter = xcb_setup_roots_iterator(setup);
-    for (int i = 0; i < screenp; ++i) {
-        xcb_screen_next(&iter);
-    }
-    p->root = iter.data->root;
 
     // Clear the current name.
     if (!redraw(bd)) {
@@ -167,16 +188,19 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
             const char *sep = p->sep;
 
             LS_LUA_TRAVERSE(L, -1) {
+
                 if (!lua_isnumber(L, LS_LUA_KEY)) {
                     LS_ERRF(bd, "table key: expected number, found %s",
                             luaL_typename(L, LS_LUA_KEY));
                     goto invalid_data;
                 }
+
                 if (!lua_isstring(L, LS_LUA_VALUE)) {
                     LS_ERRF(bd, "table value: expected string, found %s",
                             luaL_typename(L, LS_LUA_VALUE));
                     goto invalid_data;
                 }
+
                 size_t ns;
                 const char *s = lua_tolstring(L, LS_LUA_VALUE, &ns);
                 if (buf->size && ns) {

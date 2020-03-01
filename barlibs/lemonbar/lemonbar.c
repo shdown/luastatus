@@ -199,6 +199,7 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
     switch (lua_type(L, -1)) {
     case LUA_TNIL:
         break;
+
     case LUA_TSTRING:
         {
             size_t ns;
@@ -206,20 +207,24 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
             append_sanitized_b(buf, widget_idx, s, ns);
         }
         break;
+
     case LUA_TTABLE:
         {
             const char *sep = p->sep;
             LS_LUA_TRAVERSE(L, -1) {
+
                 if (!lua_isnumber(L, LS_LUA_KEY)) {
                     LS_ERRF(bd, "table key: expected number, found %s",
                             luaL_typename(L, LS_LUA_KEY));
                     goto invalid_data;
                 }
+
                 if (!lua_isstring(L, LS_LUA_VALUE)) {
                     LS_ERRF(bd, "table value: expected string, found %s",
                             luaL_typename(L, LS_LUA_VALUE));
                     goto invalid_data;
                 }
+
                 size_t ns;
                 const char *s = lua_tolstring(L, LS_LUA_VALUE, &ns);
                 if (buf->size && ns) {
@@ -229,6 +234,7 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
             }
         }
         break;
+
     default:
         LS_ERRF(bd, "expected string, table or nil, found %s", luaL_typename(L, -1));
         goto invalid_data;

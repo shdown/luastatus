@@ -85,8 +85,7 @@ static inline
 bool
 get_active_window(Data *d, xcb_window_t *win)
 {
-    return
-        xcb_ewmh_get_active_window_reply(
+    return xcb_ewmh_get_active_window_reply(
             d->ewmh,
             xcb_ewmh_get_active_window(d->ewmh, d->screenp),
             win,
