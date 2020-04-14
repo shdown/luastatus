@@ -36,8 +36,8 @@ The following functions are provided:
 
     - ``cb``: function
 
-        The callback that will be called with a line produces by the spawned process each time it
-        does so.
+        The callback that will be called with a line produced by the spawned process each time one
+        is available.
 
     **(optional)**
 

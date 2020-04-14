@@ -38,7 +38,7 @@ luastatus plugins
 %make_install
 
 %files
-%doc LICENSE.txt README.md
+%doc COPYING.txt COPYING.LESSER.txt README.md
 %{_bindir}/luastatus
 %{_bindir}/luastatus-i3-wrapper
 %{_bindir}/luastatus-lemonbar-launcher
