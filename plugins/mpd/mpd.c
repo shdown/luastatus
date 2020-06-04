@@ -90,7 +90,7 @@ init(LuastatusPluginData *pd, lua_State *L)
 
     PU_MAYBE_VISIT_NUM_FIELD(-1, "port", "'port'", n,
         if (!ls_is_between_d(n, 0, 65535)) {
-            LS_FATALF(pd, "port (%g) is not a valid port number", (double) n);
+            LS_FATALF(pd, "'port' (%g) is not a valid port number", (double) n);
             goto error;
         }
         p->port = n;
@@ -98,7 +98,7 @@ init(LuastatusPluginData *pd, lua_State *L)
 
     PU_MAYBE_VISIT_STR_FIELD(-1, "password", "'password'", s,
         if ((strchr(s, '\n'))) {
-            LS_FATALF(pd, "password contains a line break");
+            LS_FATALF(pd, "'password' contains a line break");
             goto error;
         }
         p->password = ls_xstrdup(s);
