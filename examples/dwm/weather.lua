@@ -1,4 +1,4 @@
--- you need to install 'lua-curl' and 'gonapps-url-encoder' modules (e.g. with luarocks) 
+-- you need to install 'luasec' module (e.g. with luarocks)
 -- you can look up all available flags here: https://github.com/chubin/wttr.in#one-line-output
 
 local https = require('ssl.https')
