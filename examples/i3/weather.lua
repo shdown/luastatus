@@ -45,7 +45,7 @@ local PERIOD = 900
 function get_weather(format)
     -- encoding is needed to allow usage of special use characters
     format = urlencode(format)
-    url = string.format('https://%s.%s/%s?format=%s', lang, base_url, location, format)
+    local url = string.format('https://%s.%s/%s?format=%s', lang, base_url, location, format)
     local is_ok, body = pcall(request_check_code, url)
     if is_ok then
         return body:gsub("\n", "")
@@ -58,7 +58,7 @@ widget = {
     plugin = 'timer',
     opts = {period = PERIOD},
     cb = function()
-        text = get_weather('%l: %C %t(%f)')
+        local text = get_weather('%l: %C %t(%f)')
         if text == nil then
             luastatus.plugin.push_period(60) -- retry in 60 seconds
             text = '......'
