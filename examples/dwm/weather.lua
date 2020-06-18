@@ -10,6 +10,7 @@ local location = ''
 local PERIOD = 900
 
 function get_weather(format)
+    local res = nil
     -- encoding is needed to allow usage of special use characters
     format = encoder.encode(format)
     curl.easy{
