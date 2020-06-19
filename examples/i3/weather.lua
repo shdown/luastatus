@@ -1,4 +1,4 @@
--- you need to install 'luasec' module (e.g. with luarocks) 
+-- you need to install 'luasec' module (e.g. with luarocks)
 -- you can look up all available flags here: https://github.com/chubin/wttr.in#one-line-output
 
 local https = require('ssl.https')
@@ -37,15 +37,14 @@ function urlencode(s)
     end)
 end
 
-local base_url = 'wttr.in'
-local lang = 'en'
-local location = ''
-local PERIOD = 900
+local BASE_URL = 'wttr.in'
+local LANG = 'en'
+local LOCATION = ''
 
 function get_weather(format)
     -- encoding is needed to allow usage of special use characters
     format = urlencode(format)
-    local url = string.format('https://%s.%s/%s?format=%s', lang, base_url, location, format)
+    local url = string.format('https://%s.%s/%s?format=%s', LANG, BASE_URL, LOCATION, format)
     local is_ok, body = pcall(request_check_code, url)
     if is_ok then
         return body:gsub("\n", "")
@@ -56,7 +55,7 @@ end
 
 widget = {
     plugin = 'timer',
-    opts = {period = PERIOD},
+    opts = {period = 15 * 60},
     cb = function()
         local text = get_weather('%l: %C %t(%f)')
         if text == nil then
