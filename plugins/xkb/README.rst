@@ -56,9 +56,4 @@ A table with the following entries:
     Note that bitwise operations were only introduced in Lua 5.3.
     The "lowest common denominator" (working on all Lua versions) check if a bit is set is
     the following:
-
-    ```
-    function is_set(mask, bit)
-        return mask % (2 * bit) >= bit
-    end
-    ```
+    ``function is_set(mask, bit) return mask % (2 * bit) >= bit end``
