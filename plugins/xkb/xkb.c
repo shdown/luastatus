@@ -24,6 +24,7 @@
 #include <limits.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 #include <lua.h>
 
 #include "include/plugin_v1.h"
