@@ -47,13 +47,34 @@ A table with the following entries:
     Bit mask representing the current state of LED indicators.
 
     On virtually all setups,
-    bit `(1 << 0) = 1` is "Caps Lock",
-    bit `(1 << 1) = 2` is "Num Lock",
-    bit `(1 << 2) = 4` is "Scroll Lock".
+    bit ``(1 << 0) = 1`` is "Caps Lock",
+    bit ``(1 << 1) = 2`` is "Num Lock",
+    bit ``(1 << 2) = 4`` is "Scroll Lock".
 
     To list all XKB indicators your X server knows of, see the output of ``xset q``.
 
     Note that bitwise operations were only introduced in Lua 5.3.
     The "lowest common denominator" (working on all Lua versions) check if a bit is set is
-    the following:
-    ``function is_set(mask, bit) return mask % (2 * bit) >= bit end``
+    the following::
+
+        function is_set(mask, bit)
+            return mask % (2 * bit) >= bit
+        end
+
+    Use it as follows::
+
+        cb = function(t)
+            -- ...do something...
+
+            if is_set(t.led_state, 1) then
+                -- "Caps Lock" is ON
+                -- ...do something...
+            end
+
+            if is_set(t.led_state, 2) then
+                -- "Num Lock" is ON
+                -- ...do something...
+            end
+
+            -- ...do something...
+        end,
