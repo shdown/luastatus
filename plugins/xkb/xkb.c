@@ -353,8 +353,9 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         // instead. The semantics of such "sane C" would include what '-fno-strict-aliasing' and
         // '-fwrapv' options to gcc do.
         //
-        // 2. Force X upstream to provide headers with '__attribute__((__may_alias__))' on 'XEvent'
-        // union. Well, *at least* if gcc or clang is used - nobody actually uses anything else.
+        // 2. Force X upstream to provide headers with '__attribute__((__may_alias__))' on
+        // appropriate structures/unions. Well, *at least* if gcc or clang is used - nobody
+        // actually uses anything else.
         //
 
         // interpret the event
@@ -391,8 +392,6 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
             LS_WARNF(pd, "got X event of unknown type %d", event.type);
         }
     }
-
-#undef DECLARE_POINTER_CAST
 
 error:
     if (dpy) {
