@@ -51,7 +51,12 @@ A table with the following entries:
     bit ``(1 << 1) = 2`` is "Num Lock",
     bit ``(1 << 2) = 4`` is "Scroll Lock".
 
-    To list all XKB indicators your X server knows of, see the output of ``xset q``.
+    To list all indicators your X server knows of, run ``xset q``.
+    If you look at the output, you will note there are a lot of weird things that are, in some
+    reason, also considered indicators; for example, "Group 2" (that is, alternative keyboard
+    layout) corresponds to ``(1 << 12) = 4096`` on my setup. So you should not assume that, just
+    because your physical keyboard has no indicators for other things (or no indicators at all),
+    the mask will never contain anything other than "Caps Lock", "Num Lock" and "Scroll Lock".
 
     Note that bitwise operations were only introduced in Lua 5.3.
     The "lowest common denominator" (working on all Lua versions) check if a bit is set is
@@ -73,6 +78,11 @@ A table with the following entries:
 
             if is_set(t.led_state, 2) then
                 -- "Num Lock" is ON
+                -- ...do something...
+            end
+
+            if is_set(t.led_state, 4) then
+                -- "Scroll Lock" is ON
                 -- ...do something...
             end
 
