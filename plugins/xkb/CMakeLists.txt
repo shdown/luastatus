@@ -6,7 +6,7 @@ luastatus_target_compile_with (plugin-xkb LUA)
 target_include_directories (plugin-xkb PUBLIC "${PROJECT_SOURCE_DIR}")
 
 find_package (PkgConfig REQUIRED)
-pkg_check_modules (xstuff REQUIRED x11 xkbcommon xkbfile)
+pkg_check_modules (xstuff REQUIRED x11)
 luastatus_target_build_with (plugin-xkb xstuff)
 
 luastatus_add_man_page (README.rst luastatus-plugin-xkb 7)
