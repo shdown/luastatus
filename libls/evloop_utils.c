@@ -84,15 +84,15 @@ ls_pushed_timeout_destroy(LSPushedTimeout *p)
 }
 
 int
-ls_self_pipe_open(LSSelfPipe *s)
+ls_self_pipe_open(int *fds)
 {
-    if (ls_cloexec_pipe(s->fds) < 0) {
-        s->fds[0] = -1;
-        s->fds[1] = -1;
+    if (ls_cloexec_pipe(fds) < 0) {
+        fds[0] = -1;
+        fds[1] = -1;
         return -1;
     }
-    ls_make_nonblock(s->fds[0]);
-    ls_make_nonblock(s->fds[1]);
+    ls_make_nonblock(fds[0]);
+    ls_make_nonblock(fds[1]);
     return 0;
 }
 
@@ -100,9 +100,9 @@ static
 int
 l_self_pipe_write(lua_State *L)
 {
-    LSSelfPipe *s = lua_touserdata(L, lua_upvalueindex(1));
+    int *fds = lua_touserdata(L, lua_upvalueindex(1));
 
-    const int fd = s->fds[1];
+    int fd = fds[1];
     if (fd < 0)
         return luaL_error(L, "self-pipe has not been opened");
 
@@ -113,17 +113,10 @@ l_self_pipe_write(lua_State *L)
 }
 
 void
-ls_self_pipe_push_luafunc(LSSelfPipe *s, lua_State *L)
+ls_self_pipe_push_luafunc(int *fds, lua_State *L)
 {
-    lua_pushlightuserdata(L, s);
+    lua_pushlightuserdata(L, fds);
     lua_pushcclosure(L, l_self_pipe_write, 1);
-}
-
-void
-ls_self_pipe_close(LSSelfPipe *s)
-{
-    close(s->fds[0]);
-    close(s->fds[1]);
 }
 
 int
@@ -137,8 +130,10 @@ ls_poll(struct pollfd *fds, nfds_t nfds, double tmo)
     sigset_t origmask;
     sigprocmask(SIG_SETMASK, &allsigs, &origmask);
     int r = poll(fds, nfds, tmo_ms);
+    int saved_errno = errno;
     sigprocmask(SIG_SETMASK, &origmask, NULL);
 
+    errno = saved_errno;
     return r;
 }
 

@@ -79,48 +79,32 @@ ls_pushed_timeout_destroy(LSPushedTimeout *p);
 // widget's event loop (and force a call to the widget's /cb()/ function) from within the widget's
 // /event()/ function via a special "wake_up" Lua function.
 //
-// /LSSelfPipe/ is a structure containing the file descriptors of the self-pipe.
-// The /fds[0]/ file descriptor is to be read from, and /fds[1]/ is to be written to.
+// Such a pipe consists of two file descriptors; the /fds[0]/ file descriptor is to be read from,
+// and /fds[1]/ is to be written to.
 //
 // <!!!>
-// This structure must reside at a constant address throughout its whole life; this is required for
+// This array must reside at a constant address throughout its whole life; this is required for
 // the Lua closure created with /ls_self_pipe_push_luafunc()/.
 // </!!!>
-typedef struct {
-    int fds[2];
-} LSSelfPipe;
 
-// The initializer for an empty (not yet opened) /LSSelfPipe/ structure.
-#define LS_SELF_PIPE_NEW() {{-1, -1}}
-
-// Opens a self-pipe /s/.
+// Creates a new self-pipe.
 //
-// On success, /0/ is returned; on failure, /-1/ is returned and /errno/ is set.
+// On success, /0/ is returned.
+//
+// On failure, /-1/ is returned, /fds[0]/ and /fds[1]/ are set to -1, and /errno/ is set.
 int
-ls_self_pipe_open(LSSelfPipe *s);
+ls_self_pipe_open(int *fds);
 
 // Creates a "wake_up" function (a "C closure" with /s/'s address, in Lua terminology) on /L/'s
 // stack.
 //
 // The resulting Lua function takes no arguments and does not return anything. Once called, it will
-// write a single byte to /s->fds[1]/ (in a thread-safe manner), or throw an error if the self-pipe
+// write a single byte to /fds[1]/ (in a thread-safe manner), or throw an error if the self-pipe
 // has not been opened.
 //
 // The caller must ensure that the /L/'s stack has at least 2 free slots.
 void
-ls_self_pipe_push_luafunc(LSSelfPipe *s, lua_State *L);
-
-// Checks whether /s/ has been opened.
-LS_INHEADER
-bool
-ls_self_pipe_is_opened(LSSelfPipe *s)
-{
-    return s->fds[0] >= 0;
-}
-
-// If /s/ has been opened, closes it. After this function is called, /s/ must not be used anymore.
-void
-ls_self_pipe_close(LSSelfPipe *s);
+ls_self_pipe_push_luafunc(int *fds, lua_State *L);
 
 int ls_poll(struct pollfd *fds, nfds_t nfds, double tmo);
 

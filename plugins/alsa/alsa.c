@@ -43,7 +43,7 @@ typedef struct {
     bool capture;
     bool in_db;
     double tmo;
-    LSSelfPipe self_pipe;
+    int pipefds[2];
 } Priv;
 
 static
@@ -53,7 +53,8 @@ destroy(LuastatusPluginData *pd)
     Priv *p = pd->priv;
     free(p->card);
     free(p->channel);
-    ls_self_pipe_close(&p->self_pipe);
+    close(p->pipefds[0]);
+    close(p->pipefds[1]);
     free(p);
 }
 
@@ -68,7 +69,7 @@ init(LuastatusPluginData *pd, lua_State *L)
         .capture = false,
         .in_db = false,
         .tmo = -1,
-        .self_pipe = LS_SELF_PIPE_NEW(),
+        .pipefds = {-1, -1},
     };
     char errbuf[256];
     MoonVisit mv = {.L = L, .errbuf = errbuf, .nerrbuf = sizeof(errbuf)};
@@ -102,7 +103,7 @@ init(LuastatusPluginData *pd, lua_State *L)
     if (moon_visit_bool(&mv, -1, "make_self_pipe", &mkpipe, true) < 0)
         goto mverror;
     if (mkpipe) {
-        if (ls_self_pipe_open(&p->self_pipe) < 0) {
+        if (ls_self_pipe_open(p->pipefds) < 0) {
             LS_FATALF(pd, "ls_self_pipe_open: %s", ls_strerror_onstack(errno));
             goto error;
         }
@@ -123,7 +124,7 @@ register_funcs(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv;
     // L: table
-    ls_self_pipe_push_luafunc(&p->self_pipe, L); // L: table func
+    ls_self_pipe_push_luafunc(p->pipefds, L); // L: table func
     lua_setfield(L, -2, "wake_up"); // L: table
 }
 
@@ -280,7 +281,7 @@ iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     snd_mixer_selem_id_t *sid = NULL;
     char *realname = NULL;
     PollFdSet pollfds = pollfd_set_new((struct pollfd) {
-        .fd = p->self_pipe.fds[0],
+        .fd = p->pipefds[0],
         .events = POLLIN,
     });
 
@@ -354,7 +355,7 @@ iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 
             if (pollfds.nprefix && (pollfds.data[0].revents & POLLIN)) {
                 char c;
-                ssize_t unused = read(p->self_pipe.fds[0], &c, 1);
+                ssize_t unused = read(p->pipefds[0], &c, 1);
                 (void) unused;
             }
         }
