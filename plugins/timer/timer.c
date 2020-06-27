@@ -20,12 +20,13 @@
 #include <errno.h>
 #include <lua.h>
 #include <stdlib.h>
-#include <time.h>
+#include <unistd.h>
 #include <pthread.h>
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
-#include "include/plugin_utils.h"
+
+#include "libmoonvisit/moonvisit.h"
 
 #include "libls/alloc_utils.h"
 #include "libls/time_utils.h"
@@ -33,9 +34,9 @@
 #include "libls/evloop_utils.h"
 
 typedef struct {
-    struct timespec period;
+    double period;
     char *fifo;
-    LSPushedTimeout pushed_timeout;
+    LSPushedTimeout pushed_tmo;
 } Priv;
 
 static
@@ -44,7 +45,7 @@ destroy(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
     free(p->fifo);
-    ls_pushed_timeout_destroy(&p->pushed_timeout);
+    ls_pushed_timeout_destroy(&p->pushed_tmo);
     free(p);
 }
 
@@ -54,24 +55,30 @@ init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
-        .period = {.tv_sec = 1},
+        .period = 1,
         .fifo = NULL,
     };
-    ls_pushed_timeout_init(&p->pushed_timeout);
+    ls_pushed_timeout_init(&p->pushed_tmo);
 
-    PU_MAYBE_VISIT_NUM_FIELD(-1, "period", "'period'", n,
-        if (ls_timespec_is_invalid(p->period = ls_timespec_from_seconds(n))) {
-            LS_FATALF(pd, "invalid 'period' value");
-            goto error;
-        }
-    );
+    char errbuf[256];
+    MoonVisit mv = {.L = L, .errbuf = errbuf, .nerrbuf = sizeof(errbuf)};
 
-    PU_MAYBE_VISIT_STR_FIELD(-1, "fifo", "'fifo'", s,
-        p->fifo = ls_xstrdup(s);
-    );
+    // Parse period
+    if (moon_visit_num(&mv, -1, "period", &p->period, true) < 0)
+        goto mverror;
+    if (p->period < 0) {
+        LS_FATALF(pd, "period is invalid");
+        goto error;
+    }
+
+    // Parse fifo
+    if (moon_visit_str(&mv, -1, "fifo", &p->fifo, NULL, true) < 0)
+        goto mverror;
 
     return LUASTATUS_OK;
 
+mverror:
+    LS_FATALF(pd, "%s", errbuf);
 error:
     destroy(pd);
     return LUASTATUS_ERR;
@@ -83,7 +90,7 @@ register_funcs(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv;
     // L: table
-    ls_pushed_timeout_push_luafunc(&p->pushed_timeout, L); // L: table func
+    ls_pushed_timeout_push_luafunc(&p->pushed_tmo, L); // L: table func
     lua_setfield(L, -2, "push_period"); // L: table
 }
 
@@ -93,8 +100,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
 
-    LSWakeupFifo w;
-    ls_wakeup_fifo_init(&w, p->fifo, NULL);
+    int fifo_fd = -1;
 
     const char *what = "hello";
 
@@ -103,13 +109,13 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         lua_pushstring(L, what);
         funcs.call_end(pd->userdata);
 
-        if (ls_wakeup_fifo_open(&w) < 0) {
-            LS_WARNF(pd, "ls_wakeup_fifo_open: %s: %s", p->fifo,
-                     LS_WAKEUP_FIFO_STRERROR_ONSTACK(errno));
+        if (ls_fifo_open(&fifo_fd, p->fifo) < 0) {
+            LS_WARNF(pd, "ls_fifo_open: %s: %s", p->fifo, LS_FIFO_STRERROR_ONSTACK(errno));
         }
-        int r = ls_wakeup_fifo_wait(&w, ls_pushed_timeout_fetch(&p->pushed_timeout, p->period));
+        double tmo = ls_pushed_timeout_fetch(&p->pushed_tmo, p->period);
+        int r = ls_fifo_wait(&fifo_fd, tmo);
         if (r < 0) {
-            LS_FATALF(pd, "ls_wakeup_fifo_wait: %s", ls_strerror_onstack(errno));
+            LS_FATALF(pd, "ls_fifo_wait: %s", ls_strerror_onstack(errno));
             goto error;
         } else if (r == 0) {
             what = "timeout";
@@ -119,7 +125,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     }
 
 error:
-    ls_wakeup_fifo_destroy(&w);
+    close(fifo_fd);
 }
 
 LuastatusPluginIface luastatus_plugin_iface_v1 = {

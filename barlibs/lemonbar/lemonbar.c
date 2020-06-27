@@ -34,7 +34,6 @@
 #include "libls/cstring_utils.h"
 #include "libls/parse_int.h"
 #include "libls/io_utils.h"
-#include "libls/lua_utils.h"
 #include "libls/alloc_utils.h"
 
 #include "markup_utils.h"
@@ -213,8 +212,10 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
 {
     Priv *p = bd->priv;
     LSString *buf = &p->tmpbuf;
-
     LS_VECTOR_CLEAR(*buf);
+
+    // L: ? data
+
     switch (lua_type(L, -1)) {
     case LUA_TNIL:
         break;
@@ -230,27 +231,24 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
     case LUA_TTABLE:
         {
             const char *sep = p->sep;
-            LS_LUA_TRAVERSE(L, -1) {
 
-                if (!lua_isnumber(L, LS_LUA_KEY)) {
-                    LS_ERRF(bd, "table key: expected number, found %s",
-                            luaL_typename(L, LS_LUA_KEY));
+            lua_pushnil(L); // L: ? data nil
+            while (lua_next(L, -2)) {
+                // L: ? data key value
+                if (!lua_isstring(L, -1)) {
+                    LS_ERRF(bd, "table value: expected string, found %s", luaL_typename(L, -1));
                     goto invalid_data;
                 }
-
-                if (!lua_isstring(L, LS_LUA_VALUE)) {
-                    LS_ERRF(bd, "table value: expected string, found %s",
-                            luaL_typename(L, LS_LUA_VALUE));
-                    goto invalid_data;
-                }
-
                 size_t ns;
-                const char *s = lua_tolstring(L, LS_LUA_VALUE, &ns);
+                const char *s = lua_tolstring(L, -1, &ns);
                 if (buf->size && ns) {
                     ls_string_append_s(buf, sep);
                 }
                 append_sanitized_b(buf, widget_idx, s, ns);
+
+                lua_pop(L, 1); // L: ? data key
             }
+            // L: ? data
         }
         break;
 

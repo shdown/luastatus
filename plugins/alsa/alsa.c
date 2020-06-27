@@ -20,7 +20,6 @@
 #include <errno.h>
 #include <lua.h>
 #include <stdbool.h>
-#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -30,7 +29,8 @@
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
-#include "include/plugin_utils.h"
+
+#include "libmoonvisit/moonvisit.h"
 
 #include "libls/alloc_utils.h"
 #include "libls/cstring_utils.h"
@@ -42,7 +42,7 @@ typedef struct {
     char *channel;
     bool capture;
     bool in_db;
-    int timeout_ms;
+    double tmo;
     LSSelfPipe self_pipe;
 } Priv;
 
@@ -67,55 +67,51 @@ init(LuastatusPluginData *pd, lua_State *L)
         .channel = NULL,
         .capture = false,
         .in_db = false,
-        .timeout_ms = -1,
+        .tmo = -1,
         .self_pipe = LS_SELF_PIPE_NEW(),
     };
+    char errbuf[256];
+    MoonVisit mv = {.L = L, .errbuf = errbuf, .nerrbuf = sizeof(errbuf)};
 
-    PU_MAYBE_VISIT_STR_FIELD(-1, "card", "'card'", s,
-        p->card = ls_xstrdup(s);
-    );
-    if (!p->card) {
+    // Parse card
+    if (moon_visit_str(&mv, -1, "card", &p->card, NULL, true) < 0)
+        goto mverror;
+    if (!p->card)
         p->card = ls_xstrdup("default");
-    }
 
-    PU_MAYBE_VISIT_STR_FIELD(-1, "channel", "'channel'", s,
-        p->channel = ls_xstrdup(s);
-    );
-    if (!p->channel) {
+    // Parse channel
+    if (moon_visit_str(&mv, -1, "channel", &p->channel, NULL, true) < 0)
+        goto mverror;
+    if (!p->channel)
         p->channel = ls_xstrdup("Master");
+
+    // Parse capture
+    if (moon_visit_bool(&mv, -1, "capture", &p->capture, true) < 0)
+        goto mverror;
+
+    // Parse in_db
+    if (moon_visit_bool(&mv, -1, "in_db", &p->in_db, true) < 0)
+        goto mverror;
+
+    // Parse timeout
+    if (moon_visit_num(&mv, -1, "timeout", &p->tmo, true) < 0)
+        goto mverror;
+
+    // Parse make_self_pipe
+    bool mkpipe = false;
+    if (moon_visit_bool(&mv, -1, "make_self_pipe", &mkpipe, true) < 0)
+        goto mverror;
+    if (mkpipe) {
+        if (ls_self_pipe_open(&p->self_pipe) < 0) {
+            LS_FATALF(pd, "ls_self_pipe_open: %s", ls_strerror_onstack(errno));
+            goto error;
+        }
     }
-
-    PU_MAYBE_VISIT_BOOL_FIELD(-1, "capture", "'capture'", b,
-        p->capture = b;
-    );
-
-    PU_MAYBE_VISIT_BOOL_FIELD(-1, "in_db", "'in_db'", b,
-        p->in_db = b;
-    );
-
-    PU_MAYBE_VISIT_NUM_FIELD(-1, "timeout", "'timeout'", nsec,
-        // Note: this also implicitly checks that /nsec/ is not NaN.
-        if (nsec >= 0) {
-            double nmillis = nsec * 1000;
-            if (nmillis > INT_MAX) {
-                LS_FATALF(pd, "'timeout' is too large");
-                goto error;
-            }
-            p->timeout_ms = nmillis;
-        }
-    );
-
-    PU_MAYBE_VISIT_BOOL_FIELD(-1, "make_self_pipe", "'make_self_pipe'", b,
-        if (b) {
-            if (ls_self_pipe_open(&p->self_pipe) < 0) {
-                LS_FATALF(pd, "ls_self_pipe_open: %s", ls_strerror_onstack(errno));
-                goto error;
-            }
-        }
-    );
 
     return LUASTATUS_OK;
 
+mverror:
+    LS_FATALF(pd, "%s", errbuf);
 error:
     destroy(pd);
     return LUASTATUS_ERR;
@@ -136,11 +132,15 @@ bool
 card_has_nicename(const char *realname, snd_ctl_card_info_t *info, const char *nicename)
 {
     snd_ctl_t *ctl;
-    if (snd_ctl_open(&ctl, realname, 0) < 0) {
+    if (snd_ctl_open(&ctl, realname, 0) < 0)
         return false;
+
+    bool r = false;
+    if (snd_ctl_card_info(ctl, info) >= 0) {
+        const char *name = snd_ctl_card_info_get_name(info);
+        r = (strcmp(name, nicename) == 0);
     }
-    bool r = snd_ctl_card_info(ctl, info) >= 0 &&
-             strcmp(snd_ctl_card_info_get_name(info), nicename) == 0;
+
     snd_ctl_close(ctl);
     return r;
 }
@@ -150,18 +150,17 @@ char *
 xalloc_card_realname(const char *nicename)
 {
     snd_ctl_card_info_t *info;
-    if (snd_ctl_card_info_malloc(&info) < 0) {
+    if (snd_ctl_card_info_malloc(&info) < 0)
         ls_oom();
-    }
+
     enum { NBUF = 32 };
     char *buf = LS_XNEW(char, NBUF);
 
     int rcard = -1;
     while (snd_card_next(&rcard) >= 0 && rcard >= 0) {
         snprintf(buf, NBUF, "hw:%d", rcard);
-        if (card_has_nicename(buf, info, nicename)) {
+        if (card_has_nicename(buf, info, nicename))
             goto cleanup;
-        }
     }
 
     free(buf);
@@ -236,13 +235,21 @@ typedef struct {
 
 static inline
 PollFdSet
-pollfd_set_new(const struct pollfd *prefix, size_t nprefix)
+pollfd_set_new(const struct pollfd prefix)
 {
-    return (PollFdSet) {
-        .data = ls_xmemdup(prefix, nprefix * sizeof(struct pollfd)),
-        .size = nprefix,
-        .nprefix = nprefix,
-    };
+    if (prefix.fd >= 0) {
+        return (PollFdSet) {
+            .data = ls_xmemdup(&prefix, sizeof(struct pollfd)),
+            .size = 1,
+            .nprefix = 1,
+        };
+    } else {
+        return (PollFdSet) {
+            .data = NULL,
+            .size = 0,
+            .nprefix = 0,
+        };
+    }
 }
 
 static inline
@@ -272,34 +279,40 @@ iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     snd_mixer_t *mixer = NULL;
     snd_mixer_selem_id_t *sid = NULL;
     char *realname = NULL;
-    PollFdSet pollfds = ls_self_pipe_is_opened(&p->self_pipe)
-        ? pollfd_set_new((struct pollfd [1]) {{.fd = p->self_pipe.fds[0], .events = POLLIN}}, 1)
-        : pollfd_set_new(NULL, 0);
+    PollFdSet pollfds = pollfd_set_new((struct pollfd) {
+        .fd = p->self_pipe.fds[0],
+        .events = POLLIN,
+    });
 
     if (!(realname = xalloc_card_realname(p->card))) {
         realname = ls_xstrdup(p->card);
     }
 
-#define ALSA_CALL(Func_, ...) \
-    do { \
-        int r_; \
-        while ((r_ = Func_(__VA_ARGS__)) == -EINTR) {} \
-        if (r_ < 0) { \
-            LS_FATALF(pd, "%s: %s", #Func_, snd_strerror(r_)); \
-            goto error; \
-        } \
-    } while (0)
-
-    ALSA_CALL(snd_mixer_open, &mixer, 0);
-    ALSA_CALL(snd_mixer_attach, mixer, realname);
-    ALSA_CALL(snd_mixer_selem_register, mixer, NULL, NULL);
-    ALSA_CALL(snd_mixer_load, mixer);
-    ALSA_CALL(snd_mixer_selem_id_malloc, &sid);
-
+    int r;
+    if ((r = snd_mixer_open(&mixer, 0)) < 0) {
+        LS_FATALF(pd, "snd_mixer_open: %s", snd_strerror(r));
+        goto error;
+    }
+    if ((r = snd_mixer_attach(mixer, realname)) < 0) {
+        LS_FATALF(pd, "snd_mixer_attach: %s", snd_strerror(r));
+        goto error;
+    }
+    if ((r = snd_mixer_selem_register(mixer, NULL, NULL)) < 0) {
+        LS_FATALF(pd, "snd_mixer_selem_register: %s", snd_strerror(r));
+        goto error;
+    }
+    if ((r = snd_mixer_load(mixer)) < 0) {
+        LS_FATALF(pd, "snd_mixer_load: %s", snd_strerror(r));
+        goto error;
+    }
+    if ((r = snd_mixer_selem_id_malloc(&sid)) < 0) {
+        LS_FATALF(pd, "snd_mixer_selem_id_malloc: %s", snd_strerror(r));
+        goto error;
+    }
     snd_mixer_selem_id_set_name(sid, p->channel);
     snd_mixer_elem_t *elem = snd_mixer_find_selem(mixer, sid);
     if (!elem) {
-        LS_FATALF(pd, "can't find channel '%s'", p->channel);
+        LS_FATALF(pd, "cannot find channel '%s'", p->channel);
         goto error;
     }
 
@@ -316,54 +329,58 @@ iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         }
         funcs.call_end(pd->userdata);
 
-        pollfd_set_resize(&pollfds, pollfds.nprefix + snd_mixer_poll_descriptors_count(mixer));
-        ALSA_CALL(snd_mixer_poll_descriptors,
-            mixer,
-            pollfds.data + pollfds.nprefix,
-            pollfds.size - pollfds.nprefix);
+        int nextrafds = snd_mixer_poll_descriptors_count(mixer);
+        pollfd_set_resize(&pollfds, pollfds.nprefix + nextrafds);
 
-        // TODO: call sigprocmask() before and after poll() to emulate ppoll() (if it worth the
-        // trouble).
-        const int r = poll(pollfds.data, pollfds.size, p->timeout_ms);
-        if (r < 0) {
-            if (errno == EINTR) {
-                if (p->timeout_ms == -1) {
-                    is_timeout = false;
-                    continue;
-                } else {
-                    LS_WARNF(pd, "poll: interrupted by signal, reporting as timeout");
-                    is_timeout = true;
-                    continue;
-                }
-            } else {
-                LS_FATALF(pd, "poll: %s", ls_strerror_onstack(errno));
-                goto error;
-            }
+        if ((r = snd_mixer_poll_descriptors(
+                mixer,
+                pollfds.data + pollfds.nprefix,
+                pollfds.size - pollfds.nprefix)) < 0)
+        {
+            LS_FATALF(pd, "snd_mixer_poll_descriptors: %s", snd_strerror(r));
+            goto error;
+        }
 
-        } else if (r == 0) {
+        int nfds = ls_poll(pollfds.data, pollfds.size, p->tmo);
+        if (nfds < 0) {
+            LS_FATALF(pd, "poll: %s", ls_strerror_onstack(errno));
+            goto error;
+
+        } else if (nfds == 0) {
             is_timeout = true;
 
         } else {
             is_timeout = false;
 
             if (pollfds.nprefix && (pollfds.data[0].revents & POLLIN)) {
-                ssize_t unused = read(p->self_pipe.fds[0], (char [1]) {'\0'}, 1);
+                char c;
+                ssize_t unused = read(p->self_pipe.fds[0], &c, 1);
                 (void) unused;
             }
         }
 
         unsigned short revents;
-        ALSA_CALL(snd_mixer_poll_descriptors_revents, mixer,
-                  pollfds.data + pollfds.nprefix, pollfds.size - pollfds.nprefix, &revents);
+        if ((r = snd_mixer_poll_descriptors_revents(
+                mixer,
+                pollfds.data + pollfds.nprefix,
+                pollfds.size - pollfds.nprefix,
+                &revents)) < 0)
+        {
+            LS_FATALF(pd, "snd_mixer_poll_descriptors_revents: %s", snd_strerror(r));
+            goto error;
+        }
+
         if (revents & (POLLERR | POLLNVAL)) {
-            LS_ERRF(pd, "snd_mixer_poll_descriptors_revents() reported an error condition");
+            LS_FATALF(pd, "snd_mixer_poll_descriptors_revents() reported error condition");
             goto error;
         }
         if (revents & POLLIN) {
-            ALSA_CALL(snd_mixer_handle_events, mixer);
+            if ((r = snd_mixer_handle_events(mixer)) < 0) {
+                LS_FATALF(pd, "snd_mixer_handle_events: %s", snd_strerror(r));
+                goto error;
+            }
         }
     }
-#undef ALSA_CALL
 error:
     if (sid) {
         snd_mixer_selem_id_free(sid);
@@ -382,7 +399,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     while (1) {
         if (!iteration(pd, funcs)) {
-            ls_nanosleep((struct timespec) {.tv_sec = 5});
+            ls_sleep(5.0);
         }
     }
 }

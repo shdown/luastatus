@@ -22,7 +22,6 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <time.h>
-#include <signal.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
@@ -31,9 +30,9 @@
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
-#include "include/plugin_utils.h"
 
-#include "libls/lua_utils.h"
+#include "libmoonvisit/moonvisit.h"
+
 #include "libls/string_.h"
 #include "libls/alloc_utils.h"
 #include "libls/vector.h"
@@ -42,17 +41,16 @@
 #include "libls/time_utils.h"
 #include "libls/evloop_utils.h"
 #include "libls/strarr.h"
-#include "libls/sig_utils.h"
 
 #include "connect.h"
 #include "proto.h"
 
 typedef struct {
     char *hostname;
-    int port;
+    double port;
     char *password;
-    struct timespec timeout;
-    struct timespec retry_in;
+    double tmo;
+    double retry_tmo;
     char *retry_fifo;
     LSString idle_str;
 } Priv;
@@ -71,6 +69,24 @@ destroy(LuastatusPluginData *pd)
 
 static
 int
+parse_events_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
+{
+    mv->where = "'events' element";
+    (void) kpos;
+
+    Priv *p = ud;
+
+    if (moon_visit_checktype_at(mv, "", vpos, LUA_TSTRING) < 0)
+        return -1;
+
+    const char *s = lua_tostring(mv->L, vpos);
+    ls_string_append_c(&p->idle_str, ' ');
+    ls_string_append_s(&p->idle_str, s);
+    return 1;
+}
+
+static
+int
 init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
@@ -78,66 +94,59 @@ init(LuastatusPluginData *pd, lua_State *L)
         .hostname = NULL,
         .port = 6600,
         .password = NULL,
-        .timeout = ls_timespec_invalid,
-        .retry_in = {.tv_sec = 10},
+        .tmo = -1,
+        .retry_tmo = 10,
         .retry_fifo = NULL,
         .idle_str = ls_string_new_from_s("idle"),
     };
+    char errbuf[256];
+    MoonVisit mv = {.L = L, .errbuf = errbuf, .nerrbuf = sizeof(errbuf)};
 
-    PU_MAYBE_VISIT_STR_FIELD(-1, "hostname", "'hostname'", s,
-        p->hostname = ls_xstrdup(s);
-    );
+    // Parse hostname
+    if (moon_visit_str(&mv, -1, "hostname", &p->hostname, NULL, true) < 0)
+        goto mverror;
 
-    PU_MAYBE_VISIT_NUM_FIELD(-1, "port", "'port'", n,
-        if (!ls_is_between_d(n, 0, 65535)) {
-            LS_FATALF(pd, "'port' (%g) is not a valid port number", (double) n);
-            goto error;
-        }
-        p->port = n;
-    );
-
-    PU_MAYBE_VISIT_STR_FIELD(-1, "password", "'password'", s,
-        if ((strchr(s, '\n'))) {
-            LS_FATALF(pd, "'password' contains a line break");
-            goto error;
-        }
-        p->password = ls_xstrdup(s);
-    );
-
-    PU_MAYBE_VISIT_NUM_FIELD(-1, "timeout", "'timeout'", n,
-        if (!ls_opt_timespec_from_seconds(n, &p->timeout)) {
-            LS_FATALF(pd, "'timeout' is invalid");
-            goto error;
-        }
-    );
-
-    PU_MAYBE_VISIT_NUM_FIELD(-1, "retry_in", "'retry_in'", n,
-        if (!ls_opt_timespec_from_seconds(n, &p->retry_in)) {
-            LS_FATALF(pd, "'retry_in' is invalid");
-            goto error;
-        }
-    );
-
-    PU_MAYBE_VISIT_STR_FIELD(-1, "retry_fifo", "'retry_fifo'", s,
-        p->retry_fifo = ls_xstrdup(s);
-    );
-
-    bool has_events = false;
-    PU_MAYBE_VISIT_TABLE_FIELD(-1, "events", "'events'",
-        has_events = true;
-        PU_CHECK_TYPE(LS_LUA_KEY, "'events' key", LUA_TNUMBER);
-        PU_VISIT_STR(LS_LUA_VALUE, "'events' element", s,
-            ls_string_append_c(&p->idle_str, ' ');
-            ls_string_append_s(&p->idle_str, s);
-        );
-    );
-    if (!has_events) {
-        ls_string_append_s(&p->idle_str, " mixer player");
+    // Parse port
+    if (moon_visit_num(&mv, -1, "port", &p->port, true) < 0)
+        goto mverror;
+    if (!ls_is_between_d(p->port, 0, 65535)) {
+        LS_FATALF(pd, "port (%g) is not a valid port number", p->port);
+        goto error;
     }
+
+    // Parse password
+    if (moon_visit_str(&mv, -1, "password", &p->password, NULL, true) < 0)
+        goto mverror;
+    if ((strchr(p->password, '\n'))) {
+        LS_FATALF(pd, "password contains a line break");
+        goto error;
+    }
+
+    // Parse timeout
+    if (moon_visit_num(&mv, -1, "timeout", &p->tmo, true) < 0)
+        goto mverror;
+
+    // Parse retry_in
+    if (moon_visit_num(&mv, -1, "retry_in", &p->retry_tmo, true) < 0)
+        goto mverror;
+
+    // Parse retry_fifo
+    if (moon_visit_str(&mv, -1, "retry_fifo", &p->retry_fifo, NULL, true) < 0)
+        goto mverror;
+
+    // Parse events
+    int has_events =
+        moon_visit_table_f(&mv, -1, "events", parse_events_elem, p, true);
+    if (has_events < 0)
+        goto mverror;
+    if (!has_events)
+        ls_string_append_s(&p->idle_str, " mixer player");
     ls_string_append_b(&p->idle_str, "\n", 2); // append '\n' and '\0'
 
     return LUASTATUS_OK;
 
+mverror:
+    LS_FATALF(pd, "%s", errbuf);
 error:
     destroy(pd);
     return LUASTATUS_ERR;
@@ -279,16 +288,6 @@ interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, int fd)
         }
     }
 
-    sigset_t allsigs;
-    ls_xsigfillset(&allsigs);
-
-    if (fd >= FD_SETSIZE && !ls_timespec_is_invalid(p->timeout)) {
-        LS_WARNF(pd, "connection file descriptor is too large, will not report time outs");
-    }
-
-    fd_set fds;
-    FD_ZERO(&fds);
-
     while (1) {
         WRITE("currentsong\n");
         UNTIL_OK(
@@ -318,15 +317,13 @@ interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, int fd)
 
         WRITE(p->idle_str.data);
 
-        if (fd < FD_SETSIZE && !ls_timespec_is_invalid(p->timeout)) {
+        if (p->tmo >= 0) {
             while (1) {
-                FD_SET(fd, &fds);
-                int r = pselect(fd + 1, &fds, NULL, NULL, &p->timeout, &allsigs);
-                if (r < 0) {
-                    LS_ERRF(pd, "pselect (on connection file descriptor): %s",
-                            ls_strerror_onstack(errno));
+                int nfds = ls_wait_input_on_fd(fd, p->tmo);
+                if (nfds < 0) {
+                    LS_ERRF(pd, "ls_wait_input_on_fd: %s", ls_strerror_onstack(errno));
                     goto error;
-                } else if (r == 0) {
+                } else if (nfds == 0) {
                     report_status(pd, funcs, "timeout");
                 } else {
                     break;
@@ -362,11 +359,10 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
 
-    LSWakeupFifo w;
-    ls_wakeup_fifo_init(&w, p->retry_fifo, NULL);
+    int retry_fifo_fd = -1;
 
     char portstr[8];
-    snprintf(portstr, sizeof(portstr), "%d", p->port);
+    snprintf(portstr, sizeof(portstr), "%d", (int) p->port);
 
     while (1) {
         report_status(pd, funcs, "connecting");
@@ -374,29 +370,28 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         int fd = (p->hostname && p->hostname[0] == '/')
             ? unixdom_open(pd, p->hostname)
             : inetdom_open(pd, p->hostname, portstr);
-        if (fd >= 0) {
-            interact(pd, funcs, fd);
-        }
 
-        if (ls_timespec_is_invalid(p->retry_in)) {
+        if (fd >= 0)
+            interact(pd, funcs, fd);
+
+        if (p->retry_tmo < 0) {
             LS_FATALF(pd, "an error occurred; not retrying as requested");
             goto error;
         }
 
         report_status(pd, funcs, "error");
 
-        if (ls_wakeup_fifo_open(&w) < 0) {
-            LS_WARNF(pd, "ls_wakeup_fifo_open: %s: %s", p->retry_fifo,
-                     LS_WAKEUP_FIFO_STRERROR_ONSTACK(errno));
+        if (ls_fifo_open(&retry_fifo_fd, p->retry_fifo) < 0) {
+            LS_WARNF(pd, "ls_fifo_open: %s: %s", p->retry_fifo, LS_FIFO_STRERROR_ONSTACK(errno));
         }
-        if (ls_wakeup_fifo_wait(&w, p->retry_in) < 0) {
-            LS_FATALF(pd, "ls_wakeup_fifo_wait: %s: %s", p->retry_fifo, ls_strerror_onstack(errno));
+        if (ls_fifo_wait(&retry_fifo_fd, p->retry_tmo) < 0) {
+            LS_FATALF(pd, "ls_fifo_wait: %s: %s", p->retry_fifo, ls_strerror_onstack(errno));
             goto error;
         }
     }
 
 error:
-    ls_wakeup_fifo_destroy(&w);
+    close(retry_fifo_fd);
 }
 
 LuastatusPluginIface luastatus_plugin_iface_v1 = {

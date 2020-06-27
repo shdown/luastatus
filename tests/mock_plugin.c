@@ -24,7 +24,8 @@
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
-#include "include/plugin_utils.h"
+
+#include "libmoonvisit/moonvisit.h"
 
 #include "libls/alloc_utils.h"
 #include "libls/algo.h"
@@ -50,15 +51,23 @@ init(LuastatusPluginData *pd, lua_State *L)
         .ncalls = 0,
     };
 
-    PU_MAYBE_VISIT_NUM_FIELD(-1, "make_calls", "'make_calls'", n,
-        if (!ls_is_between_d(n, 0, INT_MAX)) {
-            LS_FATALF(pd, "'make_calls' is invalid");
-            goto error;
-        }
-        p->ncalls = n;
-    );
+    char errbuf[256];
+    MoonVisit mv = {.L = L, .errbuf = errbuf, .nerrbuf = sizeof(errbuf)};
+
+    // Parse make_calls
+    double n = 0;
+    if (moon_visit_num(&mv, -1, "make_calls", &n, true) < 0)
+        goto mverror;
+    if (!ls_is_between_d(n, 0, INT_MAX)) {
+        LS_FATALF(pd, "make_calls is invalid");
+        goto error;
+    }
+    p->ncalls = n;
 
     return LUASTATUS_OK;
+
+mverror:
+    LS_FATALF(pd, "%s", errbuf);
 error:
     destroy(pd);
     return LUASTATUS_ERR;

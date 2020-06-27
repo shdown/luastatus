@@ -27,13 +27,13 @@
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
-#include "include/plugin_utils.h"
+
+#include "libmoonvisit/moonvisit.h"
 
 #include "libls/alloc_utils.h"
 #include "libls/time_utils.h"
 #include "libls/cstring_utils.h"
 #include "libls/evloop_utils.h"
-#include "libls/sig_utils.h"
 
 typedef struct {
     char *subsystem;
@@ -41,8 +41,8 @@ typedef struct {
     char *tag;
     bool kernel_ev;
     bool greet;
-    struct timespec timeout;
-    LSPushedTimeout pushed_timeout;
+    double tmo;
+    LSPushedTimeout pushed_tmo;
 } Priv;
 
 static
@@ -53,7 +53,7 @@ destroy(LuastatusPluginData *pd)
     free(p->subsystem);
     free(p->devtype);
     free(p->tag);
-    ls_pushed_timeout_destroy(&p->pushed_timeout);
+    ls_pushed_timeout_destroy(&p->pushed_tmo);
     free(p);
 }
 
@@ -68,40 +68,42 @@ init(LuastatusPluginData *pd, lua_State *L)
         .tag = NULL,
         .kernel_ev = false,
         .greet = false,
-        .timeout = ls_timespec_invalid,
+        .tmo = -1,
     };
-    ls_pushed_timeout_init(&p->pushed_timeout);
+    ls_pushed_timeout_init(&p->pushed_tmo);
 
-    PU_MAYBE_VISIT_STR_FIELD(-1, "subsystem", "'subsystem'", s,
-        p->subsystem = ls_xstrdup(s);
-    );
+    char errbuf[256];
+    MoonVisit mv = {.L = L, .errbuf = errbuf, .nerrbuf = sizeof(errbuf)};
 
-    PU_MAYBE_VISIT_STR_FIELD(-1, "devtype", "'devtype'", s,
-        p->devtype = ls_xstrdup(s);
-    );
+    // Parse subsystem
+    if (moon_visit_str(&mv, -1, "subsystem", &p->subsystem, NULL, true) < 0)
+        goto mverror;
 
-    PU_MAYBE_VISIT_STR_FIELD(-1, "tag", "'tag'", s,
-        p->tag = ls_xstrdup(s);
-    );
+    // Parse devtype
+    if (moon_visit_str(&mv, -1, "devtype", &p->devtype, NULL, true) < 0)
+        goto mverror;
 
-    PU_MAYBE_VISIT_BOOL_FIELD(-1, "kernel_events", "'kernel_events'", b,
-        p->kernel_ev = b;
-    );
+    // Parse tag
+    if (moon_visit_str(&mv, -1, "tag", &p->tag, NULL, true) < 0)
+        goto mverror;
 
-    PU_MAYBE_VISIT_NUM_FIELD(-1, "timeout", "'timeout'", n,
-        if (!ls_opt_timespec_from_seconds(n, &p->timeout)) {
-            LS_FATALF(pd, "invalid 'timeout' value");
-            goto error;
-        }
-    );
+    // Parse kernel_events
+    if (moon_visit_bool(&mv, -1, "kernel_events", &p->kernel_ev, true) < 0)
+        goto mverror;
 
-    PU_MAYBE_VISIT_BOOL_FIELD(-1, "greet", "'greet'", b,
-        p->greet = b;
-    );
+    // Parse timeout
+    if (moon_visit_num(&mv, -1, "timeout", &p->tmo, true) < 0)
+        goto mverror;
+
+    // Parse greet
+    if (moon_visit_bool(&mv, -1, "greet", &p->greet, true) < 0)
+        goto mverror;
 
     return LUASTATUS_OK;
 
-error:
+mverror:
+    LS_FATALF(pd, "%s", errbuf);
+//error:
     destroy(pd);
     return LUASTATUS_ERR;
 }
@@ -112,7 +114,7 @@ register_funcs(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv;
     // L: table
-    ls_pushed_timeout_push_luafunc(&p->pushed_timeout, L); // L: table func
+    ls_pushed_timeout_push_luafunc(&p->pushed_tmo, L); // L: table func
     lua_setfield(L, -2, "push_timeout"); // L: table
 }
 
@@ -181,28 +183,16 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     udev_monitor_enable_receiving(mon);
     const int fd = udev_monitor_get_fd(mon);
 
-    fd_set fds;
-    FD_ZERO(&fds);
-
-    sigset_t allsigs;
-    ls_xsigfillset(&allsigs);
-
     if (p->greet) {
         report_status(pd, funcs, "hello");
     }
 
     while (1) {
-        struct timespec timeout = ls_pushed_timeout_fetch(&p->pushed_timeout, p->timeout);
-        FD_SET(fd, &fds);
-        const int r = pselect(
-            fd + 1,
-            &fds, NULL, NULL,
-            ls_timespec_is_invalid(timeout) ? NULL : &timeout,
-            &allsigs);
-
+        double tmo = ls_pushed_timeout_fetch(&p->pushed_tmo, p->tmo);
+        int r = ls_wait_input_on_fd(fd, tmo);
         if (r < 0) {
-            LS_FATALF(pd, "pselect: %s", ls_strerror_onstack(errno));
-            break;
+            LS_FATALF(pd, "ls_wait_input_on_fd: %s", ls_strerror_onstack(errno));
+            goto error;
         } else if (r == 0) {
             report_status(pd, funcs, "timeout");
         } else {
@@ -215,7 +205,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
             udev_device_unref(dev);
         }
     }
-
+error:
     udev_unref(udev);
 }
 

@@ -29,7 +29,8 @@
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
-#include "include/plugin_utils.h"
+
+#include "libmoonvisit/moonvisit.h"
 
 #include "libls/alloc_utils.h"
 #include "libls/compdep.h"
@@ -71,22 +72,31 @@ init(LuastatusPluginData *pd, lua_State *L)
         .led = false,
     };
 
-    PU_MAYBE_VISIT_STR_FIELD(-1, "display", "'display'", s,
-        p->dpyname = ls_xstrdup(s);
-    );
+    char errbuf[256];
+    MoonVisit mv = {.L = L, .errbuf = errbuf, .nerrbuf = sizeof(errbuf)};
 
-    PU_MAYBE_VISIT_NUM_FIELD(-1, "device_id", "'device_id'", n,
-        if (!ls_is_between_d(n, 0, UINT_MAX)) {
-            LS_FATALF(pd, "'device_id' is invalid");
+    // Parse display
+    if (moon_visit_str(&mv, -1, "display", &p->dpyname, NULL, true) < 0)
+        goto mverror;
+
+    // Parse device_id
+    double id;
+    int has_id = moon_visit_num(&mv, -1, "device_id", &id, true);
+    if (has_id < 0)
+        goto mverror;
+    if (has_id) {
+        if (!ls_is_between_d(id, 0, UINT_MAX)) {
+            LS_FATALF(pd, "device_id is invalid");
             goto error;
         }
-        p->deviceid = n;
-    );
+        p->deviceid = id;
+    }
 
-    PU_MAYBE_VISIT_BOOL_FIELD(-1, "led", "'led'", b,
-        p->led = b;
-    );
+    // Parse led
+    if (moon_visit_bool(&mv, -1, "led", &p->led, true) < 0)
+        goto mverror;
 
+    // Call 'XInitThreads()' if we are the first entity to use libx11.
     static char dummy[1];
     void **ptr = pd->map_get(pd->userdata, "flag:library_used:x11");
     if (!*ptr) {
@@ -99,6 +109,8 @@ init(LuastatusPluginData *pd, lua_State *L)
 
     return LUASTATUS_OK;
 
+mverror:
+    LS_FATALF(pd, "%s", errbuf);
 error:
     destroy(pd);
     return LUASTATUS_ERR;

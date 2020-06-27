@@ -30,7 +30,8 @@
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
-#include "include/plugin_utils.h"
+
+#include "libmoonvisit/moonvisit.h"
 
 #include "libls/alloc_utils.h"
 #include "libls/cstring_utils.h"
@@ -65,25 +66,30 @@ init(LuastatusPluginData *pd, lua_State *L)
         .sink_name = NULL,
         .self_pipe = LS_SELF_PIPE_NEW(),
     };
+    char errbuf[256];
+    MoonVisit mv = {.L = L, .errbuf = errbuf, .nerrbuf = sizeof(errbuf)};
 
-    PU_MAYBE_VISIT_STR_FIELD(-1, "sink", "'sink'", s,
-        p->sink_name = ls_xstrdup(s);
-    );
-    if (!p->sink_name) {
+    // Parse sink
+    if (moon_visit_str(&mv, -1, "sink", &p->sink_name, NULL, true) < 0)
+        goto mverror;
+    if (!p->sink_name)
         p->sink_name = ls_xstrdup("@DEFAULT_SINK@");
-    }
 
-    PU_MAYBE_VISIT_BOOL_FIELD(-1, "make_self_pipe", "'make_self_pipe'", b,
-        if (b) {
-            if (ls_self_pipe_open(&p->self_pipe) < 0) {
-                LS_FATALF(pd, "ls_self_pipe_open: %s", ls_strerror_onstack(errno));
-                goto error;
-            }
+    // Parse make_self_pipe
+    bool mkpipe = false;
+    if (moon_visit_bool(&mv, -1, "make_self_pipe", &mkpipe, true) < 0)
+        goto mverror;
+    if (mkpipe) {
+        if (ls_self_pipe_open(&p->self_pipe) < 0) {
+            LS_FATALF(pd, "ls_self_pipe_open: %s", ls_strerror_onstack(errno));
+            goto error;
         }
-    );
+    }
 
     return LUASTATUS_OK;
 
+mverror:
+    LS_FATALF(pd, "%s", errbuf);
 error:
     destroy(pd);
     return LUASTATUS_ERR;
@@ -114,7 +120,8 @@ self_pipe_cb(pa_mainloop_api *api, pa_io_event *e, int fd, pa_io_event_flags_t e
     (void) e;
     (void) events;
 
-    ssize_t unused = read(fd, (char[1]) {'\0'}, 1);
+    char c;
+    ssize_t unused = read(fd, &c, 1);
     (void) unused;
 
     UserData *ud = vud;
@@ -319,7 +326,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     while (1) {
         if (!iteration(pd, funcs)) {
-            ls_nanosleep((struct timespec) {.tv_sec = 5});
+            ls_sleep(5.0);
         }
     }
 }

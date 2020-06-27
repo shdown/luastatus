@@ -33,8 +33,9 @@
 #include <errno.h>
 
 #include "include/plugin_v1.h"
-#include "include/plugin_utils.h"
 #include "include/sayf_macros.h"
+
+#include "libmoonvisit/moonvisit.h"
 
 #include "libls/alloc_utils.h"
 #include "libls/osdep.h"
@@ -53,15 +54,11 @@
 #   define IS_EAGAIN(E_) ((E_) == EAGAIN || (E_) == EWOULDBLOCK)
 #endif
 
-enum {
-    REPORT_IP       = 1 << 0,
-    REPORT_WIRELESS = 1 << 1,
-    REPORT_ETHERNET = 1 << 2,
-};
-
 typedef struct {
-    int flags;
-    struct timeval timeout;
+    bool report_ip;
+    bool report_wireless;
+    bool report_ethernet;
+    double tmo;
     StringSet wlan_ifaces;
     int eth_sockfd;
 } Priv;
@@ -77,48 +74,39 @@ destroy(LuastatusPluginData *pd)
 }
 
 static
-void
-modify_bit(int *mask, int bit, bool value)
-{
-    if (value) {
-        *mask |= bit;
-    } else {
-        *mask &= ~bit;
-    }
-}
-
-static
 int
 init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
-        .flags = REPORT_IP,
-        .timeout = ls_timeval_invalid,
+        .report_ip = true,
+        .report_wireless = false,
+        .report_ethernet = false,
+        .tmo = -1,
         .wlan_ifaces = string_set_new(),
         .eth_sockfd = -1,
     };
+    char errbuf[256];
+    MoonVisit mv = {.L = L, .errbuf = errbuf, .nerrbuf = sizeof(errbuf)};
 
-    PU_MAYBE_VISIT_BOOL_FIELD(-1, "ip", "'ip'", b,
-        modify_bit(&p->flags, REPORT_IP, b);
-    );
+    // Parse ip
+    if (moon_visit_bool(&mv, -1, "ip", &p->report_ip, true) < 0)
+        goto mverror;
 
-    PU_MAYBE_VISIT_BOOL_FIELD(-1, "wireless", "'wireless'", b,
-        modify_bit(&p->flags, REPORT_WIRELESS, b);
-    );
+    // Parse wireless
+    if (moon_visit_bool(&mv, -1, "wireless", &p->report_wireless, true) < 0)
+        goto mverror;
 
-    PU_MAYBE_VISIT_BOOL_FIELD(-1, "ethernet", "'ethernet'", b,
-        modify_bit(&p->flags, REPORT_ETHERNET, b);
-    );
+    // Parse ethernet
+    if (moon_visit_bool(&mv, -1, "ethernet", &p->report_ethernet, true) < 0)
+        goto mverror;
 
-    PU_MAYBE_VISIT_NUM_FIELD(-1, "timeout", "'timeout'", n,
-        if (!ls_opt_timeval_from_seconds(n, &p->timeout)) {
-            LS_FATALF(pd, "'timeout' is invalid");
-            goto error;
-        }
-    );
+    // Parse timeout
+    if (moon_visit_num(&mv, -1, "timeout", &p->tmo, true) < 0)
+        goto mverror;
 
-    if (p->flags & REPORT_ETHERNET) {
+    // Open eth_sockfd if needed.
+    if (p->report_ethernet) {
         p->eth_sockfd = ls_cloexec_socket(AF_INET, SOCK_DGRAM, 0);
         if (p->eth_sockfd < 0) {
             LS_WARNF(pd, "ls_cloexec_socket: %s", ls_strerror_onstack(errno));
@@ -127,7 +115,9 @@ init(LuastatusPluginData *pd, lua_State *L)
 
     return LUASTATUS_OK;
 
-error:
+mverror:
+    LS_FATALF(pd, "%s", errbuf);
+//error:
     destroy(pd);
     return LUASTATUS_ERR;
 }
@@ -241,7 +231,7 @@ make_call(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, bool timeout)
             lua_pushvalue(L, -1); // L: ? table ifacetbl ifacetbl
             lua_setfield(L, -3, cur->ifa_name); // L: ? table ifacetbl
 
-            if (p->flags & REPORT_WIRELESS) {
+            if (p->report_wireless) {
                 bool is_wlan;
                 if (timeout) {
                     is_wlan = string_set_contains(p->wlan_ifaces, cur->ifa_name);
@@ -256,12 +246,12 @@ make_call(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, bool timeout)
                 }
             }
 
-            if (p->flags & REPORT_ETHERNET) {
+            if (p->report_ethernet) {
                 inject_ethernet_info(L, cur, p->eth_sockfd); // L: ? table ifacetbl
             }
         }
 
-        if (p->flags & REPORT_IP) {
+        if (p->report_ip) {
             inject_ip_info(L, cur); // L: ? table ifacetbl
         }
 
@@ -281,11 +271,11 @@ void
 setup_sock_timeout(LuastatusPluginData *pd, int fd)
 {
     Priv *p = pd->priv;
-    const struct timeval timeout = p->timeout;
-    if (!ls_timeval_is_invalid(timeout)) {
-        if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0) {
-            LS_WARNF(pd, "setsockopt: %s", ls_strerror_onstack(errno));
-        }
+    if (p->tmo < 0)
+        return;
+    struct timeval tmo_tv = ls_tmo_to_tv(p->tmo);
+    if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tmo_tv, sizeof(tmo_tv)) < 0) {
+        LS_WARNF(pd, "setsockopt: %s", ls_strerror_onstack(errno));
     }
 }
 
@@ -319,7 +309,7 @@ interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         .nl_family = AF_NETLINK,
         .nl_groups = RTMGRP_LINK | RTMGRP_IPV4_IFADDR | RTMGRP_IPV6_IFADDR,
     };
-    if (bind(fd, (void *) &sa, sizeof(sa)) < 0) {
+    if (bind(fd, (struct sockaddr *) &sa, sizeof(sa)) < 0) {
         LS_FATALF(pd, "bind: %s", ls_strerror_onstack(errno));
         goto error;
     }
@@ -390,7 +380,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     while (interact(pd, funcs)) {
         // some non-fatal error occurred
         report_error(pd, funcs);
-        ls_nanosleep((struct timespec) {.tv_sec = 5});
+        ls_sleep(5.0);
         LS_INFOF(pd, "resynchronizing");
     }
 }

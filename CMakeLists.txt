@@ -7,13 +7,8 @@ endif ()
 
 set (CMAKE_C_STANDARD 99)
 
-if ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU" OR
-    "${CMAKE_C_COMPILER_ID}" STREQUAL "Clang"
-)
-    if (${CMAKE_BUILD_TYPE} MATCHES "Release|MinSizeRel")
-        set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s")
-    endif ()
-    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pedantic -Wall -Wextra -Wcast-qual -Wredundant-decls -Wshadow -Winit-self")
+if ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pedantic -Wpedantic -Wall -Wextra")
 endif ()
 
 #------------------------------------------------------------------------------
@@ -96,6 +91,7 @@ endfunction ()
 #------------------------------------------------------------------------------
 
 add_subdirectory (libls)
+add_subdirectory (libmoonvisit)
 add_subdirectory (luastatus)
 add_subdirectory (tests)
 

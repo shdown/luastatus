@@ -29,18 +29,16 @@
 #include <errno.h>
 #include <sys/inotify.h>
 #include <sys/select.h>
-#include <signal.h>
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
-#include "include/plugin_utils.h"
 
-#include "libls/lua_utils.h"
+#include "libmoonvisit/moonvisit.h"
+
 #include "libls/alloc_utils.h"
 #include "libls/cstring_utils.h"
 #include "libls/vector.h"
 #include "libls/time_utils.h"
-#include "libls/sig_utils.h"
 #include "libls/evloop_utils.h"
 
 #include "inotify_compat.h"
@@ -54,8 +52,8 @@ typedef struct {
     int fd;
     LS_VECTOR_OF(Watch) init_watch;
     bool greet;
-    struct timespec timeout;
-    LSPushedTimeout pushed_timeout;
+    double tmo;
+    LSPushedTimeout pushed_tmo;
 } Priv;
 
 static
@@ -68,7 +66,7 @@ destroy(LuastatusPluginData *pd)
         free(p->init_watch.data[i].path);
     }
     LS_VECTOR_FREE(p->init_watch);
-    ls_pushed_timeout_destroy(&p->pushed_timeout);
+    ls_pushed_timeout_destroy(&p->pushed_tmo);
     free(p);
 }
 
@@ -113,62 +111,61 @@ static const EventType EVENT_TYPES[] = {
     {.name = NULL},
 };
 
-// returns 0 on failure
-static inline
-uint32_t
-parse_input_event_name(const char *name)
+static
+int
+parse_evlist_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
 {
+    mv->where = "element of event names list";
+    (void) kpos;
+
+    uint32_t *mask = ud;
+
+    if (moon_visit_checktype_at(mv, "", vpos, LUA_TSTRING) < 0)
+        goto error;
+
+    const char *s = lua_tostring(mv->L, vpos);
+
     for (const EventType *et = EVENT_TYPES; et->name; ++et) {
-        if (et->in && strcmp(et->name, name) == 0) {
-            return et->mask;
+        if (et->in && strcmp(et->name, s) == 0) {
+            *mask |= et->mask;
+            return 1;
         }
     }
-    return 0;
+    moon_visit_err(mv, "unknown input event '%s'", s);
+error:
+    return -1;
 }
 
 static
-bool
-process_path(lua_State *L, int pos, char const **ppath, char *errbuf, size_t nerrbuf)
+int
+parse_watch_entry(MoonVisit *mv, void *ud, int kpos, int vpos)
 {
-    if (!lua_isstring(L, pos)) {
-        snprintf(errbuf, nerrbuf, "expected string, found %s", luaL_typename(L, pos));
-        return false;
-    }
-    size_t npath;
-    const char *path = lua_tolstring(L, pos, &npath);
-    if (strlen(path) != npath) {
-        snprintf(errbuf, nerrbuf, "contains a NUL character");
-        return false;
-    }
-    *ppath = path;
-    return true;
-}
+    mv->where = "'watch' entry";
 
-static
-bool
-process_evnames(lua_State *L, int pos, uint32_t *pmask, char *errbuf, size_t nerrbuf)
-{
-    if (!lua_istable(L, pos)) {
-        snprintf(errbuf, nerrbuf, "expected table, found %s", luaL_typename(L, pos));
-        return false;
-    }
+    LuastatusPluginData *pd = ud;
+    Priv *p = pd->priv;
+
+    // Parse key
+    if (moon_visit_checktype_at(mv, "key", kpos, LUA_TSTRING) < 0)
+        goto error;
+    const char *path = lua_tostring(mv->L, kpos);
+
+    // Parse value
     uint32_t mask = 0;
-    LS_LUA_TRAVERSE(L, pos) {
-        if (!lua_isstring(L, LS_LUA_VALUE)) {
-            snprintf(errbuf, nerrbuf, "value: expected string, found %s",
-                     luaL_typename(L, LS_LUA_VALUE));
-            return false;
-        }
-        const char *evname = lua_tostring(L, LS_LUA_VALUE);
-        uint32_t r = parse_input_event_name(evname);
-        if (!r) {
-            snprintf(errbuf, nerrbuf, "unknown input event name '%s'", evname);
-            return false;
-        }
-        mask |= r;
+    if (moon_visit_table_f_at(mv, "value", vpos, parse_evlist_elem, &mask) < 0)
+        goto error;
+
+    // Add watch
+    int wd = inotify_add_watch(p->fd, path, mask);
+    if (wd < 0) {
+        LS_ERRF(pd, "inotify_add_watch: %s: %s", path, ls_strerror_onstack(errno));
+    } else {
+        Watch w = {.path = ls_xstrdup(path), .wd = wd};
+        LS_VECTOR_PUSH(p->init_watch, w);
     }
-    *pmask = mask;
-    return true;
+    return 1;
+error:
+    return -1;
 }
 
 static
@@ -180,53 +177,34 @@ init(LuastatusPluginData *pd, lua_State *L)
         .fd = -1,
         .init_watch = LS_VECTOR_NEW(),
         .greet = false,
-        .timeout = ls_timespec_invalid,
+        .tmo = -1,
     };
-    ls_pushed_timeout_init(&p->pushed_timeout);
+    ls_pushed_timeout_init(&p->pushed_tmo);
+
+    char errbuf[256];
+    MoonVisit mv = {.L = L, .errbuf = errbuf, .nerrbuf = sizeof(errbuf)};
 
     if ((p->fd = compat_inotify_init(false, true)) < 0) {
         LS_FATALF(pd, "inotify_init: %s", ls_strerror_onstack(errno));
         goto error;
     }
 
-    PU_MAYBE_VISIT_BOOL_FIELD(-1, "greet", "'greet'", b,
-        p->greet = b;
-    );
+    // Parse greet
+    if (moon_visit_bool(&mv, -1, "greet", &p->greet, true) < 0)
+        goto mverror;
 
-    PU_MAYBE_VISIT_NUM_FIELD(-1, "timeout", "'timeout'", n,
-        if (!ls_opt_timespec_from_seconds(n, &p->timeout)) {
-            LS_FATALF(pd, "'timeout' is invalid");
-            goto error;
-        }
-    );
+    // Parse timeout
+    if (moon_visit_num(&mv, -1, "timeout", &p->tmo, true) < 0)
+        goto mverror;
 
-    char err[256];
-    PU_VISIT_TABLE_FIELD(-1, "watch", "'watch'",
-        const char *path;
-        uint32_t mask;
-
-        if (!process_path(L, LS_LUA_KEY, &path, err, sizeof(err))) {
-            LS_FATALF(pd, "'watch' key: %s", err);
-            goto error;
-        }
-        if (!process_evnames(L, LS_LUA_VALUE, &mask, err, sizeof(err))) {
-            LS_FATALF(pd, "'watch' value: %s", err);
-            goto error;
-        }
-
-        int wd = inotify_add_watch(p->fd, path, mask);
-        if (wd < 0) {
-            LS_ERRF(pd, "inotify_add_watch: %s: %s", path, ls_strerror_onstack(errno));
-        } else {
-            LS_VECTOR_PUSH(p->init_watch, ((Watch) {
-                .path = ls_xstrdup(path),
-                .wd = wd,
-            }));
-        }
-    );
+    // Parse watch
+    if (moon_visit_table_f(&mv, -1, "watch", parse_watch_entry, pd, false) < 0)
+        goto mverror;
 
     return LUASTATUS_OK;
 
+mverror:
+    LS_FATALF(pd, "%s", errbuf);
 error:
     destroy(pd);
     return LUASTATUS_ERR;
@@ -236,26 +214,26 @@ static
 int
 l_add_watch(lua_State *L)
 {
-    if (lua_gettop(L) != 2) {
+    if (lua_gettop(L) != 2)
         return luaL_error(L, "expected exactly 2 arguments");
-    }
-    const char *path;
-    uint32_t mask;
 
-    char err[256];
-    if (!process_path(L, 1, &path, err, sizeof(err))) {
-        return luaL_error(L, "first argument: %s", err);
-    }
-    if (!process_evnames(L, 2, &mask, err, sizeof(err))) {
-        return luaL_error(L, "second argument: %s", err);
-    }
+    char errbuf[256];
+    MoonVisit mv = {.L = L, .errbuf = errbuf, .nerrbuf = sizeof(errbuf)};
 
+    // Parse first arg
+    if (moon_visit_checktype_at(&mv, "first arg", 1, LUA_TSTRING) < 0)
+        goto mverror;
+    const char *path = lua_tostring(L, 1);
+
+    // Parse second arg
+    uint32_t mask = 0;
+    if (moon_visit_table_f_at(&mv, "second arg", 2, parse_evlist_elem, &mask) < 0)
+        goto mverror;
+
+    // Add watch
     LuastatusPluginData *pd = lua_touserdata(L, lua_upvalueindex(1));
     Priv *p = pd->priv;
 
-    if (!mask) {
-        LS_WARNF(pd, "add_watch: empty table passed");
-    }
     int wd = inotify_add_watch(p->fd, path, mask);
     if (wd < 0) {
         LS_ERRF(pd, "inotify_add_watch: %s: %s", path, ls_strerror_onstack(errno));
@@ -264,6 +242,9 @@ l_add_watch(lua_State *L)
         lua_pushinteger(L, wd);
     }
     return 1;
+
+mverror:
+    return luaL_error(L, "%s", errbuf);
 }
 
 static
@@ -320,7 +301,7 @@ register_funcs(LuastatusPluginData *pd, lua_State *L)
 
     Priv *p = pd->priv;
     // L: table
-    ls_pushed_timeout_push_luafunc(&p->pushed_timeout, L); // L: table func
+    ls_pushed_timeout_push_luafunc(&p->pushed_tmo, L); // L: table func
     lua_setfield(L, -2, "push_timeout"); // L: table
 }
 
@@ -375,56 +356,45 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         funcs.call_end(pd->userdata);
     }
 
-
-    fd_set fds;
-    FD_ZERO(&fds);
-
-    sigset_t allsigs;
-    ls_xsigfillset(&allsigs);
-
     while (1) {
-        struct timespec timeout = ls_pushed_timeout_fetch(&p->pushed_timeout, p->timeout);
-        FD_SET(p->fd, &fds);
-        const int nfds = pselect(
-            p->fd + 1,
-            &fds, NULL, NULL,
-            ls_timespec_is_invalid(timeout) ? NULL : &timeout,
-            &allsigs);
+        double tmo = ls_pushed_timeout_fetch(&p->pushed_tmo, p->tmo);
+        int nfds = ls_wait_input_on_fd(p->fd, tmo);
 
         if (nfds < 0) {
-            LS_FATALF(pd, "pselect: %s", ls_strerror_onstack(errno));
+            LS_FATALF(pd, "ls_wait_input_on_fd: %s", ls_strerror_onstack(errno));
             goto error;
+
         } else if (nfds == 0) {
             lua_State *L = funcs.call_begin(pd->userdata);
             lua_createtable(L, 0, 1); // L: table
             lua_pushstring(L, "timeout"); // L: table string
             lua_setfield(L, -2, "what"); // L: table
             funcs.call_end(pd->userdata);
-            continue;
-        }
 
-        ssize_t r = read(p->fd, buf, NBUF);
-        if (r < 0) {
-            if (errno == EINTR) {
-                continue;
+        } else {
+            ssize_t r = read(p->fd, buf, NBUF);
+            if (r < 0) {
+                if (errno == EINTR) {
+                    continue;
+                }
+                LS_FATALF(pd, "read: %s", ls_strerror_onstack(errno));
+                goto error;
+            } else if (r == 0) {
+                LS_FATALF(pd, "read() from the inotify file descriptor returned 0");
+                goto error;
+            } else if (r == NBUF) {
+                LS_FATALF(pd, "got an event with filename length > NAME_MAX+1");
+                goto error;
             }
-            LS_FATALF(pd, "read: %s", ls_strerror_onstack(errno));
-            goto error;
-        } else if (r == 0) {
-            LS_FATALF(pd, "read() from the inotify file descriptor returned 0");
-            goto error;
-        } else if (r == NBUF) {
-            LS_FATALF(pd, "got an event with filename length > NAME_MAX+1");
-            goto error;
-        }
-        const struct inotify_event *event;
-        for (char *ptr = buf;
-             ptr < buf + r;
-             ptr += sizeof(struct inotify_event) + event->len)
-        {
-            event = (const struct inotify_event *) ptr;
-            push_event(funcs.call_begin(pd->userdata), event);
-            funcs.call_end(pd->userdata);
+            const struct inotify_event *event;
+            for (char *ptr = buf;
+                 ptr < buf + r;
+                 ptr += sizeof(struct inotify_event) + event->len)
+            {
+                event = (const struct inotify_event *) ptr;
+                push_event(funcs.call_begin(pd->userdata), event);
+                funcs.call_end(pd->userdata);
+            }
         }
     }
 

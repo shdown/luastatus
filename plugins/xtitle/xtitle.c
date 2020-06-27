@@ -32,11 +32,12 @@
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
-#include "include/plugin_utils.h"
+
+#include "libmoonvisit/moonvisit.h"
 
 #include "libls/alloc_utils.h"
 #include "libls/cstring_utils.h"
-#include "libls/sig_utils.h"
+#include "libls/evloop_utils.h"
 
 // some parts of this file (including the name) are proudly stolen from
 // xtitle (https://github.com/baskerville/xtitle).
@@ -64,18 +65,22 @@ init(LuastatusPluginData *pd, lua_State *L)
         .dpyname = NULL,
         .visible = false,
     };
+    char errbuf[256];
+    MoonVisit mv = {.L = L, .errbuf = errbuf, .nerrbuf = sizeof(errbuf)};
 
-    PU_MAYBE_VISIT_STR_FIELD(-1, "display", "'display'", s,
-        p->dpyname = ls_xstrdup(s);
-    );
+    // Parse display
+    if (moon_visit_str(&mv, -1, "display", &p->dpyname, NULL, true) < 0)
+        goto mverror;
 
-    PU_MAYBE_VISIT_BOOL_FIELD(-1, "visible", "'visible'", b,
-        p->visible = b;
-    );
+    // Parse visible
+    if (moon_visit_bool(&mv, -1, "visible", &p->visible, true) < 0)
+        goto mverror;
 
     return LUASTATUS_OK;
 
-error:
+mverror:
+    LS_FATALF(pd, "%s", errbuf);
+//error:
     destroy(pd);
     return LUASTATUS_ERR;
 }
@@ -278,19 +283,12 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 
     // poll for changes
 
-    sigset_t allsigs;
-    ls_xsigfillset(&allsigs);
-
-    fd_set fds;
-    FD_ZERO(&fds);
-
     const int fd = xcb_get_file_descriptor(d.conn);
     xcb_flush(d.conn);
     while (1) {
-        FD_SET(fd, &fds);
-        const int nfds = pselect(fd + 1, &fds, NULL, NULL, NULL, &allsigs);
+        int nfds = ls_wait_input_on_fd(fd, -1);
         if (nfds < 0) {
-            LS_FATALF(pd, "pselect: %s", ls_strerror_onstack(errno));
+            LS_FATALF(pd, "ls_wait_input_on_fd: %s", ls_strerror_onstack(errno));
             goto error;
         } else if (nfds > 0) {
             xcb_generic_event_t *evt;

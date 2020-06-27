@@ -24,9 +24,8 @@
 #include <time.h>
 #include <pthread.h>
 #include <lua.h>
-#include <signal.h>
 #include <errno.h>
-#include <sys/select.h>
+#include <poll.h>
 
 #include "compdep.h"
 #include "cstring_utils.h"
@@ -39,14 +38,14 @@
 // plugin's viewpoint).
 //
 // /LSPushedTimeout/ is a structure containing the pushed timeout value (or an absence of such, as
-// indicated by the value being /ls_timespec_invalid/), and a lock.
+// indicated by the value being negative), and a lock.
 //
 // <!!!>
 // This structure must reside at a constant address throughout its whole life; this is required for
 // the Lua closure created with /ls_pushed_timeout_push_luafunc()/.
 // </!!!>
 typedef struct {
-    struct timespec value;
+    double value;
     pthread_spinlock_t lock;
 } LSPushedTimeout;
 
@@ -58,8 +57,8 @@ ls_pushed_timeout_init(LSPushedTimeout *p);
 // * checks if /p/ has a pushed timeout value;
 //   * if it does, clears it and returns the timeout value that /p/ has previously had;
 //   * if it does not, returns /alt/.
-struct timespec
-ls_pushed_timeout_fetch(LSPushedTimeout *p, struct timespec alt);
+double
+ls_pushed_timeout_fetch(LSPushedTimeout *p, double alt);
 
 // Creates a "push_timeout" function (a "C closure" with /p/'s address, in Lua terminology) on /L/'s
 // stack.
@@ -123,90 +122,15 @@ ls_self_pipe_is_opened(LSSelfPipe *s)
 void
 ls_self_pipe_close(LSSelfPipe *s);
 
-// A device to perform a timed wait on a FIFO (although both the FIFO and timeout are optional).
-// The typical usage is following:
-//
-//      LSWakeupFifo w;
-//      ls_wakeup_fifo_init(&w, fifo, NULL);
-//
-//      // ...
-//
-//      while (1) {
-//          // ...
-//
-//          if (ls_wakeup_fifo_open(&w) < 0) {
-//              // ... (errno is set)
-//          }
-//          switch (ls_wakeup_fifo_wait(&w, timeout)) {
-//          case -1:
-//              // ... (errno is set)
-//              goto error;
-//          case 0:
-//              // ... (timeout)
-//              break;
-//          case 1:
-//              // ... (FIFO has been touched)
-//              break;
-//          }
-//      }
-//      // ...
-//  error:
-//      // ...
-//      ls_wakeup_fifo_destroy(&w);
-//
-//
-typedef struct {
-    const char *fifo;
-    sigset_t sigmask;
-    int fifo_fd;
-    fd_set fds;
-} LSWakeupFifo;
+int ls_poll(struct pollfd *fds, nfds_t nfds, double tmo);
 
-// Initializes /w/ to use the FIFO /fifo/ (/NULL/ means no FIFO) and the signal mask /sigmask/,
-// which specifies which signals to block during the wait (/NULL/ means all signals).
-//
-// If /fifo/ is not /NULL/, then it (as a pointer) must not be invalidated throughout the whole
-// lifetime of /w/.
-void
-ls_wakeup_fifo_init(LSWakeupFifo *w, const char *fifo, sigset_t *sigmask);
+int ls_wait_input_on_fd(int fd, double tmo);
 
-// If /w/ has been configured to use a FIFO, and /w/'s FIFO file descriptor is not opened, opens
-// it.
-//
-// On success, /0/ is returned; on failure, /-1/ is returned and /errno/ is set.
-//
-// <!!!>
-// If the file is not a FIFO, /errno/ is set to (the non-standard value of) /-EINVAL/.
-//
-// It is suggested that you use /LS_WAKEUP_FIFO_STRERROR_ONSTACK()/ to get the string description of
-// the error by the /errno/ value set by this function.
-// </!!!>
-int
-ls_wakeup_fifo_open(LSWakeupFifo *w);
+int ls_fifo_open(int *fd, const char *fifo);
 
-// Produces a string description of an /errno/ value set by /ls_wakeup_fifo_open()/.
-//
-// Currently, it differs from /ls_strerror_onstack()/ in that it may produce a "Not a FIFO" message
-// if /w/ was configured to use a non-FIFO file as a FIFO.
-//
-// Note that /E_/ may be evaluated several times.
-#define LS_WAKEUP_FIFO_STRERROR_ONSTACK(E_) \
+#define LS_FIFO_STRERROR_ONSTACK(E_) \
     ((E_) == -EINVAL ? "Not a FIFO" : ls_strerror_onstack(E_))
 
-// Blocks until either:
-//
-// * the FIFO is touched (if /w/ was configured to use the FIFO, and it was opened); the FIFO is
-//   then closed and /1/ is returned;
-//
-// * /timeout/ elapses (if not equal to /ls_timespec_invalid/); in this case, /0/ is returned;
-//
-// * an error (including /EINTR/ if /w/ was configured to use a non-full signal mask) occurs; in
-//   this case, /-1/ is returned and /errno/ is set.
-int
-ls_wakeup_fifo_wait(LSWakeupFifo *w, struct timespec timeout);
-
-// Destroys /w/. After this function is called, /w/ must not be used anymore.
-void
-ls_wakeup_fifo_destroy(LSWakeupFifo *w);
+int ls_fifo_wait(int *fd, double tmo);
 
 #endif
