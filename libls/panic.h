@@ -34,7 +34,6 @@
 #define LS_PTH_CHECK(Expr_) ls_pth_check_impl(Expr_, #Expr_, __FILE__, __LINE__)
 
 // Implementation part for /LS_PTH_CHECK()/. Normally should not be called manually.
-void
-ls_pth_check_impl(int ret, const char *expr, const char *file, int line);
+void ls_pth_check_impl(int ret, const char *expr, const char *file, int line);
 
 #endif

@@ -17,11 +17,10 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <errno.h>
 #include <lua.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <pthread.h>
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
@@ -29,7 +28,6 @@
 #include "libmoonvisit/moonvisit.h"
 
 #include "libls/alloc_utils.h"
-#include "libls/time_utils.h"
 #include "libls/cstring_utils.h"
 #include "libls/evloop_utils.h"
 
@@ -39,9 +37,7 @@ typedef struct {
     LSPushedTimeout pushed_tmo;
 } Priv;
 
-static
-void
-destroy(LuastatusPluginData *pd)
+static void destroy(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
     free(p->fifo);
@@ -49,13 +45,11 @@ destroy(LuastatusPluginData *pd)
     free(p);
 }
 
-static
-int
-init(LuastatusPluginData *pd, lua_State *L)
+static int init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
-        .period = 1,
+        .period = 1.0,
         .fifo = NULL,
     };
     ls_pushed_timeout_init(&p->pushed_tmo);
@@ -84,9 +78,7 @@ error:
     return LUASTATUS_ERR;
 }
 
-static
-void
-register_funcs(LuastatusPluginData *pd, lua_State *L)
+static void register_funcs(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv;
     // L: table
@@ -94,9 +86,7 @@ register_funcs(LuastatusPluginData *pd, lua_State *L)
     lua_setfield(L, -2, "push_period"); // L: table
 }
 
-static
-void
-run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
+static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
 

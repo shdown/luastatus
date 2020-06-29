@@ -19,7 +19,6 @@
 
 #include <string.h>
 #include <stdbool.h>
-#include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
@@ -42,26 +41,20 @@
 #include "generator_utils.h"
 #include "event_watcher.h"
 
-static
-void
-destroy(LuastatusBarlibData *bd)
+static void destroy(LuastatusBarlibData *bd)
 {
     Priv *p = bd->priv;
-    for (size_t i = 0; i < p->nwidgets; ++i) {
+    for (size_t i = 0; i < p->nwidgets; ++i)
         LS_VECTOR_FREE(p->bufs[i]);
-    }
     free(p->bufs);
     LS_VECTOR_FREE(p->tmpbuf);
     close(p->in_fd);
-    if (p->out) {
+    if (p->out)
         fclose(p->out);
-    }
     free(p);
 }
 
-static
-int
-init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
+static int init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
 {
     Priv *p = bd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
@@ -152,9 +145,7 @@ error:
     return LUASTATUS_ERR;
 }
 
-static
-bool
-redraw(LuastatusBarlibData *bd)
+static bool redraw(LuastatusBarlibData *bd)
 {
     Priv *p = bd->priv;
 
@@ -182,9 +173,7 @@ redraw(LuastatusBarlibData *bd)
     return true;
 }
 
-static
-int
-l_pango_escape(lua_State *L)
+static int l_pango_escape(lua_State *L)
 {
     size_t ns;
     // WARNING: luaL_check*() functions do a long jump on error!
@@ -214,9 +203,7 @@ l_pango_escape(lua_State *L)
     return 1;
 }
 
-static
-void
-register_funcs(LuastatusBarlibData *bd, lua_State *L)
+static void register_funcs(LuastatusBarlibData *bd, lua_State *L)
 {
     (void) bd;
     // L: table
@@ -226,9 +213,7 @@ register_funcs(LuastatusBarlibData *bd, lua_State *L)
 
 // Appends a JSON segment generated from table at the top of /L/'s stack, to
 // /((Priv *) bd->priv)->tmpbuf/.
-static
-bool
-append_segment(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
+static bool append_segment(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
 {
     Priv *p = bd->priv;
     LSString *s = &p->tmpbuf;
@@ -309,9 +294,7 @@ next_entry:
     return true;
 }
 
-static
-int
-set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
+static int set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
 {
     Priv *p = bd->priv;
     LS_VECTOR_CLEAR(p->tmpbuf);
@@ -327,7 +310,7 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
         if (lua_next(L, -2)) {
             // The table is not empty.
             // L: ? data key value
-            const bool is_array = lua_isnumber(L, -2);
+            bool is_array = lua_isnumber(L, -2);
             if (is_array) {
                 do {
                     // L: ? data key value
@@ -376,9 +359,7 @@ invalid_data:
     return LUASTATUS_NONFATAL_ERR;
 }
 
-static
-int
-set_error(LuastatusBarlibData *bd, size_t widget_idx)
+static int set_error(LuastatusBarlibData *bd, size_t widget_idx)
 {
     Priv *p = bd->priv;
     LSString *s = &p->bufs[widget_idx];

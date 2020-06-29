@@ -50,15 +50,13 @@ typedef struct {
 } LSPushedTimeout;
 
 // Initializes /p/ with an absence of pushed timeout value and a newly-created lock.
-void
-ls_pushed_timeout_init(LSPushedTimeout *p);
+void ls_pushed_timeout_init(LSPushedTimeout *p);
 
 // Does the following actions atomically:
 // * checks if /p/ has a pushed timeout value;
 //   * if it does, clears it and returns the timeout value that /p/ has previously had;
 //   * if it does not, returns /alt/.
-double
-ls_pushed_timeout_fetch(LSPushedTimeout *p, double alt);
+double ls_pushed_timeout_fetch(LSPushedTimeout *p, double alt);
 
 // Creates a "push_timeout" function (a "C closure" with /p/'s address, in Lua terminology) on /L/'s
 // stack.
@@ -68,12 +66,10 @@ ls_pushed_timeout_fetch(LSPushedTimeout *p, double alt);
 // (atomically) alter /p/'s timeout value.
 //
 // The caller must ensure that the /L/'s stack has at least 2 free slots.
-void
-ls_pushed_timeout_push_luafunc(LSPushedTimeout *p, lua_State *L);
+void ls_pushed_timeout_push_luafunc(LSPushedTimeout *p, lua_State *L);
 
 // Destroys /p/.
-void
-ls_pushed_timeout_destroy(LSPushedTimeout *p);
+void ls_pushed_timeout_destroy(LSPushedTimeout *p);
 
 // Some plugins provide a so-called self-pipe facility; that is, the ability to "wake up" the
 // widget's event loop (and force a call to the widget's /cb()/ function) from within the widget's
@@ -92,8 +88,7 @@ ls_pushed_timeout_destroy(LSPushedTimeout *p);
 // On success, /0/ is returned.
 //
 // On failure, /-1/ is returned, /fds[0]/ and /fds[1]/ are set to -1, and /errno/ is set.
-int
-ls_self_pipe_open(int *fds);
+int ls_self_pipe_open(int *fds);
 
 // Creates a "wake_up" function (a "C closure" with /s/'s address, in Lua terminology) on /L/'s
 // stack.
@@ -103,8 +98,7 @@ ls_self_pipe_open(int *fds);
 // has not been opened.
 //
 // The caller must ensure that the /L/'s stack has at least 2 free slots.
-void
-ls_self_pipe_push_luafunc(int *fds, lua_State *L);
+void ls_self_pipe_push_luafunc(int *fds, lua_State *L);
 
 int ls_poll(struct pollfd *fds, nfds_t nfds, double tmo);
 

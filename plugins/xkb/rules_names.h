@@ -24,20 +24,15 @@
 #include <stdbool.h>
 
 typedef struct {
-    // These all can be /NULL/.
-    const char *rules;
-    const char *model;
-    const char *layout;
-    const char *options;
-
-    // Private data; do not touch.
-    unsigned char *data_;
+    // These all are either zero-terminated strings allocated as if with /malloc()/, or /NULL/.
+    char *rules;
+    char *model;
+    char *layout;
+    char *options;
 } RulesNames;
 
-bool
-rules_names_load(Display *dpy, RulesNames *out);
+bool rules_names_load(Display *dpy, RulesNames *out);
 
-void
-rules_names_destroy(RulesNames *rn);
+void rules_names_free(RulesNames rn);
 
 #endif

@@ -22,7 +22,6 @@
 
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
-#include <stddef.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <lua.h>
@@ -51,49 +50,44 @@ typedef struct {
     xcb_window_t root;
 } Priv;
 
-static
-void
-destroy(LuastatusBarlibData *bd)
+static void destroy(LuastatusBarlibData *bd)
 {
     Priv *p = bd->priv;
-    for (size_t i = 0; i < p->nwidgets; ++i) {
+    for (size_t i = 0; i < p->nwidgets; ++i)
         LS_VECTOR_FREE(p->bufs[i]);
-    }
     free(p->bufs);
     LS_VECTOR_FREE(p->tmpbuf);
     LS_VECTOR_FREE(p->joined);
     free(p->sep);
-    if (p->conn) {
+    if (p->conn)
         xcb_disconnect(p->conn);
-    }
     free(p);
 }
 
 // Returns zero on success, non-zero XCB error code on failure. In either case, /*out_conn/ is
 // written to, and should be closed with /xcb_disconnect()/.
-static
-int
-connect(const char *dpyname, xcb_connection_t **out_conn, xcb_window_t *out_root)
+static int connect(
+        const char *dpyname,
+        xcb_connection_t **out_conn,
+        xcb_window_t *out_root)
 {
     int screenp;
     *out_conn = xcb_connect(dpyname, &screenp);
-    const int r = xcb_connection_has_error(*out_conn);
-    if (r != 0) {
+    int r = xcb_connection_has_error(*out_conn);
+    if (r != 0)
         return r;
-    }
 
     const xcb_setup_t *setup = xcb_get_setup(*out_conn);
     xcb_screen_iterator_t iter = xcb_setup_roots_iterator(setup);
-    for (int i = 0; i < screenp; ++i) {
+
+    for (int i = 0; i < screenp; ++i)
         xcb_screen_next(&iter);
-    }
+
     *out_root = iter.data->root;
     return 0;
 }
 
-static
-bool
-redraw(LuastatusBarlibData *bd)
+static bool redraw(LuastatusBarlibData *bd)
 {
     Priv *p = bd->priv;
 
@@ -133,9 +127,7 @@ redraw(LuastatusBarlibData *bd)
     return true;
 }
 
-static
-int
-init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
+static int init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
 {
     Priv *p = bd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
@@ -165,16 +157,15 @@ init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
     }
     p->sep = ls_xstrdup(sep ? sep : " | ");
 
-    const int r = connect(dpyname, &p->conn, &p->root);
+    int r = connect(dpyname, &p->conn, &p->root);
     if (r != 0) {
         LS_FATALF(bd, "can't connect to display: XCB error %d", r);
         goto error;
     }
 
     // Clear the current name.
-    if (!redraw(bd)) {
+    if (!redraw(bd))
         goto error;
-    }
 
     return LUASTATUS_OK;
 
@@ -183,9 +174,7 @@ error:
     return LUASTATUS_ERR;
 }
 
-static
-int
-set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
+static int set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
 {
     Priv *p = bd->priv;
     LSString *buf = &p->tmpbuf;
@@ -244,9 +233,7 @@ invalid_data:
     return LUASTATUS_NONFATAL_ERR;
 }
 
-static
-int
-set_error(LuastatusBarlibData *bd, size_t widget_idx)
+static int set_error(LuastatusBarlibData *bd, size_t widget_idx)
 {
     Priv *p = bd->priv;
     ls_string_assign_s(&p->bufs[widget_idx], "(Error)");

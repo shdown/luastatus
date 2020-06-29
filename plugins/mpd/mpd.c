@@ -47,7 +47,7 @@
 
 typedef struct {
     char *hostname;
-    double port;
+    uint64_t port;
     char *password;
     double tmo;
     double retry_tmo;
@@ -55,9 +55,7 @@ typedef struct {
     LSString idle_str;
 } Priv;
 
-static
-void
-destroy(LuastatusPluginData *pd)
+static void destroy(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
     free(p->hostname);
@@ -67,9 +65,7 @@ destroy(LuastatusPluginData *pd)
     free(p);
 }
 
-static
-int
-parse_events_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
+static int parse_events_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
 {
     mv->where = "'events' element";
     (void) kpos;
@@ -85,9 +81,7 @@ parse_events_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
     return 1;
 }
 
-static
-int
-init(LuastatusPluginData *pd, lua_State *L)
+static int init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
@@ -107,9 +101,9 @@ init(LuastatusPluginData *pd, lua_State *L)
         goto mverror;
 
     // Parse port
-    if (moon_visit_num(&mv, -1, "port", &p->port, true) < 0)
+    if (moon_visit_uint(&mv, -1, "port", &p->port, true) < 0)
         goto mverror;
-    if (!ls_is_between_d(p->port, 0, 65535)) {
+    if (p->port > 65535) {
         LS_FATALF(pd, "port (%g) is not a valid port number", p->port);
         goto error;
     }
@@ -152,46 +146,28 @@ error:
     return LUASTATUS_ERR;
 }
 
-// Returns the length of /s/ without trailing newlines.
-static inline
-size_t
-rstrip_nl_strlen(const char *s)
+static inline size_t rstrip_nl_strlen(const char *s)
 {
-    size_t len = strlen(s);
-    while (len && s[len - 1] == '\n') {
-        --len;
-    }
-    return len;
-}
-
-static inline
-int
-rstrip_nl_strlen_limit(const char *s)
-{
-    enum { LIMIT = 8192 };
-    const size_t r = rstrip_nl_strlen(s);
-    return r > LIMIT ? LIMIT : r;
+    size_t n = strlen(s);
+    if (n && s[n - 1] == '\n')
+        --n;
+    return n;
 }
 
 // If /line/ is of form "key: value\n", appends /key/ and /value/ to /sa/.
-static
-void
-kv_strarr_line_append(LSStringArray *sa, const char *line)
+static void kv_strarr_line_append(LSStringArray *sa, const char *line)
 {
     const char *colon_pos = strchr(line, ':');
-    if (!colon_pos || colon_pos[1] != ' ') {
+    if (!colon_pos || colon_pos[1] != ' ')
         return;
-    }
     const char *value_pos = colon_pos + 2;
     ls_strarr_append(sa, line, colon_pos - line);
     ls_strarr_append(sa, value_pos, rstrip_nl_strlen(value_pos));
 }
 
-static
-void
-kv_strarr_table_push(LSStringArray sa, lua_State *L)
+static void kv_strarr_table_push(LSStringArray sa, lua_State *L)
 {
-    const size_t n = ls_strarr_size(sa);
+    size_t n = ls_strarr_size(sa);
     assert(n % 2 == 0);
     lua_newtable(L); // L: table
     for (size_t i = 0; i < n; i += 2) {
@@ -205,9 +181,10 @@ kv_strarr_table_push(LSStringArray sa, lua_State *L)
     }
 }
 
-static inline
-void
-report_status(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, const char *what)
+static void report_status(
+        LuastatusPluginData *pd,
+        LuastatusPluginRunFuncs funcs,
+        const char *what)
 {
     lua_State *L = funcs.call_begin(pd->userdata);
     lua_createtable(L, 0, 1); // L: table
@@ -216,89 +193,137 @@ report_status(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, const char
     funcs.call_end(pd->userdata);
 }
 
-static
-void
-interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, int fd)
+typedef struct {
+    FILE *f;
+    char *buf;
+    size_t nbuf;
+} Context;
+
+static void log_io_error(LuastatusPluginData *pd, Context *ctx)
+{
+    if (feof(ctx->f)) {
+        LS_ERRF(pd, "connection closed");
+    } else {
+        LS_ERRF(pd, "I/O error: %s", ls_strerror_onstack(errno));
+    }
+}
+
+static void log_bad_response(
+        LuastatusPluginData *pd,
+        Context *ctx,
+        const char *where)
+{
+    enum { LIMIT = 1024 };
+
+    const char *s = ctx->buf;
+    size_t n = rstrip_nl_strlen(s);
+    if (n > LIMIT)
+        n = LIMIT;
+
+    LS_ERRF(pd, "server said (%s): %.*s", where, (int) n, s);
+}
+
+static int loop_until_ok(
+        LuastatusPluginData *pd,
+        Context *ctx,
+        LSStringArray *kv)
+{
+    for (;;) {
+        if (getline(&ctx->buf, &ctx->nbuf, ctx->f) < 0) {
+            log_io_error(pd, ctx);
+            return -1;
+        }
+        switch (response_type(ctx->buf)) {
+        case RESP_OK:
+            return 0;
+        case RESP_ACK:
+            log_bad_response(pd, ctx, "in loop");
+            return -1;
+        default:
+            if (kv) {
+                kv_strarr_line_append(kv, ctx->buf);
+            }
+        }
+    }
+}
+
+static void interact(
+        LuastatusPluginData *pd,
+        LuastatusPluginRunFuncs funcs,
+        int fd)
 {
     Priv *p = pd->priv;
 
-    FILE *f = fdopen(fd, "r+");
-    if (!f) {
-        LS_ERRF(pd, "can't fdopen connection file descriptor %d: %s",
-                fd, ls_strerror_onstack(errno));
-        close(fd);
-        return;
-    }
-
-    char *buf = NULL;
-    size_t nbuf = 1024;
+    Context ctx = {.buf = NULL, .nbuf = 0};
     LSStringArray kv_song   = ls_strarr_new();
     LSStringArray kv_status = ls_strarr_new();
+    int fd_to_close = fd;
 
-#define GETLINE() \
-    do { \
-        if (getline(&buf, &nbuf, f) < 0) { \
-            goto io_error; \
-        } \
-    } while (0)
-
-#define WRITE(What_) \
-    do { \
-        fputs(What_, f); \
-        fflush(f); \
-        if (ferror(f)) { \
-            goto io_error; \
-        } \
-    } while (0)
-
-#define UNTIL_OK(...) \
-    do { \
-        GETLINE(); \
-        const ResponseType rt_ = response_type(buf); \
-        if (rt_ == RESP_OK) { \
-            break; \
-        } else if (rt_ == RESP_ACK) { \
-            LS_ERRF(pd, "server said: %.*s", rstrip_nl_strlen_limit(buf), buf); \
-            goto error; \
-        } else { \
-            __VA_ARGS__ \
-        } \
-    } while (/*note infinite cycle here*/ 1)
+    if (!(ctx.f = fdopen(fd, "r+"))) {
+        LS_ERRF(pd, "can't fdopen connection fd: %s", ls_strerror_onstack(errno));
+        goto done;
+    }
+    fd_to_close = -1;
 
     // read and check the greeting
-    GETLINE();
-    if (!ls_strfollow(buf, "OK MPD ")) {
-        LS_ERRF(pd, "bad greeting: %.*s", rstrip_nl_strlen_limit(buf), buf);
-        goto error;
+    if (getline(&ctx.buf, &ctx.nbuf, ctx.f) < 0) {
+        log_io_error(pd, &ctx);
+        goto done;
+    }
+
+    if (!ls_strfollow(ctx.buf, "OK MPD ")) {
+        log_bad_response(pd, &ctx, "to greeting");
+        goto done;
     }
 
     // send the password, if specified
     if (p->password) {
-        fputs("password ", f);
-        write_quoted(f, p->password);
-        putc_unlocked('\n', f);
-        fflush(f);
-        if (ferror(f)) {
-            goto io_error;
+        fputs("password ", ctx.f);
+        write_quoted(ctx.f, p->password);
+        putc('\n', ctx.f);
+
+        fflush(ctx.f);
+        if (ferror(ctx.f)) {
+            log_io_error(pd, &ctx);
+            goto done;
         }
-        GETLINE();
-        if (response_type(buf) != RESP_OK) {
-            LS_ERRF(pd, "(password) server said: %.*s", rstrip_nl_strlen_limit(buf), buf);
-            goto error;
+
+        if (getline(&ctx.buf, &ctx.nbuf, ctx.f) < 0) {
+            log_io_error(pd, &ctx);
+            goto done;
+        }
+        if (response_type(ctx.buf) != RESP_OK) {
+            log_bad_response(pd, &ctx, "to password");
+            goto done;
         }
     }
 
-    while (1) {
-        WRITE("currentsong\n");
-        UNTIL_OK(
-            kv_strarr_line_append(&kv_song, buf);
-        );
+    for (;;) {
+        // write "currentsong\n"
+        fputs("currentsong\n", ctx.f);
+        fflush(ctx.f);
+        if (ferror(ctx.f)) {
+            log_io_error(pd, &ctx);
+            goto done;
+        }
 
-        WRITE("status\n");
-        UNTIL_OK(
-            kv_strarr_line_append(&kv_status, buf);
-        );
+        // until OK, append data to 'kv_song'
+        if (loop_until_ok(pd, &ctx, &kv_song) < 0)
+            goto done;
 
+        // write "status\n"
+        fputs("status\n", ctx.f);
+        fflush(ctx.f);
+        if (ferror(ctx.f)) {
+            log_io_error(pd, &ctx);
+            goto done;
+        }
+
+        // until OK, append data to 'kv_status'
+        if (loop_until_ok(pd, &ctx, &kv_status) < 0)
+            goto done;
+
+        // make a call
         lua_State *L = funcs.call_begin(pd->userdata);
         lua_createtable(L, 0, 3); // L: table
 
@@ -306,23 +331,32 @@ interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, int fd)
         lua_setfield(L, -2, "what"); // L: table
 
         kv_strarr_table_push(kv_song, L); // L: table table
-        ls_strarr_clear(&kv_song);
         lua_setfield(L, -2, "song"); // L: table
 
         kv_strarr_table_push(kv_status, L); // L: table table
-        ls_strarr_clear(&kv_status);
         lua_setfield(L, -2, "status"); // L: table
 
         funcs.call_end(pd->userdata);
 
-        WRITE(p->idle_str.data);
+        // clear the arrays
+        ls_strarr_clear(&kv_status);
+        ls_strarr_clear(&kv_song);
 
+        // write the idle string ("idle <...list of events...>\n")
+        fputs(p->idle_str.data, ctx.f);
+        fflush(ctx.f);
+        if (ferror(ctx.f)) {
+            log_io_error(pd, &ctx);
+            goto done;
+        }
+
+        // if we need to, report timeouts until we have data on fd
         if (p->tmo >= 0) {
-            while (1) {
+            for (;;) {
                 int nfds = ls_wait_input_on_fd(fd, p->tmo);
                 if (nfds < 0) {
                     LS_ERRF(pd, "ls_wait_input_on_fd: %s", ls_strerror_onstack(errno));
-                    goto error;
+                    goto done;
                 } else if (nfds == 0) {
                     report_status(pd, funcs, "timeout");
                 } else {
@@ -331,31 +365,21 @@ interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, int fd)
             }
         }
 
-        UNTIL_OK(
-            // do nothing
-        );
-    }
-#undef GETLINE
-#undef WRITE
-#undef UNTIL_OK
-
-io_error:
-    if (feof(f)) {
-        LS_ERRF(pd, "connection closed");
-    } else {
-        LS_ERRF(pd, "I/O error: %s", ls_strerror_onstack(errno));
+        // wait for an OK
+        if (loop_until_ok(pd, &ctx, NULL) < 0)
+            goto done;
     }
 
-error:
-    fclose(f);
-    free(buf);
+done:
+    if (ctx.f)
+        fclose(ctx.f);
+    close(fd_to_close);
+    free(ctx.buf);
     ls_strarr_destroy(kv_song);
     ls_strarr_destroy(kv_status);
 }
 
-static
-void
-run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
+static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
 

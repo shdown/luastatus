@@ -19,7 +19,6 @@
 
 #include <lua.h>
 #include <lauxlib.h>
-#include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -38,7 +37,6 @@
 #include "libls/alloc_utils.h"
 #include "libls/cstring_utils.h"
 #include "libls/vector.h"
-#include "libls/time_utils.h"
 #include "libls/evloop_utils.h"
 
 #include "inotify_compat.h"
@@ -56,9 +54,7 @@ typedef struct {
     LSPushedTimeout pushed_tmo;
 } Priv;
 
-static
-void
-destroy(LuastatusPluginData *pd)
+static void destroy(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
     close(p->fd);
@@ -111,9 +107,7 @@ static const EventType EVENT_TYPES[] = {
     {.name = NULL},
 };
 
-static
-int
-parse_evlist_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
+static int parse_evlist_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
 {
     mv->where = "element of event names list";
     (void) kpos;
@@ -136,9 +130,7 @@ error:
     return -1;
 }
 
-static
-int
-parse_watch_entry(MoonVisit *mv, void *ud, int kpos, int vpos)
+static int parse_watch_entry(MoonVisit *mv, void *ud, int kpos, int vpos)
 {
     mv->where = "'watch' entry";
 
@@ -168,9 +160,7 @@ error:
     return -1;
 }
 
-static
-int
-init(LuastatusPluginData *pd, lua_State *L)
+static int init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
@@ -210,9 +200,7 @@ error:
     return LUASTATUS_ERR;
 }
 
-static
-int
-l_add_watch(lua_State *L)
+static int l_add_watch(lua_State *L)
 {
     if (lua_gettop(L) != 2)
         return luaL_error(L, "expected exactly 2 arguments");
@@ -247,9 +235,7 @@ mverror:
     return luaL_error(L, "%s", errbuf);
 }
 
-static
-int
-l_remove_watch(lua_State *L)
+static int l_remove_watch(lua_State *L)
 {
     int wd = luaL_checkinteger(L, 1);
 
@@ -265,9 +251,7 @@ l_remove_watch(lua_State *L)
     return 1;
 }
 
-static
-int
-l_get_initial_wds(lua_State *L)
+static int l_get_initial_wds(lua_State *L)
 {
     LuastatusPluginData *pd = lua_touserdata(L, lua_upvalueindex(1));
     Priv *p = pd->priv;
@@ -280,9 +264,7 @@ l_get_initial_wds(lua_State *L)
     return 1;
 }
 
-static
-void
-register_funcs(LuastatusPluginData *pd, lua_State *L)
+static void register_funcs(LuastatusPluginData *pd, lua_State *L)
 {
     // L: table
     lua_pushlightuserdata(L, pd); // L: table pd
@@ -305,9 +287,7 @@ register_funcs(LuastatusPluginData *pd, lua_State *L)
     lua_setfield(L, -2, "push_timeout"); // L: table
 }
 
-static
-void
-push_event(lua_State *L, const struct inotify_event *event)
+static void push_event(lua_State *L, const struct inotify_event *event)
 {
     // L: -
     lua_createtable(L, 0, 4); // L: table
@@ -336,9 +316,7 @@ push_event(lua_State *L, const struct inotify_event *event)
     }
 }
 
-static
-void
-run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
+static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
     // We allocate the buffer for /struct inotify_event/'s on the heap rather than on the stack in

@@ -17,18 +17,16 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <lua.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 #include <xcb/xcb_event.h>
 #include <xcb/xcb_icccm.h>
 #include <xcb/xcb_ewmh.h>
 #include <errno.h>
-#include <signal.h>
-#include <sys/select.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include <lua.h>
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
@@ -47,18 +45,14 @@ typedef struct {
     bool visible;
 } Priv;
 
-static
-void
-destroy(LuastatusPluginData *pd)
+static void destroy(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
     free(p->dpyname);
     free(p);
 }
 
-static
-int
-init(LuastatusPluginData *pd, lua_State *L)
+static int init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
@@ -94,22 +88,18 @@ typedef struct {
     bool visible;
 } Data;
 
-static inline
-void
-watch(Data *d, xcb_window_t win, bool state)
+static inline void watch(Data *d, xcb_window_t win, bool state)
 {
-    if (win == XCB_NONE) {
+    if (win == XCB_NONE)
         return;
-    }
     uint32_t value = state ? XCB_EVENT_MASK_PROPERTY_CHANGE : XCB_EVENT_MASK_NO_EVENT;
     xcb_change_window_attributes(d->conn, win, XCB_CW_EVENT_MASK, &value);
 }
 
-static inline
-bool
-get_active_window(Data *d, xcb_window_t *win)
+static inline bool get_active_window(Data *d, xcb_window_t *win)
 {
-    return xcb_ewmh_get_active_window_reply(
+    return
+        xcb_ewmh_get_active_window_reply(
             d->ewmh,
             xcb_ewmh_get_active_window(d->ewmh, d->screenp),
             win,
@@ -117,13 +107,11 @@ get_active_window(Data *d, xcb_window_t *win)
         ) == 1;
 }
 
-static
-bool
-push_window_title(Data *d, lua_State *L, xcb_window_t win)
+static bool push_window_title(Data *d, lua_State *L, xcb_window_t win)
 {
-    if (win == XCB_NONE) {
+    if (win == XCB_NONE)
         return false;
-    }
+
     xcb_ewmh_get_utf8_strings_reply_t ewmh_txt_prop;
     xcb_icccm_get_text_property_reply_t icccm_txt_prop;
     ewmh_txt_prop.strings = NULL;
@@ -172,9 +160,7 @@ push_window_title(Data *d, lua_State *L, xcb_window_t win)
     return false;
 }
 
-static
-void
-push_arg(Data *d, lua_State *L, xcb_window_t win)
+static void push_arg(Data *d, lua_State *L, xcb_window_t win)
 {
     if (!push_window_title(d, L, win)) {
         lua_pushnil(L);
@@ -182,13 +168,15 @@ push_arg(Data *d, lua_State *L, xcb_window_t win)
 }
 
 // updates /*win/ and /*last_win/ if the active window was changed
-static
-bool
-title_changed(Data *d, xcb_generic_event_t *evt, xcb_window_t *win, xcb_window_t *last_win)
+static bool title_changed(
+        Data *d,
+        xcb_generic_event_t *evt,
+        xcb_window_t *win,
+        xcb_window_t *last_win)
 {
-    if (XCB_EVENT_RESPONSE_TYPE(evt) != XCB_PROPERTY_NOTIFY) {
+    if (XCB_EVENT_RESPONSE_TYPE(evt) != XCB_PROPERTY_NOTIFY)
         return false;
-    }
+
     xcb_property_notify_event_t *pne = (xcb_property_notify_event_t *) evt;
 
     if (pne->atom == d->ewmh->_NET_ACTIVE_WINDOW) {
@@ -213,33 +201,16 @@ title_changed(Data *d, xcb_generic_event_t *evt, xcb_window_t *win, xcb_window_t
     return false;
 }
 
-static
-bool
-has_xcb_error(LuastatusPluginData *pd, xcb_connection_t *conn, const char *what)
-{
-    const int err = xcb_connection_has_error(conn);
-    if (err) {
-        LS_FATALF(pd, "%s: XCB error %d", what, err);
-        return true;
-    }
-    return false;
-}
-
-static
-xcb_screen_iterator_t
-find_nth_screen(xcb_connection_t *conn, int n)
+static xcb_screen_iterator_t find_nth_screen(xcb_connection_t *conn, int n)
 {
     const xcb_setup_t *setup = xcb_get_setup(conn);
     xcb_screen_iterator_t iter = xcb_setup_roots_iterator(setup);
-    for (int i = 0; i < n; ++i) {
+    for (int i = 0; i < n; ++i)
         xcb_screen_next(&iter);
-    }
     return iter;
 }
 
-static
-void
-run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
+static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
 
@@ -249,10 +220,12 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         .ewmh_inited = false,
         .visible = p->visible,
     };
+    int err;
 
     // connect
     d.conn = xcb_connect(p->dpyname, &d.screenp);
-    if (has_xcb_error(pd, d.conn, "xcb_connect")) {
+    if ((err = xcb_connection_has_error(d.conn))) {
+        LS_FATALF(pd, "xcb_connect: XCB error %d", err);
         // /xcb_disconnect/ should be called even if /xcb_connection_has_error/ returned non-zero,
         // so we should not set /d.conn/ to /NULL/ here.
         goto error;
@@ -262,7 +235,13 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     d.root = find_nth_screen(d.conn, d.screenp).data->root;
 
     // initialize ewmh
-    if (xcb_ewmh_init_atoms_replies(d.ewmh, xcb_ewmh_init_atoms(d.conn, d.ewmh), NULL) == 0) {
+    if (
+        xcb_ewmh_init_atoms_replies(
+            d.ewmh,
+            xcb_ewmh_init_atoms(d.conn, d.ewmh),
+            NULL)
+        == 0)
+    {
         LS_FATALF(pd, "xcb_ewmh_init_atoms_replies() failed");
         goto error;
     }
@@ -283,7 +262,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 
     // poll for changes
 
-    const int fd = xcb_get_file_descriptor(d.conn);
+    int fd = xcb_get_file_descriptor(d.conn);
     xcb_flush(d.conn);
     while (1) {
         int nfds = ls_wait_input_on_fd(fd, -1);
@@ -299,7 +278,8 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
                 }
                 free(evt);
             }
-            if (has_xcb_error(pd, d.conn, "xcb_poll_for_event")) {
+            if ((err = xcb_connection_has_error(d.conn))) {
+                LS_FATALF(pd, "xcb_poll_for_event: XCB error %d", err);
                 goto error;
             }
         }

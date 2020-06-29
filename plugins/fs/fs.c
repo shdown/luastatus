@@ -44,9 +44,7 @@ typedef struct {
     char *fifo;
 } Priv;
 
-static
-void
-destroy(LuastatusPluginData *pd)
+static void destroy(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
     ls_strarr_destroy(p->paths);
@@ -55,9 +53,7 @@ destroy(LuastatusPluginData *pd)
     free(p);
 }
 
-static
-int
-parse_paths_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
+static int parse_paths_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
 {
     mv->where = "'paths' element";
     (void) kpos;
@@ -72,9 +68,7 @@ parse_paths_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
     return 1;
 }
 
-static
-int
-parse_globs_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
+static int parse_globs_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
 {
     mv->where = "'globs' element";
     (void) kpos;
@@ -89,9 +83,7 @@ parse_globs_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
     return 1;
 }
 
-static
-int
-init(LuastatusPluginData *pd, lua_State *L)
+static int init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
@@ -136,9 +128,7 @@ error:
     return LUASTATUS_ERR;
 }
 
-static
-bool
-push_for(LuastatusPluginData *pd, lua_State *L, const char *path)
+static bool push_for(LuastatusPluginData *pd, lua_State *L, const char *path)
 {
     struct statvfs st;
     if (statvfs(path, &st) < 0) {
@@ -146,18 +136,16 @@ push_for(LuastatusPluginData *pd, lua_State *L, const char *path)
         return false;
     }
     lua_createtable(L, 0, 3); // L: table
-    lua_pushnumber(L, (double) st.f_frsize * st.f_blocks); // L: table n
+    lua_pushnumber(L, ((double) st.f_frsize) * st.f_blocks); // L: table n
     lua_setfield(L, -2, "total"); // L: table
-    lua_pushnumber(L, (double) st.f_frsize * st.f_bfree); // L: table n
+    lua_pushnumber(L, ((double) st.f_frsize) * st.f_bfree); // L: table n
     lua_setfield(L, -2, "free"); // L: table
-    lua_pushnumber(L, (double) st.f_frsize * st.f_bavail); // L: table n
+    lua_pushnumber(L, ((double) st.f_frsize) * st.f_bavail); // L: table n
     lua_setfield(L, -2, "avail"); // L: table
     return true;
 }
 
-static
-void
-run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
+static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
 

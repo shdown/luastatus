@@ -22,10 +22,8 @@
 
 #include "include/plugin_data_v1.h"
 
-int
-unixdom_open(LuastatusPluginData *pd, const char *path);
+int unixdom_open(LuastatusPluginData *pd, const char *path);
 
-int
-inetdom_open(LuastatusPluginData *pd, const char *hostname, const char *service);
+int inetdom_open(LuastatusPluginData *pd, const char *hostname, const char *service);
 
 #endif

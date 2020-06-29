@@ -22,20 +22,22 @@
 #include <math.h>
 #include <stdbool.h>
 
-void
-append_json_escaped_s(LSString *s, const char *zts)
+void append_json_escaped_s(LSString *s, const char *zts)
 {
+    static const char *HEX_CHARS = "0123456789ABCDEF";
+
     ls_string_append_c(s, '"');
     size_t prev = 0;
     size_t i;
     for (i = 0; ; ++i) {
         unsigned char c = zts[i];
-        if (c == '\0') {
+        if (c == '\0')
             break;
-        }
+
         if (c < 32 || c == '\\' || c == '"' || c == '/') {
             ls_string_append_b(s, zts + prev, i - prev);
-            ls_string_append_f(s, "\\u%04X", c);
+            char buf[] = {'\\', 'u', '0', '0', HEX_CHARS[c / 16], HEX_CHARS[c % 16]};
+            ls_string_append_b(s, buf, sizeof(buf));
             prev = i + 1;
         }
     }
@@ -43,11 +45,9 @@ append_json_escaped_s(LSString *s, const char *zts)
     ls_string_append_c(s, '"');
 }
 
-bool
-append_json_number(LSString *s, double value)
+bool append_json_number(LSString *s, double value)
 {
-    if (!isfinite(value)) {
+    if (!isfinite(value))
         return false;
-    }
     return ls_string_append_f(s, "%.20g", value);
 }

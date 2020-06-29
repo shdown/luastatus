@@ -33,7 +33,6 @@
 #include "libmoonvisit/moonvisit.h"
 
 #include "libls/alloc_utils.h"
-#include "libls/compdep.h"
 #include "libls/strarr.h"
 #include "libls/algo.h"
 
@@ -48,22 +47,18 @@
 
 typedef struct {
     char *dpyname;
-    unsigned deviceid;
+    uint64_t deviceid;
     bool led;
 } Priv;
 
-static
-void
-destroy(LuastatusPluginData *pd)
+static void destroy(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
     free(p->dpyname);
     free(p);
 }
 
-static
-int
-init(LuastatusPluginData *pd, lua_State *L)
+static int init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
@@ -80,17 +75,8 @@ init(LuastatusPluginData *pd, lua_State *L)
         goto mverror;
 
     // Parse device_id
-    double id;
-    int has_id = moon_visit_num(&mv, -1, "device_id", &id, true);
-    if (has_id < 0)
+    if (moon_visit_uint(&mv, -1, "device_id", &p->deviceid, true) < 0)
         goto mverror;
-    if (has_id) {
-        if (!ls_is_between_d(id, 0, UINT_MAX)) {
-            LS_FATALF(pd, "device_id is invalid");
-            goto error;
-        }
-        p->deviceid = id;
-    }
 
     // Parse led
     if (moon_visit_bool(&mv, -1, "led", &p->led, true) < 0)
@@ -116,9 +102,10 @@ error:
     return LUASTATUS_ERR;
 }
 
-static
-Display *
-open_dpy(LuastatusPluginData *pd, char *dpyname, int *ext_base_ev_code)
+static Display *open_dpy(
+        LuastatusPluginData *pd,
+        char *dpyname,
+        int *ext_base_ev_code)
 {
     XkbIgnoreExtension(False);
 
@@ -158,21 +145,19 @@ open_dpy(LuastatusPluginData *pd, char *dpyname, int *ext_base_ev_code)
     return NULL;
 }
 
-static
-bool
-query_groups(Display *dpy, LSStringArray *groups)
+static bool query_groups(Display *dpy, LSStringArray *groups)
 {
     RulesNames rn;
-    if (!rules_names_load(dpy, &rn)) {
+    if (!rules_names_load(dpy, &rn))
         return false;
-    }
 
     ls_strarr_clear(groups);
+
     if (rn.layout) {
         // split /rn.layout/ by non-parenthesized commas
         size_t balance = 0;
         size_t prev = 0;
-        const size_t nlayout = strlen(rn.layout);
+        size_t nlayout = strlen(rn.layout);
         for (size_t i = 0; i < nlayout; ++i) {
             switch (rn.layout[i]) {
             case '(': ++balance; break;
@@ -188,22 +173,19 @@ query_groups(Display *dpy, LSStringArray *groups)
         ls_strarr_append(groups, rn.layout + prev, nlayout - prev);
     }
 
-    rules_names_destroy(&rn);
+    rules_names_free(rn);
     return true;
 }
 
-static
-void
-run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
+static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
     LSStringArray groups = ls_strarr_new();
     Display *dpy = NULL;
     int ext_base_ev_code;
 
-    if (!(dpy = open_dpy(pd, p->dpyname, &ext_base_ev_code))) {
+    if (!(dpy = open_dpy(pd, p->dpyname, &ext_base_ev_code)))
         goto error;
-    }
 
     // So, the X server maintains the bit mask of events we are interesed in; we can alter this mask
     // for XKB-related events with 'XkbSelectEvents()' and 'XkbSelectEventDetails()'.
@@ -407,9 +389,8 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     }
 
 error:
-    if (dpy) {
+    if (dpy)
         XCloseDisplay(dpy);
-    }
     ls_strarr_destroy(groups);
 }
 

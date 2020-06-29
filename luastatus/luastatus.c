@@ -41,7 +41,6 @@
 #include "libls/vector.h"
 #include "libls/string_.h"
 #include "libls/algo.h"
-#include "libls/cstring_utils.h"
 #include "libls/panic.h"
 
 #include "config.generated.h"
@@ -211,9 +210,7 @@ static struct {
 } map = {.entries = LS_VECTOR_NEW(), .frozen = false};
 
 // This function exists because /dlerror()/ may return /NULL/ even if /dlsym()/ returned /NULL/.
-static inline
-const char *
-safe_dlerror(void)
+static inline const char *safe_dlerror(void)
 {
     const char *err = dlerror();
     return err ? err : "(no error, but the symbol is NULL)";
@@ -221,9 +218,7 @@ safe_dlerror(void)
 
 // Returns a log level number by its name /str/, or returns /LUASTATUS_LOG_LAST/ if no such log
 // level was found.
-static
-int
-loglevel_fromstr(const char *str)
+static int loglevel_fromstr(const char *str)
 {
     for (size_t i = 0; i < LS_ARRAY_SIZE(loglevel_names); ++i) {
         assert(loglevel_names[i]); // a hole in enumeration?
@@ -238,9 +233,7 @@ loglevel_fromstr(const char *str)
 // (either a plugin or a barlib name; or /NULL/, which means the message is from the luastatus
 // program itself) using the format string /fmt/ and variable arguments supplied as /vl/, as if with
 // /vsnprintf(<unspecified>, fmt, vl)/.
-static
-void
-common_vsayf(int level, const char *subsystem, const char *fmt, va_list vl)
+static void common_vsayf(int level, const char *subsystem, const char *fmt, va_list vl)
 {
     if (level > loglevel) {
         return;
@@ -262,8 +255,7 @@ common_vsayf(int level, const char *subsystem, const char *fmt, va_list vl)
 // level /level/ using the format string /fmt/ and the variable arguments supplied as /.../, as if
 // with /vsnprintf(<unspecified>, fmt, <... variable arguments>)/.
 static inline LS_ATTR_PRINTF(2, 3)
-void
-sayf(int level, const char *fmt, ...)
+void sayf(int level, const char *fmt, ...)
 {
     va_list vl;
     va_start(vl, fmt);
@@ -274,9 +266,7 @@ sayf(int level, const char *fmt, ...)
 // The "external" logging function: generates a log message from the subsystem denoted by /userdata/
 // with level /level/ using the format string /fmt/ and the variable arguments supplied as /.../, as
 // if with /vsnprintf(<unspecified>, fmt, <... variable arguments>/.
-static
-void
-external_sayf(void *userdata, int level, const char *fmt, ...)
+static void external_sayf(void *userdata, int level, const char *fmt, ...)
 {
     va_list vl;
     va_start(vl, fmt);
@@ -293,9 +283,7 @@ external_sayf(void *userdata, int level, const char *fmt, ...)
 
 // Returns a pointer to the value of the entry with key /key/; or creates a new entry with the given
 // key and /NULL/ value, and returns a pointer to that value.
-static
-void **
-map_get(void *userdata, const char *key)
+static void **map_get(void *userdata, const char *key)
 {
     TRACEF("map_get(userdata=%p, key='%s')", userdata, key);
 
@@ -312,7 +300,7 @@ map_get(void *userdata, const char *key)
     }
 
     // Not found; create a new entry with /NULL/ value.
-    const size_t nkey = strlen(key);
+    size_t nkey = strlen(key);
     MapEntry *e = ls_xmalloc(sizeof(MapEntry) + nkey + 1, 1);
     e->value = NULL;
     memcpy(e->key, key, nkey + 1);
@@ -321,9 +309,7 @@ map_get(void *userdata, const char *key)
     return &e->value;
 }
 
-static
-void
-map_destroy(void)
+static void map_destroy(void)
 {
     for (size_t i = 0; i < map.entries.size; ++i) {
         free(map.entries.data[i]);
@@ -333,9 +319,7 @@ map_destroy(void)
 
 // Loads /barlib/ from a file /filename/ and initializes with options /opts/ and the number of
 // widgets /nwidgets/ (a global variable).
-static
-bool
-barlib_init(const char *filename, const char *const *opts)
+static bool barlib_init(const char *filename, const char *const *opts)
 {
     barlib.dlhandle = NULL;
     LS_PTH_CHECK(pthread_mutex_init(&barlib.set_mtx, NULL));
@@ -386,9 +370,7 @@ error:
 
 // The result is same to calling /barlib_init(<filename>, opts)/, where /<filename>/ is the file
 // name guessed for name /name/.
-static
-bool
-barlib_init_by_name(const char *name, const char *const *opts)
+static bool barlib_init_by_name(const char *name, const char *const *opts)
 {
     if ((strchr(name, '/'))) {
         return barlib_init(name, opts);
@@ -400,18 +382,14 @@ barlib_init_by_name(const char *name, const char *const *opts)
     }
 }
 
-static
-void
-barlib_destroy(void)
+static void barlib_destroy(void)
 {
     barlib.iface.destroy(&barlib.data);
     dlclose(barlib.dlhandle);
     LS_PTH_CHECK(pthread_mutex_destroy(&barlib.set_mtx));
 }
 
-static
-bool
-plugin_load(Plugin *p, const char *filename, const char *name)
+static bool plugin_load(Plugin *p, const char *filename, const char *name)
 {
     p->dlhandle = NULL;
     p->name = ls_xstrdup(name);
@@ -450,9 +428,7 @@ error:
     return false;
 }
 
-static
-bool
-plugin_load_by_name(Plugin *p, const char *name)
+static bool plugin_load_by_name(Plugin *p, const char *name)
 {
     if ((strchr(name, '/'))) {
         return plugin_load(p, name, name);
@@ -464,17 +440,13 @@ plugin_load_by_name(Plugin *p, const char *name)
     }
 }
 
-static
-void
-plugin_unload(Plugin *p)
+static void plugin_unload(Plugin *p)
 {
     free(p->name);
     dlclose(p->dlhandle);
 }
 
-static
-lua_State *
-xnew_lua_state(void)
+static lua_State *xnew_lua_state(void)
 {
     lua_State *L = luaL_newstate();
     if (!L) {
@@ -485,9 +457,7 @@ xnew_lua_state(void)
 }
 
 // Returns a string representation of an error object located at the position /pos/ of /L/'s stack.
-static inline
-const char *
-get_lua_error_msg(lua_State *L, int pos)
+static inline const char *get_lua_error_msg(lua_State *L, int pos)
 {
     const char *msg = lua_tostring(L, pos);
     return msg ? msg : "(error object cannot be converted to string)";
@@ -497,9 +467,7 @@ get_lua_error_msg(lua_State *L, int pos)
 // /L/. /ret/ is the return value of the call.
 //
 // If /ret/ is /0/, returns /true/; otherwise, logs the error and returns /false/.
-static
-bool
-check_lua_call(lua_State *L, int ret)
+static bool check_lua_call(lua_State *L, int ret)
 {
     const char *prefix;
     switch (ret) {
@@ -534,9 +502,7 @@ check_lua_call(lua_State *L, int ret)
 // /do_lua_call/.
 //
 // Currently, it returns (to /check_lua_call/) the traceback of the error.
-static
-int
-l_error_handler(lua_State *L)
+static int l_error_handler(lua_State *L)
 {
     // L: error
     lua_getglobal(L, LUA_DBLIBNAME); // L: error debug
@@ -551,17 +517,13 @@ l_error_handler(lua_State *L)
 // chunk with that error handler, and logs the error message, if any.
 //
 // Returns /true/ on success, /false/ on failure.
-static inline
-bool
-do_lua_call(lua_State *L, int nargs, int nresults)
+static inline bool do_lua_call(lua_State *L, int nargs, int nresults)
 {
     return check_lua_call(L, lua_pcall(L, nargs, nresults, 1));
 }
 
 // Replacement for Lua's /os.exit()/: a simple /exit()/ used by Lua is not thread-safe in Linux.
-static
-int
-l_os_exit(lua_State *L)
+static int l_os_exit(lua_State *L)
 {
     int code = luaL_optinteger(L, 1, /*default value*/ EXIT_SUCCESS);
     fflush(NULL);
@@ -570,9 +532,7 @@ l_os_exit(lua_State *L)
 
 // Replacement for Lua's /os.getenv()/: a simple /getenv()/ used by Lua is not guaranteed by POSIX
 // to be thread-safe.
-static
-int
-l_os_getenv(lua_State *L)
+static int l_os_getenv(lua_State *L)
 {
     const char *r = ls_getenv_r(luaL_checkstring(L, 1));
     if (r) {
@@ -584,9 +544,7 @@ l_os_getenv(lua_State *L)
 }
 
 // Replacement for Lua's /os.setlocale()/: this thing is inherently thread-unsafe.
-static
-int
-l_os_setlocale(lua_State *L)
+static int l_os_setlocale(lua_State *L)
 {
     lua_pushnil(L);
     return 1;
@@ -594,9 +552,7 @@ l_os_setlocale(lua_State *L)
 
 // Implementation of /luastatus.require_plugin()/. Expects a single upvalue: an initially empty
 // table that will be used as a registry of loaded Lua plugins.
-static
-int
-l_require_plugin(lua_State *L)
+static int l_require_plugin(lua_State *L)
 {
     const char *arg = luaL_checkstring(L, 1);
     if ((strchr(arg, '/'))) {
@@ -626,9 +582,7 @@ l_require_plugin(lua_State *L)
 // 1. Replaces some of the functions in the standard library with our thread-safe counterparts.
 // 2. Registers the /luastatus/ module (just creates a global table actually) except for the
 //    /luastatus.plugin/ and /luastatus.barlib/ submodules (created later).
-static
-void
-inject_libs(lua_State *L)
+static void inject_libs(lua_State *L)
 {
     lua_getglobal(L, "os"); // L: ? os
 
@@ -652,9 +606,7 @@ inject_libs(lua_State *L)
     lua_setglobal(L, "luastatus"); // L: ?
 }
 
-static
-void
-sepstate_maybe_init(void)
+static void sepstate_maybe_init(void)
 {
     if (sepstate.L) {
         // already initialized
@@ -667,9 +619,7 @@ sepstate_maybe_init(void)
     LS_PTH_CHECK(pthread_mutex_init(&sepstate.L_mtx, NULL));
 }
 
-static
-void
-sepstate_maybe_destroy(void)
+static void sepstate_maybe_destroy(void)
 {
     if (!sepstate.L) {
         // hasn't been initialized
@@ -681,9 +631,7 @@ sepstate_maybe_destroy(void)
 
 // Inspects the 'plugin' field of /w/'s /widget/ table; the /widget/ table is assumed to be on top
 // of /w.L/'s stack. The stack itself is not changed by this function.
-static
-bool
-widget_init_inspect_plugin(Widget *w)
+static bool widget_init_inspect_plugin(Widget *w)
 {
     lua_State *L = w->L;
     // L: ? widget
@@ -702,9 +650,7 @@ widget_init_inspect_plugin(Widget *w)
 
 // Inspects the 'cb' field of /w/'s /widget/ table; the /widget/ table is assumed to be on top
 // of /w.L/'s stack. The stack itself is not changed by this function.
-static
-bool
-widget_init_inspect_cb(Widget *w)
+static bool widget_init_inspect_cb(Widget *w)
 {
     lua_State *L = w->L;
     // L: ? widget
@@ -719,9 +665,7 @@ widget_init_inspect_cb(Widget *w)
 
 // Inspects the 'event' field of /w/'s /widget/ table; the /widget/ table is assumed to be on top
 // of /w.L/'s stack. The stack itself is not changed by this function.
-static
-bool
-widget_init_inspect_event(Widget *w, const char *filename)
+static bool widget_init_inspect_event(Widget *w, const char *filename)
 {
     lua_State *L = w->L;
     // L: ? widget
@@ -740,7 +684,7 @@ widget_init_inspect_event(Widget *w, const char *filename)
             const char *code = lua_tolstring(w->L, -1, &ncode);
 
             LSString chunkname = ls_string_newz_from_f("widget.event of %s", filename);
-            const bool r = check_lua_call(
+            bool r = check_lua_call(
                 sepstate.L, luaL_loadbuffer(sepstate.L, code, ncode, chunkname.data));
             LS_VECTOR_FREE(chunkname);
             if (!r) {
@@ -763,9 +707,7 @@ widget_init_inspect_event(Widget *w, const char *filename)
 // of /w.L/'s stack.
 //
 // Pushes either the value of 'opts', or a new empty table if it is absent, onto the stack.
-static
-bool
-widget_init_inspect_push_opts(Widget *w)
+static bool widget_init_inspect_push_opts(Widget *w)
 {
     lua_State *L = w->L;
     lua_getfield(L, -1, "opts"); // L: ? widget opts
@@ -782,9 +724,7 @@ widget_init_inspect_push_opts(Widget *w)
     }
 }
 
-static
-bool
-widget_init(Widget *w, const char *filename)
+static bool widget_init(Widget *w, const char *filename)
 {
     w->L = xnew_lua_state();
     LS_PTH_CHECK(pthread_mutex_init(&w->L_mtx, NULL));
@@ -852,9 +792,7 @@ error:
     return false;
 }
 
-static
-void
-widget_init_stillborn(Widget *w)
+static void widget_init_stillborn(Widget *w)
 {
     sepstate_maybe_init();
     w->L = NULL;
@@ -862,40 +800,30 @@ widget_init_stillborn(Widget *w)
     w->sepstate_event = true;
 }
 
-static inline
-bool
-widget_is_stillborn(Widget *w)
+static inline bool widget_is_stillborn(Widget *w)
 {
     return !w->L;
 }
 
 // Returns the Lua interpreter instance for the /widget.event/ function of a widget /w/.
-static inline
-lua_State *
-widget_event_lua_state(Widget *w)
+static inline lua_State *widget_event_lua_state(Widget *w)
 {
     return w->sepstate_event ? sepstate.L : w->L;
 }
 
 // Returns a pointer to the mutex guarding the Lua interpreter instance for the /widget.event/
 // function of a widget /w/.
-static inline
-pthread_mutex_t *
-widget_event_L_mtx(Widget *w)
+static inline pthread_mutex_t *widget_event_L_mtx(Widget *w)
 {
     return w->sepstate_event ? &sepstate.L_mtx : &w->L_mtx;
 }
 
-static inline
-size_t
-widget_index(Widget *w)
+static inline size_t widget_index(Widget *w)
 {
     return w - widgets;
 }
 
-static
-void
-widget_destroy(Widget *w)
+static void widget_destroy(Widget *w)
 {
     if (!widget_is_stillborn(w)) {
         w->plugin.iface.destroy(&w->data);
@@ -908,9 +836,7 @@ widget_destroy(Widget *w)
 
 // Registers /barlib/'s functions at /L/.
 // If /w/ is not /NULL/, also registers /w->plugin/'s functions at /L/.
-static
-void
-register_funcs(lua_State *L, Widget *w)
+static void register_funcs(lua_State *L, Widget *w)
 {
     // L: ?
     lua_getglobal(L, "luastatus"); // L: ? luastatus
@@ -952,9 +878,7 @@ done:
 // Initializes the /widgets/ and /nwidgets/ global variables from the given list of file names:
 // sets /nwidgets/, allocates /widgets/, initialized all the widgets, and makes ones whose
 // initialization failed stillborn.
-static
-void
-widgets_init(char *const *filenames, size_t nfilenames)
+static void widgets_init(char *const *filenames, size_t nfilenames)
 {
     nwidgets = nfilenames;
     widgets = LS_XNEW(Widget, nwidgets);
@@ -966,9 +890,7 @@ widgets_init(char *const *filenames, size_t nfilenames)
     }
 }
 
-static
-void
-widgets_destroy(void)
+static void widgets_destroy(void)
 {
     for (size_t i = 0; i < nwidgets; ++i) {
         widget_destroy(&widgets[i]);
@@ -978,8 +900,7 @@ widgets_destroy(void)
 
 // Should be invoked whenever the barlib reports a fatal error.
 static LS_ATTR_NORETURN
-void
-fatal_error_reported(void)
+void fatal_error_reported(void)
 {
     fflush(NULL);
     _exit(EXIT_FAILURE);
@@ -989,9 +910,7 @@ fatal_error_reported(void)
 // the error-checking required.
 //
 // Does not do any locking/unlocking.
-static
-void
-set_error_unlocked(size_t widget_idx)
+static void set_error_unlocked(size_t widget_idx)
 {
     if (barlib.iface.set_error(&barlib.data, widget_idx) == LUASTATUS_ERR) {
         FATALF("barlib's set_error() reported fatal error");
@@ -999,9 +918,7 @@ set_error_unlocked(size_t widget_idx)
     }
 }
 
-static
-lua_State *
-plugin_call_begin(void *userdata)
+static lua_State *plugin_call_begin(void *userdata)
 {
     TRACEF("plugin_call_begin(userdata=%p)", userdata);
 
@@ -1014,9 +931,7 @@ plugin_call_begin(void *userdata)
     return L;
 }
 
-static
-void
-plugin_call_end(void *userdata)
+static void plugin_call_end(void *userdata)
 {
     TRACEF("plugin_call_end(userdata=%p)", userdata);
 
@@ -1051,9 +966,7 @@ plugin_call_end(void *userdata)
     UNLOCK_L(w);
 }
 
-static
-void
-plugin_call_cancel(void *userdata)
+static void plugin_call_cancel(void *userdata)
 {
     TRACEF("plugin_call_cancel(userdata=%p)", userdata);
 
@@ -1062,9 +975,7 @@ plugin_call_cancel(void *userdata)
     UNLOCK_L(w);
 }
 
-static
-lua_State *
-ew_call_begin(void *userdata, size_t widget_idx)
+static lua_State *ew_call_begin(void *userdata, size_t widget_idx)
 {
     TRACEF("ew_call_begin(userdata=%p, widget_idx=%zu)", userdata, widget_idx);
 
@@ -1078,9 +989,7 @@ ew_call_begin(void *userdata, size_t widget_idx)
     return L;
 }
 
-static
-void
-ew_call_end(void *userdata, size_t widget_idx)
+static void ew_call_end(void *userdata, size_t widget_idx)
 {
     TRACEF("ew_call_end(userdata=%p, widget_idx=%zu)", userdata, widget_idx);
 
@@ -1102,9 +1011,7 @@ ew_call_end(void *userdata, size_t widget_idx)
     UNLOCK_E(w);
 }
 
-static
-void
-ew_call_cancel(void *userdata, size_t widget_idx)
+static void ew_call_cancel(void *userdata, size_t widget_idx)
 {
     TRACEF("ew_call_cancel(userdata=%p, widget_idx=%zu)", userdata, widget_idx);
 
@@ -1116,9 +1023,7 @@ ew_call_cancel(void *userdata, size_t widget_idx)
 }
 
 // Each thread spawned for a widget runs this function. /arg/ is a pointer to the widget.
-static
-void *
-widget_thread(void *arg)
+static void *widget_thread(void *arg)
 {
     Widget *w = arg;
     DEBUGF("thread for widget '%s' is running", w->filename);
@@ -1137,9 +1042,7 @@ widget_thread(void *arg)
     return NULL;
 }
 
-static
-void
-prepare_signals(void)
+static void prepare_signals(void)
 {
     // We do not want to terminate on a write to a dead pipe.
     struct sigaction sa = {.sa_flags = SA_RESTART, .sa_handler = SIG_IGN};
@@ -1149,9 +1052,7 @@ prepare_signals(void)
     }
 }
 
-static
-void
-print_usage(void)
+static void print_usage(void)
 {
     fprintf(stderr, "USAGE: luastatus -b barlib [-B barlib_option [-B ...]] [-l loglevel] [-e] "
                     "widget.lua [widget2.lua ...]\n"
@@ -1159,8 +1060,7 @@ print_usage(void)
                     "See luastatus(1) for more information.\n");
 }
 
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
     int ret = EXIT_FAILURE;
     char *barlib_name = NULL;
@@ -1214,7 +1114,8 @@ main(int argc, char **argv)
 
     widgets_init(argv + optind, argc - optind);
 
-    TRACEF("nwidgets = %zu, widgets = %p, sizeof(Widget) = %d",
+    TRACEF(
+        "nwidgets = %zu, widgets = %p, sizeof(Widget) = %d",
         nwidgets, (void *) widgets, (int) sizeof(Widget));
 
     if (!nwidgets) {

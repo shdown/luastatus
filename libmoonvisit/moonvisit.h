@@ -23,6 +23,7 @@
 #include <lua.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #if ! defined(MOON_VISIT_PRINTF_ATTR)
 # if __GNUC__ >= 2
@@ -92,5 +93,23 @@ int moon_visit_table_f_at(
     int pos,
     int (*f)(MoonVisit *mv, void *ud, int kpos, int vpos),
     void *ud);
+
+// Beware: current implementation can only faithfully (without precision loss) fetch integers that
+// fit into 'double' (on virtually every platform it means integers with absolute value <= 2^53).
+int moon_visit_sint(
+    MoonVisit *mv,
+    int table_pos,
+    const char *key,
+    int64_t *p,
+    bool skip_nil);
+
+// Beware: current implementation can only faithfully (without precision loss) fetch integers that
+// fit into 'double' (on virtually every platform it means values that are <= 2^53).
+int moon_visit_uint(
+    MoonVisit *mv,
+    int table_pos,
+    const char *key,
+    uint64_t *p,
+    bool skip_nil);
 
 #endif

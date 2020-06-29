@@ -34,18 +34,14 @@ typedef struct {
     int nevents;
 } Priv;
 
-static
-void
-destroy(LuastatusBarlibData *bd)
+static void destroy(LuastatusBarlibData *bd)
 {
     Priv *p = bd->priv;
     free(p->widgets);
     free(p);
 }
 
-static
-int
-init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
+static int init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
 {
     Priv *p = bd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
@@ -72,9 +68,7 @@ error:
     return LUASTATUS_ERR;
 }
 
-static
-int
-set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
+static int set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
 {
     Priv *p = bd->priv;
     if (!lua_isnil(L, -1)) {
@@ -85,18 +79,14 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
     return LUASTATUS_OK;
 }
 
-static
-int
-set_error(LuastatusBarlibData *bd, size_t widget_idx)
+static int set_error(LuastatusBarlibData *bd, size_t widget_idx)
 {
     Priv *p = bd->priv;
     --p->widgets[widget_idx];
     return LUASTATUS_OK;
 }
 
-static
-int
-event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
+static int event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
 {
     Priv *p = bd->priv;
     if (p->nevents && !p->nwidgets) {

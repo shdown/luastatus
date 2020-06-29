@@ -17,10 +17,9 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <lua.h>
 #include <stdlib.h>
 #include <limits.h>
-
-#include <lua.h>
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
@@ -31,20 +30,16 @@
 #include "libls/algo.h"
 
 typedef struct {
-    int ncalls;
+    int64_t ncalls;
 } Priv;
 
-static
-void
-destroy(LuastatusPluginData *pd)
+static void destroy(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
     free(p);
 }
 
-static
-int
-init(LuastatusPluginData *pd, lua_State *L)
+static int init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
@@ -55,30 +50,22 @@ init(LuastatusPluginData *pd, lua_State *L)
     MoonVisit mv = {.L = L, .errbuf = errbuf, .nerrbuf = sizeof(errbuf)};
 
     // Parse make_calls
-    double n = 0;
-    if (moon_visit_num(&mv, -1, "make_calls", &n, true) < 0)
+    if (moon_visit_sint(&mv, -1, "make_calls", &p->ncalls, true) < 0)
         goto mverror;
-    if (!ls_is_between_d(n, 0, INT_MAX)) {
-        LS_FATALF(pd, "make_calls is invalid");
-        goto error;
-    }
-    p->ncalls = n;
 
     return LUASTATUS_OK;
 
 mverror:
     LS_FATALF(pd, "%s", errbuf);
-error:
+//error:
     destroy(pd);
     return LUASTATUS_ERR;
 }
 
-static
-void
-run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
+static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
-    for (int i = 0; i < p->ncalls; ++i) {
+    for (int64_t i = 0; i < p->ncalls; ++i) {
         lua_State *L = funcs.call_begin(pd->userdata);
         lua_pushnil(L);
         funcs.call_end(pd->userdata);

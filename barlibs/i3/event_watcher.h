@@ -22,7 +22,6 @@
 
 #include "include/barlib_data_v1.h"
 
-int
-event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs);
+int event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs);
 
 #endif

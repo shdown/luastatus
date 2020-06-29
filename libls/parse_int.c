@@ -22,8 +22,7 @@
 #include <limits.h>
 #include <errno.h>
 
-int
-ls_strtou_b(const char *s, size_t ns, const char **endptr)
+int ls_strtou_b(const char *s, size_t ns, const char **endptr)
 {
     int ret = 0;
     size_t i = 0;
@@ -51,8 +50,7 @@ ls_strtou_b(const char *s, size_t ns, const char **endptr)
     return ret;
 }
 
-int
-ls_full_strtou_b(const char *s, size_t ns)
+int ls_full_strtou_b(const char *s, size_t ns)
 {
     if (!ns) {
         return -EINVAL;

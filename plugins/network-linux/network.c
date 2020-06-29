@@ -63,9 +63,7 @@ typedef struct {
     int eth_sockfd;
 } Priv;
 
-static
-void
-destroy(LuastatusPluginData *pd)
+static void destroy(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
     string_set_destroy(p->wlan_ifaces);
@@ -73,9 +71,7 @@ destroy(LuastatusPluginData *pd)
     free(p);
 }
 
-static
-int
-init(LuastatusPluginData *pd, lua_State *L)
+static int init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
@@ -122,9 +118,7 @@ mverror:
     return LUASTATUS_ERR;
 }
 
-static
-void
-report_error(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
+static void report_error(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     lua_State *L = funcs.call_begin(pd->userdata);
     // L: ?
@@ -132,9 +126,7 @@ report_error(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     funcs.call_end(pd->userdata);
 }
 
-static
-void
-inject_ip_info(lua_State *L, struct ifaddrs *addr)
+static void inject_ip_info(lua_State *L, struct ifaddrs *addr)
 {
     // L: ? ifacetbl
     if (!addr->ifa_addr) {
@@ -157,9 +149,7 @@ inject_ip_info(lua_State *L, struct ifaddrs *addr)
     lua_setfield(L, -2, family == AF_INET ? "ipv4" : "ipv6"); // L: ? ifacetbl
 }
 
-static
-void
-inject_wireless_info(lua_State *L, struct ifaddrs *addr)
+static void inject_wireless_info(lua_State *L, struct ifaddrs *addr)
 {
     WirelessInfo info;
     if (!get_wireless_info(addr->ifa_name, &info)) {
@@ -187,11 +177,9 @@ inject_wireless_info(lua_State *L, struct ifaddrs *addr)
     lua_setfield(L, -2, "wireless"); // L: ? ifacetbl
 }
 
-static
-void
-inject_ethernet_info(lua_State *L, struct ifaddrs *addr, int sockfd)
+static void inject_ethernet_info(lua_State *L, struct ifaddrs *addr, int sockfd)
 {
-    const int speed = get_ethernet_speed(sockfd, addr->ifa_name);
+    int speed = get_ethernet_speed(sockfd, addr->ifa_name);
     if (!speed) {
         return;
     }
@@ -204,9 +192,10 @@ inject_ethernet_info(lua_State *L, struct ifaddrs *addr, int sockfd)
     lua_setfield(L, -2, "ethernet"); // L: ? ifacetbl
 }
 
-static
-void
-make_call(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, bool timeout)
+static void make_call(
+        LuastatusPluginData *pd,
+        LuastatusPluginRunFuncs funcs,
+        bool timeout)
 {
     struct ifaddrs *ifaddr;
     if (getifaddrs(&ifaddr) < 0) {
@@ -266,9 +255,7 @@ make_call(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, bool timeout)
     funcs.call_end(pd->userdata);
 }
 
-static
-void
-setup_sock_timeout(LuastatusPluginData *pd, int fd)
+static void setup_sock_timeout(LuastatusPluginData *pd, int fd)
 {
     Priv *p = pd->priv;
     if (p->tmo < 0)
@@ -279,9 +266,7 @@ setup_sock_timeout(LuastatusPluginData *pd, int fd)
     }
 }
 
-static
-bool
-interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
+static bool interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     // We allocate the buffer for netlink messages on the heap rather than on the stack, for two
     // reasons:
@@ -353,7 +338,7 @@ interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
                     goto error;
                 }
                 struct nlmsgerr *e = NLMSG_DATA(nh);
-                const int errnum = e->error;
+                int errnum = e->error;
                 if (errnum) {
                     LS_ERRF(pd, "netlink error: %s", ls_strerror_onstack(-errnum));
                     ret = true;
@@ -373,12 +358,10 @@ error:
     return ret;
 }
 
-static
-void
-run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
+static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     while (interact(pd, funcs)) {
-        // some non-fatal error occurred
+        // a non-fatal error occurred
         report_error(pd, funcs);
         ls_sleep(5.0);
         LS_INFOF(pd, "resynchronizing");

@@ -28,8 +28,7 @@
 #include "io_utils.h"
 #include "probes.generated.h"
 
-int
-ls_cloexec_pipe(int pipefd[2])
+int ls_cloexec_pipe(int pipefd[2])
 {
 #if LS_HAVE_GNU_PIPE2
     return pipe2(pipefd, O_CLOEXEC);
@@ -50,8 +49,7 @@ ls_cloexec_pipe(int pipefd[2])
 #endif
 }
 
-int
-ls_cloexec_socket(int domain, int type, int protocol)
+int ls_cloexec_socket(int domain, int type, int protocol)
 {
 #if LS_HAVE_GNU_SOCK_CLOEXEC
     return socket(domain, type | SOCK_CLOEXEC, protocol);

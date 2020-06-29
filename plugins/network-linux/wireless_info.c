@@ -33,9 +33,7 @@
 
 // Adapted from i3status/src/print_wireless_info.c
 
-static
-void
-find_ssid(uint8_t *ies, uint32_t ies_len, uint8_t **ssid, uint32_t *ssid_len)
+static void find_ssid(uint8_t *ies, uint32_t ies_len, uint8_t **ssid, uint32_t *ssid_len)
 {
     enum { WLAN_EID_SSID = 0 };
 
@@ -46,20 +44,18 @@ find_ssid(uint8_t *ies, uint32_t ies_len, uint8_t **ssid, uint32_t *ssid_len)
         ies_len -= ies[1] + 2;
         ies += ies[1] + 2;
     }
-    if (ies_len < 2) {
+
+    if (ies_len < 2)
         return;
-    }
-    if (ies_len < (uint32_t) 2 + ies[1]) {
+
+    if (ies_len < ((uint32_t) ies[1]) + 2)
         return;
-    }
 
     *ssid_len = ies[1];
     *ssid = ies + 2;
 }
 
-static
-int
-gwi_sta_cb(struct nl_msg *msg, void *vud)
+static int gwi_sta_cb(struct nl_msg *msg, void *vud)
 {
     WirelessInfo *info = vud;
 
@@ -75,17 +71,26 @@ gwi_sta_cb(struct nl_msg *msg, void *vud)
         [NL80211_RATE_INFO_BITRATE] = {.type = NLA_U16},
     };
 
-    if (nla_parse(tb, NL80211_ATTR_MAX, genlmsg_attrdata(gnlh, 0), genlmsg_attrlen(gnlh, 0),
-                  NULL) < 0)
+    if (nla_parse(
+                tb,
+                NL80211_ATTR_MAX,
+                genlmsg_attrdata(gnlh, 0),
+                genlmsg_attrlen(gnlh, 0),
+                NULL)
+            < 0)
     {
         return NL_SKIP;
     }
-    if (!tb[NL80211_ATTR_STA_INFO]) {
-        return NL_SKIP;
-    }
 
-    if (nla_parse_nested(sinfo, NL80211_STA_INFO_MAX, tb[NL80211_ATTR_STA_INFO],
-                         stats_policy) < 0)
+    if (!tb[NL80211_ATTR_STA_INFO])
+        return NL_SKIP;
+
+    if (nla_parse_nested(
+                sinfo,
+                NL80211_STA_INFO_MAX,
+                tb[NL80211_ATTR_STA_INFO],
+                stats_policy)
+            < 0)
     {
         return NL_SKIP;
     }
@@ -95,18 +100,21 @@ gwi_sta_cb(struct nl_msg *msg, void *vud)
         info->signal_dbm = (int8_t) nla_get_u8(sinfo[NL80211_STA_INFO_SIGNAL]);
     }
 
-    if (!sinfo[NL80211_STA_INFO_RX_BITRATE]) {
+    if (!sinfo[NL80211_STA_INFO_RX_BITRATE])
         return NL_SKIP;
-    }
 
-    if (nla_parse_nested(rinfo, NL80211_RATE_INFO_MAX, sinfo[NL80211_STA_INFO_RX_BITRATE],
-                         rate_policy) < 0)
+    if (nla_parse_nested(
+                rinfo,
+                NL80211_RATE_INFO_MAX,
+                sinfo[NL80211_STA_INFO_RX_BITRATE],
+                rate_policy)
+            < 0)
     {
         return NL_SKIP;
     }
-    if (!rinfo[NL80211_RATE_INFO_BITRATE]) {
+
+    if (!rinfo[NL80211_RATE_INFO_BITRATE])
         return NL_SKIP;
-    }
 
     info->flags |= HAS_BITRATE;
     info->bitrate = nla_get_u16(rinfo[NL80211_RATE_INFO_BITRATE]);
@@ -114,9 +122,7 @@ gwi_sta_cb(struct nl_msg *msg, void *vud)
     return NL_SKIP;
 }
 
-static
-int
-gwi_scan_cb(struct nl_msg *msg, void *vud)
+static int gwi_scan_cb(struct nl_msg *msg, void *vud)
 {
     WirelessInfo *info = vud;
     struct genlmsghdr *gnlh = nlmsg_data(nlmsg_hdr(msg));
@@ -129,23 +135,34 @@ gwi_scan_cb(struct nl_msg *msg, void *vud)
         [NL80211_BSS_STATUS] = {.type = NLA_U32},
     };
 
-    if (nla_parse(tb, NL80211_ATTR_MAX, genlmsg_attrdata(gnlh, 0), genlmsg_attrlen(gnlh, 0),
-                  NULL) < 0)
+    if (nla_parse(
+                tb,
+                NL80211_ATTR_MAX,
+                genlmsg_attrdata(gnlh, 0),
+                genlmsg_attrlen(gnlh, 0),
+                NULL)
+            < 0)
     {
         return NL_SKIP;
     }
-    if (!tb[NL80211_ATTR_BSS]) {
+
+    if (!tb[NL80211_ATTR_BSS])
+        return NL_SKIP;
+
+    if (nla_parse_nested(
+                bss,
+                NL80211_BSS_MAX,
+                tb[NL80211_ATTR_BSS],
+                bss_policy)
+            < 0)
+    {
         return NL_SKIP;
     }
 
-    if (nla_parse_nested(bss, NL80211_BSS_MAX, tb[NL80211_ATTR_BSS], bss_policy) < 0) {
+    if (!bss[NL80211_BSS_STATUS])
         return NL_SKIP;
-    }
-    if (!bss[NL80211_BSS_STATUS]) {
-        return NL_SKIP;
-    }
 
-    const uint32_t status = nla_get_u32(bss[NL80211_BSS_STATUS]);
+    uint32_t status = nla_get_u32(bss[NL80211_BSS_STATUS]);
 
     if (status != NL80211_BSS_STATUS_ASSOCIATED &&
         status != NL80211_BSS_STATUS_IBSS_JOINED)
@@ -153,9 +170,8 @@ gwi_scan_cb(struct nl_msg *msg, void *vud)
         return NL_SKIP;
     }
 
-    if (!bss[NL80211_BSS_BSSID]) {
+    if (!bss[NL80211_BSS_BSSID])
         return NL_SKIP;
-    }
 
     memcpy(info->bssid, nla_data(bss[NL80211_BSS_BSSID]), ETH_ALEN);
 
@@ -167,9 +183,13 @@ gwi_scan_cb(struct nl_msg *msg, void *vud)
     if (bss[NL80211_BSS_INFORMATION_ELEMENTS]) {
         uint8_t *ssid;
         uint32_t ssid_len;
-        find_ssid(nla_data(bss[NL80211_BSS_INFORMATION_ELEMENTS]),
-                  nla_len(bss[NL80211_BSS_INFORMATION_ELEMENTS]),
-                  &ssid, &ssid_len);
+
+        find_ssid(
+            nla_data(bss[NL80211_BSS_INFORMATION_ELEMENTS]),
+            nla_len(bss[NL80211_BSS_INFORMATION_ELEMENTS]),
+            &ssid,
+            &ssid_len);
+
         if (ssid && ssid_len) {
             info->flags |= HAS_ESSID;
             snprintf(info->essid, sizeof(info->essid), "%.*s", (int) ssid_len, ssid);
@@ -179,89 +199,92 @@ gwi_scan_cb(struct nl_msg *msg, void *vud)
     return NL_SKIP;
 }
 
-bool
-get_wireless_info(const char *iface, WirelessInfo *info)
+bool get_wireless_info(const char *iface, WirelessInfo *info)
 {
     memset(info, 0, sizeof(WirelessInfo));
     bool ok = false;
     struct nl_sock *sk = NULL;
     struct nl_msg *msg = NULL;
+    int r;
 
-#define SEND() \
-    do { \
-        const int r_ = nl_send_sync(sk, msg); \
-        msg = NULL; /* nl_send_sync() calls nlmsg_free(), even on error */ \
-        if (r_ < 0) { \
-            goto done; \
-        } \
-    } while (0)
-
-    if (!(sk = nl_socket_alloc())) {
+    if (!(sk = nl_socket_alloc()))
         goto done;
-    }
-    if (genl_connect(sk) != 0) {
-        goto done;
-    }
 
-    if (nl_socket_modify_cb(sk, NL_CB_VALID, NL_CB_CUSTOM, gwi_scan_cb, info) < 0) {
+    if (genl_connect(sk) != 0)
         goto done;
-    }
 
-    const int nl80211_id = genl_ctrl_resolve(sk, "nl80211");
-    if (nl80211_id < 0) {
+    if (nl_socket_modify_cb(sk, NL_CB_VALID, NL_CB_CUSTOM, gwi_scan_cb, info) < 0)
         goto done;
-    }
 
-    const unsigned ifidx = if_nametoindex(iface);
-    if (ifidx == 0) {
+    int nl80211_id = genl_ctrl_resolve(sk, "nl80211");
+    if (nl80211_id < 0)
         goto done;
-    }
 
-    if (!(msg = nlmsg_alloc())) {
+
+    unsigned ifidx = if_nametoindex(iface);
+    if (ifidx == 0)
         goto done;
-    }
 
-    if (!genlmsg_put(msg, NL_AUTO_PORT, NL_AUTO_SEQ, nl80211_id, 0, NLM_F_DUMP,
-                     NL80211_CMD_GET_SCAN, 0))
+    if (!(msg = nlmsg_alloc()))
+        goto done;
+
+    if (!genlmsg_put(
+            msg,
+            NL_AUTO_PORT,
+            NL_AUTO_SEQ,
+            nl80211_id,
+            0,
+            NLM_F_DUMP,
+            NL80211_CMD_GET_SCAN,
+            0)
+        )
     {
         goto done;
     }
-    if (nla_put_u32(msg, NL80211_ATTR_IFINDEX, ifidx) < 0) {
+    if (nla_put_u32(msg, NL80211_ATTR_IFINDEX, ifidx) < 0)
         goto done;
-    }
 
-    SEND();
-
-    if (nl_socket_modify_cb(sk, NL_CB_VALID, NL_CB_CUSTOM, gwi_sta_cb, info) < 0) {
+    r = nl_send_sync(sk, msg);
+    msg = NULL;
+    if (r < 0)
         goto done;
-    }
 
-    if (!(msg = nlmsg_alloc())) {
+    if (nl_socket_modify_cb(sk, NL_CB_VALID, NL_CB_CUSTOM, gwi_sta_cb, info) < 0)
         goto done;
-    }
 
-    if (!genlmsg_put(msg, NL_AUTO_PORT, NL_AUTO_SEQ, nl80211_id, 0, NLM_F_DUMP,
-                     NL80211_CMD_GET_STATION, 0))
+    if (!(msg = nlmsg_alloc()))
+        goto done;
+
+    if (!genlmsg_put(
+            msg,
+            NL_AUTO_PORT,
+            NL_AUTO_SEQ,
+            nl80211_id,
+            0,
+            NLM_F_DUMP,
+            NL80211_CMD_GET_STATION,
+            0)
+        )
     {
         goto done;
     }
-    if (nla_put_u32(msg, NL80211_ATTR_IFINDEX, ifidx) < 0) {
-        goto done;
-    }
-    if (nla_put(msg, NL80211_ATTR_MAC, 6, info->bssid) < 0) {
-        goto done;
-    }
 
-    SEND();
+    if (nla_put_u32(msg, NL80211_ATTR_IFINDEX, ifidx) < 0)
+        goto done;
+
+    if (nla_put(msg, NL80211_ATTR_MAC, 6, info->bssid) < 0)
+        goto done;
+
+    r = nl_send_sync(sk, msg);
+    msg = NULL;
+    if (r < 0)
+        goto done;
 
     ok = true;
 done:
-    if (msg) {
+    if (msg)
         nlmsg_free(msg);
-    }
-    if (sk) {
+    if (sk)
         nl_socket_free(sk);
-    }
     return ok;
-#undef SEND
 }

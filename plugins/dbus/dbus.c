@@ -18,16 +18,14 @@
  */
 
 #include <lua.h>
+#include <glib.h>
+#include <gio/gio.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
 
-#include <glib.h>
-#include <gio/gio.h>
-
 #include "libls/vector.h"
-#include "libls/compdep.h"
 #include "libls/alloc_utils.h"
 #include "libls/time_utils.h"
 
@@ -47,9 +45,7 @@ typedef struct {
     GDBusSignalFlags flags;
 } Signal;
 
-static
-void
-signal_free(Signal s)
+static void signal_free(Signal s)
 {
     free(s.sender);
     free(s.interface);
@@ -71,9 +67,7 @@ typedef struct {
     bool greet;
 } Priv;
 
-static
-void
-destroy(LuastatusPluginData *pd)
+static void destroy(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
     for (int i = 0; i < 2; ++i) {
@@ -86,9 +80,7 @@ destroy(LuastatusPluginData *pd)
     free(p);
 }
 
-static
-int
-parse_bus_str(MoonVisit *mv, void *ud, const char *s, size_t ns)
+static int parse_bus_str(MoonVisit *mv, void *ud, const char *s, size_t ns)
 {
     (void) ns;
     int *out = ud;
@@ -104,9 +96,7 @@ parse_bus_str(MoonVisit *mv, void *ud, const char *s, size_t ns)
     return -1;
 }
 
-static
-int
-parse_flags_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
+static int parse_flags_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
 {
     mv->where = "'signals' element, 'flags' element";
     (void) kpos;
@@ -130,9 +120,7 @@ error:
     return -1;
 }
 
-static
-int
-parse_signals_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
+static int parse_signals_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
 {
     mv->where = "'signals' element";
     (void) kpos;
@@ -173,9 +161,7 @@ error:
     return -1;
 }
 
-static
-int
-init(LuastatusPluginData *pd, lua_State *L)
+static int init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
@@ -212,9 +198,7 @@ typedef struct {
     LuastatusPluginRunFuncs funcs;
 } PluginRunArgs;
 
-static
-void
-callback_signal(
+static void callback_signal(
     GDBusConnection *connection,
     const gchar *sender_name,
     const gchar *object_path,
@@ -244,9 +228,7 @@ callback_signal(
     args.funcs.call_end(args.pd->userdata);
 }
 
-static
-gboolean
-callback_timeout(gpointer user_data)
+static gboolean callback_timeout(gpointer user_data)
 {
     PluginRunArgs args = *(PluginRunArgs *) user_data;
     lua_State *L = args.funcs.call_begin(args.pd->userdata);
@@ -257,9 +239,11 @@ callback_timeout(gpointer user_data)
     return G_SOURCE_CONTINUE;
 }
 
-static
-GDBusConnection *
-maybe_connect_and_subscribe(GBusType bus_type, SignalVector v, gpointer userdata, GError **err)
+static GDBusConnection * maybe_connect_and_subscribe(
+        GBusType bus_type,
+        SignalVector v,
+        gpointer userdata,
+        GError **err)
 {
     if (!v.size)
         return NULL;
@@ -286,9 +270,7 @@ maybe_connect_and_subscribe(GBusType bus_type, SignalVector v, gpointer userdata
     return conn;
 }
 
-static
-void
-run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
+static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
 

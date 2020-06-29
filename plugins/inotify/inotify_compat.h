@@ -32,9 +32,7 @@
 
 #include "probes.generated.h"
 
-LS_INHEADER
-int
-compat_inotify_init(bool nonblock, bool cloexec)
+LS_INHEADER int compat_inotify_init(bool nonblock, bool cloexec)
 {
 #if HAVE_INOTIFY_INIT1
     return inotify_init1((nonblock ? IN_NONBLOCK : 0) |

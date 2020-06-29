@@ -32,22 +32,22 @@
 #include <limits.h>
 #include <unistd.h>
 
-int
-get_ethernet_speed(int sockfd, const char *iface)
+int get_ethernet_speed(int sockfd, const char *iface)
 {
     struct ethtool_cmd ecmd = {.cmd = ETHTOOL_GSET};
     struct ifreq ifr = {.ifr_data = (caddr_t) &ecmd};
-    if (strlen(iface) + 1 > sizeof(ifr.ifr_name)) {
+
+    size_t niface = strlen(iface);
+    if (niface + 1 > sizeof(ifr.ifr_name))
         goto fail;
-    }
-    memcpy(ifr.ifr_name, iface, strlen(iface) + 1);
-    if (ioctl(sockfd, SIOCETHTOOL, &ifr) < 0) {
+    memcpy(ifr.ifr_name, iface, niface + 1);
+
+    if (ioctl(sockfd, SIOCETHTOOL, &ifr) < 0)
         goto fail;
-    }
-    if (ecmd.speed == USHRT_MAX) {
+    if (ecmd.speed == USHRT_MAX)
         goto fail;
-    }
     return ecmd.speed;
+
 fail:
     return 0;
 }

@@ -42,7 +42,6 @@ typedef struct {
     double   frequency;
 } WirelessInfo;
 
-bool
-get_wireless_info(const char *iface, WirelessInfo *info);
+bool get_wireless_info(const char *iface, WirelessInfo *info);
 
 #endif

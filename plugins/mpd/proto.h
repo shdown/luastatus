@@ -31,9 +31,7 @@ typedef enum {
     RESP_OTHER,
 } ResponseType;
 
-LS_INHEADER
-ResponseType
-response_type(const char *s)
+LS_INHEADER ResponseType response_type(const char *s)
 {
     if (strcmp(s, "OK\n") == 0) {
         return RESP_OK;
@@ -44,9 +42,7 @@ response_type(const char *s)
     return RESP_OTHER;
 }
 
-LS_INHEADER
-void
-write_quoted(FILE *f, const char *s)
+LS_INHEADER void write_quoted(FILE *f, const char *s)
 {
     fputc('"', f);
     for (const char *t; (t = strchr(s, '"'));) {

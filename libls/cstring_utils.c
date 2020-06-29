@@ -25,11 +25,10 @@
 
 #include <string.h>
 
-const char *
-ls_strerror_r(int errnum, char *buf, size_t nbuf)
+const char *ls_strerror_r(int errnum, char *buf, size_t nbuf)
 {
     // We introduce an /int/ variable in order to get a compilation warning if /strerror_r()/ is
     // still GNU-specific and returns a pointer to char.
-    const int r = strerror_r(errnum, buf, nbuf);
+    int r = strerror_r(errnum, buf, nbuf);
     return r == 0 ? buf : "unknown error or truncated error message";
 }

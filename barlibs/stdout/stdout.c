@@ -52,27 +52,21 @@ typedef struct {
     FILE *out;
 } Priv;
 
-static
-void
-destroy(LuastatusBarlibData *bd)
+static void destroy(LuastatusBarlibData *bd)
 {
     Priv *p = bd->priv;
-    for (size_t i = 0; i < p->nwidgets; ++i) {
+    for (size_t i = 0; i < p->nwidgets; ++i)
         LS_VECTOR_FREE(p->bufs[i]);
-    }
     free(p->bufs);
     LS_VECTOR_FREE(p->tmpbuf);
     free(p->sep);
     free(p->error);
-    if (p->out) {
+    if (p->out)
         fclose(p->out);
-    }
     free(p);
 }
 
-static
-int
-init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
+static int init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
 {
     Priv *p = bd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
@@ -136,9 +130,7 @@ error:
     return LUASTATUS_ERR;
 }
 
-static
-bool
-redraw(LuastatusBarlibData *bd)
+static bool redraw(LuastatusBarlibData *bd)
 {
     Priv *p = bd->priv;
     FILE *out = p->out;
@@ -165,12 +157,10 @@ redraw(LuastatusBarlibData *bd)
     return true;
 }
 
-static
-void
-append_sanitized_b(LSString *buf, const char *s, size_t ns)
+static void append_sanitized_b(LSString *buf, const char *s, size_t ns)
 {
     for (const char *t; ns && (t = memchr(s, '\n', ns));) {
-        const size_t nseg = t - s;
+        size_t nseg = t - s;
         ls_string_append_b(buf, s, nseg);
         s += nseg + 1;
         ns -= nseg + 1;
@@ -178,9 +168,7 @@ append_sanitized_b(LSString *buf, const char *s, size_t ns)
     ls_string_append_b(buf, s, ns);
 }
 
-static
-int
-set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
+static int set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
 {
     Priv *p = bd->priv;
     LSString *buf = &p->tmpbuf;
@@ -239,9 +227,7 @@ invalid_data:
     return LUASTATUS_NONFATAL_ERR;
 }
 
-static
-int
-set_error(LuastatusBarlibData *bd, size_t widget_idx)
+static int set_error(LuastatusBarlibData *bd, size_t widget_idx)
 {
     Priv *p = bd->priv;
     ls_string_assign_s(&p->bufs[widget_idx], p->error);

@@ -23,7 +23,6 @@
 #include <lua.h>
 #include <glib.h>
 
-void
-marshal(lua_State *L, GVariant *var);
+void marshal(lua_State *L, GVariant *var);
 
 #endif

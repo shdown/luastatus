@@ -22,7 +22,6 @@
 
 #include <stdbool.h>
 
-bool
-is_wlan_iface(const char *iface);
+bool is_wlan_iface(const char *iface);
 
 #endif

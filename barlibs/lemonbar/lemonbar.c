@@ -55,29 +55,22 @@ typedef struct {
     FILE *out;
 } Priv;
 
-static
-void
-destroy(LuastatusBarlibData *bd)
+static void destroy(LuastatusBarlibData *bd)
 {
     Priv *p = bd->priv;
-    for (size_t i = 0; i < p->nwidgets; ++i) {
+    for (size_t i = 0; i < p->nwidgets; ++i)
         LS_VECTOR_FREE(p->bufs[i]);
-    }
     free(p->bufs);
     LS_VECTOR_FREE(p->tmpbuf);
     free(p->sep);
-    if (p->in) {
+    if (p->in)
         fclose(p->in);
-    }
-    if (p->out) {
+    if (p->out)
         fclose(p->out);
-    }
     free(p);
 }
 
-static
-int
-init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
+static int init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
 {
     Priv *p = bd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
@@ -155,9 +148,7 @@ error:
     return LUASTATUS_ERR;
 }
 
-static
-int
-l_escape(lua_State *L)
+static int l_escape(lua_State *L)
 {
     size_t ns;
     // WARNING: /luaL_check*()/ functions do a long jump on error!
@@ -167,9 +158,7 @@ l_escape(lua_State *L)
     return 1;
 }
 
-static
-void
-register_funcs(LuastatusBarlibData *bd, lua_State *L)
+static void register_funcs(LuastatusBarlibData *bd, lua_State *L)
 {
     (void) bd;
     // L: table
@@ -177,9 +166,7 @@ register_funcs(LuastatusBarlibData *bd, lua_State *L)
     lua_setfield(L, -2, "escape"); // L: table
 }
 
-static
-bool
-redraw(LuastatusBarlibData *bd)
+static bool redraw(LuastatusBarlibData *bd)
 {
     Priv *p = bd->priv;
     FILE *out = p->out;
@@ -206,9 +193,7 @@ redraw(LuastatusBarlibData *bd)
     return true;
 }
 
-static
-int
-set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
+static int set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
 {
     Priv *p = bd->priv;
     LSString *buf = &p->tmpbuf;
@@ -270,9 +255,7 @@ invalid_data:
     return LUASTATUS_NONFATAL_ERR;
 }
 
-static
-int
-set_error(LuastatusBarlibData *bd, size_t widget_idx)
+static int set_error(LuastatusBarlibData *bd, size_t widget_idx)
 {
     Priv *p = bd->priv;
     ls_string_assign_s(&p->bufs[widget_idx], "%{B#f00}%{F#fff}(Error)%{B-}%{F-}");
@@ -282,9 +265,7 @@ set_error(LuastatusBarlibData *bd, size_t widget_idx)
     return LUASTATUS_OK;
 }
 
-static
-int
-event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
+static int event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
 {
     Priv *p = bd->priv;
 
@@ -292,15 +273,15 @@ event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
     size_t nbuf = 256;
 
     for (ssize_t nread; (nread = getline(&buf, &nbuf, p->in)) >= 0;) {
-        if (nread == 0 || buf[nread - 1] != '\n') {
+        if (nread == 0 || buf[nread - 1] != '\n')
             continue;
-        }
+
         size_t ncommand;
         size_t widget_idx;
         const char *command = parse_command(buf, nread - 1, &ncommand, &widget_idx);
-        if (!command) {
+        if (!command)
             continue;
-        }
+
         lua_State *L = funcs.call_begin(bd->userdata, widget_idx);
         lua_pushlstring(L, command, ncommand);
         funcs.call_end(bd->userdata, widget_idx);

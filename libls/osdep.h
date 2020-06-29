@@ -27,13 +27,11 @@
 
 // The behaviour is same as calling /pipe(pipefd)/, except that both file descriptors are made
 // close-on-exec. If the latter fails, the pipe is destroyed, /-1/ is returned and /errno/ is set.
-int
-ls_cloexec_pipe(int pipefd[2]);
+int ls_cloexec_pipe(int pipefd[2]);
 
 // The behaviour is same as calling /socket(domain, type, protocol)/, except that the file
 // descriptor is make close-on-exec. If the latter fails, the pipe is destroyed, /-1/ is reurned and
 // /errno/ is set.
-int
-ls_cloexec_socket(int domain, int type, int protocol);
+int ls_cloexec_socket(int domain, int type, int protocol);
 
 #endif

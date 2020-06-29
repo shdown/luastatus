@@ -27,16 +27,15 @@
 
 #include "vector.h"
 
-bool
-ls_string_append_vf(LSString *s, const char *fmt, va_list vl)
+bool ls_string_append_vf(LSString *s, const char *fmt, va_list vl)
 {
     va_list vl2;
     va_copy(vl2, vl);
     bool ret = false;
     int saved_errno;
 
-    const size_t navail = s->capacity - s->size;
-    const int r = vsnprintf(s->data + s->size, navail, fmt, vl);
+    size_t navail = s->capacity - s->size;
+    int r = vsnprintf(s->data + s->size, navail, fmt, vl);
     if (r < 0) {
         goto cleanup;
     }

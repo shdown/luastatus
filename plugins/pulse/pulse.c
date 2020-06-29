@@ -19,7 +19,6 @@
 
 #include <lua.h>
 #include <stdlib.h>
-#include <time.h>
 #include <errno.h>
 #include <stdint.h>
 #include <unistd.h>
@@ -47,9 +46,7 @@ typedef struct {
     int pipefds[2];
 } Priv;
 
-static
-void
-destroy(LuastatusPluginData *pd)
+static void destroy(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
     free(p->sink_name);
@@ -58,9 +55,7 @@ destroy(LuastatusPluginData *pd)
     free(p);
 }
 
-static
-int
-init(LuastatusPluginData *pd, lua_State *L)
+static int init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
@@ -96,9 +91,7 @@ error:
     return LUASTATUS_ERR;
 }
 
-static
-void
-register_funcs(LuastatusPluginData *pd, lua_State *L)
+static void register_funcs(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv;
     // L: table
@@ -113,9 +106,12 @@ typedef struct {
     uint32_t sink_idx;
 } UserData;
 
-static
-void
-self_pipe_cb(pa_mainloop_api *api, pa_io_event *e, int fd, pa_io_event_flags_t events, void *vud)
+static void self_pipe_cb(
+        pa_mainloop_api *api,
+        pa_io_event *e,
+        int fd,
+        pa_io_event_flags_t events,
+        void *vud)
 {
     (void) api;
     (void) e;
@@ -131,9 +127,11 @@ self_pipe_cb(pa_mainloop_api *api, pa_io_event *e, int fd, pa_io_event_flags_t e
     ud->funcs.call_end(ud->pd->userdata);
 }
 
-static
-void
-store_volume_from_sink_cb(pa_context *c, const pa_sink_info *info, int eol, void *vud)
+static void store_volume_from_sink_cb(
+        pa_context *c,
+        const pa_sink_info *info,
+        int eol,
+        void *vud)
 {
     UserData *ud = vud;
     if (eol < 0) {
@@ -157,9 +155,11 @@ store_volume_from_sink_cb(pa_context *c, const pa_sink_info *info, int eol, void
     }
 }
 
-static
-void
-store_sink_cb(pa_context *c, const pa_sink_info *info, int eol, void *vud)
+static void store_sink_cb(
+        pa_context *c,
+        const pa_sink_info *info,
+        int eol,
+        void *vud)
 {
     UserData *ud = vud;
     if (info) {
@@ -171,9 +171,7 @@ store_sink_cb(pa_context *c, const pa_sink_info *info, int eol, void *vud)
     }
 }
 
-static
-void
-update_sink(pa_context *c, void *vud)
+static void update_sink(pa_context *c, void *vud)
 {
     UserData *ud = vud;
     Priv *p = ud->pd->priv;
@@ -186,9 +184,11 @@ update_sink(pa_context *c, void *vud)
     }
 }
 
-static
-void
-subscribe_cb(pa_context *c, pa_subscription_event_type_t t, uint32_t idx, void *vud)
+static void subscribe_cb(
+        pa_context *c,
+        pa_subscription_event_type_t t,
+        uint32_t idx,
+        void *vud)
 {
     UserData *ud = vud;
 
@@ -219,9 +219,7 @@ subscribe_cb(pa_context *c, pa_subscription_event_type_t t, uint32_t idx, void *
     }
 }
 
-static
-void
-context_state_cb(pa_context *c, void *vud)
+static void context_state_cb(pa_context *c, void *vud)
 {
     UserData *ud = vud;
     switch (pa_context_get_state(c)) {
@@ -255,9 +253,7 @@ context_state_cb(pa_context *c, void *vud)
     }
 }
 
-static
-bool
-iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
+static bool iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     bool ret = false;
     Priv *p = pd->priv;
@@ -321,11 +317,9 @@ error:
     return ret;
 }
 
-static
-void
-run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
+static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
-    while (1) {
+    for (;;) {
         if (!iteration(pd, funcs)) {
             ls_sleep(5.0);
         }

@@ -25,8 +25,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-bool
-is_wlan_iface(const char *iface)
+bool is_wlan_iface(const char *iface)
 {
     FILE *f = NULL;
     int fd = -1;

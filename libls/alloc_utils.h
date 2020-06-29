@@ -41,9 +41,7 @@
 //     /malloc(nelems * elemsz)/,
 // except when the multiplication overflows, or the allocation fails. In these cases, this function
 // panics.
-LS_INHEADER
-void *
-ls_xmalloc(size_t nelems, size_t elemsz)
+LS_INHEADER void *ls_xmalloc(size_t nelems, size_t elemsz)
 {
     if (elemsz && nelems > SIZE_MAX / elemsz) {
         goto oom;
@@ -61,9 +59,7 @@ oom:
 // The behaviour is same as calling
 //     /calloc(nelems, elemsz)/,
 // except when the allocation fails. In that case, this function panics.
-LS_INHEADER
-void *
-ls_xcalloc(size_t nelems, size_t elemsz)
+LS_INHEADER void *ls_xcalloc(size_t nelems, size_t elemsz)
 {
     void *r = calloc(nelems, elemsz);
     if (nelems && elemsz && !r) {
@@ -76,9 +72,7 @@ ls_xcalloc(size_t nelems, size_t elemsz)
 //     /realloc(p, nelems * elemsz)/,
 // except when the multiplication overflows, or the reallocation fails. In these cases, this
 // function panics.
-LS_INHEADER
-void *
-ls_xrealloc(void *p, size_t nelems, size_t elemsz)
+LS_INHEADER void *ls_xrealloc(void *p, size_t nelems, size_t elemsz)
 {
     if (elemsz && nelems > SIZE_MAX / elemsz) {
         goto oom;
@@ -98,9 +92,7 @@ oom:
 // where F(n) = max(1, 2 * n),
 // except when a multiplication overflows, or the reallocation fails. In these cases, this function
 // panics.
-LS_INHEADER
-void *
-ls_x2realloc(void *p, size_t *pnelems, size_t elemsz)
+LS_INHEADER void *ls_x2realloc(void *p, size_t *pnelems, size_t elemsz)
 {
     size_t new_nelems;
     if (*pnelems) {
@@ -124,9 +116,7 @@ oom:
 }
 
 // Duplicates (as if with /malloc/) /n/ bytes of memory at address /p/. Panics on failure.
-LS_INHEADER
-void *
-ls_xmemdup(const void *p, size_t n)
+LS_INHEADER void *ls_xmemdup(const void *p, size_t n)
 {
     void *r = malloc(n);
     if (n) {
@@ -141,9 +131,7 @@ ls_xmemdup(const void *p, size_t n)
 // The behaviour is same as calling
 //     /strdup(s)/,
 // except when the allocation fails. In that case, this function panics.
-LS_INHEADER
-char *
-ls_xstrdup(const char *s)
+LS_INHEADER char *ls_xstrdup(const char *s)
 {
     return ls_xmemdup(s, strlen(s) + 1);
 }

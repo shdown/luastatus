@@ -31,15 +31,13 @@
 #include "osdep.h"
 #include "io_utils.h"
 
-void
-ls_pushed_timeout_init(LSPushedTimeout *p)
+void ls_pushed_timeout_init(LSPushedTimeout *p)
 {
     p->value = -1;
     LS_PTH_CHECK(pthread_spin_init(&p->lock, PTHREAD_PROCESS_PRIVATE));
 }
 
-double
-ls_pushed_timeout_fetch(LSPushedTimeout *p, double alt)
+double ls_pushed_timeout_fetch(LSPushedTimeout *p, double alt)
 {
     double r;
     pthread_spin_lock(&p->lock);
@@ -53,9 +51,7 @@ ls_pushed_timeout_fetch(LSPushedTimeout *p, double alt)
     return r;
 }
 
-static
-int
-l_push_timeout(lua_State *L)
+static int l_push_timeout(lua_State *L)
 {
     double arg = luaL_checknumber(L, 1);
     if (arg < 0)
@@ -70,21 +66,18 @@ l_push_timeout(lua_State *L)
     return 0;
 }
 
-void
-ls_pushed_timeout_push_luafunc(LSPushedTimeout *p, lua_State *L)
+void ls_pushed_timeout_push_luafunc(LSPushedTimeout *p, lua_State *L)
 {
     lua_pushlightuserdata(L, p);
     lua_pushcclosure(L, l_push_timeout, 1);
 }
 
-void
-ls_pushed_timeout_destroy(LSPushedTimeout *p)
+void ls_pushed_timeout_destroy(LSPushedTimeout *p)
 {
     pthread_spin_destroy(&p->lock);
 }
 
-int
-ls_self_pipe_open(int *fds)
+int ls_self_pipe_open(int *fds)
 {
     if (ls_cloexec_pipe(fds) < 0) {
         fds[0] = -1;
@@ -96,9 +89,7 @@ ls_self_pipe_open(int *fds)
     return 0;
 }
 
-static
-int
-l_self_pipe_write(lua_State *L)
+static int l_self_pipe_write(lua_State *L)
 {
     int *fds = lua_touserdata(L, lua_upvalueindex(1));
 
@@ -112,15 +103,13 @@ l_self_pipe_write(lua_State *L)
     return 0;
 }
 
-void
-ls_self_pipe_push_luafunc(int *fds, lua_State *L)
+void ls_self_pipe_push_luafunc(int *fds, lua_State *L)
 {
     lua_pushlightuserdata(L, fds);
     lua_pushcclosure(L, l_self_pipe_write, 1);
 }
 
-int
-ls_poll(struct pollfd *fds, nfds_t nfds, double tmo)
+int ls_poll(struct pollfd *fds, nfds_t nfds, double tmo)
 {
     int tmo_ms = ls_tmo_to_ms(tmo);
 
@@ -137,15 +126,13 @@ ls_poll(struct pollfd *fds, nfds_t nfds, double tmo)
     return r;
 }
 
-int
-ls_wait_input_on_fd(int fd, double tmo)
+int ls_wait_input_on_fd(int fd, double tmo)
 {
     struct pollfd x = {.fd = fd, .events = POLLIN};
     return ls_poll(&x, 1, tmo);
 }
 
-int
-ls_fifo_open(int *fd, const char *fifo)
+int ls_fifo_open(int *fd, const char *fifo)
 {
     int saved_errno;
 
@@ -178,8 +165,7 @@ error:
     return -1;
 }
 
-int
-ls_fifo_wait(int *fd, double tmo)
+int ls_fifo_wait(int *fd, double tmo)
 {
     int r = ls_wait_input_on_fd(*fd, tmo);
     if (r > 0) {

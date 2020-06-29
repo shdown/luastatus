@@ -17,15 +17,14 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <errno.h>
 #include <lua.h>
+#include <alsa/asoundlib.h>
+#include <errno.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <time.h>
 #include <poll.h>
-#include <alsa/asoundlib.h>
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
@@ -46,9 +45,7 @@ typedef struct {
     int pipefds[2];
 } Priv;
 
-static
-void
-destroy(LuastatusPluginData *pd)
+static void destroy(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
     free(p->card);
@@ -58,9 +55,7 @@ destroy(LuastatusPluginData *pd)
     free(p);
 }
 
-static
-int
-init(LuastatusPluginData *pd, lua_State *L)
+static int init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
@@ -118,9 +113,7 @@ error:
     return LUASTATUS_ERR;
 }
 
-static
-void
-register_funcs(LuastatusPluginData *pd, lua_State *L)
+static void register_funcs(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv;
     // L: table
@@ -128,9 +121,10 @@ register_funcs(LuastatusPluginData *pd, lua_State *L)
     lua_setfield(L, -2, "wake_up"); // L: table
 }
 
-static
-bool
-card_has_nicename(const char *realname, snd_ctl_card_info_t *info, const char *nicename)
+static bool card_has_nicename(
+        const char *realname,
+        snd_ctl_card_info_t *info,
+        const char *nicename)
 {
     snd_ctl_t *ctl;
     if (snd_ctl_open(&ctl, realname, 0) < 0)
@@ -146,9 +140,7 @@ card_has_nicename(const char *realname, snd_ctl_card_info_t *info, const char *n
     return r;
 }
 
-static
-char *
-xalloc_card_realname(const char *nicename)
+static char * xalloc_card_realname(const char *nicename)
 {
     snd_ctl_card_info_t *info;
     if (snd_ctl_card_info_malloc(&info) < 0)
@@ -178,9 +170,7 @@ typedef struct {
     int (*get_switch)(snd_mixer_elem_t *, snd_mixer_selem_channel_id_t, int *);
 } GetVolFuncs;
 
-static
-GetVolFuncs
-select_gv_funcs(bool capture, bool in_db)
+static GetVolFuncs select_gv_funcs(bool capture, bool in_db)
 {
     return (GetVolFuncs) {
         .get_range =
@@ -199,9 +189,7 @@ select_gv_funcs(bool capture, bool in_db)
     };
 }
 
-static
-void
-push_vol_info(lua_State *L, snd_mixer_elem_t *elem, GetVolFuncs gv_funcs)
+static void push_vol_info(lua_State *L, snd_mixer_elem_t *elem, GetVolFuncs gv_funcs)
 {
     lua_createtable(L, 0, 2); // L: table
 
@@ -234,9 +222,7 @@ typedef struct {
     size_t nprefix;
 } PollFdSet;
 
-static inline
-PollFdSet
-pollfd_set_new(const struct pollfd prefix)
+static inline PollFdSet pollfd_set_new(struct pollfd prefix)
 {
     if (prefix.fd >= 0) {
         return (PollFdSet) {
@@ -253,9 +239,7 @@ pollfd_set_new(const struct pollfd prefix)
     }
 }
 
-static inline
-void
-pollfd_set_resize(PollFdSet *s, size_t n)
+static inline void pollfd_set_resize(PollFdSet *s, size_t n)
 {
     if (s->size != n) {
         s->data = ls_xrealloc(s->data, n, sizeof(struct pollfd));
@@ -263,16 +247,12 @@ pollfd_set_resize(PollFdSet *s, size_t n)
     }
 }
 
-static inline
-void
-pollfd_set_free(PollFdSet s)
+static inline void pollfd_set_free(PollFdSet s)
 {
     free(s.data);
 }
 
-static
-bool
-iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
+static bool iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
     bool ret = false;
@@ -394,11 +374,9 @@ error:
     return ret;
 }
 
-static
-void
-run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
+static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
-    while (1) {
+    for (;;) {
         if (!iteration(pd, funcs)) {
             ls_sleep(5.0);
         }

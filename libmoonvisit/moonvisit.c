@@ -23,6 +23,8 @@
 #include <lauxlib.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <stdint.h>
+#include <limits.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -97,12 +99,16 @@ int moon_visit_str_f(
     void *ud,
     bool skip_nil)
 {
+    int top = lua_gettop(mv->L);
     int r;
+
     lua_getfield(mv->L, table_pos, key);
+
     if (skip_nil && lua_isnil(mv->L, -1)) {
         r = 0;
         goto done;
     }
+
     if (moon_visit_checktype_at(mv, key, -1, LUA_TSTRING) < 0) {
         r = -1;
         goto done;
@@ -116,7 +122,7 @@ int moon_visit_str_f(
     mv->where = old_where;
 
 done:
-    lua_pop(mv->L, 1);
+    lua_settop(mv->L, top);
     return r;
 }
 
@@ -219,7 +225,9 @@ int moon_visit_table_f(
     bool skip_nil)
 {
     int r;
+
     lua_getfield(mv->L, table_pos, key);
+
     if (skip_nil && lua_isnil(mv->L, -1)) {
         r = 0;
         goto done;
@@ -239,6 +247,7 @@ int moon_visit_table_f_at(
     int (*f)(MoonVisit *mv, void *ud, int kpos, int vpos),
     void *ud)
 {
+    int top = lua_gettop(mv->L);
     int r;
 
     if (moon_visit_checktype_at(mv, what, pos, LUA_TTABLE) < 0) {
@@ -254,11 +263,49 @@ int moon_visit_table_f_at(
         r = f(mv, ud, -2, -1);
         mv->where = old_where;
         if (r < 0) {
-            lua_pop(mv->L, 2);
+            lua_settop(mv->L, top);
             break;
         }
         lua_pop(mv->L, 1);
     }
 done:
+    return r;
+}
+
+int moon_visit_sint(
+    MoonVisit *mv,
+    int table_pos,
+    const char *key,
+    int64_t *p,
+    bool skip_nil)
+{
+    double d;
+    int r = moon_visit_num(mv, table_pos, key, &d, skip_nil);
+    if (r > 0) {
+        if (!(d >= -9223372036854775808.0 && d < 9223372036854775808.0)) {
+            moon_visit_err(mv, "%s: value out of range INT64_MIN...INT64_MAX", key);
+            return -1;
+        }
+        *p = d;
+    }
+    return r;
+}
+
+int moon_visit_uint(
+    MoonVisit *mv,
+    int table_pos,
+    const char *key,
+    uint64_t *p,
+    bool skip_nil)
+{
+    double d;
+    int r = moon_visit_num(mv, table_pos, key, &d, skip_nil);
+    if (r > 0) {
+        if (!(d >= 0.0 && d < 18446744073709551616.0)) {
+            moon_visit_err(mv, "%s: value out of range 0...UINT64_MAX", key);
+            return -1;
+        }
+        *p = d;
+    }
     return r;
 }
