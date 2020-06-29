@@ -19,7 +19,7 @@
 
 #include <lua.h>
 #include <stdlib.h>
-#include <limits.h>
+#include <stdint.h>
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
@@ -30,7 +30,7 @@
 #include "libls/algo.h"
 
 typedef struct {
-    int64_t ncalls;
+    uint64_t ncalls;
 } Priv;
 
 static void destroy(LuastatusPluginData *pd)
@@ -50,7 +50,7 @@ static int init(LuastatusPluginData *pd, lua_State *L)
     MoonVisit mv = {.L = L, .errbuf = errbuf, .nerrbuf = sizeof(errbuf)};
 
     // Parse make_calls
-    if (moon_visit_sint(&mv, -1, "make_calls", &p->ncalls, true) < 0)
+    if (moon_visit_uint(&mv, -1, "make_calls", &p->ncalls, true) < 0)
         goto mverror;
 
     return LUASTATUS_OK;
@@ -65,7 +65,7 @@ mverror:
 static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
-    for (int64_t i = 0; i < p->ncalls; ++i) {
+    for (uint64_t i = 0; i < p->ncalls; ++i) {
         lua_State *L = funcs.call_begin(pd->userdata);
         lua_pushnil(L);
         funcs.call_end(pd->userdata);
