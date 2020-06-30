@@ -201,20 +201,20 @@ error:
 
 static int l_add_watch(lua_State *L)
 {
-    if (lua_gettop(L) != 2)
-        return luaL_error(L, "expected exactly 2 arguments");
-
     char errbuf[256];
     MoonVisit mv = {.L = L, .errbuf = errbuf, .nerrbuf = sizeof(errbuf)};
 
+    // Coerce to exactly 2 arguments
+    lua_settop(L, 2);
+
     // Parse first arg
-    if (moon_visit_checktype_at(&mv, "first arg", 1, LUA_TSTRING) < 0)
+    if (moon_visit_checktype_at(&mv, "argument #1", 1, LUA_TSTRING) < 0)
         goto mverror;
     const char *path = lua_tostring(L, 1);
 
     // Parse second arg
     uint32_t mask = 0;
-    if (moon_visit_table_f_at(&mv, "second arg", 2, parse_evlist_elem, &mask) < 0)
+    if (moon_visit_table_f_at(&mv, "argument #2", 2, parse_evlist_elem, &mask) < 0)
         goto mverror;
 
     // Add watch
