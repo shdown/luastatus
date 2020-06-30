@@ -34,7 +34,6 @@
 
 #include "libls/alloc_utils.h"
 #include "libls/strarr.h"
-#include "libls/algo.h"
 
 #include "rules_names.h"
 

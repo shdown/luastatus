@@ -27,7 +27,6 @@
 #include <string.h>
 #include <stdbool.h>
 #include <unistd.h>
-#include <sys/select.h>
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
@@ -38,7 +37,6 @@
 #include "libls/alloc_utils.h"
 #include "libls/vector.h"
 #include "libls/cstring_utils.h"
-#include "libls/algo.h"
 #include "libls/time_utils.h"
 #include "libls/evloop_utils.h"
 #include "libls/strarr.h"

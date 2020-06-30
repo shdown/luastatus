@@ -27,7 +27,6 @@
 #include <stdint.h>
 #include <errno.h>
 #include <sys/inotify.h>
-#include <sys/select.h>
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
