@@ -103,7 +103,7 @@ static int init(LuastatusPluginData *pd, lua_State *L)
     if (moon_visit_uint(&mv, -1, "port", &p->port, true) < 0)
         goto mverror;
     if (p->port > 65535) {
-        LS_FATALF(pd, "port (%g) is not a valid port number", p->port);
+        LS_FATALF(pd, "port is not a valid port number");
         goto error;
     }
 
