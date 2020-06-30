@@ -19,6 +19,7 @@
 
 #include "evloop_utils.h"
 
+#include <stdatomic.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
@@ -27,28 +28,18 @@
 #include <sys/stat.h>
 
 #include "time_utils.h"
-#include "panic.h"
 #include "osdep.h"
 #include "io_utils.h"
 
 void ls_pushed_timeout_init(LSPushedTimeout *p)
 {
-    p->value = -1;
-    LS_PTH_CHECK(pthread_spin_init(&p->lock, PTHREAD_PROCESS_PRIVATE));
+    p->value = -1.0;
 }
 
 double ls_pushed_timeout_fetch(LSPushedTimeout *p, double alt)
 {
-    double r;
-    pthread_spin_lock(&p->lock);
-    if (p->value < 0) {
-        r = alt;
-    } else {
-        r = p->value;
-        p->value = -1;
-    }
-    pthread_spin_unlock(&p->lock);
-    return r;
+    double old = atomic_exchange(&p->value, -1.0);
+    return old >= 0 ? old : alt;
 }
 
 static int l_push_timeout(lua_State *L)
@@ -59,9 +50,7 @@ static int l_push_timeout(lua_State *L)
 
     LSPushedTimeout *p = lua_touserdata(L, lua_upvalueindex(1));
 
-    pthread_spin_lock(&p->lock);
-    p->value = arg;
-    pthread_spin_unlock(&p->lock);
+    atomic_store(&p->value, arg);
 
     return 0;
 }
@@ -74,7 +63,7 @@ void ls_pushed_timeout_push_luafunc(LSPushedTimeout *p, lua_State *L)
 
 void ls_pushed_timeout_destroy(LSPushedTimeout *p)
 {
-    pthread_spin_destroy(&p->lock);
+    (void) p;
 }
 
 int ls_self_pipe_open(int *fds)

@@ -33,23 +33,22 @@
 // Some plugins provide a "push_timeout"/"push_period" function that allows a widget to specify the
 // next timeout for an otherwise constant timeout-based plugin's event loop.
 //
-// The pushed timeout value has to be guarded with a lock as the "push_timeout"/"push_period"
+// The pushed timeout value has to be altered atomically as the "push_timeout"/"push_period"
 // function may be called from the /event/ function of a widget (that is, asynchronously from the
 // plugin's viewpoint).
 //
 // /LSPushedTimeout/ is a structure containing the pushed timeout value (or an absence of such, as
-// indicated by the value being negative), and a lock.
+// indicated by the value being negative).
 //
 // <!!!>
 // This structure must reside at a constant address throughout its whole life; this is required for
 // the Lua closure created with /ls_pushed_timeout_push_luafunc()/.
 // </!!!>
 typedef struct {
-    double value;
-    pthread_spinlock_t lock;
+    _Atomic double value;
 } LSPushedTimeout;
 
-// Initializes /p/ with an absence of pushed timeout value and a newly-created lock.
+// Initializes /p/ with an absence of pushed timeout value.
 void ls_pushed_timeout_init(LSPushedTimeout *p);
 
 // Does the following actions atomically:
