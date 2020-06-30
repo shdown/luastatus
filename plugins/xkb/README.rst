@@ -42,6 +42,14 @@ A table with the following entries:
 
     Group ID (0, 1, 2, or 3).
 
+* ``requery``: boolean
+
+    True if either this is the first call, or this call is due to a change in keyboard geometry, the
+    *list* of layouts, or similar event that requires re-query of the list of group names.
+    Otherwise, ``requery`` is nil. This is useful for widgets that fetch the list of group names via
+    some external mechanism (e.g. by parsing the output of a command): they need to re-query the
+    list if ``requery`` is true.
+
 * ``led_state``: number
 
     Bit mask representing the current state of LED indicators.

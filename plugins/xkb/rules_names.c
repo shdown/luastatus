@@ -22,13 +22,13 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <X11/X.h>
 #include <X11/Xatom.h>
 
 #include "libls/alloc_utils.h"
 
 static const char *NAMES_PROP_ATOM = "_XKB_RULES_NAMES";
-static const long NAMES_PROP_MAXLEN = 1024;
 
 static char *dup_and_advance(const char **pcur, const char *end)
 {
@@ -50,33 +50,42 @@ bool rules_names_load(Display *dpy, RulesNames *out)
     if (rules_atom == None)
         goto done;
 
-    Atom actual_type;
-    int fmt;
-    unsigned long ndata, bytes_after;
-    if (XGetWindowProperty(
-                dpy,
-                DefaultRootWindow(dpy),
-                rules_atom,
-                0L,
-                NAMES_PROP_MAXLEN,
-                False,
-                XA_STRING,
-                &actual_type,
-                &fmt,
-                &ndata,
-                &bytes_after,
-                &data)
-            != Success)
-    {
-        data = NULL;
-        goto done;
+    unsigned long ndata;
+    long maxlen = 1024;
+    for (;;) {
+        Atom actual_type;
+        int fmt;
+        unsigned long bytes_after;
+        if (XGetWindowProperty(
+                    dpy,
+                    DefaultRootWindow(dpy),
+                    rules_atom,
+                    0L,
+                    maxlen,
+                    False,
+                    XA_STRING,
+                    &actual_type,
+                    &fmt,
+                    &ndata,
+                    &bytes_after,
+                    &data)
+                != Success)
+        {
+            data = NULL;
+            goto done;
+        }
+        if (actual_type != XA_STRING)
+            goto done;
+        if (fmt != 8)
+            goto done;
+
+        if (!bytes_after)
+            break;
+
+        if (maxlen > LONG_MAX / 2)
+            goto done;
+        maxlen *= 2;
     }
-    if (bytes_after)
-        goto done;
-    if (actual_type != XA_STRING)
-        goto done;
-    if (fmt != 8)
-        goto done;
 
     const char *cur = (const char *) data;
     const char *end = cur + ndata;

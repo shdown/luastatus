@@ -21,7 +21,7 @@
 #include <X11/Xlib.h>
 #include <X11/extensions/XKB.h>
 #include <X11/XKBlib.h>
-#include <limits.h>
+#include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -147,11 +147,11 @@ static Display *open_dpy(
 
 static bool query_groups(Display *dpy, LSStringArray *groups)
 {
+    ls_strarr_clear(groups);
+
     RulesNames rn;
     if (!rules_names_load(dpy, &rn))
         return false;
-
-    ls_strarr_clear(groups);
 
     if (rn.layout) {
         // split /rn.layout/ by non-parenthesized commas
@@ -259,8 +259,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         if (requery_everything) {
             // re-query group names
             if (!query_groups(dpy, &groups)) {
-                LS_FATALF(pd, "query_groups() failed");
-                goto error;
+                LS_WARNF(pd, "query_groups() failed");
             }
 
             // explicitly query current group
@@ -276,8 +275,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
                 LS_WARNF(pd, "group ID (%zu) is too large, requerying", group);
 
                 if (!query_groups(dpy, &groups)) {
-                    LS_FATALF(pd, "query_groups() failed");
-                    goto error;
+                    LS_WARNF(pd, "query_groups() failed");
                 }
 
                 if (group >= ls_strarr_size(groups)) {
@@ -302,19 +300,21 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         if (group < ls_strarr_size(groups)) {
             size_t nbuf;
             const char *buf = ls_strarr_at(groups, group, &nbuf);
-            lua_pushlstring(L, buf, nbuf); // L: table group
+            lua_pushlstring(L, buf, nbuf); // L: table name
             lua_setfield(L, -2, "name"); // L: table
         }
         if (p->led) {
             lua_pushinteger(L, led_state); // L: table n
             lua_setfield(L, -2, "led_state"); // L: table
         }
+        if (requery_everything) {
+            lua_pushboolean(L, true); // L: table true
+            lua_setfield(L, -2, "requery"); // L: table
+        }
         funcs.call_end(pd->userdata);
 
         // wait for next event
         XEvent event = {0};
-        // Apparently, the meaning of the return value of 'XNextEvent()' is classified information.
-        // Whatever, guys - you don't want me to check the return value, I don't do it.
         XNextEvent(dpy, &event);
 
         //
