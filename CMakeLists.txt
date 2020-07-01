@@ -85,7 +85,9 @@ function (luastatus_add_man_page src basename section)
         MAIN_DEPENDENCY "${src}"
         VERBATIM)
     add_custom_target ("man${section}-${basename}" ALL DEPENDS "${dest}")
-    install (FILES "${dest}" DESTINATION "${CMAKE_INSTALL_MANDIR}/man${section}")
+    install (
+        FILES "${CMAKE_CURRENT_BINARY_DIR}/${dest}"
+        DESTINATION "${CMAKE_INSTALL_MANDIR}/man${section}")
 endfunction ()
 
 #------------------------------------------------------------------------------
