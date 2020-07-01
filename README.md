@@ -1,5 +1,4 @@
 [![Build Status](https://travis-ci.org/shdown/luastatus.svg?branch=master)](https://travis-ci.org/shdown/luastatus)
-
 [![Gitter](https://badges.gitter.im/luastatus/community.svg)](https://gitter.im/luastatus/community)
 
 **luastatus** is a universal status bar content generator. It allows you to configure the way the
@@ -184,3 +183,8 @@ Acknowledgements
 ===
 * I would like to thank [wm4](https://github.com/wm4) for developing [mpv](https://mpv.io), which,
   also being a “platform” for running Lua scripts, served as an inspiration for this project.
+
+Donate
+===
+
+You can [donate to our collective on Open Collective](https://opencollective.com/luastatus/donate).
