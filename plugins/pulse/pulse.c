@@ -34,7 +34,7 @@
 
 #include "libls/alloc_utils.h"
 #include "libls/cstring_utils.h"
-#include "libls/evloop_utils.h"
+#include "libls/evloop_lfuncs.h"
 #include "libls/time_utils.h"
 
 // Note: some parts of this file are stolen from i3status' src/pulse.c.
