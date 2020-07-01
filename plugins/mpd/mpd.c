@@ -38,7 +38,7 @@
 #include "libls/vector.h"
 #include "libls/cstring_utils.h"
 #include "libls/time_utils.h"
-#include "libls/evloop_utils.h"
+#include "libls/poll_utils.h"
 #include "libls/strarr.h"
 
 #include "connect.h"

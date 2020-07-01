@@ -17,97 +17,15 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "evloop_utils.h"
+#include "poll_utils.h"
 
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
-#include <lauxlib.h>
 #include <signal.h>
 #include <sys/stat.h>
 
 #include "time_utils.h"
-#include "panic.h"
-#include "osdep.h"
-#include "io_utils.h"
-
-void ls_pushed_timeout_init(LSPushedTimeout *p)
-{
-    p->value = -1;
-    LS_PTH_CHECK(pthread_spin_init(&p->lock, PTHREAD_PROCESS_PRIVATE));
-}
-
-double ls_pushed_timeout_fetch(LSPushedTimeout *p, double alt)
-{
-    double r;
-    pthread_spin_lock(&p->lock);
-    if (p->value < 0) {
-        r = alt;
-    } else {
-        r = p->value;
-        p->value = -1;
-    }
-    pthread_spin_unlock(&p->lock);
-    return r;
-}
-
-static int l_push_timeout(lua_State *L)
-{
-    double arg = luaL_checknumber(L, 1);
-    if (arg < 0)
-        return luaL_error(L, "invalid timeout");
-
-    LSPushedTimeout *p = lua_touserdata(L, lua_upvalueindex(1));
-
-    pthread_spin_lock(&p->lock);
-    p->value = arg;
-    pthread_spin_unlock(&p->lock);
-
-    return 0;
-}
-
-void ls_pushed_timeout_push_luafunc(LSPushedTimeout *p, lua_State *L)
-{
-    lua_pushlightuserdata(L, p);
-    lua_pushcclosure(L, l_push_timeout, 1);
-}
-
-void ls_pushed_timeout_destroy(LSPushedTimeout *p)
-{
-    pthread_spin_destroy(&p->lock);
-}
-
-int ls_self_pipe_open(int *fds)
-{
-    if (ls_cloexec_pipe(fds) < 0) {
-        fds[0] = -1;
-        fds[1] = -1;
-        return -1;
-    }
-    ls_make_nonblock(fds[0]);
-    ls_make_nonblock(fds[1]);
-    return 0;
-}
-
-static int l_self_pipe_write(lua_State *L)
-{
-    int *fds = lua_touserdata(L, lua_upvalueindex(1));
-
-    int fd = fds[1];
-    if (fd < 0)
-        return luaL_error(L, "self-pipe has not been opened");
-
-    ssize_t unused = write(fd, "", 1); // write '\0'
-    (void) unused;
-
-    return 0;
-}
-
-void ls_self_pipe_push_luafunc(int *fds, lua_State *L)
-{
-    lua_pushlightuserdata(L, fds);
-    lua_pushcclosure(L, l_self_pipe_write, 1);
-}
 
 int ls_poll(struct pollfd *fds, nfds_t nfds, double tmo)
 {

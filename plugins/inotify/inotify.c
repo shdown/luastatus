@@ -36,7 +36,8 @@
 #include "libls/alloc_utils.h"
 #include "libls/cstring_utils.h"
 #include "libls/vector.h"
-#include "libls/evloop_utils.h"
+#include "libls/poll_utils.h"
+#include "libls/evloop_lfuncs.h"
 
 #include "inotify_compat.h"
 

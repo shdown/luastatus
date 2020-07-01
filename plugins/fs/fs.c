@@ -35,7 +35,7 @@
 #include "libls/strarr.h"
 #include "libls/time_utils.h"
 #include "libls/cstring_utils.h"
-#include "libls/evloop_utils.h"
+#include "libls/poll_utils.h"
 
 typedef struct {
     LSStringArray paths;

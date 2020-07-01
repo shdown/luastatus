@@ -35,7 +35,7 @@
 
 #include "libls/alloc_utils.h"
 #include "libls/cstring_utils.h"
-#include "libls/evloop_utils.h"
+#include "libls/poll_utils.h"
 
 // some parts of this file (including the name) are proudly stolen from
 // xtitle (https://github.com/baskerville/xtitle).
