@@ -1,5 +1,7 @@
 [![Build Status](https://travis-ci.org/shdown/luastatus.svg?branch=master)](https://travis-ci.org/shdown/luastatus)
 
+[![Gitter](https://badges.gitter.im/luastatus/community.svg)](https://gitter.im/luastatus/community)
+
 **luastatus** is a universal status bar content generator. It allows you to configure the way the
 data from event sources is processed and shown, with Lua.
 
@@ -172,7 +174,7 @@ Supported Lua versions
 
 Reporting bugs, requesting features, suggesting patches
 ===
-Feel free to open an issue or a pull request.
+Feel free to open an issue or a pull request. You can also chat on [our Gitter chat room](https://gitter.im/luastatus/community).
 
 Migrating from older versions
 ===
