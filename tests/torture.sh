@@ -2,17 +2,23 @@
 
 set -e
 
+opwd=$PWD
 cd -- "$(dirname "$(readlink "$0" || echo "$0")")"
 
-LUASTATUS=(../luastatus/luastatus ${DEBUG:+-l trace})
+source ./utils.lib.bash
 
-VALGRIND=(valgrind --error-exitcode=42)
+if (( $# != 1 )); then
+    echo >&2 "USAGE: $0 <build root>"
+    exit 2
+fi
+build_dir=$(resolve_relative "$1" "$opwd")
 
-(
-    cd ..
-    cmake -DCMAKE_BUILD_TYPE=Debug .
-    make -C luastatus
-    make -C tests
+LUASTATUS=(
+    "$build_dir"/luastatus/luastatus ${DEBUG:+-l trace}
+)
+
+VALGRIND=(
+    valgrind --error-exitcode=42
 )
 
 run1() {

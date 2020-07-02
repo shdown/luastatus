@@ -2,17 +2,22 @@
 
 set -e
 
+opwd=$PWD
 cd -- "$(dirname "$(readlink "$0" || echo "$0")")"
 
-(
-    cd ..
-    cmake -DCMAKE_BUILD_TYPE=Debug .
-    make -C luastatus
-    make -C tests
-)
+source ./utils.lib.bash
 
-LUASTATUS=(valgrind --error-exitcode=42 ../luastatus/luastatus ${DEBUG:+-l trace})
+if (( $# != 1 )); then
+    echo >&2 "USAGE: $0 <build root>"
+    exit 2
+fi
+build_dir=$(resolve_relative "$1" "$opwd")
+
 HANG_TIMEOUT=${TIMEOUT:-7}
+LUASTATUS=(
+    valgrind --error-exitcode=42
+    "$build_dir"/luastatus/luastatus ${DEBUG:+-l trace}
+)
 
 fail()
 {
@@ -22,11 +27,11 @@ fail()
 
 assert_exits_with_code()
 {
-    local code=$1 rc=0
+    local c=$1 got_c=0
     shift
-    "${LUASTATUS[@]}" "$@" || rc=$?
-    if (( rc != code )); then
-        fail "Command: $*" "Expected exit code $code, found $rc"
+    "${LUASTATUS[@]}" "$@" || got_c=$?
+    if (( c != got_c )); then
+        fail "Command: $*" "Expected exit code $c, found $got_c"
     fi
 }
 
