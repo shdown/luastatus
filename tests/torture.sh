@@ -27,10 +27,10 @@ run1() {
         local event_beg='[['         event_end=']]'
     fi
     shift 3
-    "${VALGRIND[@]}" "$@" "${LUASTATUS[@]}" -e -b ./barlib-mock.so -B gen_events="$m" <(cat <<__EOF__
+    "${VALGRIND[@]}" "$@" "${LUASTATUS[@]}" -e -b "$build_dir"/tests/barlib-mock.so -B gen_events="$m" <(cat <<__EOF__
 n = 0
 widget = {
-    plugin = './plugin-mock.so',
+    plugin = '$build_dir/tests/plugin-mock.so',
     opts = {
         make_calls = $n,
     },

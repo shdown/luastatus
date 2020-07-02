@@ -96,19 +96,20 @@ assert_fails -b '§n”™°£'
 assert_fails -b '/'
 assert_fails -b 'nosuchbarlibforsure'
 
-B='-b ./barlib-mock.so'
+B=( -b "$build_dir"/tests/barlib-mock.so )
+P="$build_dir"/tests/plugin-mock.so
 
-assert_succeeds $B -eeeeeeee -e
+assert_succeeds "${B[@]}" -eeeeeeee -e
 
-assert_works $B
-assert_works $B .
-assert_works $B . . . . .
-assert_works $B /dev/null
-assert_works $B /dev/null /dev/null /dev/null
+assert_works "${B[@]}"
+assert_works "${B[@]}" .
+assert_works "${B[@]}" . . . . .
+assert_works "${B[@]}" /dev/null
+assert_works "${B[@]}" /dev/null /dev/null /dev/null
 
-assert_works_1W $B 'luastatus = nil'
+assert_works_1W "${B[@]}" 'luastatus = nil'
 
-assert_works_1W $B '
+assert_works_1W "${B[@]}" '
 widget = setmetatable(
     {
         plugin = setmetatable({}, {
@@ -121,6 +122,6 @@ widget = setmetatable(
     }
 )'
 
-assert_works_1W $B 'widget = {plugin = "./plugin-mock.so", cb = function() end}'
+assert_works_1W "${B[@]}" "widget = {plugin = '$P', cb = function() end}"
 
 echo >&2 "=== PASSED ==="
