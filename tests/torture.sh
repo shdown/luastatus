@@ -1,17 +1,15 @@
 #!/usr/bin/env bash
 
-set -e
-
 opwd=$PWD
-cd -- "$(dirname "$(readlink "$0" || echo "$0")")"
+cd -- "$(dirname "$(readlink "$0" || printf '%s\n' "$0")")" || exit $?
 
-source ./utils.lib.bash
+source ./utils.lib.bash || exit $?
 
 if (( $# != 1 )); then
     echo >&2 "USAGE: $0 <build root>"
     exit 2
 fi
-build_dir=$(resolve_relative "$1" "$opwd")
+build_dir=$(resolve_relative "$1" "$opwd") || exit $?
 
 LUASTATUS=(
     "$build_dir"/luastatus/luastatus ${DEBUG:+-l trace}
@@ -22,7 +20,7 @@ VALGRIND=(
 )
 
 run1() {
-    local n=$1 m=$2 sep_st=$3
+    local n=$1 m=$2 sep_st=$3 c
     if (( sep_st )); then
         local event_beg='function()' event_end='end'
     else
@@ -51,11 +49,15 @@ widget = {
 }
 __EOF__
 )
+    c=$?
+    if (( c != 0 )); then
+        exit $c
+    fi
 }
 
 run2() {
-    run1 "$1" "$2" 0 "${@:3}" || return $?
-    run1 "$1" "$2" 1 "${@:3}" || return $?
+    run1 "$1" "$2" 0 "${@:3}"
+    run1 "$1" "$2" 1 "${@:3}"
 }
 
 run2 10000 10000 \

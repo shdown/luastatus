@@ -1,17 +1,15 @@
 #!/usr/bin/env bash
 
-set -e
-
 opwd=$PWD
-cd -- "$(dirname "$(readlink "$0" || echo "$0")")"
+cd -- "$(dirname "$(readlink "$0" || printf '%s\n' "$0")")" || exit $?
 
-source ./utils.lib.bash
+source ./utils.lib.bash || exit $?
 
 if (( $# != 1 )); then
     echo >&2 "USAGE: $0 <build root>"
     exit 2
 fi
-build_dir=$(resolve_relative "$1" "$opwd")
+build_dir=$(resolve_relative "$1" "$opwd") || exit $?
 
 HANG_TIMEOUT=${TIMEOUT:-7}
 LUASTATUS=(
@@ -49,15 +47,20 @@ assert_hangs()
 {
     local state pid
     "${LUASTATUS[@]}" "$@" & pid=$!
-    sleep "$HANG_TIMEOUT"
+
+    sleep "$HANG_TIMEOUT" || exit $?
+
     state=$(awk '$1 == "State:" { print $2 }' /proc/"$pid"/status) \
         || fail "Command: $*" "Reading process state from “/proc/$pid/status” failed"
+
     if [[ $state != S ]]; then
         fail "Command: $*" "Expected state “S”, found “$state”"
     fi
+
     echo >&2 -n "assert_hangs $*: killing and waiting for termination... "
     kill "$pid" || { echo >&2; fail "Command: $*" "“kill” failed"; }
     wait "$pid" || true
+
     echo >&2 "done"
 }
 
