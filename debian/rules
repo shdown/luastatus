@@ -8,6 +8,16 @@ BUILD_DIR := _deb_build
 override_dh_auto_clean:
 	rm -rf $(BUILD_DIR)
 
+override_dh_installexamples:
+	dh_installexamples examples/*
+
+override_dh_installchangelogs:
+	set -e; if [ -e RELEASE_NOTES ]; then \
+		dh_installchangelogs RELEASE_NOTES; \
+	else \
+		dh_installchangelogs; \
+	fi
+
 override_dh_auto_configure:
 	set -e; mkdir $(BUILD_DIR); cd $(BUILD_DIR); cmake \
 		-DCMAKE_INSTALL_PREFIX=/usr \
