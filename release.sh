@@ -60,7 +60,7 @@ else
         -e :a -e '/^\n*$/{$d;N;};/\n$/ba' \
         -i RELEASE_NOTES
     T ${EDITOR:-edit} RELEASE_NOTES
-    ask 'Commit and push?'
+    ask 'Commit?'
     T git add VERSION RELEASE_NOTES
     T git commit -m "$release_msg"
 fi
