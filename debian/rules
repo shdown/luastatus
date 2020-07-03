@@ -19,7 +19,7 @@ override_dh_auto_build:
 	$(MAKE) -C $(BUILD_DIR)
 
 override_dh_auto_install:
-	# the luastatus binary itself
+	# luastatus itself
 	$(MAKE) -C $(BUILD_DIR)/luastatus install \
 		DESTDIR=../../debian/luastatus
 	# barlibs

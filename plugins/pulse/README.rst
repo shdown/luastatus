@@ -10,7 +10,7 @@
 
 Overview
 ========
-This plugin monitors the volume and mute status of the default PulseAudio sink.
+This plugin monitors the volume and mute status of a PulseAudio sink.
 
 Options
 =======
