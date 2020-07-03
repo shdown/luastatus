@@ -65,24 +65,25 @@ else
     T git commit -m "$release_msg"
 fi
 
-T git tag --force v$NEW_VERSION
-T git push --set-upstream origin $RELEASE_BRANCH
-T git push --tags
-
-if ! T git checkout $DEV_BRANCH; then
-    echo ""
-    echo "Ignoring this to show the message below."
-fi
-
 cat <<EOF
 
 ===
 Done! Now:
+
+  * Make manual changes, if needed.
+
+  * Run the following commands:
+    * git tag --force v$NEW_VERSION
+    * git push --set-upstream origin $RELEASE_BRANCH
+    * git push --tags
+    * git checkout $DEV_BRANCH
+
   * Release it on GitHub:
     * The “<number> release(s)” link on the GitHub page of the project
     * The “Tags” tab
     * “Add release notes”
     * Fill in everything needed, click “Publish release”
+
   * Tell everybody about it!!
 ===
 EOF
