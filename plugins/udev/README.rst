@@ -72,3 +72,11 @@ A table with ``what`` entry:
   - ``driver``;
 
   - ``action``.
+
+Functions
+=========
+The following functions are provided:
+
+* ``luastatus.plugin.push_timeout(seconds)``
+
+    Changes the timeout for one iteration.

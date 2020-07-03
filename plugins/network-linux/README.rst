@@ -43,7 +43,7 @@ The following options are supported:
 If the list of network interfaces cannot be fetched, ``nil``.
 
 Otherwise, a table where keys are network interface names (e.g. ``wlan0`` or ``wlp1s0``) and values
-are table with the following entries (all are optional):
+are tables with the following entries (all are optional):
 
 * ``ipv4``, ``ipv6``: strings (only if the ``ip`` option is enabled)
 
@@ -52,10 +52,6 @@ are table with the following entries (all are optional):
   - ``ssid``: string
 
     802.11 network service set identifier (also known as the "network name").
-
-  - ``signal_percent``: integer
-
-    Signal level, in percents.
 
   - ``signal_dbm``: number
 
@@ -70,7 +66,7 @@ are table with the following entries (all are optional):
 
     Bitrate, in units of 100 kbit/s.
 
-* ``ethernet``: table with following entries (only if the ``wireless`` option is enabled):
+* ``ethernet``: table with following entries (only if the ``ethernet`` option is enabled):
 
   - ``speed``: number
 

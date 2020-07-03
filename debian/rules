@@ -1,0 +1,67 @@
+#! /usr/bin/make -f
+
+export V:=1
+export DEB_BUILD_MAINT_OPTIONS:=hardening=+all
+
+BUILD_DIR := _deb_build
+
+override_dh_auto_clean:
+	rm -rf $(BUILD_DIR)
+
+override_dh_installexamples:
+	dh_installexamples examples/*
+
+override_dh_installchangelogs:
+	set -e; if [ -e RELEASE_NOTES ]; then \
+		dh_installchangelogs RELEASE_NOTES; \
+	else \
+		dh_installchangelogs; \
+	fi
+
+override_dh_auto_configure:
+	set -e; mkdir $(BUILD_DIR); cd $(BUILD_DIR); cmake \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DWITH_LUA_LIBRARY=lua5.2 \
+		-DBUILD_PLUGIN_PULSE=on \
+		-S .. -B .
+
+override_dh_auto_build:
+	$(MAKE) -C $(BUILD_DIR)
+
+override_dh_auto_install:
+	# luastatus itself
+	$(MAKE) -C $(BUILD_DIR)/luastatus install \
+		DESTDIR=../../debian/luastatus
+	# barlibs
+	set -e; for x in dwm i3 lemonbar stdout; do \
+		$(MAKE) -C $(BUILD_DIR)/barlibs/$$x install \
+			DESTDIR=../../../debian/luastatus-barlib-$$x; \
+	done
+	# "core" plugins (that should go into luastatus pkg)
+	set -e; for x in \
+		fs timer inotify udev \
+		backlight-linux \
+		battery-linux \
+		cpu-usage-linux \
+		file-contents-linux \
+		mem-usage-linux \
+		pipe; \
+	do \
+		$(MAKE) -C $(BUILD_DIR)/plugins/$$x install \
+			DESTDIR=../../../debian/luastatus; \
+	done
+	# other plugins
+	set -e; for x in \
+		alsa dbus inotify mpd network-linux pulse xkb xtitle \
+		imap; \
+	do \
+		$(MAKE) -C $(BUILD_DIR)/plugins/$$x install \
+			DESTDIR=../../../debian/luastatus-plugin-$$x; \
+	done
+
+override_dh_auto_test:
+	./tests/misc.sh $(BUILD_DIR)
+	./tests/torture.sh $(BUILD_DIR)
+
+%:
+	exec dh $@

@@ -1,83 +1,134 @@
+/*
+ * Copyright (C) 2015-2020  luastatus developers
+ *
+ * This file is part of luastatus.
+ *
+ * luastatus is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * luastatus is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include <errno.h>
+#include <glob.h>
 #include <stdbool.h>
 #include <lua.h>
-#include <signal.h>
 #include <stdlib.h>
 #include <time.h>
+#include <unistd.h>
 #include <sys/statvfs.h>
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
-#include "include/plugin_utils.h"
+
+#include "libmoonvisit/moonvisit.h"
 
 #include "libls/alloc_utils.h"
-#include "libls/lua_utils.h"
-#include "libls/vector.h"
+#include "libls/strarr.h"
 #include "libls/time_utils.h"
 #include "libls/cstring_utils.h"
-#include "libls/wakeup_fifo.h"
+#include "libls/poll_utils.h"
 
 typedef struct {
-    LS_VECTOR_OF(char *) paths;
-    struct timespec period;
+    LSStringArray paths;
+    LSStringArray globs;
+    double period;
     char *fifo;
 } Priv;
 
-static
-void
-destroy(LuastatusPluginData *pd)
+static void destroy(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
-    for (size_t i = 0; i < p->paths.size; ++i) {
-        free(p->paths.data[i]);
-    }
-    LS_VECTOR_FREE(p->paths);
+    ls_strarr_destroy(p->paths);
+    ls_strarr_destroy(p->globs);
     free(p->fifo);
     free(p);
 }
 
-static
-int
-init(LuastatusPluginData *pd, lua_State *L)
+static int parse_paths_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
+{
+    mv->where = "'paths' element";
+    (void) kpos;
+
+    Priv *p = ud;
+
+    if (moon_visit_checktype_at(mv, "", vpos, LUA_TSTRING) < 0)
+        return -1;
+
+    const char *s = lua_tostring(mv->L, vpos);
+    ls_strarr_append_s(&p->paths, s);
+    return 1;
+}
+
+static int parse_globs_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
+{
+    mv->where = "'globs' element";
+    (void) kpos;
+
+    Priv *p = ud;
+
+    if (moon_visit_checktype_at(mv, "", vpos, LUA_TSTRING) < 0)
+        return -1;
+
+    const char *s = lua_tostring(mv->L, vpos);
+    ls_strarr_append_s(&p->globs, s);
+    return 1;
+}
+
+static int init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
-        .paths = LS_VECTOR_NEW(),
-        .period = (struct timespec) {10, 0},
+        .paths = ls_strarr_new(),
+        .globs = ls_strarr_new(),
+        .period = 10.0,
         .fifo = NULL,
     };
+    char errbuf[256];
+    MoonVisit mv = {.L = L, .errbuf = errbuf, .nerrbuf = sizeof(errbuf)};
 
-    PU_TRAVERSE_TABLE("paths", NULL,
-        PU_CHECK_TYPE_AT(LS_LUA_KEY, "'paths' key", LUA_TNUMBER);
-        PU_VISIT_STR_AT(LS_LUA_VALUE, "'paths' element", s,
-            LS_VECTOR_PUSH(p->paths, ls_xstrdup(s));
-        );
-    );
-    if (!p->paths.size) {
-        LS_WARNF(pd, "paths are empty");
+    // Parse paths
+    if (moon_visit_table_f(&mv, -1, "paths", parse_paths_elem, p, true) < 0)
+        goto mverror;
+
+    // Parse globs
+    if (moon_visit_table_f(&mv, -1, "globs", parse_globs_elem, p, true) < 0)
+        goto mverror;
+
+    // Parse period
+    if (moon_visit_num(&mv, -1, "period", &p->period, true) < 0)
+        goto mverror;
+    if (p->period < 0) {
+        LS_FATALF(pd, "period is invalid");
+        goto error;
     }
 
-    PU_MAYBE_VISIT_NUM("period", NULL, n,
-        if (ls_timespec_is_invalid(p->period = ls_timespec_from_seconds(n))) {
-            LS_FATALF(pd, "invalid 'period' value");
-            goto error;
-        }
-    );
+    // Parse fifo
+    if (moon_visit_str(&mv, -1, "fifo", &p->fifo, NULL, true) < 0)
+        goto mverror;
 
-    PU_MAYBE_VISIT_STR("fifo", NULL, s,
-        p->fifo = ls_xstrdup(s);
-    );
+    // Warn if both paths and globs are empty
+    if (!ls_strarr_size(p->paths) && !ls_strarr_size(p->globs))
+        LS_WARNF(pd, "both paths and globs are empty");
 
     return LUASTATUS_OK;
 
+mverror:
+    LS_FATALF(pd, "%s", errbuf);
 error:
     destroy(pd);
     return LUASTATUS_ERR;
 }
 
-static
-bool
-push_for(LuastatusPluginData *pd, lua_State *L, const char *path)
+static bool push_for(LuastatusPluginData *pd, lua_State *L, const char *path)
 {
     struct statvfs st;
     if (statvfs(path, &st) < 0) {
@@ -85,47 +136,61 @@ push_for(LuastatusPluginData *pd, lua_State *L, const char *path)
         return false;
     }
     lua_createtable(L, 0, 3); // L: table
-    lua_pushnumber(L, (double) st.f_frsize * st.f_blocks); // L: table n
+    lua_pushnumber(L, ((double) st.f_frsize) * st.f_blocks); // L: table n
     lua_setfield(L, -2, "total"); // L: table
-    lua_pushnumber(L, (double) st.f_frsize * st.f_bfree); // L: table n
+    lua_pushnumber(L, ((double) st.f_frsize) * st.f_bfree); // L: table n
     lua_setfield(L, -2, "free"); // L: table
-    lua_pushnumber(L, (double) st.f_frsize * st.f_bavail); // L: table n
+    lua_pushnumber(L, ((double) st.f_frsize) * st.f_bavail); // L: table n
     lua_setfield(L, -2, "avail"); // L: table
     return true;
 }
 
-static
-void
-run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
+static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
 
-    LSWakeupFifo w;
-    ls_wakeup_fifo_init(&w, p->fifo, p->period, NULL);
+    int fifo_fd = -1;
 
     while (1) {
         // make a call
         lua_State *L = funcs.call_begin(pd->userdata);
-        lua_createtable(L, 0, p->paths.size);
-        for (size_t i = 0; i < p->paths.size; ++i) {
-            const char *path = p->paths.data[i];
+        lua_newtable(L);
+        for (size_t i = 0; i < ls_strarr_size(p->paths); ++i) {
+            const char *path = ls_strarr_at(p->paths, i, NULL);
             if (push_for(pd, L, path)) {
                 lua_setfield(L, -2, path);
             }
         }
+        for (size_t i = 0; i < ls_strarr_size(p->globs); ++i) {
+            const char *pattern = ls_strarr_at(p->globs, i, NULL);
+            glob_t gbuf;
+            switch (glob(pattern, GLOB_NOSORT, NULL, &gbuf)) {
+            case 0:
+            case GLOB_NOMATCH:
+                break;
+            default:
+                LS_WARNF(pd, "glob() failed (out of memory?)");
+            }
+            for (size_t j = 0; j < gbuf.gl_pathc; ++j) {
+                if (push_for(pd, L, gbuf.gl_pathv[j])) {
+                    lua_setfield(L, -2, gbuf.gl_pathv[j]);
+                }
+            }
+            globfree(&gbuf);
+        }
         funcs.call_end(pd->userdata);
         // wait
-        if (ls_wakeup_fifo_open(&w) < 0) {
-            LS_WARNF(pd, "ls_wakeup_fifo_open: %s: %s", p->fifo, ls_strerror_onstack(errno));
+        if (ls_fifo_open(&fifo_fd, p->fifo) < 0) {
+            LS_WARNF(pd, "ls_fifo_open: %s: %s", p->fifo, LS_FIFO_STRERROR_ONSTACK(errno));
         }
-        if (ls_wakeup_fifo_wait(&w) < 0) {
-            LS_FATALF(pd, "ls_wakeup_fifo_wait: %s: %s", p->fifo, ls_strerror_onstack(errno));
+        if (ls_fifo_wait(&fifo_fd, p->period) < 0) {
+            LS_FATALF(pd, "ls_fifo_wait: %s: %s", p->fifo, ls_strerror_onstack(errno));
             goto error;
         }
     }
 
 error:
-    ls_wakeup_fifo_destroy(&w);
+    close(fifo_fd);
 }
 
 LuastatusPluginIface luastatus_plugin_iface_v1 = {

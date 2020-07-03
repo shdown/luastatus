@@ -1,37 +1,75 @@
+/*
+ * Copyright (C) 2015-2020  luastatus developers
+ *
+ * This file is part of luastatus.
+ *
+ * luastatus is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * luastatus is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #ifndef ls_time_utils_h_
 #define ls_time_utils_h_
 
 #include <time.h>
 #include <sys/time.h>
-#include <stdbool.h>
+#include <errno.h>
+#include <limits.h>
 
 #include "compdep.h"
 
-static const struct timespec ls_timespec_invalid = {.tv_nsec = -1};
-static const struct timeval  ls_timeval_invalid  = {.tv_usec = -1};
+#define LS_TMO_MAX 2147483647.0
 
-LS_INHEADER
-bool
-ls_timespec_is_invalid(struct timespec ts)
+LS_INHEADER struct timespec ls_tmo_to_ts(double tmo)
 {
-    return ts.tv_nsec == -1;
+    if (!(tmo >= 0))
+        tmo = 0;
+    if (tmo > LS_TMO_MAX)
+        tmo = LS_TMO_MAX;
+    return (struct timespec) {
+        .tv_sec = tmo,
+        .tv_nsec = (tmo - (time_t) tmo) * 1e9,
+    };
 }
 
-LS_INHEADER
-bool
-ls_timeval_is_invalid(struct timeval tv)
+LS_INHEADER struct timeval ls_tmo_to_tv(double tmo)
 {
-    return tv.tv_usec == -1;
+    if (!(tmo >= 0))
+        tmo = 0;
+    if (tmo > LS_TMO_MAX)
+        tmo = LS_TMO_MAX;
+    return (struct timeval) {
+        .tv_sec = tmo,
+        .tv_usec = (tmo - (time_t) tmo) * 1e6,
+    };
 }
 
-// Converts the number of seconds specified by /seconds/ to a /struct timespec/.
-// Returns /ls_timespec_invalid/ if /seconds/ is either negative or too big.
-struct timespec
-ls_timespec_from_seconds(double seconds);
+LS_INHEADER int ls_tmo_to_ms(double tmo)
+{
+    if (tmo != tmo)
+        return 0;
+    if (tmo < 0.0)
+        return -1;
+    double ms = tmo * 1000;
+    return ms > INT_MAX ? INT_MAX : ms;
+}
 
-// Converts the number of seconds specified by /seconds/ to a /struct timeval/.
-// Returns /ls_timeval_invalid/ if /seconds/ is either negative or too big.
-struct timeval
-ls_timeval_from_seconds(double seconds);
+LS_INHEADER void ls_sleep(double tmo)
+{
+    struct timespec ts = ls_tmo_to_ts(tmo);
+    struct timespec rem;
+    while (nanosleep(&ts, &rem) < 0 && errno == EINTR) {
+        ts = rem;
+    }
+}
 
 #endif

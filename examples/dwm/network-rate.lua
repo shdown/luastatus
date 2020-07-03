@@ -29,8 +29,8 @@ local function get_block(line)
         if (delta_recv >= 0 and delta_sent >= 0) and (recv > 0 and sent > 0) then
             res = string.format('[%s %.0fk↓ %.0fk↑]',
                 iface,
-                delta_recv / PERIOD / 1024,
-                delta_sent / PERIOD / 1024
+                delta_recv / PERIOD / 1000,
+                delta_sent / PERIOD / 1000
             )
         end
     end

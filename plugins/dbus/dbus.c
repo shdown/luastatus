@@ -1,21 +1,38 @@
+/*
+ * Copyright (C) 2015-2020  luastatus developers
+ *
+ * This file is part of luastatus.
+ *
+ * luastatus is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * luastatus is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include <lua.h>
-#include <limits.h>
+#include <glib.h>
+#include <gio/gio.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
 
-#include <glib.h>
-#include <gio/gio.h>
-
 #include "libls/vector.h"
-#include "libls/compdep.h"
 #include "libls/alloc_utils.h"
-#include "libls/lua_utils.h"
+#include "libls/time_utils.h"
+
+#include "libmoonvisit/moonvisit.h"
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
-#include "include/plugin_utils.h"
 
 #include "marshal.h"
 
@@ -26,13 +43,9 @@ typedef struct {
     char *object_path;
     char *arg0;
     GDBusSignalFlags flags;
-} SignalSub;
+} Signal;
 
-#define SIGNAL_SUB_NEW() {.flags = G_DBUS_SIGNAL_FLAGS_NONE}
-
-static
-void
-signal_sub_free(SignalSub s)
+static void signal_free(Signal s)
 {
     free(s.sender);
     free(s.interface);
@@ -41,118 +54,141 @@ signal_sub_free(SignalSub s)
     free(s.arg0);
 }
 
-typedef LS_VECTOR_OF(SignalSub) SubList;
+typedef LS_VECTOR_OF(Signal) SignalVector;
 
-static
-void
-sub_list_free(SubList sl)
-{
-    for (size_t i = 0; i < sl.size; ++i) {
-        signal_sub_free(sl.data[i]);
-    }
-    LS_VECTOR_FREE(sl);
-}
+enum {
+    BUS_SESSION = 0,
+    BUS_SYSTEM = 1,
+};
 
 typedef struct {
-    SubList session_subs;
-    SubList system_subs;
-    int timeout_ms;
+    SignalVector subs[2];
+    double tmo;
     bool greet;
 } Priv;
 
-static
-void
-destroy(LuastatusPluginData *pd)
+static void destroy(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
-    sub_list_free(p->session_subs);
-    sub_list_free(p->system_subs);
+    for (int i = 0; i < 2; ++i) {
+        SignalVector v = p->subs[i];
+        for (size_t j = 0; j < v.size; ++j) {
+            signal_free(v.data[j]);
+        }
+        LS_VECTOR_FREE(v);
+    }
     free(p);
 }
 
-static
-int
-init(LuastatusPluginData *pd, lua_State *L)
+static int parse_bus_str(MoonVisit *mv, void *ud, const char *s, size_t ns)
+{
+    (void) ns;
+    int *out = ud;
+    if (strcmp(s, "session") == 0) {
+        *out = BUS_SESSION;
+        return 1;
+    }
+    if (strcmp(s, "system") == 0) {
+        *out = BUS_SYSTEM;
+        return 1;
+    }
+    moon_visit_err(mv, "unknown bus: '%s'", s);
+    return -1;
+}
+
+static int parse_flags_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
+{
+    mv->where = "'signals' element, 'flags' element";
+    (void) kpos;
+
+    GDBusSignalFlags *out = ud;
+
+    if (moon_visit_checktype_at(mv, "", vpos, LUA_TSTRING) < 0)
+        goto error;
+
+    const char *s = lua_tostring(mv->L, vpos);
+    if (strcmp(s, "match_arg0_namespace") == 0) {
+        *out |= G_DBUS_SIGNAL_FLAGS_MATCH_ARG0_NAMESPACE;
+        return 1;
+    }
+    if (strcmp(s, "match_arg0_path") == 0) {
+        *out |= G_DBUS_SIGNAL_FLAGS_MATCH_ARG0_PATH;
+        return 1;
+    }
+    moon_visit_err(mv, "unknown flag: '%s'", s);
+error:
+    return -1;
+}
+
+static int parse_signals_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
+{
+    mv->where = "'signals' element";
+    (void) kpos;
+
+    Priv *p = ud;
+    Signal s = {0};
+
+    if (moon_visit_checktype_at(mv, "", vpos, LUA_TTABLE) < 0)
+        goto error;
+
+    int bus = BUS_SESSION;
+    if (moon_visit_str_f(mv, vpos, "bus", parse_bus_str, &bus, true) < 0)
+        goto error;
+
+    if (moon_visit_str(mv, vpos, "sender", &s.sender, NULL, true) < 0)
+        goto error;
+
+    if (moon_visit_str(mv, vpos, "interface", &s.interface, NULL, true) < 0)
+        goto error;
+
+    if (moon_visit_str(mv, vpos, "signal", &s.signal, NULL, true) < 0)
+        goto error;
+
+    if (moon_visit_str(mv, vpos, "object_path", &s.object_path, NULL, true) < 0)
+        goto error;
+
+    if (moon_visit_str(mv, vpos, "arg0", &s.arg0, NULL, true) < 0)
+        goto error;
+
+    if (moon_visit_table_f(mv, vpos, "flags", parse_flags_elem, &s.flags, true) < 0)
+        goto error;
+
+    LS_VECTOR_PUSH(p->subs[bus], s);
+    return 1;
+
+error:
+    signal_free(s);
+    return -1;
+}
+
+static int init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
-        .session_subs = LS_VECTOR_NEW(),
-        .system_subs = LS_VECTOR_NEW(),
-        .timeout_ms = -1,
+        .subs = {LS_VECTOR_NEW(), LS_VECTOR_NEW()},
+        .tmo = -1,
         .greet = false,
     };
-    SignalSub sub = SIGNAL_SUB_NEW();
+    char errbuf[256];
+    MoonVisit mv = {.L = L, .errbuf = errbuf, .nerrbuf = sizeof(errbuf)};
 
-    PU_MAYBE_VISIT_BOOL("greet", NULL, b,
-        p->greet = b;
-    );
+    // Parse greet
+    if (moon_visit_bool(&mv, -1, "greet", &p->greet, true) < 0)
+        goto mverror;
 
-    PU_MAYBE_VISIT_NUM("timeout", NULL, nsec,
-        if (nsec >= 0) {
-            double nmillis = nsec * 1000;
-            if (nmillis > INT_MAX) {
-                LS_FATALF(pd, "'timeout' is too large");
-                goto error;
-            }
-            p->timeout_ms = nmillis;
-        }
-    );
+    // Parse timeout
+    if (moon_visit_num(&mv, -1, "timeout", &p->tmo, true) < 0)
+        goto mverror;
 
-    PU_TRAVERSE_TABLE("signals", NULL,
-        SubList *dest = &p->session_subs;
-
-        PU_MAYBE_VISIT_STR("sender", "'signals' element, 'sender' value", s,
-            sub.sender = ls_xstrdup(s);
-        );
-
-        PU_MAYBE_VISIT_STR("interface", "'signals' element, 'interface' value", s,
-            sub.interface = ls_xstrdup(s);
-        );
-
-        PU_MAYBE_VISIT_STR("signal", "'signals' element, 'signal' value", s,
-            sub.signal = ls_xstrdup(s);
-        );
-
-        PU_MAYBE_VISIT_STR("object_path", "'signals' element, 'object_path' value", s,
-            sub.object_path = ls_xstrdup(s);
-        );
-
-        PU_MAYBE_VISIT_STR("arg0", "'signals' element', 'arg0' value", s,
-            sub.arg0 = ls_xstrdup(s);
-        );
-
-        PU_MAYBE_TRAVERSE_TABLE("flags", "'signals' element, 'flags' value",
-            PU_VISIT_STR_AT(LS_LUA_VALUE, "'signals' element, 'flags'", s,
-                if (strcmp(s, "match_arg0_namespace") == 0) {
-                    sub.flags |= G_DBUS_SIGNAL_FLAGS_MATCH_ARG0_NAMESPACE;
-                } else if (strcmp(s, "match_arg0_path") == 0) {
-                    sub.flags |= G_DBUS_SIGNAL_FLAGS_MATCH_ARG0_PATH;
-                } else {
-                    LS_FATALF(pd, "'signals' element, 'flags': unknown flag: '%s'", s);
-                    goto error;
-                }
-            );
-        );
-
-        PU_MAYBE_VISIT_STR("bus", "'signals' element, 'bus' value", s,
-            if (strcmp(s, "session") == 0) {
-                dest = &p->session_subs;
-            } else if (strcmp(s, "system") == 0) {
-                dest = &p->system_subs;
-            } else {
-                LS_FATALF(pd, "'signals' element, 'bus' value: unknown bus: '%s'", s);
-                goto error;
-            }
-        );
-
-        LS_VECTOR_PUSH(*dest, sub);
-        sub = (SignalSub) SIGNAL_SUB_NEW();
-    );
+    // Parse signals
+    if (moon_visit_table_f(&mv, -1, "signals", parse_signals_elem, p, false) < 0)
+        goto mverror;
 
     return LUASTATUS_OK;
 
-error:
-    signal_sub_free(sub);
+mverror:
+    LS_FATALF(pd, "%s", errbuf);
+//error:
     destroy(pd);
     return LUASTATUS_ERR;
 }
@@ -162,9 +198,7 @@ typedef struct {
     LuastatusPluginRunFuncs funcs;
 } PluginRunArgs;
 
-static
-void
-callback_signal(
+static void callback_signal(
     GDBusConnection *connection,
     const gchar *sender_name,
     const gchar *object_path,
@@ -194,9 +228,7 @@ callback_signal(
     args.funcs.call_end(args.pd->userdata);
 }
 
-static
-gboolean
-callback_timeout(gpointer user_data)
+static gboolean callback_timeout(gpointer user_data)
 {
     PluginRunArgs args = *(PluginRunArgs *) user_data;
     lua_State *L = args.funcs.call_begin(args.pd->userdata);
@@ -207,20 +239,22 @@ callback_timeout(gpointer user_data)
     return G_SOURCE_CONTINUE;
 }
 
-static
-GDBusConnection *
-maybe_connect_and_subscribe(GBusType bus_type, SubList sl, gpointer userdata, GError **err)
+static GDBusConnection * maybe_connect_and_subscribe(
+        GBusType bus_type,
+        SignalVector v,
+        gpointer userdata,
+        GError **err)
 {
-    if (!sl.size) {
+    if (!v.size)
         return NULL;
-    }
+
     GDBusConnection *conn = g_bus_get_sync(bus_type, NULL, err);
-    if (*err) {
+    if (*err)
         return NULL;
-    }
+
     assert(conn);
-    for (size_t i = 0; i < sl.size; ++i) {
-        SignalSub s = sl.data[i];
+    for (size_t i = 0; i < v.size; ++i) {
+        Signal s = v.data[i];
         g_dbus_connection_signal_subscribe(
             conn,
             s.sender,
@@ -236,9 +270,7 @@ maybe_connect_and_subscribe(GBusType bus_type, SubList sl, gpointer userdata, GE
     return conn;
 }
 
-static
-void
-run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
+static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
 
@@ -250,22 +282,29 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     GSource *source = NULL;
 
     PluginRunArgs userdata = {.pd = pd, .funcs = funcs};
-    session_bus = maybe_connect_and_subscribe(G_BUS_TYPE_SESSION, p->session_subs, &userdata, &err);
+
+    session_bus = maybe_connect_and_subscribe(
+        G_BUS_TYPE_SESSION, p->subs[BUS_SESSION], &userdata, &err);
+
     if (err) {
         LS_FATALF(pd, "cannot connect to the session bus: %s", err->message);
         goto error;
     }
-    system_bus = maybe_connect_and_subscribe(G_BUS_TYPE_SYSTEM, p->system_subs, &userdata, &err);
+
+    system_bus = maybe_connect_and_subscribe(
+        G_BUS_TYPE_SYSTEM, p->subs[BUS_SYSTEM], &userdata, &err);
+
     if (err) {
         LS_FATALF(pd, "cannot connect to the system bus: %s", err->message);
         goto error;
     }
 
-    if (p->timeout_ms >= 0) {
-        source = g_timeout_source_new(p->timeout_ms);
+    if (p->tmo >= 0) {
+        int tmo_ms = ls_tmo_to_ms(p->tmo);
+        source = g_timeout_source_new(tmo_ms);
         g_source_set_callback(source, callback_timeout, &userdata, NULL);
         if (g_source_attach(source, context) == 0) {
-            LS_FATALF(pd, "g_source_attach failed");
+            LS_FATALF(pd, "g_source_attach() failed");
             goto error;
         }
     }

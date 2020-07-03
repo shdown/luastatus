@@ -1,3 +1,22 @@
+/*
+ * Copyright (C) 2015-2020  luastatus developers
+ *
+ * This file is part of luastatus.
+ *
+ * luastatus is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * luastatus is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include <stddef.h>
 #include <sys/types.h>
 #include <stdio.h>
@@ -15,7 +34,6 @@
 #include "libls/cstring_utils.h"
 #include "libls/parse_int.h"
 #include "libls/io_utils.h"
-#include "libls/lua_utils.h"
 #include "libls/alloc_utils.h"
 
 #include "markup_utils.h"
@@ -37,29 +55,22 @@ typedef struct {
     FILE *out;
 } Priv;
 
-static
-void
-destroy(LuastatusBarlibData *bd)
+static void destroy(LuastatusBarlibData *bd)
 {
     Priv *p = bd->priv;
-    for (size_t i = 0; i < p->nwidgets; ++i) {
+    for (size_t i = 0; i < p->nwidgets; ++i)
         LS_VECTOR_FREE(p->bufs[i]);
-    }
     free(p->bufs);
     LS_VECTOR_FREE(p->tmpbuf);
     free(p->sep);
-    if (p->in) {
+    if (p->in)
         fclose(p->in);
-    }
-    if (p->out) {
+    if (p->out)
         fclose(p->out);
-    }
     free(p);
 }
 
-static
-int
-init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
+static int init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
 {
     Priv *p = bd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
@@ -137,9 +148,7 @@ error:
     return LUASTATUS_ERR;
 }
 
-static
-int
-l_escape(lua_State *L)
+static int l_escape(lua_State *L)
 {
     size_t ns;
     // WARNING: /luaL_check*()/ functions do a long jump on error!
@@ -149,19 +158,15 @@ l_escape(lua_State *L)
     return 1;
 }
 
-static
-void
-register_funcs(LuastatusBarlibData *bd, lua_State *L)
+static void register_funcs(LuastatusBarlibData *bd, lua_State *L)
 {
     (void) bd;
     // L: table
     lua_pushcfunction(L, l_escape); // L: table l_escape
-    ls_lua_rawsetf(L, "escape"); // L: table
+    lua_setfield(L, -2, "escape"); // L: table
 }
 
-static
-bool
-redraw(LuastatusBarlibData *bd)
+static bool redraw(LuastatusBarlibData *bd)
 {
     Priv *p = bd->priv;
     FILE *out = p->out;
@@ -188,17 +193,18 @@ redraw(LuastatusBarlibData *bd)
     return true;
 }
 
-static
-int
-set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
+static int set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
 {
     Priv *p = bd->priv;
     LSString *buf = &p->tmpbuf;
-
     LS_VECTOR_CLEAR(*buf);
+
+    // L: ? data
+
     switch (lua_type(L, -1)) {
     case LUA_TNIL:
         break;
+
     case LUA_TSTRING:
         {
             size_t ns;
@@ -206,29 +212,31 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
             append_sanitized_b(buf, widget_idx, s, ns);
         }
         break;
+
     case LUA_TTABLE:
         {
             const char *sep = p->sep;
-            LS_LUA_TRAVERSE(L, -1) {
-                if (!lua_isnumber(L, LS_LUA_KEY)) {
-                    LS_ERRF(bd, "table key: expected number, found %s",
-                        luaL_typename(L, LS_LUA_KEY));
-                    goto invalid_data;
-                }
-                if (!lua_isstring(L, LS_LUA_VALUE)) {
-                    LS_ERRF(bd, "table value: expected string, found %s",
-                        luaL_typename(L, LS_LUA_VALUE));
+
+            lua_pushnil(L); // L: ? data nil
+            while (lua_next(L, -2)) {
+                // L: ? data key value
+                if (!lua_isstring(L, -1)) {
+                    LS_ERRF(bd, "table value: expected string, found %s", luaL_typename(L, -1));
                     goto invalid_data;
                 }
                 size_t ns;
-                const char *s = lua_tolstring(L, LS_LUA_VALUE, &ns);
+                const char *s = lua_tolstring(L, -1, &ns);
                 if (buf->size && ns) {
                     ls_string_append_s(buf, sep);
                 }
                 append_sanitized_b(buf, widget_idx, s, ns);
+
+                lua_pop(L, 1); // L: ? data key
             }
+            // L: ? data
         }
         break;
+
     default:
         LS_ERRF(bd, "expected string, table or nil, found %s", luaL_typename(L, -1));
         goto invalid_data;
@@ -247,9 +255,7 @@ invalid_data:
     return LUASTATUS_NONFATAL_ERR;
 }
 
-static
-int
-set_error(LuastatusBarlibData *bd, size_t widget_idx)
+static int set_error(LuastatusBarlibData *bd, size_t widget_idx)
 {
     Priv *p = bd->priv;
     ls_string_assign_s(&p->bufs[widget_idx], "%{B#f00}%{F#fff}(Error)%{B-}%{F-}");
@@ -259,9 +265,7 @@ set_error(LuastatusBarlibData *bd, size_t widget_idx)
     return LUASTATUS_OK;
 }
 
-static
-int
-event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
+static int event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
 {
     Priv *p = bd->priv;
 
@@ -269,15 +273,15 @@ event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
     size_t nbuf = 256;
 
     for (ssize_t nread; (nread = getline(&buf, &nbuf, p->in)) >= 0;) {
-        if (nread == 0 || buf[nread - 1] != '\n') {
+        if (nread == 0 || buf[nread - 1] != '\n')
             continue;
-        }
+
         size_t ncommand;
         size_t widget_idx;
         const char *command = parse_command(buf, nread - 1, &ncommand, &widget_idx);
-        if (!command) {
+        if (!command)
             continue;
-        }
+
         lua_State *L = funcs.call_begin(bd->userdata, widget_idx);
         lua_pushlstring(L, command, ncommand);
         funcs.call_end(bd->userdata, widget_idx);

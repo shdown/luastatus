@@ -1,6 +1,25 @@
+--[[
+  Copyright (C) 2015-2020  luastatus developers
+
+  This file is part of luastatus.
+
+  luastatus is free software: you can redistribute it and/or modify
+  it under the terms of the GNU Lesser General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  luastatus is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU Lesser General Public License for more details.
+
+  You should have received a copy of the GNU Lesser General Public License
+  along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
+--]]
+
 local P = {}
 
-function P.read_uevent(dev)
+local function read_uevent(dev)
     local f = io.open('/sys/class/power_supply/' .. dev .. '/uevent', 'r')
     if not f then
         return nil
@@ -14,83 +33,50 @@ function P.read_uevent(dev)
     return r
 end
 
-function P.read_files(dev, proplist)
-    local prefix = '/sys/class/power_supply/' .. dev .. '/'
-    local r = {}
-    for _, prop in ipairs(proplist) do
-        local f = io.open(prefix .. prop, 'r')
-        if f then
-            r[prop] = f:read('*line')
-            f:close()
+local function get_battery_info(dev, use_energy_full_design)
+    local p = read_uevent(dev)
+    if not p then
+        return {}
+    end
+
+    -- Convert amperes to watts.
+    if p.charge_full then
+        p.energy_full = p.charge_full * p.voltage_now / 1e6
+        p.energy_now = p.charge_now * p.voltage_now / 1e6
+        p.power_now = p.current_now * p.voltage_now / 1e6
+    end
+
+    local r = {status = p.status}
+    local ef = use_energy_full_design and p.energy_full_design or p.energy_full
+    -- A buggy driver can report energy_now as energy_full_design, which
+    -- will lead to an overshoot in capacity.
+    r.capacity = math.min(math.floor(p.energy_now / ef * 100 + 0.5), 100)
+
+    local pn = tonumber(p.power_now)
+    if pn ~= 0 then
+        r.consumption = pn / 1e6
+        if p.status == 'Charging' then
+            r.rem_time = (p.energy_full - p.energy_now) / pn
+        elseif p.status == 'Discharging' or p.status == 'Not charging' then
+            r.rem_time = p.energy_now / pn
         end
     end
+
     return r
 end
 
-local PROPS_NAMING_SCHEMAS = {
-    new = {
-        EF = 'energy_full',
-        EN = 'energy_now',
-        PN = 'power_now',
-    },
-    old = {
-        EF = 'charge_full',
-        EN = 'charge_now',
-        PN = 'current_now',
-    },
-}
-local pns = PROPS_NAMING_SCHEMAS.new
-function P.use_props_naming_scheme(name)
-    pns = assert(PROPS_NAMING_SCHEMAS[name])
-end
-function P.get_props_naming_scheme()
-    return pns
-end
-
-function P.est_rem_time(props)
-    local ef, en, pn = props[pns.EF], props[pns.EN], props[pns.PN]
-    if (not ef) or (not en) or (not pn or pn == 0) then
-        return nil
-    end
-    if props.status == 'Charging' then
-        return (ef - en) / pn
-    elseif props.status == 'Discharging' then
-        return en / pn
-    else
-        return nil
-    end
-end
-
 function P.widget(tbl)
-    if tbl.props_naming_scheme then
-        P.use_props_naming_scheme(tbl.props_naming_scheme)
-    end
     local dev = tbl.dev or 'BAT0'
-    local read_props
-    if tbl.no_uevent then
-        local proplist = {'status', 'capacity'}
-        if tbl.est_rem_time then
-            table.insert(proplist, pns.EF)
-            table.insert(proplist, pns.EN)
-            table.insert(proplist, pns.PN)
-        end
-        read_props = function()
-            return P.read_files(dev, proplist)
-        end
-    else
-        read_props = function()
-            return P.read_uevent(dev)
-        end
-    end
+    local period = tbl.period or 2
     return {
-        plugin = 'timer',
-        opts = tbl.timer_opts,
+        plugin = 'udev',
+        opts = {
+            subsystem = 'power_supply',
+            timeout = period,
+            greet = true
+        },
         cb = function()
-            local t = read_props()
-            if tbl.est_rem_time then
-                t.rem_time = P.est_rem_time(t)
-            end
-            return tbl.cb(t)
+            return tbl.cb(get_battery_info(dev, tbl.use_energy_full_design))
         end,
         event = tbl.event,
     }

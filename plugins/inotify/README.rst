@@ -16,7 +16,8 @@ Options
 =======
 * ``watch``: table
 
-    A table in which keys are the paths to watch and values are comma-separated event names (see the
+    A table in which keys are the paths to watch and values are the tables with event names,
+    for example, ``{["/home/user"] = {"create", "delete", "move"}}`` (see the
     `Events and flag names`_ section).
 
 * ``greet``: boolean
@@ -76,6 +77,10 @@ Each file being watched is assigned a *watch descriptor*, which is a non-negativ
 * ``is_ok = luastatus.plugin.remove_watch(wd)``
 
     Removes a watch by its watch descriptor. Returns ``true`` on success, or ``false`` on failure.
+
+* ``luastatus.plugin.push_timeout(seconds)``
+
+    Changes the timeout for one iteration.
 
 Events and flag names
 =====================

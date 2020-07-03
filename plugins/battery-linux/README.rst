@@ -12,65 +12,12 @@ Overview
 ========
 This derived plugin periodically polls Linux ``sysfs`` for the state of a battery.
 
-It is also able to estimate the time remaining to full charge/discharge.
-
-Property naming schemes
-=======================
-Linux has once changed its naming scheme of some files in ``/sys/class/power_supply/<device>/``.
-Changes include:
-
-* ``charge_full`` renamed to ``energy_full``;
-
-* ``charge_now`` renamed to ``energy_now``;
-
-* ``current_now`` renamed to ``power_now``.
-
-By default, this plugin uses the "new" naming scheme; to change that, call
-``B.use_props_naming_scheme("old")``, where ``B`` is the module object.
+It is also able to estimate the time remaining to full charge/discharge and
+the current battery consumption rate.
 
 Functions
 =========
 The following functions are provided:
-
-* ``read_uevent(device)``
-
-    Reads a key-value table from ``/sys/class/power_supply/<device>/uevent``.
-
-    If it cannot be read, returns ``nil``.
-
-* ``read_files(device, proplist)``
-
-    Reads a key-value pairs from ``/sys/class/power_supply/<device>/<prop>`` for each ``<prop>`` in
-    ``proplist``.
-
-    If a property cannot be read, it is not included to the resulting table.
-
-* ``use_props_naming_scheme(name)``
-
-    Tells the module which property naming scheme to use; ``name`` is either ``"old"`` or ``"new"``.
-
-* ``get_props_naming_scheme()``
-
-    Returns a table representing the current property naming scheme. It has the following keys:
-
-    - ``EF``: either ``"charge_full"`` or ``"energy_full"``;
-
-    - ``EN``: either ``"charge_now"`` or ``"energy_now"``;
-
-    - ``PN``: either ``"current_now"`` or ``"power_now"``.
-
-* ``est_rem_time(props)``
-
-    Estimates the time in hours remaining to full charge/discharge. ``props`` is a table with
-    following keys (assuming ``S`` is a table returned by ``get_props_naming_scheme()``):
-
-    * ``"status"``;
-
-    * ``S.EF``;
-
-    * ``S.EN``;
-
-    * ``S.PN``.
 
 * ``widget(tbl)``
 
@@ -88,43 +35,44 @@ The following functions are provided:
             A string with battery status text, e.g. ``"Full"``, ``"Unknown"``, ``"Charging"``,
             ``"Discharging"``.
 
-            Not present if the status cannot be read.
+            Not present if the status cannot be read (for example, when the battery is missing).
 
-        + ``capacity``: string
+        + ``capacity``: number
 
-            A string representing battery capacity percent.
+            A percentage representing battery capacity.
 
             Not present if the capacity cannot be read.
 
         + ``rem_time``: number
 
-            If applicable, time (usually in hours) remaining to full charge/discharge.
+            Time (in hours) remaining to full charge/discharge.
 
-            (Only present if the ``est_rem_time`` option was set to ``true``.)
+            Usually only present on battery charge/discharge.
+
+        + ``consumption``: number
+
+            The current battery consumption/charge rate in watts.
+
+            Usually only present on battery charge/discharge.
 
     **(optional)**
 
     - ``dev``: string
 
-        Device directory name; default is ``"BAT0"``.
+        Device directory name under ``/sys/class/power_supply``; default is ``"BAT0"``.
 
-    - ``no_uevent``: boolean
+    - ``period``: number
 
-        If ``true``, data will be read from individual property files, not from the ``uevent``
-        file.
+        The period in seconds for polling ``sysfs``; default is 2 seconds.
 
-    - ``props_naming_scheme``: boolean
+        Because this plugin utilizes ``udev`` under the hood, it is able to respond to
+        battery state changes (such as cable (un-)plugging) immediately, irrespective of
+        the value of the period.
 
-        If present, ``use_props_naming_scheme`` will be called with it before anything else is done.
+    - ``use_energy_full_design``: boolean
 
-    - ``est_rem_time``: boolean
-
-        If ``true``, time remaining to full charge/discharge will be estimated and passed to
-        ``cb`` as ``rem_time`` table entry.
-
-    - ``timer_opts``: table
-
-        Options for the underlying ``timer`` plugin.
+        If ``true``, the ``energy_full_design`` property (not ``energy_full``) will be used for
+        capacity calculation.
 
     - ``event``
 

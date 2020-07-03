@@ -1,3 +1,22 @@
+/*
+ * Copyright (C) 2015-2020  luastatus developers
+ *
+ * This file is part of luastatus.
+ *
+ * luastatus is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * luastatus is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include "connect.h"
 
 #include <stddef.h>
@@ -14,32 +33,33 @@
 #include "libls/cstring_utils.h"
 #include "libls/osdep.h"
 
-int
-unixdom_open(LuastatusPluginData *pd, const char *path)
+int unixdom_open(LuastatusPluginData *pd, const char *path)
 {
-    struct sockaddr_un saun;
-    const size_t npath = strlen(path);
+    int fd = -1;
+
+    struct sockaddr_un saun = {.sun_family = AF_UNIX};
+    size_t npath = strlen(path);
     if (npath + 1 > sizeof(saun.sun_path)) {
         LS_ERRF(pd, "socket path is too long: %s", path);
-        return -1;
+        goto error;
     }
-    saun.sun_family = AF_UNIX;
     memcpy(saun.sun_path, path, npath + 1);
-    int fd = ls_cloexec_socket(PF_UNIX, SOCK_STREAM, 0);
+    fd = ls_cloexec_socket(PF_UNIX, SOCK_STREAM, 0);
     if (fd < 0) {
         LS_ERRF(pd, "socket: %s", ls_strerror_onstack(errno));
-        return -1;
+        goto error;
     }
-    if (connect(fd, (const struct sockaddr *) &saun, sizeof(saun)) < 0) {
+    if (connect(fd, (struct sockaddr *) &saun, sizeof(saun)) < 0) {
         LS_ERRF(pd, "connect: %s: %s", path, ls_strerror_onstack(errno));
-        close(fd);
-        return -1;
+        goto error;
     }
     return fd;
+error:
+    close(fd);
+    return -1;
 }
 
-int
-inetdom_open(LuastatusPluginData *pd, const char *hostname, const char *service)
+int inetdom_open(LuastatusPluginData *pd, const char *hostname, const char *service)
 {
     struct addrinfo *ai = NULL;
     int fd = -1;
@@ -63,7 +83,8 @@ inetdom_open(LuastatusPluginData *pd, const char *hostname, const char *service)
     }
 
     for (struct addrinfo *pai = ai; pai; pai = pai->ai_next) {
-        if ((fd = ls_cloexec_socket(pai->ai_family, pai->ai_socktype, pai->ai_protocol)) < 0) {
+        fd = ls_cloexec_socket(pai->ai_family, pai->ai_socktype, pai->ai_protocol);
+        if (fd < 0) {
             LS_WARNF(pd, "(candiate) socket: %s", ls_strerror_onstack(errno));
             continue;
         }

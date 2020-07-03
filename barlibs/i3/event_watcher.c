@@ -1,3 +1,22 @@
+/*
+ * Copyright (C) 2015-2020  luastatus developers
+ *
+ * This file is part of luastatus.
+ *
+ * luastatus is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * luastatus is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include "event_watcher.h"
 
 #include <stdbool.h>
@@ -18,9 +37,9 @@
 
 #include "priv.h"
 
-// If this is to be incremented, /lua_checkstack()/ must be called in appropriate times, and the
-// depth of recursion in /push_object()/ potentially be limited in some way.
-static const int DEPTH_LIMIT = 10;
+// If this is to be incremented, /lua_checkstack()/ must be called at appropriate times, and the
+// depth of the recursion in /push_object()/ be potentially limited somehow.
+enum { DEPTH_LIMIT = 10 };
 
 typedef struct {
     enum {
@@ -54,7 +73,7 @@ typedef struct {
     // An array in which all the JSON strings, including keys, are stored.
     LSStringArray strarr;
 
-    // Current event's parameters as key-value pairs.
+    // A flat list of current event's tokens.
     LS_VECTOR_OF(Token) tokens;
 
     // Current event's widget index, or a negative value if is not known yet or invalid.
@@ -67,16 +86,14 @@ typedef struct {
 // Converts a JSON object that starts at the token with index /*index/ in /ctx->tokens/, to a Lua
 // object, and pushes it onto /L/'s stack.
 // Advances /*index/ so that it points to one token past the last token of the object.
-static
-void
-push_object(lua_State *L, Context *ctx, size_t *index)
+static void push_object(lua_State *L, Context *ctx, size_t *index)
 {
     Token t = ctx->tokens.data[*index];
     switch (t.type) {
     case TYPE_ARRAY_START:
         lua_newtable(L); // L: table
         ++*index;
-        for (int n = 1; ctx->tokens.data[*index].type != TYPE_ARRAY_END; ++n) {
+        for (unsigned n = 1; ctx->tokens.data[*index].type != TYPE_ARRAY_END; ++n) {
             push_object(L, ctx, index); // L: table elem
             lua_rawseti(L, -2, n); // L: table
         }
@@ -87,13 +104,20 @@ push_object(lua_State *L, Context *ctx, size_t *index)
         while (ctx->tokens.data[*index].type != TYPE_MAP_END) {
             Token key = ctx->tokens.data[*index];
             assert(key.type == TYPE_STRING_KEY);
-            size_t ns;
-            const char *s = ls_strarr_at(ctx->strarr, key.as.str_idx, &ns);
-            lua_pushlstring(L, s, ns); // L: table key
+
+            // To limit the maximum number of slots pushed onto /L/'s stack to /N + O(1)/, where /N/
+            // is the maximum /ctx->depth/ encountered, we have to push the value first.
+            // Unfortunately, /lua_settable()/ expects the key to be pushed first. So we simply swap
+            // them with /lua_insert()/.
 
             ++*index;
-            push_object(L, ctx, index); // L: table key value
+            push_object(L, ctx, index); // L: table value
 
+            size_t ns;
+            const char *s = ls_strarr_at(ctx->strarr, key.as.str_idx, &ns);
+            lua_pushlstring(L, s, ns); // L: table value key
+
+            lua_insert(L, -2); // L: table key value
             lua_settable(L, -3); // L: table
         }
         break;
@@ -120,9 +144,7 @@ push_object(lua_State *L, Context *ctx, size_t *index)
     ++*index;
 }
 
-static
-void
-flush(Context *ctx)
+static void flush(Context *ctx)
 {
     Priv *p = ctx->bd->priv;
 
@@ -141,26 +163,19 @@ flush(Context *ctx)
     ctx->widget = -1;
 }
 
-static
-int
-token_helper(Context *ctx, Token token)
+static int token_helper(Context *ctx, Token token)
 {
-    switch (ctx->depth) {
-    case -1:
+    if (ctx->depth == -1) {
         if (token.type != TYPE_ARRAY_START) {
             LS_ERRF(ctx->bd, "(event watcher) expected '['");
             return 0;
         }
         ++ctx->depth;
-        break;
-
-    case 0:
-        if (token.type != TYPE_MAP_START) {
+    } else {
+        if (ctx->depth == 0 && token.type != TYPE_MAP_START) {
             LS_ERRF(ctx->bd, "(event watcher) expected '{'");
             return 0;
         }
-        /* fall thru */
-    default:
         LS_VECTOR_PUSH(ctx->tokens, token);
         switch (token.type) {
         case TYPE_ARRAY_START:
@@ -181,51 +196,37 @@ token_helper(Context *ctx, Token token)
         default:
             break;
         }
-        break;
     }
-
     return 1;
 }
 
-static inline
-size_t
-append_to_strarr(Context *ctx, const char *buf, size_t nbuf)
+static inline size_t append_to_strarr(Context *ctx, const char *buf, size_t nbuf)
 {
     ls_strarr_append(&ctx->strarr, buf, nbuf);
     return ls_strarr_size(ctx->strarr) - 1;
 }
 
-static
-int
-callback_null(void *vctx)
+static int callback_null(void *vctx)
 {
     return token_helper(vctx, (Token) {TYPE_NULL, {0}});
 }
 
-static
-int
-callback_boolean(void *vctx, int value)
+static int callback_boolean(void *vctx, int value)
 {
     return token_helper(vctx, (Token) {TYPE_BOOL, {.flag = value}});
 }
 
-static
-int
-callback_integer(void *vctx, long long value)
+static int callback_integer(void *vctx, long long value)
 {
     return token_helper(vctx, (Token) {TYPE_NUMBER, {.num = value}});
 }
 
-static
-int
-callback_double(void *vctx, double value)
+static int callback_double(void *vctx, double value)
 {
     return token_helper(vctx, (Token) {TYPE_NUMBER, {.num = value}});
 }
 
-static
-int
-callback_string(void *vctx, const unsigned char *buf, size_t nbuf)
+static int callback_string(void *vctx, const unsigned char *buf, size_t nbuf)
 {
     Context *ctx = vctx;
     if (ctx->depth == 1 && ctx->last_key_is_name) {
@@ -239,16 +240,12 @@ callback_string(void *vctx, const unsigned char *buf, size_t nbuf)
     });
 }
 
-static
-int
-callback_start_map(void *vctx)
+static int callback_start_map(void *vctx)
 {
     return token_helper(vctx, (Token) {TYPE_MAP_START, {0}});
 }
 
-static
-int
-callback_map_key(void *vctx, const unsigned char *buf, size_t nbuf)
+static int callback_map_key(void *vctx, const unsigned char *buf, size_t nbuf)
 {
     Context *ctx = vctx;
     if (ctx->depth == 1) {
@@ -260,34 +257,26 @@ callback_map_key(void *vctx, const unsigned char *buf, size_t nbuf)
     });
 }
 
-static
-int
-callback_end_map(void *vctx)
+static int callback_end_map(void *vctx)
 {
     return token_helper(vctx, (Token) {TYPE_MAP_END, {0}});
 }
 
-static
-int
-callback_start_array(void *vctx)
+static int callback_start_array(void *vctx)
 {
     return token_helper(vctx, (Token) {TYPE_ARRAY_START, {0}});
 }
 
-static
-int
-callback_end_array(void *vctx)
+static int callback_end_array(void *vctx)
 {
     return token_helper(vctx, (Token) {TYPE_ARRAY_END, {0}});
 }
 
-int
-event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
+int event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
 {
     Priv *p = bd->priv;
-    if (p->noclickev) {
+    if (p->noclickev)
         return LUASTATUS_NONFATAL_ERR;
-    }
 
     Context ctx = {
         .depth = -1,
@@ -298,22 +287,19 @@ event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
         .bd = bd,
         .funcs = funcs,
     };
-    yajl_handle hand = yajl_alloc(
-        &(yajl_callbacks) {
-            .yajl_null        = callback_null,
-            .yajl_boolean     = callback_boolean,
-            .yajl_integer     = callback_integer,
-            .yajl_double      = callback_double,
-            .yajl_number      = NULL,
-            .yajl_string      = callback_string,
-            .yajl_start_map   = callback_start_map,
-            .yajl_map_key     = callback_map_key,
-            .yajl_end_map     = callback_end_map,
-            .yajl_start_array = callback_start_array,
-            .yajl_end_array   = callback_end_array,
-        },
-        NULL,
-        &ctx);
+    yajl_callbacks callbacks = {
+        .yajl_null        = callback_null,
+        .yajl_boolean     = callback_boolean,
+        .yajl_integer     = callback_integer,
+        .yajl_double      = callback_double,
+        .yajl_string      = callback_string,
+        .yajl_start_map   = callback_start_map,
+        .yajl_map_key     = callback_map_key,
+        .yajl_end_map     = callback_end_map,
+        .yajl_start_array = callback_start_array,
+        .yajl_end_array   = callback_end_array,
+    };
+    yajl_handle hand = yajl_alloc(&callbacks, NULL, &ctx);
 
     unsigned char buf[1024];
     while (1) {

@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/shdown/luastatus.svg?branch=master)](https://travis-ci.org/shdown/luastatus)
+[![Gitter](https://badges.gitter.im/luastatus/community.svg)](https://gitter.im/luastatus/community)
 
 **luastatus** is a universal status bar content generator. It allows you to configure the way the
 data from event sources is processed and shown, with Lua.
@@ -172,7 +173,7 @@ Supported Lua versions
 
 Reporting bugs, requesting features, suggesting patches
 ===
-Feel free to open an issue or a pull request.
+Feel free to open an issue or a pull request. You can also chat on [our Gitter chat room](https://gitter.im/luastatus/community).
 
 Migrating from older versions
 ===
@@ -182,3 +183,8 @@ Acknowledgements
 ===
 * I would like to thank [wm4](https://github.com/wm4) for developing [mpv](https://mpv.io), which,
   also being a “platform” for running Lua scripts, served as an inspiration for this project.
+
+Donate
+===
+
+You can [donate to our collective on Open Collective](https://opencollective.com/luastatus/donate).

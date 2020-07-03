@@ -20,6 +20,11 @@ The following options are supported:
 
     For each of these paths, an information on usage of the file system it belongs to is returned.
 
+* ``globs``: array of strings
+
+    Same as ``paths`` but accepts glob patterns. It is not an error if the pattern expands to
+    nothing. Useful for monitoring filesystems which are mounted at runtime.
+
 * ``period``: number
 
     A number of seconds to sleep before calling ``cb`` again. May be fractional. Defaults to 10.

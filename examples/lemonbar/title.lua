@@ -8,6 +8,6 @@ widget = {
         t = t or ''
         t = (utf8.len(t) < 100) and t or (utf8.sub(t, 1, 97) .. '...')
         t = luastatus.barlib.escape(t)
-        return '%{c}' .. colorize(t, '#ffe') .. '%{r}'
+        return '%{c}' .. lib.colorize(t, '#ffe') .. '%{r}'
     end,
 }

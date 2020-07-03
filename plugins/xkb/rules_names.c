@@ -1,65 +1,111 @@
+/*
+ * Copyright (C) 2015-2020  luastatus developers
+ *
+ * This file is part of luastatus.
+ *
+ * luastatus is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * luastatus is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include "rules_names.h"
 
 #include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <X11/X.h>
 #include <X11/Xatom.h>
 
-#include "libls/algo.h"
+#include "libls/alloc_utils.h"
 
 static const char *NAMES_PROP_ATOM = "_XKB_RULES_NAMES";
-static const long NAMES_PROP_MAXLEN = 1024;
 
-bool
-rules_names_load(Display *dpy, RulesNames *out)
+static char *dup_and_advance(const char **pcur, const char *end)
 {
-    *out = (RulesNames) {.data_ = NULL};
+    const char *cur = *pcur;
+    if (cur == end)
+        return NULL;
 
-    Atom rules_atom = XInternAtom(dpy, NAMES_PROP_ATOM, True);
-    if (rules_atom == None) {
-        goto error;
-    }
-    Atom actual_type;
-    int fmt;
-    unsigned long ndata, bytes_after;
-    if (XGetWindowProperty(dpy, DefaultRootWindow(dpy), rules_atom, 0L, NAMES_PROP_MAXLEN,
-                           False, XA_STRING, &actual_type, &fmt, &ndata, &bytes_after, &out->data_)
-        != Success)
-    {
-        goto error;
-    }
-    if (bytes_after || actual_type != XA_STRING || fmt != 8) {
-        goto error;
-    }
-
-    const char *ptr = (const char *) out->data_;
-    const char *const end = ptr + ndata;
-
-    const char **table[] = {
-        &out->rules,
-        &out->model,
-        &out->layout,
-        &out->options,
-    };
-    for (size_t i = 0;
-         i < LS_ARRAY_SIZE(table) && ptr != end;
-         ++i, ptr += strlen(ptr) + 1)
-    {
-        *table[i] = ptr;
-    }
-
-    return true;
-
-error:
-    rules_names_destroy(out);
-    return false;
+    size_t n = strlen(cur);
+    *pcur += n + 1;
+    return ls_xmemdup(cur, n + 1);
 }
 
-void
-rules_names_destroy(RulesNames *rn)
+bool rules_names_load(Display *dpy, RulesNames *out)
 {
-    if (rn->data_) {
-        XFree(rn->data_);
+    bool ret = false;
+    unsigned char *data = NULL;
+
+    Atom rules_atom = XInternAtom(dpy, NAMES_PROP_ATOM, True);
+    if (rules_atom == None)
+        goto done;
+
+    unsigned long ndata;
+    long maxlen = 1024;
+    for (;;) {
+        Atom actual_type;
+        int fmt;
+        unsigned long bytes_after;
+        if (XGetWindowProperty(
+                    dpy,
+                    DefaultRootWindow(dpy),
+                    rules_atom,
+                    0L,
+                    maxlen,
+                    False,
+                    XA_STRING,
+                    &actual_type,
+                    &fmt,
+                    &ndata,
+                    &bytes_after,
+                    &data)
+                != Success)
+        {
+            data = NULL;
+            goto done;
+        }
+        if (actual_type != XA_STRING)
+            goto done;
+        if (fmt != 8)
+            goto done;
+
+        if (!bytes_after)
+            break;
+
+        if (maxlen > LONG_MAX / 2)
+            goto done;
+        maxlen *= 2;
     }
+
+    const char *cur = (const char *) data;
+    const char *end = cur + ndata;
+
+    out->rules = dup_and_advance(&cur, end);
+    out->model = dup_and_advance(&cur, end);
+    out->layout = dup_and_advance(&cur, end);
+    out->options = dup_and_advance(&cur, end);
+
+    ret = true;
+done:
+    if (data)
+        XFree(data);
+    return ret;
+}
+
+void rules_names_free(RulesNames rn)
+{
+    free(rn.rules);
+    free(rn.model);
+    free(rn.layout);
+    free(rn.options);
 }

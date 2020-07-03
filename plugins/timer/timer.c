@@ -1,132 +1,112 @@
-#include <errno.h>
+/*
+ * Copyright (C) 2015-2020  luastatus developers
+ *
+ * This file is part of luastatus.
+ *
+ * luastatus is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * luastatus is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include <lua.h>
+#include <errno.h>
 #include <stdlib.h>
-#include <time.h>
-#include <pthread.h>
+#include <unistd.h>
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
-#include "include/plugin_utils.h"
+
+#include "libmoonvisit/moonvisit.h"
 
 #include "libls/alloc_utils.h"
-#include "libls/panic.h"
-#include "libls/lua_utils.h"
-#include "libls/time_utils.h"
 #include "libls/cstring_utils.h"
-#include "libls/wakeup_fifo.h"
+#include "libls/poll_utils.h"
+#include "libls/evloop_lfuncs.h"
 
 typedef struct {
-    struct timespec period;
+    double period;
     char *fifo;
-
-    struct timespec pushed_period;
-    pthread_spinlock_t push_lock;
+    LSPushedTimeout pushed_tmo;
 } Priv;
 
-static
-void
-destroy(LuastatusPluginData *pd)
+static void destroy(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
     free(p->fifo);
-    pthread_spin_destroy(&p->push_lock);
+    ls_pushed_timeout_destroy(&p->pushed_tmo);
     free(p);
 }
 
-static
-int
-init(LuastatusPluginData *pd, lua_State *L)
+static int init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
-        .period = (struct timespec) {1, 0},
+        .period = 1.0,
         .fifo = NULL,
-        .pushed_period = ls_timespec_invalid,
     };
+    ls_pushed_timeout_init(&p->pushed_tmo);
 
-    if (pthread_spin_init(&p->push_lock, PTHREAD_PROCESS_PRIVATE) != 0) {
-        LS_PANIC("pthread_spin_init() failed, which is impossible");
+    char errbuf[256];
+    MoonVisit mv = {.L = L, .errbuf = errbuf, .nerrbuf = sizeof(errbuf)};
+
+    // Parse period
+    if (moon_visit_num(&mv, -1, "period", &p->period, true) < 0)
+        goto mverror;
+    if (p->period < 0) {
+        LS_FATALF(pd, "period is invalid");
+        goto error;
     }
 
-    PU_MAYBE_VISIT_NUM("period", NULL, n,
-        if (ls_timespec_is_invalid(p->period = ls_timespec_from_seconds(n))) {
-            LS_FATALF(pd, "invalid 'period' value");
-            goto error;
-        }
-    );
-
-    PU_MAYBE_VISIT_STR("fifo", NULL, s,
-        p->fifo = ls_xstrdup(s);
-    );
+    // Parse fifo
+    if (moon_visit_str(&mv, -1, "fifo", &p->fifo, NULL, true) < 0)
+        goto mverror;
 
     return LUASTATUS_OK;
 
+mverror:
+    LS_FATALF(pd, "%s", errbuf);
 error:
     destroy(pd);
     return LUASTATUS_ERR;
 }
 
-static
-int
-l_push_period(lua_State *L)
+static void register_funcs(LuastatusPluginData *pd, lua_State *L)
 {
-    LuastatusPluginData *pd = lua_touserdata(L, lua_upvalueindex(1));
     Priv *p = pd->priv;
-
-    struct timespec period = ls_timespec_from_seconds(luaL_checknumber(L, 1));
-    if (ls_timespec_is_invalid(period)) {
-        return luaL_error(L, "invalid period");
-    }
-
-    pthread_spin_lock(&p->push_lock);
-    p->pushed_period = period;
-    pthread_spin_unlock(&p->push_lock);
-
-    return 0;
-}
-
-static
-void
-register_funcs(LuastatusPluginData *pd, lua_State *L)
-{
     // L: table
-    lua_pushlightuserdata(L, pd); // L: table pd
-    lua_pushcclosure(L, l_push_period, 1); // L: table pd l_push_period
-    ls_lua_rawsetf(L, "push_period"); // L: table
+    ls_pushed_timeout_push_luafunc(&p->pushed_tmo, L); // L: table func
+    lua_setfield(L, -2, "push_period"); // L: table
 }
 
-static
-void
-run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
+static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
 
-    LSWakeupFifo w;
-    ls_wakeup_fifo_init(&w, p->fifo, ls_timespec_invalid, NULL);
+    int fifo_fd = -1;
 
     const char *what = "hello";
 
     while (1) {
-        // make a call
         lua_State *L = funcs.call_begin(pd->userdata);
         lua_pushstring(L, what);
         funcs.call_end(pd->userdata);
-        // set timeout
-        pthread_spin_lock(&p->push_lock);
-        if (ls_timespec_is_invalid(p->pushed_period)) {
-            w.timeout = p->period;
-        } else {
-            w.timeout = p->pushed_period;
-            p->pushed_period = ls_timespec_invalid;
+
+        if (ls_fifo_open(&fifo_fd, p->fifo) < 0) {
+            LS_WARNF(pd, "ls_fifo_open: %s: %s", p->fifo, LS_FIFO_STRERROR_ONSTACK(errno));
         }
-        pthread_spin_unlock(&p->push_lock);
-        // wait
-        if (ls_wakeup_fifo_open(&w) < 0) {
-            LS_WARNF(pd, "ls_wakeup_fifo_open: %s: %s", p->fifo, ls_strerror_onstack(errno));
-        }
-        int r = ls_wakeup_fifo_wait(&w);
+        double tmo = ls_pushed_timeout_fetch(&p->pushed_tmo, p->period);
+        int r = ls_fifo_wait(&fifo_fd, tmo);
         if (r < 0) {
-            LS_FATALF(pd, "ls_wakeup_fifo_wait: %s", ls_strerror_onstack(errno));
+            LS_FATALF(pd, "ls_fifo_wait: %s", ls_strerror_onstack(errno));
             goto error;
         } else if (r == 0) {
             what = "timeout";
@@ -136,7 +116,7 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     }
 
 error:
-    ls_wakeup_fifo_destroy(&w);
+    close(fifo_fd);
 }
 
 LuastatusPluginIface luastatus_plugin_iface_v1 = {

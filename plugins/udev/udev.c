@@ -1,20 +1,37 @@
-#include <sys/select.h>
-#include <errno.h>
-#include <signal.h>
-#include <stdbool.h>
+/*
+ * Copyright (C) 2015-2020  luastatus developers
+ *
+ * This file is part of luastatus.
+ *
+ * luastatus is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * luastatus is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include <lua.h>
+#include <errno.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <libudev.h>
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
-#include "include/plugin_utils.h"
+
+#include "libmoonvisit/moonvisit.h"
 
 #include "libls/alloc_utils.h"
-#include "libls/time_utils.h"
 #include "libls/cstring_utils.h"
-#include "libls/wakeup_fifo.h"
-#include "libls/sig_utils.h"
+#include "libls/poll_utils.h"
+#include "libls/evloop_lfuncs.h"
 
 typedef struct {
     char *subsystem;
@@ -22,23 +39,21 @@ typedef struct {
     char *tag;
     bool kernel_ev;
     bool greet;
-    struct timespec timeout;
+    double tmo;
+    LSPushedTimeout pushed_tmo;
 } Priv;
 
-static
-void
-destroy(LuastatusPluginData *pd)
+static void destroy(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
     free(p->subsystem);
     free(p->devtype);
     free(p->tag);
+    ls_pushed_timeout_destroy(&p->pushed_tmo);
     free(p);
 }
 
-static
-int
-init(LuastatusPluginData *pd, lua_State *L)
+static int init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
@@ -47,46 +62,58 @@ init(LuastatusPluginData *pd, lua_State *L)
         .tag = NULL,
         .kernel_ev = false,
         .greet = false,
-        .timeout = ls_timespec_invalid,
+        .tmo = -1,
     };
+    ls_pushed_timeout_init(&p->pushed_tmo);
 
-    PU_MAYBE_VISIT_STR("subsystem", NULL, s,
-        p->subsystem = ls_xstrdup(s);
-    );
+    char errbuf[256];
+    MoonVisit mv = {.L = L, .errbuf = errbuf, .nerrbuf = sizeof(errbuf)};
 
-    PU_MAYBE_VISIT_STR("devtype", NULL, s,
-        p->devtype = ls_xstrdup(s);
-    );
+    // Parse subsystem
+    if (moon_visit_str(&mv, -1, "subsystem", &p->subsystem, NULL, true) < 0)
+        goto mverror;
 
-    PU_MAYBE_VISIT_STR("tag", NULL, s,
-        p->tag = ls_xstrdup(s);
-    );
+    // Parse devtype
+    if (moon_visit_str(&mv, -1, "devtype", &p->devtype, NULL, true) < 0)
+        goto mverror;
 
-    PU_MAYBE_VISIT_BOOL("kernel_events", NULL, b,
-        p->kernel_ev = b;
-    );
+    // Parse tag
+    if (moon_visit_str(&mv, -1, "tag", &p->tag, NULL, true) < 0)
+        goto mverror;
 
-    PU_MAYBE_VISIT_NUM("timeout", NULL, n,
-        if (n >= 0 && ls_timespec_is_invalid(p->timeout = ls_timespec_from_seconds(n))) {
-            LS_FATALF(pd, "invalid 'timeout' value");
-            goto error;
-        }
-    );
+    // Parse kernel_events
+    if (moon_visit_bool(&mv, -1, "kernel_events", &p->kernel_ev, true) < 0)
+        goto mverror;
 
-    PU_MAYBE_VISIT_BOOL("greet", NULL, b,
-        p->greet = b;
-    );
+    // Parse timeout
+    if (moon_visit_num(&mv, -1, "timeout", &p->tmo, true) < 0)
+        goto mverror;
+
+    // Parse greet
+    if (moon_visit_bool(&mv, -1, "greet", &p->greet, true) < 0)
+        goto mverror;
 
     return LUASTATUS_OK;
 
-error:
+mverror:
+    LS_FATALF(pd, "%s", errbuf);
+//error:
     destroy(pd);
     return LUASTATUS_ERR;
 }
 
-static inline
-void
-report_status(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, const char *status)
+static void register_funcs(LuastatusPluginData *pd, lua_State *L)
+{
+    Priv *p = pd->priv;
+    // L: table
+    ls_pushed_timeout_push_luafunc(&p->pushed_tmo, L); // L: table func
+    lua_setfield(L, -2, "push_timeout"); // L: table
+}
+
+static inline void report_status(
+        LuastatusPluginData *pd,
+        LuastatusPluginRunFuncs funcs,
+        const char *status)
 {
     lua_State *L = funcs.call_begin(pd->userdata);
     lua_createtable(L, 0, 1); // L: table
@@ -95,44 +122,47 @@ report_status(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, const char
     funcs.call_end(pd->userdata);
 }
 
-static
-void
-report_event(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, struct udev_device *dev)
+static void report_event(
+        LuastatusPluginData *pd,
+        LuastatusPluginRunFuncs funcs,
+        struct udev_device *dev)
 {
+    typedef struct {
+        const char *key;
+        const char * (*func)(struct udev_device *);
+    } Property;
+
+    static const Property proplist[] = {
+        {"syspath", udev_device_get_syspath},
+        {"sysname", udev_device_get_sysname},
+        {"sysnum", udev_device_get_sysnum},
+        {"devpath", udev_device_get_devpath},
+        {"devnode", udev_device_get_devnode},
+        {"devtype", udev_device_get_devtype},
+        {"subsystem", udev_device_get_subsystem},
+        {"driver", udev_device_get_driver},
+        {"action", udev_device_get_action},
+        {0},
+    };
+
     lua_State *L = funcs.call_begin(pd->userdata);
     lua_createtable(L, 0, 4); // L: table
 
     lua_pushstring(L, "event"); // L: table string
     lua_setfield(L, -2, "what"); // L: table
 
-#define PROP(Key_, Func_) \
-    do { \
-        /* L: table */ \
-        const char *r_ = Func_(dev); \
-        if (r_) { \
-            lua_pushstring(L, r_);     /* L: table string */ \
-            lua_setfield(L, -2, Key_); /* L: table */ \
-        } \
-    } while (0)
-
-    PROP("syspath", udev_device_get_syspath);
-    PROP("sysname", udev_device_get_sysname);
-    PROP("sysnum", udev_device_get_sysnum);
-    PROP("devpath", udev_device_get_devpath);
-    PROP("devnode", udev_device_get_devnode);
-    PROP("devtype", udev_device_get_devtype);
-    PROP("subsystem", udev_device_get_subsystem);
-    PROP("driver", udev_device_get_driver);
-    PROP("action", udev_device_get_action);
-
-#undef PROP
+    for (const Property *p = proplist; p->key; ++p) {
+        const char *val = p->func(dev);
+        if (val) {
+            lua_pushstring(L, val); // L: table value
+            lua_setfield(L, -2, p->key); // L: table
+        }
+    }
 
     funcs.call_end(pd->userdata);
 }
 
-static
-void
-run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
+static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
 
@@ -147,26 +177,18 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     udev_monitor_filter_add_match_subsystem_devtype(mon, p->subsystem, p->devtype);
     udev_monitor_filter_add_match_tag(mon, p->tag);
     udev_monitor_enable_receiving(mon);
-    const int fd = udev_monitor_get_fd(mon);
-
-    const struct timespec *ptimeout = ls_timespec_is_invalid(p->timeout) ? NULL : &p->timeout;
-
-    fd_set fds;
-    FD_ZERO(&fds);
-
-    sigset_t allsigs;
-    ls_xsigfillset(&allsigs);
+    int fd = udev_monitor_get_fd(mon);
 
     if (p->greet) {
         report_status(pd, funcs, "hello");
     }
 
     while (1) {
-        FD_SET(fd, &fds);
-        const int r = pselect(fd + 1, &fds, NULL, NULL, ptimeout, &allsigs);
+        double tmo = ls_pushed_timeout_fetch(&p->pushed_tmo, p->tmo);
+        int r = ls_wait_input_on_fd(fd, tmo);
         if (r < 0) {
-            LS_FATALF(pd, "pselect: %s", ls_strerror_onstack(errno));
-            break;
+            LS_FATALF(pd, "ls_wait_input_on_fd: %s", ls_strerror_onstack(errno));
+            goto error;
         } else if (r == 0) {
             report_status(pd, funcs, "timeout");
         } else {
@@ -179,12 +201,13 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
             udev_device_unref(dev);
         }
     }
-
+error:
     udev_unref(udev);
 }
 
 LuastatusPluginIface luastatus_plugin_iface_v1 = {
     .init = init,
+    .register_funcs = register_funcs,
     .run = run,
     .destroy = destroy,
 };

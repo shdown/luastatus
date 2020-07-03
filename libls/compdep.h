@@ -1,3 +1,22 @@
+/*
+ * Copyright (C) 2015-2020  luastatus developers
+ *
+ * This file is part of luastatus.
+ *
+ * luastatus is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * luastatus is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #ifndef ls_compdep_h_
 #define ls_compdep_h_
 
@@ -17,7 +36,7 @@
 #   define LS_ATTR_NORETURN         __attribute__((noreturn))
 #else
 #   define LS_ATTR_UNUSED           /*nothing*/
-#   define LS_ATTR_PRINTF           /*nothing*/
+#   define LS_ATTR_PRINTF(N_, M_)   /*nothing*/
 #   define LS_ATTR_NORETURN         /*nothing*/
 #endif
 

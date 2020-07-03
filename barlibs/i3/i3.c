@@ -1,6 +1,24 @@
+/*
+ * Copyright (C) 2015-2020  luastatus developers
+ *
+ * This file is part of luastatus.
+ *
+ * luastatus is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * luastatus is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include <string.h>
 #include <stdbool.h>
-#include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
@@ -18,32 +36,25 @@
 #include "libls/cstring_utils.h"
 #include "libls/io_utils.h"
 #include "libls/osdep.h"
-#include "libls/lua_utils.h"
 
 #include "priv.h"
 #include "generator_utils.h"
 #include "event_watcher.h"
 
-static
-void
-destroy(LuastatusBarlibData *bd)
+static void destroy(LuastatusBarlibData *bd)
 {
     Priv *p = bd->priv;
-    for (size_t i = 0; i < p->nwidgets; ++i) {
+    for (size_t i = 0; i < p->nwidgets; ++i)
         LS_VECTOR_FREE(p->bufs[i]);
-    }
     free(p->bufs);
     LS_VECTOR_FREE(p->tmpbuf);
     close(p->in_fd);
-    if (p->out) {
+    if (p->out)
         fclose(p->out);
-    }
     free(p);
 }
 
-static
-int
-init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
+static int init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidgets)
 {
     Priv *p = bd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
@@ -134,9 +145,7 @@ error:
     return LUASTATUS_ERR;
 }
 
-static
-bool
-redraw(LuastatusBarlibData *bd)
+static bool redraw(LuastatusBarlibData *bd)
 {
     Priv *p = bd->priv;
 
@@ -164,9 +173,7 @@ redraw(LuastatusBarlibData *bd)
     return true;
 }
 
-static
-int
-l_pango_escape(lua_State *L)
+static int l_pango_escape(lua_State *L)
 {
     size_t ns;
     // WARNING: luaL_check*() functions do a long jump on error!
@@ -196,21 +203,17 @@ l_pango_escape(lua_State *L)
     return 1;
 }
 
-static
-void
-register_funcs(LuastatusBarlibData *bd, lua_State *L)
+static void register_funcs(LuastatusBarlibData *bd, lua_State *L)
 {
     (void) bd;
     // L: table
     lua_pushcfunction(L, l_pango_escape); // L: table l_pango_escape
-    ls_lua_rawsetf(L, "pango_escape"); // L: table
+    lua_setfield(L, -2, "pango_escape"); // L: table
 }
 
-// Appends a JSON segment generated from table at position /table_pos/ on /L/'s stack, to
+// Appends a JSON segment generated from table at the top of /L/'s stack, to
 // /((Priv *) bd->priv)->tmpbuf/.
-static
-bool
-append_segment(LuastatusBarlibData *bd, lua_State *L, int table_pos, size_t widget_idx)
+static bool append_segment(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
 {
     Priv *p = bd->priv;
     LSString *s = &p->tmpbuf;
@@ -221,49 +224,69 @@ append_segment(LuastatusBarlibData *bd, lua_State *L, int table_pos, size_t widg
     }
     ls_string_append_f(s, "{\"name\":\"%zu\"", widget_idx);
 
-    // traverse the table
-    bool separator_key_found = false;
-    LS_LUA_TRAVERSE(L, table_pos) {
-        if (!lua_isstring(L, LS_LUA_KEY)) {
+    bool has_separator_key = false;
+    // L: ? table
+    lua_pushnil(L); // L: ? table nil
+    while (lua_next(L, -2)) {
+        // L: ? table key value
+        if (!lua_isstring(L, -2)) {
             LS_ERRF(bd, "segment key: expected string, found %s", luaL_typename(L, -2));
             return false;
         }
-        const char *key = lua_tostring(L, LS_LUA_KEY);
+        const char *key = lua_tostring(L, -2);
+
         if (strcmp(key, "name") == 0) {
             LS_WARNF(bd, "segment: ignoring 'name', it is set automatically; use 'instance' "
                          "instead");
-            continue;
-        } else if (strcmp(key, "separator") == 0) {
-            separator_key_found = true;
+            goto next_entry;
         }
+
+        if (strcmp(key, "separator") == 0) {
+            has_separator_key = true;
+        }
+
         ls_string_append_c(s, ',');
         append_json_escaped_s(s, key);
         ls_string_append_c(s, ':');
-        switch (lua_type(L, LS_LUA_VALUE)) {
+
+        switch (lua_type(L, -1)) {
         case LUA_TNUMBER:
-            if (!append_json_number(s, lua_tonumber(L, LS_LUA_VALUE))) {
-                LS_ERRF(bd, "segment entry '%s': invalid number (NaN/Inf)", key);
-                return false;
+            {
+                double val = lua_tonumber(L, -1);
+                if (!append_json_number(s, val)) {
+                    LS_ERRF(bd, "segment entry '%s': invalid number (NaN/Inf)", key);
+                    return false;
+                }
             }
             break;
         case LUA_TSTRING:
-            append_json_escaped_s(s, lua_tostring(L, LS_LUA_VALUE));
+            {
+                const char *val = lua_tostring(L, -1);
+                append_json_escaped_s(s, val);
+            }
             break;
         case LUA_TBOOLEAN:
-            ls_string_append_s(s, lua_toboolean(L, LS_LUA_VALUE) ? "true" : "false");
+            {
+                bool val = lua_toboolean(L, -1);
+                ls_string_append_s(s, val ? "true" : "false");
+            }
             break;
         case LUA_TNIL:
             ls_string_append_s(s, "null");
             break;
         default:
             LS_ERRF(bd, "segment entry '%s': expected string, number, boolean or nil, found %s",
-                    key, luaL_typename(L, LS_LUA_VALUE));
+                    key, luaL_typename(L, -1));
             return false;
         }
+
+next_entry:
+        lua_pop(L, 1); // L: ? table key
     }
+    // L: ? table
 
     // add an "epilogue"
-    if (p->noseps && !separator_key_found) {
+    if (p->noseps && !has_separator_key) {
         ls_string_append_s(s, ",\"separator\":false");
     }
     ls_string_append_c(s, '}');
@@ -271,29 +294,29 @@ append_segment(LuastatusBarlibData *bd, lua_State *L, int table_pos, size_t widg
     return true;
 }
 
-static
-int
-set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
+static int set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
 {
     Priv *p = bd->priv;
     LS_VECTOR_CLEAR(p->tmpbuf);
 
+    // L: ? data
+
     switch (lua_type(L, -1)) {
     case LUA_TNIL:
         break;
+
     case LUA_TTABLE:
-        // L: table
-        lua_pushnil(L); // L: table nil
+        lua_pushnil(L); // L: ? data nil
         if (lua_next(L, -2)) {
-            // table is not empty
-            // L: table key value
+            // The table is not empty.
+            // L: ? data key value
             bool is_array = lua_isnumber(L, -2);
-            lua_pop(L, 2); // L: table
             if (is_array) {
-                LS_LUA_TRAVERSE(L, -1) {
-                    switch (lua_type(L, LS_LUA_VALUE)) {
+                do {
+                    // L: ? data key value
+                    switch (lua_type(L, -1)) {
                     case LUA_TTABLE:
-                        if (!append_segment(bd, L, LS_LUA_VALUE, widget_idx)) {
+                        if (!append_segment(bd, L, widget_idx)) {
                             goto invalid_data;
                         }
                         break;
@@ -301,17 +324,23 @@ set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
                         break;
                     default:
                         LS_ERRF(bd, "array value: expected table or nil, found %s",
-                                luaL_typename(L, LS_LUA_VALUE));
+                                luaL_typename(L, -1));
                         goto invalid_data;
                     }
-                }
+                    lua_pop(L, 1); // L: ? data key
+                } while (lua_next(L, -2));
+                // L: ? data
             } else {
-                if (!append_segment(bd, L, -1, widget_idx)) {
+                lua_pop(L, 2); // L: ? data
+                if (!append_segment(bd, L, widget_idx)) {
                     goto invalid_data;
                 }
             }
-        } // else: L: table
+            // L: ? data
+        }
+        // L: ? data
         break;
+
     default:
         LS_ERRF(bd, "expected table or nil, found %s", luaL_typename(L, -1));
         goto invalid_data;
@@ -330,9 +359,7 @@ invalid_data:
     return LUASTATUS_NONFATAL_ERR;
 }
 
-static
-int
-set_error(LuastatusBarlibData *bd, size_t widget_idx)
+static int set_error(LuastatusBarlibData *bd, size_t widget_idx)
 {
     Priv *p = bd->priv;
     LSString *s = &p->bufs[widget_idx];

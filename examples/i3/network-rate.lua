@@ -29,8 +29,8 @@ local function get_block(line)
         if (delta_recv >= 0 and delta_sent >= 0) and (recv > 0 and sent > 0) then
             res = {full_text = string.format('[%s <span color="#DCA3A3">%.0fk↓</span> <span color="#72D5A3">%.0fk↑</span>]',
                 iface,
-                delta_recv / PERIOD / 1024,
-                delta_sent / PERIOD / 1024
+                delta_recv / PERIOD / 1000,
+                delta_sent / PERIOD / 1000
             ), markup = 'pango'}
         end
     end

@@ -36,5 +36,5 @@ while true; do
 done
 
 coproc ${LEMONBAR:-lemonbar} "${lemonbar_args[@]}"
-eval "exec <&${COPROC[0]} >&${COPROC[1]}"
+exec <&${COPROC[0]} >&${COPROC[1]}
 exec ${LUASTATUS:-luastatus} -b lemonbar -B in_fd=3 -B out_fd=4 "$@" 3<&0 0</dev/null 4>&1 1>&2

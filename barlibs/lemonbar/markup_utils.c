@@ -1,3 +1,22 @@
+/*
+ * Copyright (C) 2015-2020  luastatus developers
+ *
+ * This file is part of luastatus.
+ *
+ * luastatus is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * luastatus is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include "markup_utils.h"
 
 #include "libls/string_.h"
@@ -8,8 +27,7 @@
 #include <stdbool.h>
 #include <lauxlib.h>
 
-void
-push_escaped(lua_State *L, const char *s, size_t ns)
+void push_escaped(lua_State *L, const char *s, size_t ns)
 {
     // just replace all "%"s with "%%"
 
@@ -17,7 +35,7 @@ push_escaped(lua_State *L, const char *s, size_t ns)
     luaL_buffinit(L, &b);
     // we have to check /ns/ before calling /memchr/, see DOCS/c_notes/empty-ranges-and-c-stdlib.md
     for (const char *t; ns && (t = memchr(s, '%', ns));) {
-        const size_t nseg = t - s + 1;
+        size_t nseg = t - s + 1;
         luaL_addlstring(&b, s, nseg);
         luaL_addchar(&b, '%');
         ns -= nseg;
@@ -28,8 +46,7 @@ push_escaped(lua_State *L, const char *s, size_t ns)
     luaL_pushresult(&b);
 }
 
-void
-append_sanitized_b(LSString *buf, size_t widget_idx, const char *s, size_t ns)
+void append_sanitized_b(LSString *buf, size_t widget_idx, const char *s, size_t ns)
 {
     size_t prev = 0;
     bool a_tag = false;
@@ -67,11 +84,10 @@ append_sanitized_b(LSString *buf, size_t widget_idx, const char *s, size_t ns)
     ls_string_append_b(buf, s + prev, ns - prev);
 }
 
-const char *
-parse_command(const char *line, size_t nline, size_t *ncommand, size_t *widget_idx)
+const char *parse_command(const char *line, size_t nline, size_t *ncommand, size_t *widget_idx)
 {
     const char *endptr;
-    const int idx = ls_strtou_b(line, nline, &endptr);
+    int idx = ls_strtou_b(line, nline, &endptr);
     if (idx < 0 ||
         endptr == line ||
         endptr == line + nline ||

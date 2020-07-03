@@ -1,3 +1,22 @@
+--[[
+  Copyright (C) 2015-2020  luastatus developers
+
+  This file is part of luastatus.
+
+  luastatus is free software: you can redistribute it and/or modify
+  it under the terms of the GNU Lesser General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  luastatus is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU Lesser General Public License for more details.
+
+  You should have received a copy of the GNU Lesser General Public License
+  along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
+--]]
+
 local socket = require 'socket'
 local ssl = require 'ssl'
 
@@ -140,7 +159,7 @@ function P.widget(tbl)
         return get_unseen()
     end
 
-    local last_content
+    local last_content = tbl.cb(nil)
     return {
         plugin = 'timer',
         opts = {period = 0},
@@ -163,7 +182,8 @@ function P.widget(tbl)
                     log('!', obj)
                 end
                 luastatus.plugin.push_period(error_sleep_period)
-                return tbl.cb(nil)
+                last_content = tbl.cb(nil)
+                return last_content
             end
         end,
         event = tbl.event,

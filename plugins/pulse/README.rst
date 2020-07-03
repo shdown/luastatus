@@ -10,7 +10,7 @@
 
 Overview
 ========
-This plugin monitors the volume and mute status of the default PulseAudio sink.
+This plugin monitors the volume and mute status of a PulseAudio sink.
 
 Options
 =======
@@ -52,4 +52,5 @@ The following functions are provided:
 
     Forces a call to ``cb`` (with ``nil`` argument).
 
-    (Only present if the ``make_self_pipe`` option was set to ``true``.)
+    Only available if the ``make_self_pipe`` option was set to ``true``; otherwise, it throws an
+    error.

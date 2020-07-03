@@ -1,23 +1,41 @@
+/*
+ * Copyright (C) 2015-2020  luastatus developers
+ *
+ * This file is part of luastatus.
+ *
+ * luastatus is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * luastatus is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#include <lua.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 #include <xcb/xcb_event.h>
 #include <xcb/xcb_icccm.h>
 #include <xcb/xcb_ewmh.h>
 #include <errno.h>
-#include <signal.h>
-#include <sys/select.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include <lua.h>
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
-#include "include/plugin_utils.h"
+
+#include "libmoonvisit/moonvisit.h"
 
 #include "libls/alloc_utils.h"
 #include "libls/cstring_utils.h"
-#include "libls/sig_utils.h"
+#include "libls/poll_utils.h"
 
 // some parts of this file (including the name) are proudly stolen from
 // xtitle (https://github.com/baskerville/xtitle).
@@ -27,36 +45,36 @@ typedef struct {
     bool visible;
 } Priv;
 
-static
-void
-destroy(LuastatusPluginData *pd)
+static void destroy(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
     free(p->dpyname);
     free(p);
 }
 
-static
-int
-init(LuastatusPluginData *pd, lua_State *L)
+static int init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
         .dpyname = NULL,
         .visible = false,
     };
+    char errbuf[256];
+    MoonVisit mv = {.L = L, .errbuf = errbuf, .nerrbuf = sizeof(errbuf)};
 
-    PU_MAYBE_VISIT_STR("display", NULL, s,
-        p->dpyname = ls_xstrdup(s);
-    );
+    // Parse display
+    if (moon_visit_str(&mv, -1, "display", &p->dpyname, NULL, true) < 0)
+        goto mverror;
 
-    PU_MAYBE_VISIT_BOOL("visible", NULL, b,
-        p->visible = b;
-    );
+    // Parse visible
+    if (moon_visit_bool(&mv, -1, "visible", &p->visible, true) < 0)
+        goto mverror;
 
     return LUASTATUS_OK;
 
-error:
+mverror:
+    LS_FATALF(pd, "%s", errbuf);
+//error:
     destroy(pd);
     return LUASTATUS_ERR;
 }
@@ -70,32 +88,30 @@ typedef struct {
     bool visible;
 } Data;
 
-static inline
-void
-watch(Data *d, xcb_window_t win, bool state)
+static inline void watch(Data *d, xcb_window_t win, bool state)
 {
-    if (win == XCB_NONE) {
+    if (win == XCB_NONE)
         return;
-    }
     uint32_t value = state ? XCB_EVENT_MASK_PROPERTY_CHANGE : XCB_EVENT_MASK_NO_EVENT;
     xcb_change_window_attributes(d->conn, win, XCB_CW_EVENT_MASK, &value);
 }
 
-static inline
-bool
-get_active_window(Data *d, xcb_window_t *win)
+static inline bool get_active_window(Data *d, xcb_window_t *win)
 {
-    return xcb_ewmh_get_active_window_reply(
-        d->ewmh,xcb_ewmh_get_active_window(d->ewmh, d->screenp), win, NULL) == 1;
+    return
+        xcb_ewmh_get_active_window_reply(
+            d->ewmh,
+            xcb_ewmh_get_active_window(d->ewmh, d->screenp),
+            win,
+            NULL
+        ) == 1;
 }
 
-static
-bool
-push_window_title(Data *d, lua_State *L, xcb_window_t win)
+static bool push_window_title(Data *d, lua_State *L, xcb_window_t win)
 {
-    if (win == XCB_NONE) {
+    if (win == XCB_NONE)
         return false;
-    }
+
     xcb_ewmh_get_utf8_strings_reply_t ewmh_txt_prop;
     xcb_icccm_get_text_property_reply_t icccm_txt_prop;
     ewmh_txt_prop.strings = NULL;
@@ -103,7 +119,11 @@ push_window_title(Data *d, lua_State *L, xcb_window_t win)
 
     if (d->visible &&
         xcb_ewmh_get_wm_visible_name_reply(
-            d->ewmh, xcb_ewmh_get_wm_visible_name(d->ewmh, win), &ewmh_txt_prop, NULL) == 1 &&
+            d->ewmh,
+            xcb_ewmh_get_wm_visible_name(d->ewmh, win),
+            &ewmh_txt_prop,
+            NULL
+        ) == 1 &&
         ewmh_txt_prop.strings)
     {
         lua_pushlstring(L, ewmh_txt_prop.strings, ewmh_txt_prop.strings_len);
@@ -112,7 +132,11 @@ push_window_title(Data *d, lua_State *L, xcb_window_t win)
     }
 
     if (xcb_ewmh_get_wm_name_reply(
-            d->ewmh, xcb_ewmh_get_wm_name(d->ewmh, win), &ewmh_txt_prop, NULL) == 1 &&
+            d->ewmh,
+            xcb_ewmh_get_wm_name(d->ewmh, win),
+            &ewmh_txt_prop,
+            NULL
+        ) == 1 &&
         ewmh_txt_prop.strings)
     {
         lua_pushlstring(L, ewmh_txt_prop.strings, ewmh_txt_prop.strings_len);
@@ -121,7 +145,11 @@ push_window_title(Data *d, lua_State *L, xcb_window_t win)
     }
 
     if (xcb_icccm_get_wm_name_reply(
-            d->conn, xcb_icccm_get_wm_name(d->conn, win), &icccm_txt_prop, NULL) == 1 &&
+            d->conn,
+            xcb_icccm_get_wm_name(d->conn, win),
+            &icccm_txt_prop,
+            NULL
+        ) == 1 &&
         icccm_txt_prop.name)
     {
         lua_pushlstring(L, icccm_txt_prop.name, icccm_txt_prop.name_len);
@@ -132,9 +160,7 @@ push_window_title(Data *d, lua_State *L, xcb_window_t win)
     return false;
 }
 
-static
-void
-push_arg(Data *d, lua_State *L, xcb_window_t win)
+static void push_arg(Data *d, lua_State *L, xcb_window_t win)
 {
     if (!push_window_title(d, L, win)) {
         lua_pushnil(L);
@@ -142,13 +168,15 @@ push_arg(Data *d, lua_State *L, xcb_window_t win)
 }
 
 // updates /*win/ and /*last_win/ if the active window was changed
-static
-bool
-title_changed(Data *d, xcb_generic_event_t *evt, xcb_window_t *win, xcb_window_t *last_win)
+static bool title_changed(
+        Data *d,
+        xcb_generic_event_t *evt,
+        xcb_window_t *win,
+        xcb_window_t *last_win)
 {
-    if (XCB_EVENT_RESPONSE_TYPE(evt) != XCB_PROPERTY_NOTIFY) {
+    if (XCB_EVENT_RESPONSE_TYPE(evt) != XCB_PROPERTY_NOTIFY)
         return false;
-    }
+
     xcb_property_notify_event_t *pne = (xcb_property_notify_event_t *) evt;
 
     if (pne->atom == d->ewmh->_NET_ACTIVE_WINDOW) {
@@ -173,9 +201,16 @@ title_changed(Data *d, xcb_generic_event_t *evt, xcb_window_t *win, xcb_window_t
     return false;
 }
 
-static
-void
-run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
+static xcb_screen_iterator_t find_nth_screen(xcb_connection_t *conn, int n)
+{
+    const xcb_setup_t *setup = xcb_get_setup(conn);
+    xcb_screen_iterator_t iter = xcb_setup_roots_iterator(setup);
+    for (int i = 0; i < n; ++i)
+        xcb_screen_next(&iter);
+    return iter;
+}
+
+static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
 
@@ -185,37 +220,32 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         .ewmh_inited = false,
         .visible = p->visible,
     };
+    int err;
 
     // connect
-    {
-        d.conn = xcb_connect(p->dpyname, &d.screenp);
-        const int xcb_err = xcb_connection_has_error(d.conn);
-        if (xcb_err) {
-            LS_FATALF(pd, "xcb_connect(): XCB error %d", xcb_err);
-            // /xcb_disconnect/ should be called even if /xcb_connection_has_error/ returns non-zero,
-            // so we should not set /d.conn/ to /NULL/ here.
-            goto error;
-        }
+    d.conn = xcb_connect(p->dpyname, &d.screenp);
+    if ((err = xcb_connection_has_error(d.conn))) {
+        LS_FATALF(pd, "xcb_connect: XCB error %d", err);
+        // /xcb_disconnect/ should be called even if /xcb_connection_has_error/ returned non-zero,
+        // so we should not set /d.conn/ to /NULL/ here.
+        goto error;
     }
 
     // iterate over screens to find our root window
-    {
-        const xcb_setup_t *setup = xcb_get_setup(d.conn);
-        xcb_screen_iterator_t iter = xcb_setup_roots_iterator(setup);
-        for (int i = 0; i < d.screenp; ++i) {
-            xcb_screen_next(&iter);
-        }
-        d.root = iter.data->root;
-    }
+    d.root = find_nth_screen(d.conn, d.screenp).data->root;
 
     // initialize ewmh
+    if (
+        xcb_ewmh_init_atoms_replies(
+            d.ewmh,
+            xcb_ewmh_init_atoms(d.conn, d.ewmh),
+            NULL)
+        == 0)
     {
-        if (xcb_ewmh_init_atoms_replies(d.ewmh, xcb_ewmh_init_atoms(d.conn, d.ewmh), NULL) == 0) {
-            LS_FATALF(pd, "xcb_ewmh_init_atoms_replies() failed");
-            goto error;
-        }
-        d.ewmh_inited = true;
+        LS_FATALF(pd, "xcb_ewmh_init_atoms_replies() failed");
+        goto error;
     }
+    d.ewmh_inited = true;
 
     xcb_window_t win = XCB_NONE;
     xcb_window_t last_win = XCB_NONE;
@@ -231,19 +261,13 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     watch(&d, win, true);
 
     // poll for changes
-    sigset_t allsigs;
-    ls_xsigfillset(&allsigs);
 
-    fd_set fds;
-    FD_ZERO(&fds);
-
-    const int fd = xcb_get_file_descriptor(d.conn);
+    int fd = xcb_get_file_descriptor(d.conn);
     xcb_flush(d.conn);
     while (1) {
-        FD_SET(fd, &fds);
-        const int nfds = pselect(fd + 1, &fds, NULL, NULL, NULL, &allsigs);
+        int nfds = ls_wait_input_on_fd(fd, -1);
         if (nfds < 0) {
-            LS_FATALF(pd, "pselect: %s", ls_strerror_onstack(errno));
+            LS_FATALF(pd, "ls_wait_input_on_fd: %s", ls_strerror_onstack(errno));
             goto error;
         } else if (nfds > 0) {
             xcb_generic_event_t *evt;
@@ -254,10 +278,8 @@ run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
                 }
                 free(evt);
             }
-
-            const int xcb_err = xcb_connection_has_error(d.conn);
-            if (xcb_err) {
-                LS_FATALF(pd, "XCB error %d", xcb_err);
+            if ((err = xcb_connection_has_error(d.conn))) {
+                LS_FATALF(pd, "xcb_poll_for_event: XCB error %d", err);
                 goto error;
             }
         }
