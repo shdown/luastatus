@@ -1,3 +1,18 @@
+luastatus 0.5.0 (July 03, 2020)
+===
+- plugins/{inotify,udev}: support for push_timeout() function
+- plugins/backlight-linux: return 'tbl.cb(nil)' rather than 'nil'
+- plugins/imap/imap.lua: slightly fix content caching logic
+- plugins/network-linux: fix double free of 'nl_msg'
+- plugins/network-linux: fix 'signal_dbm' not updating
+- plugins/alsa/alsa.c: support for `timeout' option
+- plugins/fs: support for globbing (`globs' option)
+- plugins/battery-linux: major rewrite
+- plugins/xkb: support for monitoring LED indicators
+- plugins/xkb: report 'requery' flag
+- examples/{i3,dwm}/weather.lua: new examples
+- debain/: add Debian build scripts
+
 luastatus 0.4.0 (January 28, 2019)
 ===
 - all barlibs: double-buffer everything to avoid unneeded redraws
