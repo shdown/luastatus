@@ -1,7 +1,25 @@
-Homepage: https://github.com/shdown/luastatus
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: luastatus
+Upstream-Contact: Viktor Krapivensky <shdownnine@gmail.com>
+Source: https://github.com/shdown/luastatus
 
-Copyright (C) 2015-2020 luastatus developers.
+Files: *
+Copyright: 2015-2020, luastatus developers
+License: LGPL-3.0+
 
-Licensed under the terms of GNU LGPL.
-
-See /usr/share/common-licenses/LGPL for details.
+License: LGPL-3.0+
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU Lesser General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ .
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU Lesser General Public License for more details.
+ .
+ You should have received a copy of the GNU Lesser General Public License
+ along with this package.  If not, see <https://www.gnu.org/licenses/>.
+ .
+ On Debian systems, the full text of the GNU Lesser General Public License
+ verion 3 can be found in the file `/usr/share/common-licenses/LGPL-3'.

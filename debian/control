@@ -182,7 +182,7 @@ Description: xtitle plugin for luastatus
 Homepage: https://github.com/shdown/luastatus
 
 Package: luastatus-plugin-imap
-Architecture: any
+Architecture: all
 Depends: ${misc:Depends}, luastatus,
  lua5.2-socket,
  lua5.2-sec
