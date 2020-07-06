@@ -34,3 +34,21 @@ is called: the argument is a string, and it is `"hello"` if and only if this is 
 * The `timer` plugin supports wakeup FIFO. This might be useful if `push_period` is used in case of
 error, as a way to force an earlier re-try. The FIFO may be touched from inside the event handler,
 or from anywhere else.
+
+List of derived plugins using custom data sources
+---
+
+* imap;
+
+* pipe.
+
+List of widget examples using custom data sources
+---
+
+* btc-price;
+
+* gmail;
+
+* update-on-click;
+
+* weather.
