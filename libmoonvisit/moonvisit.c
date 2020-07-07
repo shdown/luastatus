@@ -36,6 +36,10 @@ static void oom_handler(void)
     abort();
 }
 
+// Copies zero-terminated 'src' into buffer 'dst' of size 'ndst', probably truncating, but always
+// zero-terminating the output (unless 'ndst' is 0, of course).
+//
+// Returns number of bytes written, not including terminating NUL.
 static size_t write_str(char *dst, size_t ndst, const char *src)
 {
     if (!ndst)
