@@ -32,7 +32,7 @@
 #include "libmoonvisit/moonvisit.h"
 
 #include "libls/alloc_utils.h"
-#include "libls/cstring_utils.h"
+#include "libls/tls_ebuf.h"
 #include "libls/poll_utils.h"
 #include "libls/evloop_lfuncs.h"
 #include "libls/time_utils.h"
@@ -100,7 +100,7 @@ static int init(LuastatusPluginData *pd, lua_State *L)
         goto mverror;
     if (mkpipe) {
         if (ls_self_pipe_open(p->pipefds) < 0) {
-            LS_FATALF(pd, "ls_self_pipe_open: %s", ls_strerror_onstack(errno));
+            LS_FATALF(pd, "ls_self_pipe_open: %s", ls_tls_strerror(errno));
             goto error;
         }
     }
@@ -325,7 +325,7 @@ static bool iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 
         int nfds = ls_poll(pollfds.data, pollfds.size, p->tmo);
         if (nfds < 0) {
-            LS_FATALF(pd, "poll: %s", ls_strerror_onstack(errno));
+            LS_FATALF(pd, "poll: %s", ls_tls_strerror(errno));
             goto error;
 
         } else if (nfds == 0) {

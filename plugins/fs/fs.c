@@ -34,7 +34,7 @@
 #include "libls/alloc_utils.h"
 #include "libls/strarr.h"
 #include "libls/time_utils.h"
-#include "libls/cstring_utils.h"
+#include "libls/tls_ebuf.h"
 #include "libls/poll_utils.h"
 
 typedef struct {
@@ -132,7 +132,7 @@ static bool push_for(LuastatusPluginData *pd, lua_State *L, const char *path)
 {
     struct statvfs st;
     if (statvfs(path, &st) < 0) {
-        LS_WARNF(pd, "statvfs: %s: %s", path, ls_strerror_onstack(errno));
+        LS_WARNF(pd, "statvfs: %s: %s", path, ls_tls_strerror(errno));
         return false;
     }
     lua_createtable(L, 0, 3); // L: table
@@ -181,10 +181,10 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         funcs.call_end(pd->userdata);
         // wait
         if (ls_fifo_open(&fifo_fd, p->fifo) < 0) {
-            LS_WARNF(pd, "ls_fifo_open: %s: %s", p->fifo, LS_FIFO_STRERROR_ONSTACK(errno));
+            LS_WARNF(pd, "ls_fifo_open: %s: %s", p->fifo, ls_tls_strerror(errno));
         }
         if (ls_fifo_wait(&fifo_fd, p->period) < 0) {
-            LS_FATALF(pd, "ls_fifo_wait: %s: %s", p->fifo, ls_strerror_onstack(errno));
+            LS_FATALF(pd, "ls_fifo_wait: %s: %s", p->fifo, ls_tls_strerror(errno));
             goto error;
         }
     }

@@ -31,6 +31,7 @@
 #include "libls/string_.h"
 #include "libls/vector.h"
 #include "libls/cstring_utils.h"
+#include "libls/tls_ebuf.h"
 #include "libls/parse_int.h"
 #include "libls/io_utils.h"
 #include "libls/alloc_utils.h"
@@ -113,13 +114,13 @@ static int init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidget
 
     // open
     if (!(p->out = fdopen(out_fd, "w"))) {
-        LS_FATALF(bd, "can't fdopen %d: %s", out_fd, ls_strerror_onstack(errno));
+        LS_FATALF(bd, "can't fdopen %d: %s", out_fd, ls_tls_strerror(errno));
         goto error;
     }
 
     // make CLOEXEC
     if (ls_make_cloexec(out_fd) < 0) {
-        LS_FATALF(bd, "can't make fd %d CLOEXEC: %s", out_fd, ls_strerror_onstack(errno));
+        LS_FATALF(bd, "can't make fd %d CLOEXEC: %s", out_fd, ls_tls_strerror(errno));
         goto error;
     }
 
@@ -151,7 +152,7 @@ static bool redraw(LuastatusBarlibData *bd)
     putc_unlocked('\n', out);
     fflush(out);
     if (ferror(out)) {
-        LS_FATALF(bd, "write error: %s", ls_strerror_onstack(errno));
+        LS_FATALF(bd, "write error: %s", ls_tls_strerror(errno));
         return false;
     }
     return true;

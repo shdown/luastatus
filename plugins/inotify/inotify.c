@@ -34,7 +34,7 @@
 #include "libmoonvisit/moonvisit.h"
 
 #include "libls/alloc_utils.h"
-#include "libls/cstring_utils.h"
+#include "libls/tls_ebuf.h"
 #include "libls/vector.h"
 #include "libls/poll_utils.h"
 #include "libls/evloop_lfuncs.h"
@@ -150,7 +150,7 @@ static int parse_watch_entry(MoonVisit *mv, void *ud, int kpos, int vpos)
     // Add watch
     int wd = inotify_add_watch(p->fd, path, mask);
     if (wd < 0) {
-        LS_ERRF(pd, "inotify_add_watch: %s: %s", path, ls_strerror_onstack(errno));
+        LS_ERRF(pd, "inotify_add_watch: %s: %s", path, ls_tls_strerror(errno));
     } else {
         Watch w = {.path = ls_xstrdup(path), .wd = wd};
         LS_VECTOR_PUSH(p->init_watch, w);
@@ -175,7 +175,7 @@ static int init(LuastatusPluginData *pd, lua_State *L)
     MoonVisit mv = {.L = L, .errbuf = errbuf, .nerrbuf = sizeof(errbuf)};
 
     if ((p->fd = compat_inotify_init(false, true)) < 0) {
-        LS_FATALF(pd, "inotify_init: %s", ls_strerror_onstack(errno));
+        LS_FATALF(pd, "inotify_init: %s", ls_tls_strerror(errno));
         goto error;
     }
 
@@ -224,7 +224,7 @@ static int l_add_watch(lua_State *L)
 
     int wd = inotify_add_watch(p->fd, path, mask);
     if (wd < 0) {
-        LS_ERRF(pd, "inotify_add_watch: %s: %s", path, ls_strerror_onstack(errno));
+        LS_ERRF(pd, "inotify_add_watch: %s: %s", path, ls_tls_strerror(errno));
         lua_pushnil(L);
     } else {
         lua_pushinteger(L, wd);
@@ -243,7 +243,7 @@ static int l_remove_watch(lua_State *L)
     Priv *p = pd->priv;
 
     if (inotify_rm_watch(p->fd, wd) < 0) {
-        LS_ERRF(pd, "inotify_rm_watch: %d: %s", wd, ls_strerror_onstack(errno));
+        LS_ERRF(pd, "inotify_rm_watch: %d: %s", wd, ls_tls_strerror(errno));
         lua_pushboolean(L, false);
     } else {
         lua_pushboolean(L, true);
@@ -339,7 +339,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         int nfds = ls_wait_input_on_fd(p->fd, tmo);
 
         if (nfds < 0) {
-            LS_FATALF(pd, "ls_wait_input_on_fd: %s", ls_strerror_onstack(errno));
+            LS_FATALF(pd, "ls_wait_input_on_fd: %s", ls_tls_strerror(errno));
             goto error;
 
         } else if (nfds == 0) {
@@ -355,7 +355,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
                 if (errno == EINTR) {
                     continue;
                 }
-                LS_FATALF(pd, "read: %s", ls_strerror_onstack(errno));
+                LS_FATALF(pd, "read: %s", ls_tls_strerror(errno));
                 goto error;
             } else if (r == 0) {
                 LS_FATALF(pd, "read() from the inotify file descriptor returned 0");

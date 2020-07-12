@@ -29,7 +29,7 @@
 #include "libmoonvisit/moonvisit.h"
 
 #include "libls/alloc_utils.h"
-#include "libls/cstring_utils.h"
+#include "libls/tls_ebuf.h"
 #include "libls/poll_utils.h"
 #include "libls/evloop_lfuncs.h"
 
@@ -187,7 +187,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         double tmo = ls_pushed_timeout_fetch(&p->pushed_tmo, p->tmo);
         int r = ls_wait_input_on_fd(fd, tmo);
         if (r < 0) {
-            LS_FATALF(pd, "ls_wait_input_on_fd: %s", ls_strerror_onstack(errno));
+            LS_FATALF(pd, "ls_wait_input_on_fd: %s", ls_tls_strerror(errno));
             goto error;
         } else if (r == 0) {
             report_status(pd, funcs, "timeout");

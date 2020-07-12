@@ -17,17 +17,19 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "panic.h"
+#ifndef ls_tls_ebuf_h_
+#define ls_tls_ebuf_h_
 
+#include "compdep.h"
 #include "cstring_utils.h"
 
-void ls_pth_check_impl(int ret, const char *expr, const char *file, int line)
-{
-    if (ret == 0)
-        return;
+enum { LS_TLS_EBUF_N = 512 };
 
-    char buf[512];
-    fprintf(stderr, "LS_PTH_CHECK(%s) failed at %s:%d, reason: %s\nAborting.\n",
-            expr, file, line, ls_strerror_r(ret, buf, sizeof(buf)));
-    abort();
+char *ls_tls_ebuf(void);
+
+LS_INHEADER const char *ls_tls_strerror(int errnum)
+{
+    return ls_strerror_r(errnum, ls_tls_ebuf(), LS_TLS_EBUF_N);
 }
+
+#endif

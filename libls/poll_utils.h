@@ -20,19 +20,13 @@
 #ifndef ls_poll_utils_h_
 #define ls_poll_utils_h_
 
-#include <errno.h>
 #include <poll.h>
-
-#include "cstring_utils.h"
 
 int ls_poll(struct pollfd *fds, nfds_t nfds, double tmo);
 
 int ls_wait_input_on_fd(int fd, double tmo);
 
 int ls_fifo_open(int *fd, const char *fifo);
-
-#define LS_FIFO_STRERROR_ONSTACK(E_) \
-    ((E_) == -EINVAL ? "Not a FIFO" : ls_strerror_onstack(E_))
 
 int ls_fifo_wait(int *fd, double tmo);
 

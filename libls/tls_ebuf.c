@@ -17,17 +17,25 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "tls_ebuf.h"
+
+#include <pthread.h>
+#include <stdlib.h>
+#include "alloc_utils.h"
 #include "panic.h"
 
-#include "cstring_utils.h"
+static pthread_key_t key;
+static pthread_once_t key_once = PTHREAD_ONCE_INIT;
 
-void ls_pth_check_impl(int ret, const char *expr, const char *file, int line)
+static void mk_key(void)
 {
-    if (ret == 0)
-        return;
+    LS_PTH_CHECK(pthread_key_create(&key, free));
+    char *p = LS_XNEW(char, LS_TLS_EBUF_N);
+    LS_PTH_CHECK(pthread_setspecific(key, p));
+}
 
-    char buf[512];
-    fprintf(stderr, "LS_PTH_CHECK(%s) failed at %s:%d, reason: %s\nAborting.\n",
-            expr, file, line, ls_strerror_r(ret, buf, sizeof(buf)));
-    abort();
+char *ls_tls_ebuf(void)
+{
+    pthread_once(&key_once, mk_key);
+    return pthread_getspecific(key);
 }

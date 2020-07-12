@@ -39,7 +39,7 @@
 
 #include "libls/alloc_utils.h"
 #include "libls/osdep.h"
-#include "libls/cstring_utils.h"
+#include "libls/tls_ebuf.h"
 #include "libls/time_utils.h"
 #include "libls/strarr.h"
 
@@ -105,7 +105,7 @@ static int init(LuastatusPluginData *pd, lua_State *L)
     if (p->report_ethernet) {
         p->eth_sockfd = ls_cloexec_socket(AF_INET, SOCK_DGRAM, 0);
         if (p->eth_sockfd < 0) {
-            LS_WARNF(pd, "ls_cloexec_socket: %s", ls_strerror_onstack(errno));
+            LS_WARNF(pd, "ls_cloexec_socket: %s", ls_tls_strerror(errno));
         }
     }
 
@@ -199,7 +199,7 @@ static void make_call(
 {
     struct ifaddrs *ifaddr;
     if (getifaddrs(&ifaddr) < 0) {
-        LS_ERRF(pd, "getifaddrs: %s", ls_strerror_onstack(errno));
+        LS_ERRF(pd, "getifaddrs: %s", ls_tls_strerror(errno));
         report_error(pd, funcs);
         return;
     }
@@ -262,7 +262,7 @@ static void setup_sock_timeout(LuastatusPluginData *pd, int fd)
         return;
     struct timeval tmo_tv = ls_tmo_to_tv(p->tmo);
     if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tmo_tv, sizeof(tmo_tv)) < 0) {
-        LS_WARNF(pd, "setsockopt: %s", ls_strerror_onstack(errno));
+        LS_WARNF(pd, "setsockopt: %s", ls_tls_strerror(errno));
     }
 }
 
@@ -286,7 +286,7 @@ static bool interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 
     fd = ls_cloexec_socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
     if (fd < 0) {
-        LS_FATALF(pd, "socket: %s", ls_strerror_onstack(errno));
+        LS_FATALF(pd, "socket: %s", ls_tls_strerror(errno));
         goto error;
     }
 
@@ -295,7 +295,7 @@ static bool interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         .nl_groups = RTMGRP_LINK | RTMGRP_IPV4_IFADDR | RTMGRP_IPV6_IFADDR,
     };
     if (bind(fd, (struct sockaddr *) &sa, sizeof(sa)) < 0) {
-        LS_FATALF(pd, "bind: %s", ls_strerror_onstack(errno));
+        LS_FATALF(pd, "bind: %s", ls_tls_strerror(errno));
         goto error;
     }
 
@@ -318,7 +318,7 @@ static bool interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
                 LS_WARNF(pd, "ENOBUFS - kernel's socket buffer is full");
                 goto error;
             } else {
-                LS_FATALF(pd, "recvmsg: %s", ls_strerror_onstack(errno));
+                LS_FATALF(pd, "recvmsg: %s", ls_tls_strerror(errno));
                 goto error;
             }
         }
@@ -340,7 +340,7 @@ static bool interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
                 struct nlmsgerr *e = NLMSG_DATA(nh);
                 int errnum = e->error;
                 if (errnum) {
-                    LS_ERRF(pd, "netlink error: %s", ls_strerror_onstack(-errnum));
+                    LS_ERRF(pd, "netlink error: %s", ls_tls_strerror(-errnum));
                     ret = true;
                     goto error;
                 } else {
