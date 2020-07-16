@@ -24,7 +24,6 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <limits.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -36,7 +35,7 @@ static void oom_handler(void)
     abort();
 }
 
-// Copies zero-terminated 'src' into buffer 'dst' of size 'ndst', probably truncating, but always
+// Copies zero-terminated 'src' into buffer 'dst' of size 'ndst', possibly truncating, but always
 // zero-terminating the output (unless 'ndst' is 0, of course).
 //
 // Returns number of bytes written, not including terminating NUL.
