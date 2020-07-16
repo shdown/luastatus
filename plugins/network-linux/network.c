@@ -38,6 +38,7 @@
 #include "libmoonvisit/moonvisit.h"
 
 #include "libls/alloc_utils.h"
+#include "libls/io_utils.h"
 #include "libls/osdep.h"
 #include "libls/tls_ebuf.h"
 #include "libls/time_utils.h"
@@ -47,12 +48,6 @@
 #include "wireless_info.h"
 #include "ethernet_info.h"
 #include "iface_type.h"
-
-#if EAGAIN == EWOULDBLOCK
-#   define IS_EAGAIN(E_) ((E_) == EAGAIN)
-#else
-#   define IS_EAGAIN(E_) ((E_) == EAGAIN || (E_) == EWOULDBLOCK)
-#endif
 
 typedef struct {
     bool report_ip;
@@ -310,7 +305,7 @@ static bool interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         if (len < 0) {
             if (errno == EINTR) {
                 continue;
-            } else if (IS_EAGAIN(errno)) {
+            } else if (LS_IS_EAGAIN(errno)) {
                 make_call(pd, funcs, true);
                 continue;
             } else if (errno == ENOBUFS) {

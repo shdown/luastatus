@@ -21,8 +21,15 @@
 #define ls_io_utils_h_
 
 #include <fcntl.h>
+#include <errno.h>
 
 #include "compdep.h"
+
+#if EAGAIN == EWOULDBLOCK
+#   define LS_IS_EAGAIN(E_) ((E_) == EAGAIN)
+#else
+#   define LS_IS_EAGAIN(E_) ((E_) == EAGAIN || (E_) == EWOULDBLOCK)
+#endif
 
 // Makes a file descriptor close-on-exec.
 // On success, /fd/ is returned.
