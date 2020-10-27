@@ -2,11 +2,11 @@ function get_bat_seg(t)
     if not t then
         return {full_text = '[--×--]'}
     end
-    if t.status == 'Unknown' or t.status == 'Full' then
+    if t.status == 'Unknown' or t.status == 'Full' or t.status == 'Not charging' then
         return nil
     end
     local sym, color = '?', '#dcdcdc'
-    if t.status == 'Discharging' or t.status == 'Not charging' then
+    if t.status == 'Discharging' then
         sym = '↓'
         color = '#dca3a3'
     elseif t.status == 'Charging' then

@@ -2,11 +2,11 @@ function get_bat_seg(t)
     if not t then
         return '[--×--]'
     end
-    if t.status == 'Unknown' or t.status == 'Full' then
+    if t.status == 'Unknown' or t.status == 'Full' or t.status == 'Not charging' then
         return nil
     end
     local sym = '?'
-    if t.status == 'Discharging' or t.status == 'Not charging' then
+    if t.status == 'Discharging' then
         sym = '↓'
     elseif t.status == 'Charging' then
         sym = '↑'
