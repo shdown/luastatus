@@ -25,7 +25,6 @@
 #include <assert.h>
 #include <string.h>
 
-#include "libls/vector.h"
 #include "libls/alloc_utils.h"
 #include "libls/time_utils.h"
 
@@ -54,7 +53,32 @@ static void signal_free(Signal s)
     free(s.arg0);
 }
 
-typedef LS_VECTOR_OF(Signal) SignalVector;
+typedef struct {
+    Signal *data;
+    size_t size;
+    size_t capacity;
+} SignalList;
+
+static inline SignalList signal_list_new(void)
+{
+    return (SignalList) {NULL, 0, 0};
+}
+
+static inline void signal_list_add(SignalList *x, Signal s)
+{
+    if (x->size == x->capacity) {
+        x->data = ls_x2realloc(x->data, &x->capacity, sizeof(Signal));
+    }
+    x->data[x->size++] = s;
+}
+
+static inline void signal_list_destroy(SignalList *x)
+{
+    for (size_t i = 0; i < x->size; ++i) {
+        signal_free(x->data[i]);
+    }
+    free(x->data);
+}
 
 enum {
     BUS_SESSION = 0,
@@ -62,7 +86,7 @@ enum {
 };
 
 typedef struct {
-    SignalVector subs[2];
+    SignalList subs[2];
     double tmo;
     bool greet;
 } Priv;
@@ -71,11 +95,7 @@ static void destroy(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
     for (int i = 0; i < 2; ++i) {
-        SignalVector v = p->subs[i];
-        for (size_t j = 0; j < v.size; ++j) {
-            signal_free(v.data[j]);
-        }
-        LS_VECTOR_FREE(v);
+        signal_list_destroy(&p->subs[i]);
     }
     free(p);
 }
@@ -153,7 +173,7 @@ static int parse_signals_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
     if (moon_visit_table_f(mv, vpos, "flags", parse_flags_elem, &s.flags, true) < 0)
         goto error;
 
-    LS_VECTOR_PUSH(p->subs[bus], s);
+    signal_list_add(&p->subs[bus], s);
     return 1;
 
 error:
@@ -165,7 +185,7 @@ static int init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
-        .subs = {LS_VECTOR_NEW(), LS_VECTOR_NEW()},
+        .subs = {signal_list_new(), signal_list_new()},
         .tmo = -1,
         .greet = false,
     };
@@ -241,11 +261,11 @@ static gboolean callback_timeout(gpointer user_data)
 
 static GDBusConnection * maybe_connect_and_subscribe(
         GBusType bus_type,
-        SignalVector v,
+        SignalList x,
         gpointer userdata,
         GError **err)
 {
-    if (!v.size)
+    if (!x.size)
         return NULL;
 
     GDBusConnection *conn = g_bus_get_sync(bus_type, NULL, err);
@@ -253,8 +273,8 @@ static GDBusConnection * maybe_connect_and_subscribe(
         return NULL;
 
     assert(conn);
-    for (size_t i = 0; i < v.size; ++i) {
-        Signal s = v.data[i];
+    for (size_t i = 0; i < x.size; ++i) {
+        Signal s = x.data[i];
         g_dbus_connection_signal_subscribe(
             conn,
             s.sender,

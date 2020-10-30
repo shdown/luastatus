@@ -36,7 +36,6 @@
 #include "libls/alloc_utils.h"
 #include "libls/evloop_lfuncs.h"
 #include "libls/string_.h"
-#include "libls/vector.h"
 #include "libls/tls_ebuf.h"
 #include "libls/poll_utils.h"
 #include "libls/time_utils.h"
@@ -136,7 +135,7 @@ static void client_drop(Client *c)
 static void client_destroy(Client *c)
 {
     close(c->fd);
-    LS_VECTOR_FREE(c->buf);
+    ls_string_free(c->buf);
 }
 
 typedef struct {
@@ -335,7 +334,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
                 ls_make_nonblock(fd);
                 server_state_add_client(&st, (Client) {
                     .fd = fd,
-                    .buf = LS_VECTOR_NEW(),
+                    .buf = ls_string_new(),
                 });
                 continue;
             }
@@ -348,7 +347,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
             Client *c = &st.clients[i];
 
             enum { NCHUNK = 1024 };
-            LS_VECTOR_ENSURE(c->buf, c->buf.size + NCHUNK);
+            ls_string_ensure(&c->buf, c->buf.size + NCHUNK);
             ssize_t r = read(c->fd, c->buf.data + c->buf.size, NCHUNK);
             if (r < 0) {
                 if (LS_IS_EAGAIN(errno))

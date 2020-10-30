@@ -30,7 +30,6 @@
 #include "include/sayf_macros.h"
 
 #include "libls/string_.h"
-#include "libls/vector.h"
 #include "libls/cstring_utils.h"
 #include "libls/tls_ebuf.h"
 #include "libls/parse_int.h"
@@ -60,9 +59,9 @@ static void destroy(LuastatusBarlibData *bd)
 {
     Priv *p = bd->priv;
     for (size_t i = 0; i < p->nwidgets; ++i)
-        LS_VECTOR_FREE(p->bufs[i]);
+        ls_string_free(p->bufs[i]);
     free(p->bufs);
-    LS_VECTOR_FREE(p->tmpbuf);
+    ls_string_free(p->tmpbuf);
     free(p->sep);
     if (p->in)
         fclose(p->in);
@@ -77,14 +76,13 @@ static int init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidget
     *p = (Priv) {
         .nwidgets = nwidgets,
         .bufs = LS_XNEW(LSString, nwidgets),
-        .tmpbuf = LS_VECTOR_NEW(),
+        .tmpbuf = ls_string_new_reserve(512),
         .sep = NULL,
         .in = NULL,
         .out = NULL,
     };
-    for (size_t i = 0; i < nwidgets; ++i) {
-        LS_VECTOR_INIT_RESERVE(p->bufs[i], 512);
-    }
+    for (size_t i = 0; i < nwidgets; ++i)
+        p->bufs[i] = ls_string_new_reserve(512);
 
     // All the options may be passed multiple times!
     const char *sep = NULL;
@@ -198,7 +196,7 @@ static int set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
 {
     Priv *p = bd->priv;
     LSString *buf = &p->tmpbuf;
-    LS_VECTOR_CLEAR(*buf);
+    ls_string_clear(buf);
 
     // L: ? data
 
@@ -252,7 +250,7 @@ static int set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
     return LUASTATUS_OK;
 
 invalid_data:
-    LS_VECTOR_CLEAR(p->bufs[widget_idx]);
+    ls_string_clear(&p->bufs[widget_idx]);
     return LUASTATUS_NONFATAL_ERR;
 }
 

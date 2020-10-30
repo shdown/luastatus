@@ -35,7 +35,6 @@
 
 #include "libls/string_.h"
 #include "libls/alloc_utils.h"
-#include "libls/vector.h"
 #include "libls/tls_ebuf.h"
 #include "libls/time_utils.h"
 #include "libls/poll_utils.h"
@@ -60,7 +59,7 @@ static void destroy(LuastatusPluginData *pd)
     free(p->hostname);
     free(p->password);
     free(p->retry_fifo);
-    LS_VECTOR_FREE(p->idle_str);
+    ls_string_free(p->idle_str);
     free(p);
 }
 

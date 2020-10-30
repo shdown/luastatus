@@ -30,7 +30,6 @@
 #include "libls/alloc_utils.h"
 #include "libls/cstring_utils.h"
 #include "libls/string_.h"
-#include "libls/vector.h"
 
 typedef struct {
     size_t nwidgets;
@@ -54,10 +53,10 @@ static void destroy(LuastatusBarlibData *bd)
 {
     Priv *p = bd->priv;
     for (size_t i = 0; i < p->nwidgets; ++i)
-        LS_VECTOR_FREE(p->bufs[i]);
+        ls_string_free(p->bufs[i]);
     free(p->bufs);
-    LS_VECTOR_FREE(p->tmpbuf);
-    LS_VECTOR_FREE(p->joined);
+    ls_string_free(p->tmpbuf);
+    ls_string_free(p->joined);
     free(p->sep);
     if (p->conn)
         xcb_disconnect(p->conn);
@@ -96,7 +95,7 @@ static bool redraw(LuastatusBarlibData *bd)
     LSString *bufs = p->bufs;
     const char *sep = p->sep;
 
-    LS_VECTOR_CLEAR(*joined);
+    ls_string_clear(joined);
     for (size_t i = 0; i < n; ++i) {
         if (bufs[i].size) {
             if (joined->size) {
@@ -133,14 +132,14 @@ static int init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidget
     *p = (Priv) {
         .nwidgets = nwidgets,
         .bufs = LS_XNEW(LSString, nwidgets),
-        .tmpbuf = LS_VECTOR_NEW(),
-        .joined = LS_VECTOR_NEW_RESERVE(char, 1024),
+        .tmpbuf = ls_string_new_reserve(512),
+        .joined = ls_string_new_reserve(1024),
         .sep = NULL,
         .conn = NULL,
     };
-    for (size_t i = 0; i < nwidgets; ++i) {
-        LS_VECTOR_INIT_RESERVE(p->bufs[i], 512);
-    }
+    for (size_t i = 0; i < nwidgets; ++i)
+        p->bufs[i] = ls_string_new_reserve(512);
+
     // All the options may be passed multiple times!
     const char *dpyname = NULL;
     const char *sep = NULL;
@@ -178,7 +177,7 @@ static int set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
 {
     Priv *p = bd->priv;
     LSString *buf = &p->tmpbuf;
-    LS_VECTOR_CLEAR(*buf);
+    ls_string_clear(buf);
 
     // L: ? data
 
@@ -229,7 +228,7 @@ static int set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
     return LUASTATUS_OK;
 
 invalid_data:
-    LS_VECTOR_CLEAR(p->bufs[widget_idx]);
+    ls_string_clear(&p->bufs[widget_idx]);
     return LUASTATUS_NONFATAL_ERR;
 }
 
