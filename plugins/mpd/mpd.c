@@ -109,7 +109,7 @@ static int init(LuastatusPluginData *pd, lua_State *L)
     // Parse password
     if (moon_visit_str(&mv, -1, "password", &p->password, NULL, true) < 0)
         goto mverror;
-    if ((strchr(p->password, '\n'))) {
+    if (p->password && (strchr(p->password, '\n'))) {
         LS_FATALF(pd, "password contains a line break");
         goto error;
     }
