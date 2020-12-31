@@ -46,9 +46,17 @@ LS_INHEADER LSString ls_string_new_reserve(size_t n)
     return (LSString) {buf, 0, n};
 }
 
-LS_INHEADER void ls_string_ensure(LSString *x, size_t n)
+LS_INHEADER void ls_string_reserve(LSString *x, size_t n)
 {
-    while (x->capacity < n) {
+    if (x->capacity < n) {
+        x->capacity = n;
+        x->data = ls_xrealloc(x->data, x->capacity, sizeof(char));
+    }
+}
+
+LS_INHEADER void ls_string_ensure_avail(LSString *x, size_t n)
+{
+    while (x->capacity - x->size < n) {
         x->data = ls_x2realloc(x->data, &x->capacity, sizeof(char));
     }
 }
@@ -60,7 +68,7 @@ LS_INHEADER void ls_string_clear(LSString *x)
 
 LS_INHEADER void ls_string_assign_b(LSString *x, const char *buf, size_t nbuf)
 {
-    ls_string_ensure(x, nbuf);
+    ls_string_reserve(x, nbuf);
     // see DOCS/c_notes/empty-ranges-and-c-stdlib.md
     if (nbuf) {
         memcpy(x->data, buf, nbuf);
@@ -75,7 +83,7 @@ LS_INHEADER void ls_string_assign_s(LSString *x, const char *s)
 
 LS_INHEADER void ls_string_append_b(LSString *x, const char *buf, size_t nbuf)
 {
-    ls_string_ensure(x, x->size + nbuf);
+    ls_string_ensure_avail(x, nbuf);
     // see DOCS/c_notes/empty-ranges-and-c-stdlib.md
     if (nbuf) {
         memcpy(x->data + x->size, buf, nbuf);

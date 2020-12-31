@@ -347,7 +347,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
             Client *c = &st.clients[i];
 
             enum { NCHUNK = 1024 };
-            ls_string_ensure(&c->buf, c->buf.size + NCHUNK);
+            ls_string_ensure_avail(&c->buf, NCHUNK);
             ssize_t r = read(c->fd, c->buf.data + c->buf.size, NCHUNK);
             if (r < 0) {
                 if (LS_IS_EAGAIN(errno))

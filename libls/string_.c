@@ -37,9 +37,9 @@ bool ls_string_append_vf(LSString *x, const char *fmt, va_list vl)
     if (r < 0) {
         goto cleanup;
     }
-    if ((size_t) r >= navail) {
-        ls_string_ensure(x, x->size + r + 1);
-        if (vsnprintf(x->data + x->size, (size_t) r + 1, fmt, vl2) < 0) {
+    if (((size_t) r) >= navail) {
+        ls_string_ensure_avail(x, ((size_t) r) + 1);
+        if (vsnprintf(x->data + x->size, ((size_t) r) + 1, fmt, vl2) < 0) {
             goto cleanup;
         }
     }
