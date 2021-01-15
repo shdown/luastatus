@@ -561,7 +561,7 @@ static int l_require_plugin(lua_State *L)
     }
     lua_pop(L, 1); // L: ? table
 
-    LSString filename = ls_string_newz_from_f("%s/%s.lua", LUASTATUS_PLUGINS_DIR, arg);
+    LSString filename = ls_string_newz_from_f("%s/%s.lua", LUASTATUS_LUA_PLUGINS_DIR, arg);
     int r = luaL_loadfile(L, filename.data);
     ls_string_free(filename);
     if (r != 0) {
