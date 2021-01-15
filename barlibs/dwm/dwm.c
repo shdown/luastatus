@@ -119,7 +119,7 @@ static bool redraw(LuastatusBarlibData *bd)
         )
     );
     if (err) {
-        LS_FATALF(bd, "XCB error %d occured", err->error_code);
+        LS_FATALF(bd, "XCB error %d occurred", err->error_code);
         free(err);
         return false;
     }

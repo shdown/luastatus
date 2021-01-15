@@ -23,6 +23,7 @@ override_dh_auto_configure:
 		-DCMAKE_INSTALL_PREFIX=/usr \
 		-DWITH_LUA_LIBRARY=lua5.2 \
 		-DBUILD_PLUGIN_PULSE=on \
+		-DBUILD_PLUGIN_UNIXSOCK=on \
 		-S .. -B .
 
 override_dh_auto_build:
@@ -45,7 +46,8 @@ override_dh_auto_install:
 		cpu-usage-linux \
 		file-contents-linux \
 		mem-usage-linux \
-		pipe; \
+		pipe \
+		unixsock; \
 	do \
 		$(MAKE) -C $(BUILD_DIR)/plugins/$$x install \
 			DESTDIR=../../../debian/luastatus; \
@@ -60,8 +62,10 @@ override_dh_auto_install:
 	done
 
 override_dh_auto_test:
+ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
 	./tests/misc.sh $(BUILD_DIR)
 	./tests/torture.sh $(BUILD_DIR)
+endif
 
 %:
 	exec dh $@

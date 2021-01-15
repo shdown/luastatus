@@ -2,10 +2,9 @@ Source: luastatus
 Section: misc
 Priority: optional
 Maintainer: Viktor Krapivensky <shdownnine@gmail.com>
-Standards-Version: 3.9.3
+Standards-Version: 4.5.1
 Build-Depends:
  cmake (>= 3.1.3),
- build-essential,
  debhelper (>= 7),
  valgrind,
  liblua5.2-dev,
@@ -41,7 +40,6 @@ Description: Universal status bar content generator
  This package contains the main binary and the following plugins: timer, fs,
  inotify, udev, backlight-linux, battery-linux, cpu-usage-linux,
  file-contents-linux, mem-usage-linux, pipe.
-Homepage: https://github.com/shdown/luastatus
 
 Package: luastatus-barlib-i3
 Architecture: any
@@ -54,7 +52,6 @@ Description: i3 barlib for luastatus
  the protocol level.  This package also provides luastatus-i3-wrapper script.
  .
  For more information, see "man 7 luastatus-barlib-i3".
-Homepage: https://github.com/shdown/luastatus
 
 Package: luastatus-barlib-dwm
 Architecture: any
@@ -67,7 +64,6 @@ Description: dwm barlib for luastatus
  outputs the root window name somewhere.
  .
  For more information, see "man 7 luastatus-barlib-dwm".
-Homepage: https://github.com/shdown/luastatus
 
 Package: luastatus-barlib-lemonbar
 Architecture: any
@@ -79,7 +75,6 @@ Description: lemonbar barlib for luastatus
  provides luastatus-lemonbar-launcher script.
  .
  For more information, see "man 7 luastatus-barlib-lemonbar".
-Homepage: https://github.com/shdown/luastatus
 
 Package: luastatus-barlib-stdout
 Architecture: any
@@ -92,7 +87,6 @@ Description: stdout barlib for luastatus
  This package also provides luastatus-stdout-wrapper script.
  .
  For more information, see "man 7 luastatus-barlib-stdout".
-Homepage: https://github.com/shdown/luastatus
 
 Package: luastatus-plugin-alsa
 Architecture: any
@@ -104,7 +98,6 @@ Description: ALSA plugin for luastatus
  mute state of an ALSA channel.
  .
  For more information, see "man 7 luastatus-plugin-alsa".
-Homepage: https://github.com/shdown/luastatus
 
 Package: luastatus-plugin-dbus
 Architecture: any
@@ -116,7 +109,6 @@ Description: D-Bus plugin for luastatus
  reports D-Bus signals.
  .
  For more information, see "man 7 luastatus-plugin-dbus".
-Homepage: https://github.com/shdown/luastatus
 
 Package: luastatus-plugin-mpd
 Architecture: any
@@ -128,7 +120,6 @@ Description: MPD plugin for luastatus
  an MPD server.
  .
  For more information, see "man 7 luastatus-plugin-mpd".
-Homepage: https://github.com/shdown/luastatus
 
 Package: luastatus-plugin-network-linux
 Architecture: any
@@ -142,7 +133,6 @@ Description: network-linux plugin for luastatus
  wireless connection, and speed of an ethernet connection.
  .
  For more information, see "man 7 luastatus-plugin-network-linux".
-Homepage: https://github.com/shdown/luastatus
 
 Package: luastatus-plugin-pulse
 Architecture: any
@@ -154,7 +144,6 @@ Description: PulseAudio plugin for luastatus
  volume and mute status of a PulseAudio sink.
  .
  For more information, see "man 7 luastatus-plugin-pulse".
-Homepage: https://github.com/shdown/luastatus
 
 Package: luastatus-plugin-xkb
 Architecture: any
@@ -167,7 +156,6 @@ Description: XKB plugin for luastatus
  Caps Lock and Num Lock.
  .
  For more information, see "man 7 luastatus-plugin-xkb".
-Homepage: https://github.com/shdown/luastatus
 
 Package: luastatus-plugin-xtitle
 Architecture: any
@@ -179,7 +167,6 @@ Description: xtitle plugin for luastatus
  active window title.
  .
  For more information, see "man 7 luastatus-plugin-xtitle".
-Homepage: https://github.com/shdown/luastatus
 
 Package: luastatus-plugin-imap
 Architecture: all
@@ -193,4 +180,3 @@ Description: IMAP plugin for luastatus
  of unread mails in an IMAP mailbox.
  .
  For more information, see "man 7 luastatus-plugin-imap".
-Homepage: https://github.com/shdown/luastatus
