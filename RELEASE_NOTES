@@ -1,3 +1,9 @@
+luastatus 0.6.0 (January 16, 2021)
+===
+- plugins/unixsock: new plugin
+- plugins/mpd: fix null pointer dereference bug
+- other fixes
+
 luastatus 0.5.0 (July 03, 2020)
 ===
 - plugins/{inotify,udev}: support for push_timeout() function
