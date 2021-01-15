@@ -40,7 +40,7 @@ The following options are supported:
 * ``timeout``: number
 
     If specified and not negative, this plugin calls ``cb`` with ``what="timeout"`` if no event has
-    occured in ``timeout`` seconds.
+    occurred in ``timeout`` seconds.
 
 ``cb`` argument
 ===============
@@ -52,7 +52,7 @@ A table with ``what`` entry:
 * if it is ``"timeout"``, the function has not been called for the number of seconds specified as
   the ``timeout`` option;
 
-* if it is ``"event"``, a udev event has occured; in this case, the table has the following
+* if it is ``"event"``, a udev event has occurred; in this case, the table has the following
   additional entries (all are optional strings):
 
   - ``syspath``;

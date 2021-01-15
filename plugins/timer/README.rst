@@ -27,7 +27,7 @@ The following options are supported:
 
 ``cb`` argument
 ===============
-A string decribing why the function is called:
+A string describing why the function is called:
 
 * if it is ``"hello"``, the function is called for the first time;
 

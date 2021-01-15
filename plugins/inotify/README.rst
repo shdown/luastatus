@@ -28,7 +28,7 @@ Options
 * ``timeout``: number
 
     If specified and not negative, this plugin calls ``cb`` with ``what="timeout"`` if no event has
-    occured in ``timeout`` seconds.
+    occurred in ``timeout`` seconds.
 
 ``cb`` argument
 ===============
