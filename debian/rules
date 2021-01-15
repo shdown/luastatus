@@ -62,8 +62,10 @@ override_dh_auto_install:
 	done
 
 override_dh_auto_test:
+ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
 	./tests/misc.sh $(BUILD_DIR)
 	./tests/torture.sh $(BUILD_DIR)
+endif
 
 %:
 	exec dh $@
