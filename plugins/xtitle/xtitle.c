@@ -34,7 +34,7 @@
 #include "libmoonvisit/moonvisit.h"
 
 #include "libls/alloc_utils.h"
-#include "libls/cstring_utils.h"
+#include "libls/tls_ebuf.h"
 #include "libls/poll_utils.h"
 
 // some parts of this file (including the name) are proudly stolen from
@@ -267,7 +267,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     while (1) {
         int nfds = ls_wait_input_on_fd(fd, -1);
         if (nfds < 0) {
-            LS_FATALF(pd, "ls_wait_input_on_fd: %s", ls_strerror_onstack(errno));
+            LS_FATALF(pd, "ls_wait_input_on_fd: %s", ls_tls_strerror(errno));
             goto error;
         } else if (nfds > 0) {
             xcb_generic_event_t *evt;

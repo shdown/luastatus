@@ -24,35 +24,44 @@
 #include <string.h>
 
 #include "string_.h"
-#include "vector.h"
+#include "alloc_utils.h"
 #include "compdep.h"
 
 // An array of constant strings on a single buffer. Panics on allocation failure.
 
 typedef struct {
     LSString buf;
-    LS_VECTOR_OF(size_t) offsets;
+    struct {
+        size_t *data;
+        size_t size;
+        size_t capacity;
+    } offsets;
 } LSStringArray;
 
 LS_INHEADER LSStringArray ls_strarr_new(void)
 {
     return (LSStringArray) {
-        .buf = LS_VECTOR_NEW(),
-        .offsets = LS_VECTOR_NEW(),
+        .buf = ls_string_new(),
+        .offsets = {NULL, 0, 0},
     };
 }
 
 LS_INHEADER LSStringArray ls_strarr_new_reserve(size_t totlen, size_t nelems)
 {
+    size_t *offsets_buf = LS_XNEW(size_t, nelems);
     return (LSStringArray) {
-        .buf = LS_VECTOR_NEW_RESERVE(char, totlen),
-        .offsets = LS_VECTOR_NEW_RESERVE(size_t, nelems),
+        .buf = ls_string_new_reserve(totlen),
+        .offsets = {offsets_buf, 0, nelems},
     };
 }
 
 LS_INHEADER void ls_strarr_append(LSStringArray *sa, const char *buf, size_t nbuf)
 {
-    LS_VECTOR_PUSH(sa->offsets, sa->buf.size);
+    if (sa->offsets.size == sa->offsets.capacity) {
+        sa->offsets.data = ls_x2realloc(sa->offsets.data, &sa->offsets.capacity, sizeof(size_t));
+    }
+    sa->offsets.data[sa->offsets.size++] = sa->buf.size;
+
     ls_string_append_b(&sa->buf, buf, nbuf);
 }
 
@@ -80,20 +89,14 @@ LS_INHEADER const char *ls_strarr_at(LSStringArray sa, size_t index, size_t *n)
 
 LS_INHEADER void ls_strarr_clear(LSStringArray *sa)
 {
-    LS_VECTOR_CLEAR(sa->buf);
-    LS_VECTOR_CLEAR(sa->offsets);
-}
-
-LS_INHEADER void ls_strarr_shrink(LSStringArray *sa)
-{
-    LS_VECTOR_SHRINK(sa->buf);
-    LS_VECTOR_SHRINK(sa->offsets);
+    ls_string_clear(&sa->buf);
+    sa->offsets.size = 0;
 }
 
 LS_INHEADER void ls_strarr_destroy(LSStringArray sa)
 {
-    LS_VECTOR_FREE(sa.buf);
-    LS_VECTOR_FREE(sa.offsets);
+    ls_string_free(sa.buf);
+    free(sa.offsets.data);
 }
 
 #endif

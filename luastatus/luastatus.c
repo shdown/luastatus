@@ -38,7 +38,6 @@
 #include "libls/alloc_utils.h"
 #include "libls/compdep.h"
 #include "libls/getenv_r.h"
-#include "libls/vector.h"
 #include "libls/string_.h"
 #include "libls/algo.h"
 #include "libls/panic.h"
@@ -192,22 +191,19 @@ static struct {
 // See DOCS/design/map_get.md
 //
 // Basically, it is a string-to-pointer mapping used by plugins and barlibs for synchronization.
-//
-// We use a "flat map": being cache-friendly, it outperforms a tree-based map for small numbers of
-// elements.
 
-typedef struct {
+typedef struct MapEntry {
     void *value;
+    struct MapEntry *next;
     char key[]; // zero-terminated
 } MapEntry;
 
 static struct {
-    // List of allocated entries.
-    LS_VECTOR_OF(MapEntry *) entries;
+    MapEntry *top;
 
     // Whether the map is frozen after all plugins and widgets have been initialized.
     bool frozen;
-} map = {.entries = LS_VECTOR_NEW(), .frozen = false};
+} map = {.top = NULL, .frozen = false};
 
 // This function exists because /dlerror()/ may return /NULL/ even if /dlsym()/ returned /NULL/.
 static inline const char *safe_dlerror(void)
@@ -292,29 +288,29 @@ static void **map_get(void *userdata, const char *key)
         abort();
     }
 
-    for (size_t i = 0; i < map.entries.size; ++i) {
-        MapEntry *e = map.entries.data[i];
-        if (strcmp(key, e->key) == 0) {
+    for (MapEntry *e = map.top; e; e = e->next)
+        if (strcmp(key, e->key) == 0)
             return &e->value;
-        }
-    }
 
     // Not found; create a new entry with /NULL/ value.
     size_t nkey = strlen(key);
     MapEntry *e = ls_xmalloc(sizeof(MapEntry) + nkey + 1, 1);
     e->value = NULL;
+    e->next = map.top;
     memcpy(e->key, key, nkey + 1);
+    map.top = e;
 
-    LS_VECTOR_PUSH(map.entries, e);
     return &e->value;
 }
 
 static void map_destroy(void)
 {
-    for (size_t i = 0; i < map.entries.size; ++i) {
-        free(map.entries.data[i]);
+    MapEntry *e = map.top;
+    while (e) {
+        MapEntry *next = e->next;
+        free(e);
+        e = next;
     }
-    LS_VECTOR_FREE(map.entries);
 }
 
 // Loads /barlib/ from a file /filename/ and initializes with options /opts/ and the number of
@@ -377,7 +373,7 @@ static bool barlib_init_by_name(const char *name, const char *const *opts)
     } else {
         LSString filename = ls_string_newz_from_f("%s/barlib-%s.so", LUASTATUS_BARLIBS_DIR, name);
         bool r = barlib_init(filename.data, opts);
-        LS_VECTOR_FREE(filename);
+        ls_string_free(filename);
         return r;
     }
 }
@@ -435,7 +431,7 @@ static bool plugin_load_by_name(Plugin *p, const char *name)
     } else {
         LSString filename = ls_string_newz_from_f("%s/plugin-%s.so", LUASTATUS_PLUGINS_DIR, name);
         bool r = plugin_load(p, filename.data, name);
-        LS_VECTOR_FREE(filename);
+        ls_string_free(filename);
         return r;
     }
 }
@@ -567,7 +563,7 @@ static int l_require_plugin(lua_State *L)
 
     LSString filename = ls_string_newz_from_f("%s/%s.lua", LUASTATUS_PLUGINS_DIR, arg);
     int r = luaL_loadfile(L, filename.data);
-    LS_VECTOR_FREE(filename);
+    ls_string_free(filename);
     if (r != 0) {
         return lua_error(L);
     }
@@ -686,7 +682,7 @@ static bool widget_init_inspect_event(Widget *w, const char *filename)
             LSString chunkname = ls_string_newz_from_f("widget.event of %s", filename);
             bool r = check_lua_call(
                 sepstate.L, luaL_loadbuffer(sepstate.L, code, ncode, chunkname.data));
-            LS_VECTOR_FREE(chunkname);
+            ls_string_free(chunkname);
             if (!r) {
                 return false;
             }
@@ -1060,13 +1056,37 @@ static void print_usage(void)
                     "See luastatus(1) for more information.\n");
 }
 
+typedef struct {
+    const char **data;
+    size_t size;
+    size_t capacity;
+} BarlibArgs;
+
+static inline BarlibArgs barlib_args_new(void)
+{
+    return (BarlibArgs) {NULL, 0, 0};
+}
+
+static inline void barlib_args_push(BarlibArgs *a, const char *s)
+{
+    if (a->size == a->capacity) {
+        a->data = ls_x2realloc(a->data, &a->capacity, sizeof(const char *));
+    }
+    a->data[a->size++] = s;
+}
+
+static inline void barlib_args_free(BarlibArgs *a)
+{
+    free(a->data);
+}
+
 int main(int argc, char **argv)
 {
     int ret = EXIT_FAILURE;
     char *barlib_name = NULL;
-    LS_VECTOR_OF(const char *) barlib_args = LS_VECTOR_NEW();
+    BarlibArgs barlib_args = barlib_args_new();
     bool eflag = false;
-    LS_VECTOR_OF(pthread_t) threads = LS_VECTOR_NEW();
+    pthread_t *threads = NULL;
     bool barlib_inited = false;
 
     // Parse the arguments.
@@ -1077,7 +1097,7 @@ int main(int argc, char **argv)
             barlib_name = optarg;
             break;
         case 'B':
-            LS_VECTOR_PUSH(barlib_args, optarg);
+            barlib_args_push(&barlib_args, optarg);
             break;
         case 'l':
             if ((loglevel = loglevel_fromstr(optarg)) == LUASTATUS_LOG_LAST) {
@@ -1114,9 +1134,8 @@ int main(int argc, char **argv)
 
     widgets_init(argv + optind, argc - optind);
 
-    TRACEF(
-        "nwidgets = %zu, widgets = %p, sizeof(Widget) = %d",
-        nwidgets, (void *) widgets, (int) sizeof(Widget));
+    TRACEF("nwidgets = %zu, widgets = %p, sizeof(Widget) = %d",
+           nwidgets, (void *) widgets, (int) sizeof(Widget));
 
     if (!nwidgets) {
         WARNF("no widgets specified (see luastatus(1) for usage info)");
@@ -1124,7 +1143,7 @@ int main(int argc, char **argv)
 
     // Initialize the barlib.
 
-    LS_VECTOR_PUSH(barlib_args, NULL);
+    barlib_args_push(&barlib_args, NULL);
     if (!barlib_init_by_name(barlib_name, barlib_args.data)) {
         FATALF("cannot load barlib '%s'", barlib_name);
         goto cleanup;
@@ -1142,7 +1161,8 @@ int main(int argc, char **argv)
     // Spawn a thread for each successfully initialized widget, call /barlib/'s /set_error()/ method
     // on each widget whose initialization has failed.
 
-    LS_VECTOR_RESERVE(threads, nwidgets);
+    threads = LS_XNEW(pthread_t, nwidgets);
+
     for (size_t i = 0; i < nwidgets; ++i) {
         Widget *w = &widgets[i];
         if (widget_is_stillborn(w)) {
@@ -1151,9 +1171,7 @@ int main(int argc, char **argv)
             UNLOCK_B();
         } else {
             register_funcs(w->L, w);
-            pthread_t t;
-            LS_PTH_CHECK(pthread_create(&t, NULL, widget_thread, w));
-            LS_VECTOR_PUSH(threads, t);
+            LS_PTH_CHECK(pthread_create(&threads[i], NULL, widget_thread, w));
         }
     }
 
@@ -1174,8 +1192,10 @@ int main(int argc, char **argv)
     // Join the widget threads.
 
     DEBUGF("joining all the widget threads");
-    for (size_t i = 0; i < threads.size; ++i) {
-        LS_PTH_CHECK(pthread_join(threads.data[i], NULL));
+    for (size_t i = 0; i < nwidgets; ++i) {
+        if (!widget_is_stillborn(&widgets[i])) {
+            LS_PTH_CHECK(pthread_join(threads[i], NULL));
+        }
     }
 
     // Either hang or exit.
@@ -1193,8 +1213,8 @@ int main(int argc, char **argv)
 
 cleanup:
     // Let us please valgrind.
-    LS_VECTOR_FREE(barlib_args);
-    LS_VECTOR_FREE(threads);
+    barlib_args_free(&barlib_args);
+    free(threads);
     widgets_destroy();
     if (barlib_inited) {
         barlib_destroy();

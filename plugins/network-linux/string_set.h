@@ -25,13 +25,16 @@
 
 #include "libls/alloc_utils.h"
 #include "libls/compdep.h"
-#include "libls/vector.h"
 
-typedef LS_VECTOR_OF(char *) StringSet;
+typedef struct {
+    char **data;
+    size_t size;
+    size_t capacity;
+} StringSet;
 
 LS_INHEADER StringSet string_set_new()
 {
-    return (StringSet) LS_VECTOR_NEW();
+    return (StringSet) {NULL, 0, 0};
 }
 
 // Clears and unfreezes the set.
@@ -39,12 +42,15 @@ LS_INHEADER void string_set_reset(StringSet *s)
 {
     for (size_t i = 0; i < s->size; ++i)
         free(s->data[i]);
-    LS_VECTOR_CLEAR(*s);
+    s->size = 0;
 }
 
 LS_INHEADER void string_set_add(StringSet *s, const char *val)
 {
-    LS_VECTOR_PUSH(*s, ls_xstrdup(val));
+    if (s->size == s->capacity) {
+        s->data = ls_x2realloc(s->data, &s->capacity, sizeof(char *));
+    }
+    s->data[s->size++] = ls_xstrdup(val);
 }
 
 void string_set_freeze(StringSet *s);
@@ -55,7 +61,7 @@ LS_INHEADER void string_set_destroy(StringSet s)
 {
     for (size_t i = 0; i < s.size; ++i)
         free(s.data[i]);
-    LS_VECTOR_FREE(s);
+    free(s.data);
 }
 
 #endif

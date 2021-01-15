@@ -30,10 +30,10 @@
 #include "include/sayf_macros.h"
 
 #include "libls/string_.h"
-#include "libls/vector.h"
 #include "libls/alloc_utils.h"
 #include "libls/parse_int.h"
 #include "libls/cstring_utils.h"
+#include "libls/tls_ebuf.h"
 #include "libls/io_utils.h"
 #include "libls/osdep.h"
 
@@ -45,9 +45,9 @@ static void destroy(LuastatusBarlibData *bd)
 {
     Priv *p = bd->priv;
     for (size_t i = 0; i < p->nwidgets; ++i)
-        LS_VECTOR_FREE(p->bufs[i]);
+        ls_string_free(p->bufs[i]);
     free(p->bufs);
-    LS_VECTOR_FREE(p->tmpbuf);
+    ls_string_free(p->tmpbuf);
     close(p->in_fd);
     if (p->out)
         fclose(p->out);
@@ -60,15 +60,14 @@ static int init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidget
     *p = (Priv) {
         .nwidgets = nwidgets,
         .bufs = LS_XNEW(LSString, nwidgets),
-        .tmpbuf = LS_VECTOR_NEW(),
+        .tmpbuf = ls_string_new_reserve(1024),
         .in_fd = -1,
         .out = NULL,
         .noclickev = false,
         .noseps = false,
     };
-    for (size_t i = 0; i < nwidgets; ++i) {
-        LS_VECTOR_INIT_RESERVE(p->bufs[i], 1024);
-    }
+    for (size_t i = 0; i < nwidgets; ++i)
+        p->bufs[i] = ls_string_new_reserve(1024);
 
     // All the options may be passed multiple times!
     int in_fd = -1;
@@ -112,17 +111,17 @@ static int init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidget
     // assign
     p->in_fd = in_fd;
     if (!(p->out = fdopen(out_fd, "w"))) {
-        LS_FATALF(bd, "can't fdopen %d: %s", out_fd, ls_strerror_onstack(errno));
+        LS_FATALF(bd, "can't fdopen %d: %s", out_fd, ls_tls_strerror(errno));
         goto error;
     }
 
     // make CLOEXEC
     if (ls_make_cloexec(in_fd) < 0) {
-        LS_FATALF(bd, "can't make fd %d CLOEXEC: %s", in_fd, ls_strerror_onstack(errno));
+        LS_FATALF(bd, "can't make fd %d CLOEXEC: %s", in_fd, ls_tls_strerror(errno));
         goto error;
     }
     if (ls_make_cloexec(out_fd) < 0) {
-        LS_FATALF(bd, "can't make fd %d CLOEXEC: %s", out_fd, ls_strerror_onstack(errno));
+        LS_FATALF(bd, "can't make fd %d CLOEXEC: %s", out_fd, ls_tls_strerror(errno));
         goto error;
     }
 
@@ -134,7 +133,7 @@ static int init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidget
     fprintf(p->out, "}\n[\n");
     fflush(p->out);
     if (ferror(p->out)) {
-        LS_FATALF(bd, "write error: %s", ls_strerror_onstack(errno));
+        LS_FATALF(bd, "write error: %s", ls_tls_strerror(errno));
         goto error;
     }
 
@@ -167,7 +166,7 @@ static bool redraw(LuastatusBarlibData *bd)
     fputs("],\n", out);
     fflush(out);
     if (ferror(out)) {
-        LS_FATALF(bd, "write error: %s", ls_strerror_onstack(errno));
+        LS_FATALF(bd, "write error: %s", ls_tls_strerror(errno));
         return false;
     }
     return true;
@@ -297,7 +296,7 @@ next_entry:
 static int set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
 {
     Priv *p = bd->priv;
-    LS_VECTOR_CLEAR(p->tmpbuf);
+    ls_string_clear(&p->tmpbuf);
 
     // L: ? data
 
@@ -355,7 +354,7 @@ static int set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
     return LUASTATUS_OK;
 
 invalid_data:
-    LS_VECTOR_CLEAR(p->bufs[widget_idx]);
+    ls_string_clear(&p->bufs[widget_idx]);
     return LUASTATUS_NONFATAL_ERR;
 }
 

@@ -34,8 +34,7 @@
 #include "libmoonvisit/moonvisit.h"
 
 #include "libls/alloc_utils.h"
-#include "libls/cstring_utils.h"
-#include "libls/vector.h"
+#include "libls/tls_ebuf.h"
 #include "libls/poll_utils.h"
 #include "libls/evloop_lfuncs.h"
 
@@ -47,8 +46,34 @@ typedef struct {
 } Watch;
 
 typedef struct {
+    Watch *data;
+    size_t size;
+    size_t capacity;
+} WatchList;
+
+static inline WatchList watch_list_new(void)
+{
+    return (WatchList) {NULL, 0, 0};
+}
+
+static inline void watch_list_add(WatchList *x, const char *path, int wd)
+{
+    if (x->size == x->capacity) {
+        x->data = ls_x2realloc(x->data, &x->capacity, sizeof(Watch));
+    }
+    x->data[x->size++] = (Watch) {ls_xstrdup(path), wd};
+}
+
+static inline void watch_list_free(WatchList *x)
+{
+    for (size_t i = 0; i < x->size; ++i)
+        free(x->data[i].path);
+    free(x->data);
+}
+
+typedef struct {
     int fd;
-    LS_VECTOR_OF(Watch) init_watch;
+    WatchList init_watch;
     bool greet;
     double tmo;
     LSPushedTimeout pushed_tmo;
@@ -58,10 +83,7 @@ static void destroy(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
     close(p->fd);
-    for (size_t i = 0; i < p->init_watch.size; ++i) {
-        free(p->init_watch.data[i].path);
-    }
-    LS_VECTOR_FREE(p->init_watch);
+    watch_list_free(&p->init_watch);
     ls_pushed_timeout_destroy(&p->pushed_tmo);
     free(p);
 }
@@ -150,10 +172,9 @@ static int parse_watch_entry(MoonVisit *mv, void *ud, int kpos, int vpos)
     // Add watch
     int wd = inotify_add_watch(p->fd, path, mask);
     if (wd < 0) {
-        LS_ERRF(pd, "inotify_add_watch: %s: %s", path, ls_strerror_onstack(errno));
+        LS_ERRF(pd, "inotify_add_watch: %s: %s", path, ls_tls_strerror(errno));
     } else {
-        Watch w = {.path = ls_xstrdup(path), .wd = wd};
-        LS_VECTOR_PUSH(p->init_watch, w);
+        watch_list_add(&p->init_watch, path, wd);
     }
     return 1;
 error:
@@ -165,7 +186,7 @@ static int init(LuastatusPluginData *pd, lua_State *L)
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
         .fd = -1,
-        .init_watch = LS_VECTOR_NEW(),
+        .init_watch = watch_list_new(),
         .greet = false,
         .tmo = -1,
     };
@@ -175,7 +196,7 @@ static int init(LuastatusPluginData *pd, lua_State *L)
     MoonVisit mv = {.L = L, .errbuf = errbuf, .nerrbuf = sizeof(errbuf)};
 
     if ((p->fd = compat_inotify_init(false, true)) < 0) {
-        LS_FATALF(pd, "inotify_init: %s", ls_strerror_onstack(errno));
+        LS_FATALF(pd, "inotify_init: %s", ls_tls_strerror(errno));
         goto error;
     }
 
@@ -224,7 +245,7 @@ static int l_add_watch(lua_State *L)
 
     int wd = inotify_add_watch(p->fd, path, mask);
     if (wd < 0) {
-        LS_ERRF(pd, "inotify_add_watch: %s: %s", path, ls_strerror_onstack(errno));
+        LS_ERRF(pd, "inotify_add_watch: %s: %s", path, ls_tls_strerror(errno));
         lua_pushnil(L);
     } else {
         lua_pushinteger(L, wd);
@@ -243,7 +264,7 @@ static int l_remove_watch(lua_State *L)
     Priv *p = pd->priv;
 
     if (inotify_rm_watch(p->fd, wd) < 0) {
-        LS_ERRF(pd, "inotify_rm_watch: %d: %s", wd, ls_strerror_onstack(errno));
+        LS_ERRF(pd, "inotify_rm_watch: %d: %s", wd, ls_tls_strerror(errno));
         lua_pushboolean(L, false);
     } else {
         lua_pushboolean(L, true);
@@ -339,7 +360,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         int nfds = ls_wait_input_on_fd(p->fd, tmo);
 
         if (nfds < 0) {
-            LS_FATALF(pd, "ls_wait_input_on_fd: %s", ls_strerror_onstack(errno));
+            LS_FATALF(pd, "ls_wait_input_on_fd: %s", ls_tls_strerror(errno));
             goto error;
 
         } else if (nfds == 0) {
@@ -355,7 +376,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
                 if (errno == EINTR) {
                     continue;
                 }
-                LS_FATALF(pd, "read: %s", ls_strerror_onstack(errno));
+                LS_FATALF(pd, "read: %s", ls_tls_strerror(errno));
                 goto error;
             } else if (r == 0) {
                 LS_FATALF(pd, "read() from the inotify file descriptor returned 0");

@@ -30,7 +30,7 @@
 #include "include/plugin_data_v1.h"
 #include "include/sayf_macros.h"
 
-#include "libls/cstring_utils.h"
+#include "libls/tls_ebuf.h"
 #include "libls/osdep.h"
 
 int unixdom_open(LuastatusPluginData *pd, const char *path)
@@ -46,11 +46,11 @@ int unixdom_open(LuastatusPluginData *pd, const char *path)
     memcpy(saun.sun_path, path, npath + 1);
     fd = ls_cloexec_socket(PF_UNIX, SOCK_STREAM, 0);
     if (fd < 0) {
-        LS_ERRF(pd, "socket: %s", ls_strerror_onstack(errno));
+        LS_ERRF(pd, "socket: %s", ls_tls_strerror(errno));
         goto error;
     }
     if (connect(fd, (struct sockaddr *) &saun, sizeof(saun)) < 0) {
-        LS_ERRF(pd, "connect: %s: %s", path, ls_strerror_onstack(errno));
+        LS_ERRF(pd, "connect: %s: %s", path, ls_tls_strerror(errno));
         goto error;
     }
     return fd;
@@ -74,7 +74,7 @@ int inetdom_open(LuastatusPluginData *pd, const char *hostname, const char *serv
     int gai_r = getaddrinfo(hostname, service, &hints, &ai);
     if (gai_r) {
         if (gai_r == EAI_SYSTEM) {
-            LS_ERRF(pd, "getaddrinfo: %s", ls_strerror_onstack(errno));
+            LS_ERRF(pd, "getaddrinfo: %s", ls_tls_strerror(errno));
         } else {
             LS_ERRF(pd, "getaddrinfo: %s", gai_strerror(gai_r));
         }
@@ -85,11 +85,11 @@ int inetdom_open(LuastatusPluginData *pd, const char *hostname, const char *serv
     for (struct addrinfo *pai = ai; pai; pai = pai->ai_next) {
         fd = ls_cloexec_socket(pai->ai_family, pai->ai_socktype, pai->ai_protocol);
         if (fd < 0) {
-            LS_WARNF(pd, "(candiate) socket: %s", ls_strerror_onstack(errno));
+            LS_WARNF(pd, "(candiate) socket: %s", ls_tls_strerror(errno));
             continue;
         }
         if (connect(fd, pai->ai_addr, pai->ai_addrlen) < 0) {
-            LS_WARNF(pd, "(candiate) connect: %s", ls_strerror_onstack(errno));
+            LS_WARNF(pd, "(candiate) connect: %s", ls_tls_strerror(errno));
             close(fd);
             fd = -1;
             continue;

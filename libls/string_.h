@@ -20,78 +20,111 @@
 #ifndef ls_string_h_
 #define ls_string_h_
 
-#include <stddef.h>
+#include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
 #include <stdbool.h>
 #include <assert.h>
 
-#include "vector.h"
 #include "compdep.h"
+#include "alloc_utils.h"
 
-typedef LS_VECTOR_OF(char) LSString;
+typedef struct {
+    char *data;
+    size_t size;
+    size_t capacity;
+} LSString;
 
-LS_INHEADER void ls_string_assign_b(LSString *s, const char *buf, size_t nbuf)
+LS_INHEADER LSString ls_string_new(void)
 {
-    LS_VECTOR_ENSURE(*s, nbuf);
+    return (LSString) {NULL, 0, 0};
+}
+
+LS_INHEADER LSString ls_string_new_reserve(size_t n)
+{
+    char *buf = LS_XNEW(char, n);
+    return (LSString) {buf, 0, n};
+}
+
+LS_INHEADER void ls_string_reserve(LSString *x, size_t n)
+{
+    if (x->capacity < n) {
+        x->capacity = n;
+        x->data = ls_xrealloc(x->data, x->capacity, sizeof(char));
+    }
+}
+
+LS_INHEADER void ls_string_ensure_avail(LSString *x, size_t n)
+{
+    while (x->capacity - x->size < n) {
+        x->data = ls_x2realloc(x->data, &x->capacity, sizeof(char));
+    }
+}
+
+LS_INHEADER void ls_string_clear(LSString *x)
+{
+    x->size = 0;
+}
+
+LS_INHEADER void ls_string_assign_b(LSString *x, const char *buf, size_t nbuf)
+{
+    ls_string_reserve(x, nbuf);
     // see DOCS/c_notes/empty-ranges-and-c-stdlib.md
     if (nbuf) {
-        memcpy(s->data, buf, nbuf);
+        memcpy(x->data, buf, nbuf);
     }
-    s->size = nbuf;
+    x->size = nbuf;
 }
 
-LS_INHEADER void ls_string_assign_s(LSString *s, const char *cstr)
+LS_INHEADER void ls_string_assign_s(LSString *x, const char *s)
 {
-    ls_string_assign_b(s, cstr, strlen(cstr));
+    ls_string_assign_b(x, s, strlen(s));
 }
 
-LS_INHEADER void ls_string_assign_c(LSString *s, char c)
+LS_INHEADER void ls_string_append_b(LSString *x, const char *buf, size_t nbuf)
 {
-    ls_string_assign_b(s, &c, 1);
-}
-
-LS_INHEADER void ls_string_append_b(LSString *s, const char *buf, size_t nbuf)
-{
-    LS_VECTOR_ENSURE(*s, s->size + nbuf);
+    ls_string_ensure_avail(x, nbuf);
     // see DOCS/c_notes/empty-ranges-and-c-stdlib.md
     if (nbuf) {
-        memcpy(s->data + s->size, buf, nbuf);
+        memcpy(x->data + x->size, buf, nbuf);
     }
-    s->size += nbuf;
+    x->size += nbuf;
 }
 
-LS_INHEADER void ls_string_append_s(LSString *s, const char *cstr)
+LS_INHEADER void ls_string_append_s(LSString *x, const char *s)
 {
-    ls_string_append_b(s, cstr, strlen(cstr));
+    ls_string_append_b(x, s, strlen(s));
 }
 
-LS_INHEADER void ls_string_append_c(LSString *s, char c)
+LS_INHEADER void ls_string_append_c(LSString *x, char c)
 {
-    LS_VECTOR_PUSH(*s, c);
+    if (x->size == x->capacity) {
+        x->data = ls_x2realloc(x->data, &x->capacity, sizeof(char));
+    }
+    x->data[x->size++] = c;
 }
 
-// Appends a formatted string to /s/. Returns /true/ on success or /false/ if an encoding error
+// Appends a formatted string to /x/. Returns /true/ on success or /false/ if an encoding error
 // occurs.
-bool ls_string_append_vf(LSString *s, const char *fmt, va_list vl);
+bool ls_string_append_vf(LSString *x, const char *fmt, va_list vl);
 
-// Appends a formatted string to /s/. Returns /true/ on success or /false/ if an encoding error
+// Appends a formatted string to /x/. Returns /true/ on success or /false/ if an encoding error
 // occurs.
 LS_INHEADER LS_ATTR_PRINTF(2, 3)
-bool ls_string_append_f(LSString *s, const char *fmt, ...)
+bool ls_string_append_f(LSString *x, const char *fmt, ...)
 {
     va_list vl;
     va_start(vl, fmt);
-    bool r = ls_string_append_vf(s, fmt, vl);
+    bool r = ls_string_append_vf(x, fmt, vl);
     va_end(vl);
     return r;
 }
 
 // Returns /false/ if an encoding error occurs.
-LS_INHEADER bool ls_string_assign_vf(LSString *s, const char *fmt, va_list vl)
+LS_INHEADER bool ls_string_assign_vf(LSString *x, const char *fmt, va_list vl)
 {
-    LS_VECTOR_CLEAR(*s);
-    return ls_string_append_vf(s, fmt, vl);
+    ls_string_clear(x);
+    return ls_string_append_vf(x, fmt, vl);
 }
 
 // Returns /false/ if an encoding error occurs.
@@ -105,25 +138,18 @@ bool ls_string_assign_f(LSString *s, const char *fmt, ...)
     return r;
 }
 
-LS_INHEADER LSString ls_string_new_from_s(const char *cstr)
+LS_INHEADER LSString ls_string_new_from_s(const char *s)
 {
-    LSString r = LS_VECTOR_NEW();
-    ls_string_assign_s(&r, cstr);
-    return r;
+    LSString x = ls_string_new();
+    ls_string_assign_s(&x, s);
+    return x;
 }
 
 LS_INHEADER LSString ls_string_new_from_b(const char *buf, size_t nbuf)
 {
-    LSString r = LS_VECTOR_NEW();
-    ls_string_assign_b(&r, buf, nbuf);
-    return r;
-}
-
-LS_INHEADER LSString ls_string_new_from_c(char c)
-{
-    LSString r = LS_VECTOR_NEW();
-    LS_VECTOR_PUSH(r, c);
-    return r;
+    LSString x = ls_string_new();
+    ls_string_assign_b(&x, buf, nbuf);
+    return x;
 }
 
 // If an encoding error occurs:
@@ -131,11 +157,11 @@ LS_INHEADER LSString ls_string_new_from_c(char c)
 //   * if /DDEBUG/ is defined, an empty string is returned.
 LS_INHEADER LSString ls_string_new_from_vf(const char *fmt, va_list vl)
 {
-    LSString s = LS_VECTOR_NEW();
-    bool r = ls_string_append_vf(&s, fmt, vl);
+    LSString x = ls_string_new();
+    bool r = ls_string_append_vf(&x, fmt, vl);
     (void) r;
     assert(r);
-    return s;
+    return x;
 }
 
 // If an encoding error occurs:
@@ -146,9 +172,9 @@ LSString ls_string_new_from_f(const char *fmt, ...)
 {
     va_list vl;
     va_start(vl, fmt);
-    LSString s = ls_string_new_from_vf(fmt, vl);
+    LSString x = ls_string_new_from_vf(fmt, vl);
     va_end(vl);
-    return s;
+    return x;
 }
 
 // Like /ls_string_new_from_f/, but appends the terminating NUL ('\0') byte to the resulting string.
@@ -157,25 +183,30 @@ LSString ls_string_newz_from_f(const char *fmt, ...)
 {
     va_list vl;
     va_start(vl, fmt);
-    LSString s = ls_string_new_from_vf(fmt, vl);
-    LS_VECTOR_PUSH(s, '\0');
+    LSString x = ls_string_new_from_vf(fmt, vl);
+    ls_string_append_c(&x, '\0');
     va_end(vl);
-    return s;
+    return x;
 }
 
-LS_INHEADER bool ls_string_eq(LSString a, LSString b)
+LS_INHEADER bool ls_string_eq(LSString x, LSString y)
 {
     // We have to check that the size is not zero before calling /memcmp/:
     // see DOCS/c_notes/empty-ranges-and-c-stdlib.md
-    return a.size == b.size && (a.size == 0 || memcmp(a.data, b.data, a.size) == 0);
+    return x.size == y.size && (x.size == 0 || memcmp(x.data, y.data, x.size) == 0);
 }
 
 // Swaps two string efficiently (in O(1) time).
-LS_INHEADER void ls_string_swap(LSString *a, LSString *b)
+LS_INHEADER void ls_string_swap(LSString *x, LSString *y)
 {
-    LSString tmp = *a;
-    *a = *b;
-    *b = tmp;
+    LSString tmp = *x;
+    *x = *y;
+    *y = tmp;
+}
+
+LS_INHEADER void ls_string_free(LSString x)
+{
+    free(x.data);
 }
 
 #endif

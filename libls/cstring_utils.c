@@ -24,9 +24,16 @@
 #include "cstring_utils.h"
 
 #include <string.h>
+#include <errno.h>
 
 const char *ls_strerror_r(int errnum, char *buf, size_t nbuf)
 {
+    // luastatus-specific "fake" errno values
+    switch (errnum) {
+    case -EINVAL:
+        return "Not a FIFO";
+    }
+
     // We introduce an /int/ variable in order to get a compilation warning if /strerror_r()/ is
     // still GNU-specific and returns a pointer to char.
     int r = strerror_r(errnum, buf, nbuf);

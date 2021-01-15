@@ -25,27 +25,25 @@
 #include <stdarg.h>
 #include <stdbool.h>
 
-#include "vector.h"
-
-bool ls_string_append_vf(LSString *s, const char *fmt, va_list vl)
+bool ls_string_append_vf(LSString *x, const char *fmt, va_list vl)
 {
     va_list vl2;
     va_copy(vl2, vl);
     bool ret = false;
     int saved_errno;
 
-    size_t navail = s->capacity - s->size;
-    int r = vsnprintf(s->data + s->size, navail, fmt, vl);
+    size_t navail = x->capacity - x->size;
+    int r = vsnprintf(x->data + x->size, navail, fmt, vl);
     if (r < 0) {
         goto cleanup;
     }
-    if ((size_t) r >= navail) {
-        LS_VECTOR_ENSURE(*s, s->size + r + 1);
-        if (vsnprintf(s->data + s->size, (size_t) r + 1, fmt, vl2) < 0) {
+    if (((size_t) r) >= navail) {
+        ls_string_ensure_avail(x, ((size_t) r) + 1);
+        if (vsnprintf(x->data + x->size, ((size_t) r) + 1, fmt, vl2) < 0) {
             goto cleanup;
         }
     }
-    s->size += r;
+    x->size += r;
     ret = true;
 
 cleanup:

@@ -17,17 +17,24 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "panic.h"
+#define _GNU_SOURCE
 
-#include "cstring_utils.h"
+#include "cloexec_accept.h"
+#include "probes.generated.h"
 
-void ls_pth_check_impl(int ret, const char *expr, const char *file, int line)
+#include "libls/io_utils.h"
+
+#include <sys/socket.h>
+#include <stddef.h>
+
+int cloexec_accept(int sockfd)
 {
-    if (ret == 0)
-        return;
-
-    char buf[512];
-    fprintf(stderr, "LS_PTH_CHECK(%s) failed at %s:%d, reason: %s\nAborting.\n",
-            expr, file, line, ls_strerror_r(ret, buf, sizeof(buf)));
-    abort();
+#if HAVE_GNU_ACCEPT4
+    return accept4(sockfd, NULL, NULL, SOCK_CLOEXEC);
+#else
+    int fd = accept(sockfd, NULL, NULL);
+    if (fd >= 0)
+        ls_make_cloexec(fd);
+    return fd;
+#endif
 }

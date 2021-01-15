@@ -35,8 +35,7 @@
 
 #include "libls/string_.h"
 #include "libls/alloc_utils.h"
-#include "libls/vector.h"
-#include "libls/cstring_utils.h"
+#include "libls/tls_ebuf.h"
 #include "libls/time_utils.h"
 #include "libls/poll_utils.h"
 #include "libls/strarr.h"
@@ -60,7 +59,7 @@ static void destroy(LuastatusPluginData *pd)
     free(p->hostname);
     free(p->password);
     free(p->retry_fifo);
-    LS_VECTOR_FREE(p->idle_str);
+    ls_string_free(p->idle_str);
     free(p);
 }
 
@@ -110,7 +109,7 @@ static int init(LuastatusPluginData *pd, lua_State *L)
     // Parse password
     if (moon_visit_str(&mv, -1, "password", &p->password, NULL, true) < 0)
         goto mverror;
-    if ((strchr(p->password, '\n'))) {
+    if (p->password && (strchr(p->password, '\n'))) {
         LS_FATALF(pd, "password contains a line break");
         goto error;
     }
@@ -203,7 +202,7 @@ static void log_io_error(LuastatusPluginData *pd, Context *ctx)
     if (feof(ctx->f)) {
         LS_ERRF(pd, "connection closed");
     } else {
-        LS_ERRF(pd, "I/O error: %s", ls_strerror_onstack(errno));
+        LS_ERRF(pd, "I/O error: %s", ls_tls_strerror(errno));
     }
 }
 
@@ -259,7 +258,7 @@ static void interact(
     int fd_to_close = fd;
 
     if (!(ctx.f = fdopen(fd, "r+"))) {
-        LS_ERRF(pd, "can't fdopen connection fd: %s", ls_strerror_onstack(errno));
+        LS_ERRF(pd, "can't fdopen connection fd: %s", ls_tls_strerror(errno));
         goto done;
     }
     fd_to_close = -1;
@@ -354,7 +353,7 @@ static void interact(
             for (;;) {
                 int nfds = ls_wait_input_on_fd(fd, p->tmo);
                 if (nfds < 0) {
-                    LS_ERRF(pd, "ls_wait_input_on_fd: %s", ls_strerror_onstack(errno));
+                    LS_ERRF(pd, "ls_wait_input_on_fd: %s", ls_tls_strerror(errno));
                     goto done;
                 } else if (nfds == 0) {
                     report_status(pd, funcs, "timeout");
@@ -405,10 +404,10 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         report_status(pd, funcs, "error");
 
         if (ls_fifo_open(&retry_fifo_fd, p->retry_fifo) < 0) {
-            LS_WARNF(pd, "ls_fifo_open: %s: %s", p->retry_fifo, LS_FIFO_STRERROR_ONSTACK(errno));
+            LS_WARNF(pd, "ls_fifo_open: %s: %s", p->retry_fifo, ls_tls_strerror(errno));
         }
         if (ls_fifo_wait(&retry_fifo_fd, p->retry_tmo) < 0) {
-            LS_FATALF(pd, "ls_fifo_wait: %s: %s", p->retry_fifo, ls_strerror_onstack(errno));
+            LS_FATALF(pd, "ls_fifo_wait: %s: %s", p->retry_fifo, ls_tls_strerror(errno));
             goto error;
         }
     }

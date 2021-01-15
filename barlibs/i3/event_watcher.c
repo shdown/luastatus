@@ -29,10 +29,9 @@
 
 #include "include/sayf_macros.h"
 
-#include "libls/cstring_utils.h"
+#include "libls/tls_ebuf.h"
 #include "libls/parse_int.h"
 #include "libls/strarr.h"
-#include "libls/vector.h"
 #include "libls/compdep.h"
 
 #include "priv.h"
@@ -64,6 +63,35 @@ typedef struct {
 } Token;
 
 typedef struct {
+    Token *data;
+    size_t size;
+    size_t capacity;
+} TokenList;
+
+static inline TokenList token_list_new(void)
+{
+    return (TokenList) {NULL, 0, 0};
+}
+
+static inline void token_list_push(TokenList *x, Token token)
+{
+    if (x->size == x->capacity) {
+        x->data = ls_x2realloc(x->data, &x->capacity, sizeof(Token));
+    }
+    x->data[x->size++] = token;
+}
+
+static inline void token_list_clear(TokenList *x)
+{
+    x->size = 0;
+}
+
+static inline void token_list_free(TokenList *x)
+{
+    free(x->data);
+}
+
+typedef struct {
     // Current JSON nesting depth. Before the initial '[', depth == -1.
     int depth;
 
@@ -74,7 +102,7 @@ typedef struct {
     LSStringArray strarr;
 
     // A flat list of current event's tokens.
-    LS_VECTOR_OF(Token) tokens;
+    TokenList tokens;
 
     // Current event's widget index, or a negative value if is not known yet or invalid.
     int widget;
@@ -159,7 +187,7 @@ static void flush(Context *ctx)
     // reset the context
     ctx->last_key_is_name = false;
     ls_strarr_clear(&ctx->strarr);
-    LS_VECTOR_CLEAR(ctx->tokens);
+    token_list_clear(&ctx->tokens);
     ctx->widget = -1;
 }
 
@@ -176,7 +204,7 @@ static int token_helper(Context *ctx, Token token)
             LS_ERRF(ctx->bd, "(event watcher) expected '{'");
             return 0;
         }
-        LS_VECTOR_PUSH(ctx->tokens, token);
+        token_list_push(&ctx->tokens, token);
         switch (token.type) {
         case TYPE_ARRAY_START:
         case TYPE_MAP_START:
@@ -282,7 +310,7 @@ int event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
         .depth = -1,
         .last_key_is_name = false,
         .strarr = ls_strarr_new(),
-        .tokens = LS_VECTOR_NEW(),
+        .tokens = token_list_new(),
         .widget = -1,
         .bd = bd,
         .funcs = funcs,
@@ -305,7 +333,7 @@ int event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
     while (1) {
         ssize_t nread = read(p->in_fd, buf, sizeof(buf));
         if (nread < 0) {
-            LS_ERRF(bd, "(event watcher) read error: %s", ls_strerror_onstack(errno));
+            LS_ERRF(bd, "(event watcher) read error: %s", ls_tls_strerror(errno));
             goto error;
         } else if (nread == 0) {
             LS_ERRF(bd, "(event watcher) i3bar closed its end of the pipe");
@@ -328,7 +356,7 @@ int event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
 
 error:
     ls_strarr_destroy(ctx.strarr);
-    LS_VECTOR_FREE(ctx.tokens);
+    token_list_free(&ctx.tokens);
     yajl_free(hand);
     return LUASTATUS_ERR;
 }

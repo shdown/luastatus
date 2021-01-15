@@ -28,7 +28,7 @@
 #include "libmoonvisit/moonvisit.h"
 
 #include "libls/alloc_utils.h"
-#include "libls/cstring_utils.h"
+#include "libls/tls_ebuf.h"
 #include "libls/poll_utils.h"
 #include "libls/evloop_lfuncs.h"
 
@@ -101,12 +101,12 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         funcs.call_end(pd->userdata);
 
         if (ls_fifo_open(&fifo_fd, p->fifo) < 0) {
-            LS_WARNF(pd, "ls_fifo_open: %s: %s", p->fifo, LS_FIFO_STRERROR_ONSTACK(errno));
+            LS_WARNF(pd, "ls_fifo_open: %s: %s", p->fifo, ls_tls_strerror(errno));
         }
         double tmo = ls_pushed_timeout_fetch(&p->pushed_tmo, p->period);
         int r = ls_fifo_wait(&fifo_fd, tmo);
         if (r < 0) {
-            LS_FATALF(pd, "ls_fifo_wait: %s", ls_strerror_onstack(errno));
+            LS_FATALF(pd, "ls_fifo_wait: %s", ls_tls_strerror(errno));
             goto error;
         } else if (r == 0) {
             what = "timeout";

@@ -24,7 +24,6 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <limits.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -36,6 +35,10 @@ static void oom_handler(void)
     abort();
 }
 
+// Copies zero-terminated 'src' into buffer 'dst' of size 'ndst', possibly truncating, but always
+// zero-terminating the output (unless 'ndst' is 0, of course).
+//
+// Returns number of bytes written, not including terminating NUL.
 static size_t write_str(char *dst, size_t ndst, const char *src)
 {
     if (!ndst)

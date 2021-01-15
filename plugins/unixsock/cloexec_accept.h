@@ -17,17 +17,9 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "panic.h"
+#ifndef cloexec_accept_h_
+#define cloexec_accept_h_
 
-#include "cstring_utils.h"
+int cloexec_accept(int sockfd);
 
-void ls_pth_check_impl(int ret, const char *expr, const char *file, int line)
-{
-    if (ret == 0)
-        return;
-
-    char buf[512];
-    fprintf(stderr, "LS_PTH_CHECK(%s) failed at %s:%d, reason: %s\nAborting.\n",
-            expr, file, line, ls_strerror_r(ret, buf, sizeof(buf)));
-    abort();
-}
+#endif

@@ -26,8 +26,26 @@
 #include <limits.h>
 
 #include "compdep.h"
+#include "panic.h"
 
 #define LS_TMO_MAX 2147483647.0
+
+LS_INHEADER double ls_ts_to_tmo(struct timespec ts)
+{
+    double s = ts.tv_sec;
+    double ns = ts.tv_nsec;
+    return s + ns / 1e9;
+}
+
+LS_INHEADER double ls_monotonic_now(void)
+{
+    struct timespec ts;
+    if (clock_gettime(CLOCK_MONOTONIC, &ts) < 0)
+        goto error;
+    return ls_ts_to_tmo(ts);
+error:
+    LS_PANIC("clock_gettime(CLOCK_MONOTONIC, ...) failed");
+}
 
 LS_INHEADER struct timespec ls_tmo_to_ts(double tmo)
 {
