@@ -2,15 +2,14 @@ Source: luastatus
 Section: misc
 Priority: optional
 Maintainer: Viktor Krapivensky <shdownnine@gmail.com>
-Standards-Version: 4.5.1
+Standards-Version: 4.5.0
 Build-Depends:
  cmake (>= 3.1.3),
- debhelper (>= 7),
+ debhelper (>= 10),
  valgrind,
- liblua5.2-dev,
+ liblua5.3-dev,
  pkg-config,
  python3-docutils,
- libxcb1-dev,
  libyajl-dev,
  libasound2-dev,
  libglib2.0-dev,
@@ -25,6 +24,7 @@ Build-Depends:
  libxcb-icccm4-dev,
  libxcb-util0-dev
 Homepage: https://github.com/shdown/luastatus
+Rules-Requires-Root: no
 
 Package: luastatus
 Architecture: any
@@ -171,8 +171,8 @@ Description: xtitle plugin for luastatus
 Package: luastatus-plugin-imap
 Architecture: all
 Depends: ${misc:Depends}, luastatus,
- lua5.2-socket,
- lua5.2-sec
+ lua5.3-socket,
+ lua5.3-sec
 Recommends:
 Suggests:
 Description: IMAP plugin for luastatus
