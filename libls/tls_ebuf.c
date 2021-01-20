@@ -30,12 +30,15 @@ static pthread_once_t key_once = PTHREAD_ONCE_INIT;
 static void mk_key(void)
 {
     LS_PTH_CHECK(pthread_key_create(&key, free));
-    char *p = LS_XNEW(char, LS_TLS_EBUF_N);
-    LS_PTH_CHECK(pthread_setspecific(key, p));
 }
 
 char *ls_tls_ebuf(void)
 {
     pthread_once(&key_once, mk_key);
-    return pthread_getspecific(key);
+    char *p = pthread_getspecific(key);
+    if (!p) {
+        p = LS_XNEW(char, LS_TLS_EBUF_N);
+        LS_PTH_CHECK(pthread_setspecific(key, p));
+    }
+    return p;
 }
