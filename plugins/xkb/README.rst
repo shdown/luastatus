@@ -30,6 +30,39 @@ The following options are supported:
     Also report (and subscribe to changes of) the state of LED indicators, such as "Caps Lock" and
     "Num Lock".
 
+* ``how``: string
+
+    This option controls which method of obtaining the list of group names is used.
+    Currently, there are two methods.
+
+    The first one, codenamed "*wrongly*", is the default one; it consists of
+    querying and parsing the ``_XKB_RULES_NAMES`` property of the root window.
+    This method is known to be wrong, and on current Debian Sid it does not work as expected:
+    on a setup with two keyboard layouts, English and Russian, it reports only the English one.
+    Specify ``how="wrongly"`` to use this method.
+
+    The second one, codenamed "*somehow*", consists of calling
+    ``XkbGetNames(..., XkbSymbolsNameMask, ...)`` in order to obtain a string called "symbols",
+    which looks like this::
+
+        pc+us+ru(winkeys):2+inet(evdev)+group(rctrl_toggle)+level3(ralt_switch)+capslock(ctrl_modifier)+typ
+
+    Note that this string has been truncated to exactly 99 characters (the end should have been
+    ``typo`` and then probably something else).
+    It was not me who truncated it, but rather the guts of X11. And I have no idea why.
+    The fact that this string can be truncated certainly does not contribute to the reliability of
+    this method.
+    We obtain the list of group names, then, by splitting the "symbols" by plus signs, and then
+    filtering out known "bad" symbols (that do not indicate a keyboard layout).
+    This is quite unreliable, but somehow works.
+    Specify ``how="somehow"`` to use this method.
+
+* ``somehow_bad``: string
+
+    Comma-separated list of bad symbols for the "somehow" method (note that normally it should
+    not include spaces). Set to empty string to express an empty list.
+    The default value is ``group,inet,pc``.
+
 ``cb`` argument
 ===============
 A table with the following entries:

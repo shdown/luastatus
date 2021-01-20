@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2020  luastatus developers
+ * Copyright (C) 2015-2021  luastatus developers
  *
  * This file is part of luastatus.
  *
@@ -35,7 +35,8 @@
 #include "libls/alloc_utils.h"
 #include "libls/strarr.h"
 
-#include "rules_names.h"
+#include "wrongly.h"
+#include "somehow.h"
 
 // If this plugin is used, the whole process gets killed if a connection to the display is lost,
 // because Xlib is terrible.
@@ -44,16 +45,40 @@
 // * https://tronche.com/gui/x/xlib/event-handling/protocol-errors/XSetIOErrorHandler.html
 // * https://tronche.com/gui/x/xlib/event-handling/protocol-errors/XSetErrorHandler.html
 
+enum {
+    HOW_WRONGLY = 1,
+    HOW_SOMEHOW = 2,
+};
+
 typedef struct {
     char *dpyname;
     uint64_t deviceid;
+    int how;
+    char *somehow_bad;
     bool led;
 } Priv;
+
+static int parse_how_str(MoonVisit *mv, void *ud, const char *s, size_t ns)
+{
+    (void) ns;
+    int *out = ud;
+    if (strcmp(s, "wrongly") == 0) {
+        *out = HOW_WRONGLY;
+        return 1;
+    }
+    if (strcmp(s, "somehow") == 0) {
+        *out = HOW_SOMEHOW;
+        return 1;
+    }
+    moon_visit_err(mv, "unknown how string: '%s'", s);
+    return -1;
+}
 
 static void destroy(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
     free(p->dpyname);
+    free(p->somehow_bad);
     free(p);
 }
 
@@ -63,6 +88,8 @@ static int init(LuastatusPluginData *pd, lua_State *L)
     *p = (Priv) {
         .dpyname = NULL,
         .deviceid = XkbUseCoreKbd,
+        .how = HOW_WRONGLY,
+        .somehow_bad = NULL,
         .led = false,
     };
 
@@ -76,6 +103,17 @@ static int init(LuastatusPluginData *pd, lua_State *L)
     // Parse device_id
     if (moon_visit_uint(&mv, -1, "device_id", &p->deviceid, true) < 0)
         goto mverror;
+
+    // Parse how
+    if (moon_visit_str_f(&mv, -1, "how", parse_how_str, &p->how, true) < 0)
+        goto mverror;
+
+    // Parse somehow_bad
+    if (moon_visit_str(&mv, -1, "somehow_bad", &p->somehow_bad, NULL, true) < 0)
+        goto mverror;
+
+    if (!p->somehow_bad)
+        p->somehow_bad = ls_xstrdup("group,inet,pc");
 
     // Parse led
     if (moon_visit_bool(&mv, -1, "led", &p->led, true) < 0)
@@ -144,36 +182,61 @@ static Display *open_dpy(
     return NULL;
 }
 
-static bool query_groups(Display *dpy, LSStringArray *groups)
+static bool query_wrongly(LuastatusPluginData *pd, Display *dpy, LSStringArray *groups)
 {
     ls_strarr_clear(groups);
 
-    RulesNames rn;
-    if (!rules_names_load(dpy, &rn))
+    WronglyResult res;
+    if (!wrongly_fetch(dpy, &res)) {
+        LS_WARNF(pd, "[wrongly] wrongly_fetch() failed");
         return false;
-
-    if (rn.layout) {
-        // split /rn.layout/ by non-parenthesized commas
-        size_t balance = 0;
-        size_t prev = 0;
-        size_t nlayout = strlen(rn.layout);
-        for (size_t i = 0; i < nlayout; ++i) {
-            switch (rn.layout[i]) {
-            case '(': ++balance; break;
-            case ')': --balance; break;
-            case ',':
-                if (balance == 0) {
-                    ls_strarr_append(groups, rn.layout + prev, i - prev);
-                    prev = i + 1;
-                }
-                break;
-            }
-        }
-        ls_strarr_append(groups, rn.layout + prev, nlayout - prev);
     }
 
-    rules_names_free(rn);
+    if (res.layout) {
+        LS_DEBUGF(pd, "[wrongly] layout string: %s", res.layout);
+        wrongly_parse_layout(res.layout, groups);
+    } else {
+        LS_DEBUGF(pd, "[wrongly] layout string is NULL");
+    }
+
+    free(res.rules);
+    free(res.model);
+    free(res.layout);
+    free(res.options);
+
     return true;
+}
+
+static bool query_somehow(LuastatusPluginData *pd, Display *dpy, LSStringArray *groups)
+{
+    ls_strarr_clear(groups);
+
+    Priv *p = pd->priv;
+    char *res = somehow_fetch_symbols(dpy, p->deviceid);
+    if (!res) {
+        LS_WARNF(pd, "[somehow] somehow_fetch_symbols() failed");
+        return false;
+    }
+
+    LS_DEBUGF(pd, "[somehow] symbols string: %s", res);
+    somehow_parse_symbols(res, groups, p->somehow_bad);
+
+    free(res);
+
+    return true;
+}
+
+static bool query(LuastatusPluginData *pd, Display *dpy, LSStringArray *groups)
+{
+    Priv *p = pd->priv;
+    switch (p->how) {
+    case HOW_WRONGLY:
+        return query_wrongly(pd, dpy, groups);
+    case HOW_SOMEHOW:
+        return query_somehow(pd, dpy, groups);
+    default:
+        LS_UNREACHABLE();
+    }
 }
 
 static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
@@ -220,7 +283,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
                 /*values_for_bits=*/BOILERPLATE_EVENTS_MASK)
             == False)
     {
-        LS_FATALF(pd, "XkbSelectEvents() failed [boilerplate events]");
+        LS_FATALF(pd, "XkbSelectEvents() failed (boilerplate events)");
         goto error;
     }
 
@@ -232,7 +295,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
                 /*values_for_bits=*/XkbGroupStateMask)
             == False)
     {
-        LS_FATALF(pd, "XkbSelectEventDetails() failed [layout events]");
+        LS_FATALF(pd, "XkbSelectEventDetails() failed (layout events)");
         goto error;
     }
 
@@ -244,7 +307,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
                 /*values_for_bits=*/LED_EVENTS_MASK)
             == False)
         {
-            LS_FATALF(pd, "XkbSelectEvents() failed [LED events]");
+            LS_FATALF(pd, "XkbSelectEvents() failed (LED events)");
             goto error;
         }
     }
@@ -257,8 +320,8 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         // re-query everything, if needed
         if (requery_everything) {
             // re-query group names
-            if (!query_groups(dpy, &groups)) {
-                LS_WARNF(pd, "query_groups() failed");
+            if (!query(pd, dpy, &groups)) {
+                LS_WARNF(pd, "query() failed");
             }
 
             // explicitly query current group
@@ -273,8 +336,8 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
             if (group >= ls_strarr_size(groups)) {
                 LS_WARNF(pd, "group ID (%zu) is too large, requerying", group);
 
-                if (!query_groups(dpy, &groups)) {
-                    LS_WARNF(pd, "query_groups() failed");
+                if (!query(pd, dpy, &groups)) {
+                    LS_WARNF(pd, "query() failed");
                 }
 
                 if (group >= ls_strarr_size(groups)) {

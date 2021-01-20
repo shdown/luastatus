@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2020  luastatus developers
+ * Copyright (C) 2015-2021  luastatus developers
  *
  * This file is part of luastatus.
  *
@@ -17,11 +17,13 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef rules_names_h_
-#define rules_names_h_
+#ifndef wrongly_h_
+#define wrongly_h_
 
 #include <X11/Xlib.h>
 #include <stdbool.h>
+
+#include "libls/strarr.h"
 
 typedef struct {
     // These all are either zero-terminated strings allocated as if with /malloc()/, or /NULL/.
@@ -29,10 +31,10 @@ typedef struct {
     char *model;
     char *layout;
     char *options;
-} RulesNames;
+} WronglyResult;
 
-bool rules_names_load(Display *dpy, RulesNames *out);
+bool wrongly_fetch(Display *dpy, WronglyResult *out);
 
-void rules_names_free(RulesNames rn);
+void wrongly_parse_layout(const char *layout, LSStringArray *out);
 
 #endif

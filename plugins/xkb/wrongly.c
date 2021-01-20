@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2020  luastatus developers
+ * Copyright (C) 2015-2021  luastatus developers
  *
  * This file is part of luastatus.
  *
@@ -17,7 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "rules_names.h"
+#include "wrongly.h"
 
 #include <stdbool.h>
 #include <string.h>
@@ -41,7 +41,7 @@ static char *dup_and_advance(const char **pcur, const char *end)
     return ls_xmemdup(cur, n + 1);
 }
 
-bool rules_names_load(Display *dpy, RulesNames *out)
+bool wrongly_fetch(Display *dpy, WronglyResult *out)
 {
     bool ret = false;
     unsigned char *data = NULL;
@@ -102,10 +102,27 @@ done:
     return ret;
 }
 
-void rules_names_free(RulesNames rn)
+void wrongly_parse_layout(const char *layout, LSStringArray *out)
 {
-    free(rn.rules);
-    free(rn.model);
-    free(rn.layout);
-    free(rn.options);
+    const char *prev = layout;
+    size_t balance = 0;
+    for (;; ++layout) {
+        switch (*layout) {
+        case '(':
+            ++balance;
+            break;
+        case ')':
+            --balance;
+            break;
+        case ',':
+            if (balance == 0) {
+                ls_strarr_append(out, prev, layout - prev);
+                prev = layout + 1;
+            }
+            break;
+        case '\0':
+            ls_strarr_append(out, prev, layout - prev);
+            return;
+        }
+    }
 }
