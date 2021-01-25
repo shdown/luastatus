@@ -9,74 +9,90 @@ if (( $# != 1 )); then
     echo >&2 "USAGE: $0 <build root>"
     exit 2
 fi
-build_dir=$(resolve_relative "$1" "$opwd") || exit $?
-
+BUILD_DIR=$(resolve_relative "$1" "$opwd") || exit $?
 HANG_TIMEOUT=${TIMEOUT:-7}
-LUASTATUS=(
-    valgrind --error-exitcode=42
-    "$build_dir"/luastatus/luastatus ${DEBUG:+-l trace}
-)
+PREFIX=( valgrind --error-exitcode=42 --exit-on-first-error=yes )
+LUASTATUS=( "$BUILD_DIR"/luastatus/luastatus ${DEBUG:+-l trace} )
+LUASTATUS_PID=
 
-fail()
-{
+if [[ "$(uname -s)" == Linux ]]; then
+    is_process_sleeping() {
+        local state
+        state=$(awk '$1 == "State:" { print $2 }' /proc/"$1"/status) || return 3
+        if [[ $state == S ]]; then
+            return 0
+        else
+            return 1
+        fi
+    }
+else
+    is_process_sleeping() {
+        true
+    }
+fi
+
+fail() {
     printf >&2 '%s\n' '=== FAILED ===' "$@"
     exit 1
 }
 
-assert_exits_with_code()
-{
-    local c=$1 got_c=0
+assert_exits_with_code() {
+    echo >&2 "===> assert_exits_with_code $*"
+
+    local c=$1
     shift
-    "${LUASTATUS[@]}" "$@" || got_c=$?
+    "${PREFIX[@]}" "${LUASTATUS[@]}" "$@"
+    local got_c=$?
     if (( c != got_c )); then
-        fail "Command: $*" "Expected exit code $c, found $got_c"
+        fail "Expected exit code $c, found $got_c"
     fi
 }
 
-assert_succeeds()
-{
+assert_succeeds() {
     assert_exits_with_code 0 "$@"
 }
 
-assert_fails()
-{
+assert_fails() {
     assert_exits_with_code 1 "$@"
 }
 
-assert_hangs()
-{
-    local state pid
-    "${LUASTATUS[@]}" "$@" & pid=$!
+assert_hangs() {
+    echo >&2 "===> assert_hangs $*"
+
+    "${PREFIX[@]}" "${LUASTATUS[@]}" "$@" &
+    LUASTATUS_PID=$!
 
     sleep "$HANG_TIMEOUT" || exit $?
 
-    state=$(awk '$1 == "State:" { print $2 }' /proc/"$pid"/status) \
-        || fail "Command: $*" "Reading process state from “/proc/$pid/status” failed"
+    is_process_sleeping "$LUASTATUS_PID" \
+        || fail "The process (PID $LUASTATUS_PID) does not appear to be sleeping."
 
-    if [[ $state != S ]]; then
-        fail "Command: $*" "Expected state “S”, found “$state”"
-    fi
-
-    echo >&2 -n "assert_hangs $*: killing and waiting for termination... "
-    kill "$pid" || { echo >&2; fail "Command: $*" "“kill” failed"; }
-    wait "$pid" || true
+    echo >&2 "Killing and waiting for termination..."
+    kill "$LUASTATUS_PID" || fail "“kill $LUASTATUS_PID” failed"
+    wait "$LUASTATUS_PID" || true
+    LUASTATUS_PID=
 
     echo >&2 "done"
 }
 
-assert_works()
-{
+assert_works() {
     assert_hangs "$@"
     assert_succeeds -e "$@"
 }
 
-assert_works_1W()
-{
+assert_works_1W() {
     local tail=${@:$#}
     local init=("${@:1:$#-1}")
     assert_hangs "${init[@]}" <(printf '%s\n' "$tail")
     assert_succeeds -e "${init[@]}" <(printf '%s\n' "$tail")
 }
+
+trap '
+    if [[ -n $LUASTATUS_PID ]]; then
+        echo >&2 "Killing luastatus (PID $LUASTATUS_PID)."
+        kill $LUASTATUS_PID || true
+    fi
+' EXIT
 
 assert_fails
 assert_fails /dev/null
@@ -96,8 +112,8 @@ assert_fails -b '§n”™°£'
 assert_fails -b '/'
 assert_fails -b 'nosuchbarlibforsure'
 
-B=( -b "$build_dir"/tests/barlib-mock.so )
-P="$build_dir"/tests/plugin-mock.so
+B=( -b "$BUILD_DIR"/tests/barlib-mock.so )
+P="$BUILD_DIR"/tests/plugin-mock.so
 
 assert_succeeds "${B[@]}" -eeeeeeee -e
 

@@ -9,10 +9,10 @@ if (( $# != 1 )); then
     echo >&2 "USAGE: $0 <build root>"
     exit 2
 fi
-build_dir=$(resolve_relative "$1" "$opwd") || exit $?
+BUILD_DIR=$(resolve_relative "$1" "$opwd") || exit $?
 
 LUASTATUS=(
-    "$build_dir"/luastatus/luastatus ${DEBUG:+-l trace}
+    "$BUILD_DIR"/luastatus/luastatus ${DEBUG:+-l trace}
 )
 
 VALGRIND=(
@@ -27,10 +27,10 @@ run1() {
         local event_beg='[['         event_end=']]'
     fi
     shift 3
-    "${VALGRIND[@]}" "$@" "${LUASTATUS[@]}" -e -b "$build_dir"/tests/barlib-mock.so -B gen_events="$m" <(cat <<__EOF__
+    "${VALGRIND[@]}" "$@" "${LUASTATUS[@]}" -e -b "$BUILD_DIR"/tests/barlib-mock.so -B gen_events="$m" <(cat <<__EOF__
 n = 0
 widget = {
-    plugin = '$build_dir/tests/plugin-mock.so',
+    plugin = '$BUILD_DIR/tests/plugin-mock.so',
     opts = {
         make_calls = $n,
     },
