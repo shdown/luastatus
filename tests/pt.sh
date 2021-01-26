@@ -14,7 +14,7 @@ if (( $# != 1 )); then
 fi
 BUILD_DIR=$(resolve_relative "$1" "$opwd") || exit $?
 SOURCE_DIR=..
-VALGRIND=( valgrind --error-exitcode=42 --exit-on-first-error=yes )
+VALGRIND=( valgrind --error-exitcode=42 )
 case "$TOOL" in
 '')       PREFIX=() ;;
 valgrind) PREFIX=( "${VALGRIND[@]}" -q ) ;;

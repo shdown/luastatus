@@ -11,7 +11,7 @@ if (( $# != 1 )); then
 fi
 BUILD_DIR=$(resolve_relative "$1" "$opwd") || exit $?
 HANG_TIMEOUT=${TIMEOUT:-7}
-PREFIX=( valgrind --error-exitcode=42 --exit-on-first-error=yes )
+PREFIX=( valgrind --error-exitcode=42 )
 LUASTATUS=( "$BUILD_DIR"/luastatus/luastatus ${DEBUG:+-l trace} )
 LUASTATUS_PID=
 
