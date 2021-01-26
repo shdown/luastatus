@@ -19,18 +19,22 @@
 
 local P = {}
 
+local DEFAULT_PROCPATH = '/proc'
+
 local function wrap0(x)
     return x < 0 and 0 or x
 end
 
-function P.get_usage(cur, prev, cpu)
-    local f = assert(io.open('/proc/stat', 'r'))
+local function get_usage_impl(procpath, cur, prev, cpu)
+    local f = assert(io.open(procpath .. '/stat', 'r'))
     for i = 1, (cpu or 0) do
-        f:read('*line')
+        assert(f:read('*line'))
     end
+    local line = assert(f:read('*line'))
     cur.user, cur.nice, cur.system, cur.idle, cur.iowait, cur.irq, cur.softirq, cur.steal,
-        cur.guest, cur.guest_nice = string.match(f:read('*line'),
+        cur.guest, cur.guest_nice = string.match(line,
             'cpu%d*%s+(%S+)%s+(%S+)%s+(%S+)%s+(%S+)%s+(%S+)%s+(%S+)%s+(%S+)%s+(%S+)%s+(%S+)%s+(%S+)')
+    assert(cur.user ~= nil, 'Line has unexpected format')
     f:close()
 
     cur.user = cur.user - cur.guest
@@ -52,14 +56,19 @@ function P.get_usage(cur, prev, cpu)
            ) / wrap0(cur.Total - prev.Total)
 end
 
+function P.get_usage(cur, prev, cpu)
+    return get_usage_impl(DEFAULT_PROCPATH, cur, prev, cpu)
+end
+
 function P.widget(tbl)
+    local procpath = tbl._procpath or DEFAULT_PROCPATH
     local cur, prev = {}, {}
     return {
         plugin = 'timer',
         opts = {period = 1},
         cb = function()
             prev, cur = cur, prev
-            return tbl.cb(P.get_usage(cur, prev, tbl.cpu))
+            return tbl.cb(get_usage_impl(procpath, cur, prev, tbl.cpu))
         end,
         event = tbl.event,
     }

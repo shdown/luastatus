@@ -19,22 +19,24 @@
 
 local P = {}
 
-local function read_uevent(dev)
-    local f = io.open('/sys/class/power_supply/' .. dev .. '/uevent', 'r')
+local function read_uevent(devpath)
+    local f = io.open(devpath .. '/uevent', 'r')
     if not f then
         return nil
     end
     local r = {}
     for line in f:lines() do
         local key, value = line:match('POWER_SUPPLY_(.-)=(.*)')
-        r[key:lower()] = value
+        if key then
+            r[key:lower()] = value
+        end
     end
     f:close()
     return r
 end
 
-local function get_battery_info(dev, use_energy_full_design)
-    local p = read_uevent(dev)
+local function get_battery_info(devpath, use_energy_full_design)
+    local p = read_uevent(devpath)
     if not p then
         return {}
     end
@@ -66,7 +68,13 @@ local function get_battery_info(dev, use_energy_full_design)
 end
 
 function P.widget(tbl)
-    local dev = tbl.dev or 'BAT0'
+    local devpath
+    if tbl._devpath then
+        devpath = tbl._devpath
+    else
+        local dev = tbl.dev or 'BAT0'
+        devpath = '/sys/class/power_supply/' .. dev
+    end
     local period = tbl.period or 2
     return {
         plugin = 'udev',
@@ -76,7 +84,7 @@ function P.widget(tbl)
             greet = true
         },
         cb = function()
-            return tbl.cb(get_battery_info(dev, tbl.use_energy_full_design))
+            return tbl.cb(get_battery_info(devpath, tbl.use_energy_full_design))
         end,
         event = tbl.event,
     }

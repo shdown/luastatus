@@ -8,6 +8,7 @@ write_widget_file <<__EOF__
 f = assert(io.open('$main_fifo_file', 'w'))
 f:setvbuf('line')
 f:write('init\n')
+function my_event_func() end
 x = dofile('$SOURCE_DIR/plugins/file-contents-linux/file-contents-linux.lua')
 widget = x.widget{
     filename = '$myfile',
@@ -15,8 +16,10 @@ widget = x.widget{
         local s = assert(myfile:read('*all'))
         f:write('update ' .. s:gsub('\n', ';') .. '\n')
     end,
+    event = my_event_func,
 }
 widget.plugin = ('$BUILD_DIR/plugins/{}/plugin-{}.so'):gsub('{}', widget.plugin)
+assert(widget.event == my_event_func)
 __EOF__
 spawn_luastatus
 exec 3<"$main_fifo_file"

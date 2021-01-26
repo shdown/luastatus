@@ -14,11 +14,17 @@ if (( $# != 1 )); then
 fi
 BUILD_DIR=$(resolve_relative "$1" "$opwd") || exit $?
 SOURCE_DIR=..
-VALGRIND=( valgrind --error-exitcode=42 )
 case "$TOOL" in
-'')       PREFIX=() ;;
-valgrind) PREFIX=( "${VALGRIND[@]}" -q ) ;;
-*) echo >&2 "$0: Unknown TOOL: $TOOL."; exit 2 ;;
+'')
+    PREFIX=()
+    ;;
+valgrind)
+    PREFIX=( valgrind -q --error-exitcode=42 )
+    ;;
+*)
+    echo >&2 "$0: Unknown TOOL: $TOOL."
+    exit 2
+    ;;
 esac
 LUASTATUS=( "$BUILD_DIR"/luastatus/luastatus ${DEBUG:+-l trace} )
 WIDGET_FILES=()
@@ -101,9 +107,9 @@ testcase_begin() {
 testcase_end() {
     kill_luastatus
 
-    local f
-    for f in "${FILES_TO_REMOVE[@]}"; do
-        rm -f "$f" || fail "Cannot remove $f."
+    local x
+    for x in "${FILES_TO_REMOVE[@]}"; do
+        rm -f "$x" || fail "Cannot rm $x."
     done
     FILES_TO_REMOVE=()
     WIDGET_FILES=()

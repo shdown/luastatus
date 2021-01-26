@@ -19,8 +19,10 @@
 
 local P = {}
 
-function P.get_usage()
-    local f = assert(io.open('/proc/meminfo', 'r'))
+local DEFAULT_PROCPATH = '/proc'
+
+local function get_usage_impl(procpath)
+    local f = assert(io.open(procpath .. '/meminfo', 'r'))
     local r = {}
     for line in f:lines() do
         local key, value, unit = line:match('(%w+):%s+(%w+)%s+(%w+)')
@@ -34,12 +36,17 @@ function P.get_usage()
     return r
 end
 
+function P.get_usage()
+    return get_usage_impl(DEFAULT_PROCPATH)
+end
+
 function P.widget(tbl)
+    local procpath = tbl._procpath or DEFAULT_PROCPATH
     return {
         plugin = 'timer',
         opts = tbl.timer_opts,
         cb = function()
-            return tbl.cb(P.get_usage())
+            return tbl.cb(get_usage_impl(procpath))
         end,
         event = tbl.event,
     }
