@@ -23,7 +23,9 @@ local function _validate_t(t, ks)
         t[k] = nil
     end
     local k = next(t)
-    assert(k == nil, string.format("unexpected entry with key `%s`", k))
+    if k then
+        error(string.format("unexpected entry with key `%s`", k))
+    end
 end
 '
 
