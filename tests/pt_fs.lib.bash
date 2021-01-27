@@ -4,26 +4,28 @@ globtest_dir=$(mktemp -d) || fail "Cannot create temporary directory."
 
 preface='
 local function _validate_t(t, ks)
-    local function _validate_num(n, msg)
-        assert(type(n) == "number", msg)
-        assert(n >= 0, msg)
-        assert(n ~= math.huge, msg)
+    local function _assert_for_k(cond, k)
+        if not cond then
+            error(string.format("assertion failed for entry with key `%s` (see the stacktrace)", k))
+        end
+    end
+    local function _validate_num_for_k(n, k)
+        _assert_for_k(type(n) == "number", k)
+        _assert_for_k(n >= 0, k)
+        _assert_for_k(n ~= math.huge, k)
     end
     for _, k in ipairs(ks) do
-        local function _msg(fmt)
-            return string.format(fmt, k)
-        end
         local x = t[k]
-        assert(x, _msg("no entry for key `%s`"))
-        _validate_num(x.total, _msg("entry for key `%s`: total is invalid"))
-        _validate_num(x.free, _msg("entry for key `%s`: free is invalid"))
-        _validate_num(x.avail, _msg("entry for key `%s`: avail is invalid"))
-        assert(x.free <= x.total, _msg("entry for key `%s`: free > total"))
-        assert(x.avail <= x.total, _msg("entry for key `%s`: avail > total"))
+        _assert_for_k(x ~= nil, k)
+        _validate_num_for_k(x.total, k)
+        _validate_num_for_k(x.free, k)
+        _validate_num_for_k(x.avail, k)
+        _assert_for_k(x.free <= x.total, k)
+        _assert_for_k(x.avail <= x.total, k)
         t[k] = nil
     end
     local k = next(t)
-    if k then
+    if k ~= nil then
         error(string.format("unexpected entry with key `%s`", k))
     end
 end
