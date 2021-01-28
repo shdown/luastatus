@@ -2,129 +2,215 @@
 
 # pt stands for Plugin Test.
 
-opwd=$PWD
+PT_OPWD=$PWD
 cd -- "$(dirname "$(readlink "$0" || printf '%s\n' "$0")")" || exit $?
 
 source ./utils.lib.bash || exit $?
-source ./stopwatch.lib.bash || exit $?
+source ./pt_stopwatch.lib.bash || exit $?
 
 if (( $# != 1 )); then
     echo >&2 "USAGE: $0 <build root>"
     exit 2
 fi
-BUILD_DIR=$(resolve_relative "$1" "$opwd") || exit $?
-SOURCE_DIR=..
-case "$TOOL" in
+PT_BUILD_DIR=$(resolve_relative "$1" "$PT_OPWD") || exit $?
+PT_SOURCE_DIR=..
+case "$PT_TOOL" in
 '')
-    PREFIX=()
+    PT_PREFIX=()
     ;;
 valgrind)
-    PREFIX=( valgrind -q --error-exitcode=42 )
+    PT_PREFIX=( valgrind -q --error-exitcode=42 )
     ;;
 *)
-    echo >&2 "$0: Unknown TOOL: $TOOL."
+    echo >&2 "$0: Unknown PT_TOOL: $PT_TOOL."
     exit 2
     ;;
 esac
-LUASTATUS=( "$BUILD_DIR"/luastatus/luastatus ${DEBUG:+-l trace} )
-WIDGET_FILES=()
-FILES_TO_REMOVE=()
-LUASTATUS_PID=
-LINE=
+PT_LUASTATUS=( "$PT_BUILD_DIR"/luastatus/luastatus ${DEBUG:+-l trace} )
+PT_WIDGET_FILES=()
+PT_FILES_TO_REMOVE=()
+declare -A PT_SPAWNED_THINGS=()
+PT_CLEANUP_AFTER_SUITE=()
+PT_LINE=
 
-fail_internal_error() {
+pt_stack_trace() {
+    echo >&2 "Stack trace:"
+    local n=${#FUNCNAME[@]}
+    local i=${1:-1}
+    for (( ; i < n; ++i )); do
+        local func=${FUNCNAME[$i]:-MAIN}
+        local lineno=${BASH_LINENO[(( i - 1 ))]}
+        local src=${BASH_SOURCE[$i]:-'???'}
+        echo >&2 "  in $src:$lineno (function $func)"
+    done
+}
+
+pt_fail_internal_error() {
     printf >&2 '%s\n' '=== INTERNAL ERROR ===' "$@"
+    pt_stack_trace 2
     exit 3
 }
 
-fail() {
+pt_fail() {
     printf >&2 '%s\n' '=== FAILED ===' "$@"
+    pt_stack_trace 2
     exit 1
 }
 
-write_widget_file() {
+pt_write_widget_file() {
     local f
-    f=$(mktemp --suffix=.lua) || fail "Cannot create temporary file."
-    WIDGET_FILES+=("$f")
-    FILES_TO_REMOVE+=("$f")
-    cat > "$f" || fail "Cannot write to widget file $f."
+    f=$(mktemp --suffix=.lua) || pt_fail "Cannot create temporary file."
+    PT_WIDGET_FILES+=("$f")
+    PT_FILES_TO_REMOVE+=("$f")
+    cat > "$f" || pt_fail "Cannot write to widget file $f."
 }
 
-spawn_luastatus() {
-    if [[ -n $LUASTATUS_PID ]]; then
-        fail_internal_error "spawn_luastatus: previous luastatus process (PID $LUASTATUS_PID) was not killed."
-    fi
-    "${PREFIX[@]}" "${LUASTATUS[@]}" -b ./barlib-mock.so "$@" "${WIDGET_FILES[@]}" &
-    LUASTATUS_PID=$!
+pt_add_file_to_remove() {
+    PT_FILES_TO_REMOVE+=("$1")
 }
 
-add_file_to_remove() {
-    FILES_TO_REMOVE+=("$1")
+pt_add_fifo() {
+    rm -f "$1" || pt_fail "Cannot remove $1."
+    mkfifo "$1" || pt_fail "Cannot make FIFO $1."
+    pt_add_file_to_remove "$1"
 }
 
-add_fifo() {
-    rm -f "$1" || fail "Cannot remove $1."
-    mkfifo "$1" || fail "Cannot make FIFO $1."
-    add_file_to_remove "$1"
+pt_read_line() {
+    echo >&2 "Reading line..."
+    IFS= read -r PT_LINE || pt_fail "pt_read_line: cannot read next line (luastatus process died?)"
 }
 
-read_line() {
-    IFS= read -r LINE || fail "expect_line: cannot read next line (luastatus process died?)"
-    if [[ -n "${DEBUG:+x}" ]]; then
-        echo >&2 "read_line: read line '$LINE'"
+pt_expect_line() {
+    echo >&2 "Expecting line “$1”..."
+    IFS= read -r PT_LINE || pt_fail "expect_line: cannot read next line (luastatus process died?)"
+    if [[ $PT_LINE != $1 ]]; then
+        pt_fail "pt_expect_line: line does not match" "Expected: '$1'" "Found: '$PT_LINE'"
     fi
 }
 
-expect_line() {
-    read_line
-    if [[ $LINE != $1 ]]; then
-        fail "expect_line: line does not match" "Expected: '$1'" "Found: '$LINE'"
+pt_spawn_thing() {
+    local k=$1
+    shift
+
+    local pid=${PT_SPAWNED_THINGS[$k]}
+    if [[ -n $pid ]]; then
+        pt_fail_internal_error "pt_spawn_thing: thing '$k' has already been spawned (PID $pid)."
     fi
+
+    "$@" &
+    pid=$!
+    PT_SPAWNED_THINGS[$k]=$pid
 }
 
-wait_luastatus() {
-    if [[ -z $LUASTATUS_PID ]]; then
-        fail_internal_error "wait_luastatus: no current luastatus process (LUASTATUS_PID is empty)."
+pt_wait_thing() {
+    local k=$1
+    local pid=${PT_SPAWNED_THINGS[$k]}
+    if [[ -z $pid ]]; then
+        pt_fail_internal_error "pt_wait_thing: unknown thing '$k' (PT_SPAWNED_THINGS has no such key)"
     fi
-    wait "$LUASTATUS_PID"
+    echo >&2 "Waiting for '$k' (PID $pid)..."
+    wait "${PT_SPAWNED_THINGS[$k]}"
     local c=$?
-    LUASTATUS_PID=
+    unset PT_SPAWNED_THINGS[$k]
     return -- "$c"
 }
 
-kill_luastatus() {
-    if [[ -n $LUASTATUS_PID ]]; then
-        kill "$LUASTATUS_PID" || fail "“kill $LUASTATUS_PID” failed"
-        wait "$LUASTATUS_PID" || true
-        LUASTATUS_PID=
+pt_kill_thing() {
+    local k=$1
+    local pid=${PT_SPAWNED_THINGS[$k]}
+    if [[ -n $pid ]]; then
+        kill "$pid" || pt_fail "Cannot kill '$k' (PID $pid)."
+        wait "$pid" || true
     fi
+    unset PT_SPAWNED_THINGS[$k]
 }
 
-testcase_begin() {
-    echo >&2 "====> Running testcase '$1'"
+pt_spawn_luastatus() {
+    pt_spawn_thing luastatus "${PT_PREFIX[@]}" "${PT_LUASTATUS[@]}" -b ./barlib-mock.so "$@" "${PT_WIDGET_FILES[@]}"
 }
 
-testcase_end() {
-    kill_luastatus
+pt_wait_luastatus() {
+    pt_wait_thing luastatus
+}
+
+pt_kill_luastatus() {
+    pt_kill_thing luastatus
+}
+
+pt_kill_everything() {
+    local k
+    for k in "${!PT_SPAWNED_THINGS[@]}"; do
+        pt_kill_thing "$k"
+    done
+}
+
+pt_testcase_begin() {
+    true
+}
+
+pt_testcase_end() {
+    pt_kill_luastatus
+    pt_kill_everything
 
     local x
-    for x in "${FILES_TO_REMOVE[@]}"; do
-        rm -f "$x" || fail "Cannot rm $x."
+    for x in "${PT_FILES_TO_REMOVE[@]}"; do
+        rm -f "$x" || pt_fail "Cannot rm $x."
     done
-    FILES_TO_REMOVE=()
-    WIDGET_FILES=()
+    PT_FILES_TO_REMOVE=()
+    PT_WIDGET_FILES=()
+}
+
+pt_push_cleanup_after_suite() {
+    PT_CLEANUP_AFTER_SUITE+=("$1")
 }
 
 trap '
-    if [[ -n $LUASTATUS_PID ]]; then
-        echo >&2 "Killing luastatus (PID $LUASTATUS_PID)."
-        kill $LUASTATUS_PID || true
-    fi
+    for k in "${!PT_SPAWNED_THINGS[@]}"; do
+        pid=${PT_SPAWNED_THINGS[$k]}
+        echo >&2 "Killing “$k” (PID $pid)."
+        kill "$pid" || true
+    done
 ' EXIT
 
-for f in ./pt_*.lib.bash; do
-    echo >&2 "==> Invoking file $f..."
-    source "$f" || fail "“source $f” failed"
-done
+pt_run_test_case() {
+    echo >&2 "==> Invoking file '$1'..."
+    source "$1" || pt_fail_internal_error "“source $1” failed"
+}
+
+pt_begin_test_suite() {
+    true
+}
+
+pt_end_test_suite() {
+    local f
+    for f in "${PT_CLEANUP_AFTER_SUITE[@]}"; do
+        echo >&2 "Invoking after-suite cleanup function '$f'..."
+        "$f"
+    done
+    PT_CLEANUP_AFTER_SUITE=()
+}
+
+pt_main() {
+    local d f
+    for d in ./pt_tests/*; do
+        if ! [[ -d $d ]]; then
+            pt_fail_internal_error "'$d' is not a directory."
+        fi
+        echo >&2 "==> Listing files in '$d'..."
+        pt_begin_test_suite
+        for f in "$d"/*; do
+            if [[ $f != *.lib.bash ]]; then
+                pt_fail_internal_error "File '$f' does not have suffix '.lib.bash'."
+            fi
+            if [[ ${f##*/} != [0-9][0-9]-* ]]; then
+                pt_fail_internal_error "File '$f' does not have prefix of two digits and a dash (e.g. '99-testcase.lib.bash')."
+            fi
+            pt_run_test_case "$f"
+        done
+        pt_end_test_suite
+    done
+}
+
+pt_main
 
 echo >&2 "=== PASSED ==="

@@ -1,5 +1,5 @@
 main_fifo_file=./tmp-fifo-main
-proc_dir=$(mktemp -d) || fail "Cannot create temporary directory."
+proc_dir=$(mktemp -d) || pt_fail "Cannot create temporary directory."
 stat_file=$proc_dir/stat
 
 stat_content_1="\
@@ -19,20 +19,19 @@ cpu3 8243285 5374 4216913 117787586 65941 0 21442 0 0 0
 "
 
 cpu_usage_testcase() {
-    local testcase_name=$1
-    local cpu_option=$2
-    local expect_str=$3
+    local cpu_option=$1
+    local expect_str=$2
 
-    testcase_begin "cpu-usage-linux/$testcase_name"
-    add_fifo "$main_fifo_file"
-    printf '%s' "$stat_content_1" > "$stat_file" || fail "Cannot write to $stat_file."
-    add_file_to_remove "$stat_file"
-    write_widget_file <<__EOF__
+    pt_testcase_begin
+    pt_add_fifo "$main_fifo_file"
+    printf '%s' "$stat_content_1" > "$stat_file" || pt_fail "Cannot write to $stat_file."
+    pt_add_file_to_remove "$stat_file"
+    pt_write_widget_file <<__EOF__
 f = assert(io.open('$main_fifo_file', 'w'))
 f:setvbuf('line')
 f:write('init\n')
 function my_event_func() end
-x = dofile('$SOURCE_DIR/plugins/cpu-usage-linux/cpu-usage-linux.lua')
+x = dofile('$PT_SOURCE_DIR/plugins/cpu-usage-linux/cpu-usage-linux.lua')
 widget = x.widget{
     _procpath = '$proc_dir',
     cpu = $cpu_option,
@@ -45,23 +44,20 @@ widget = x.widget{
     end,
     event = my_event_func,
 }
-widget.plugin = ('$BUILD_DIR/plugins/{}/plugin-{}.so'):gsub('{}', widget.plugin)
+widget.plugin = ('$PT_BUILD_DIR/plugins/{}/plugin-{}.so'):gsub('{}', widget.plugin)
 assert(widget.event == my_event_func)
 __EOF__
-    spawn_luastatus
+    pt_spawn_luastatus
     exec 3<"$main_fifo_file"
-    expect_line 'init' <&3
-    expect_line 'cb nil' <&3
-    printf '%s' "$stat_content_2" > "$stat_file" || fail "Cannot write to $stat_file."
-    expect_line "$expect_str" <&3
+    pt_expect_line 'init' <&3
+    pt_expect_line 'cb nil' <&3
+    printf '%s' "$stat_content_2" > "$stat_file" || pt_fail "Cannot write to $stat_file."
+    pt_expect_line "$expect_str" <&3
     exec 3<&-
-    testcase_end
+    pt_testcase_end
 }
 
-cpu_usage_testcase 'fourcpus_total' 'nil' 'cb 0.1'
-cpu_usage_testcase 'fourcpus_1' '1' 'cb 0.1'
-cpu_usage_testcase 'fourcpus_2' '2' 'cb 0.1'
-cpu_usage_testcase 'fourcpus_3' '3' 'cb 0.2'
-cpu_usage_testcase 'fourcpus_4' '4' 'cb 0.2'
-
-rmdir "$proc_dir" || fail "Cannot rmdir $proc_dir."
+cpu_usage_cleanup() {
+    rmdir "$proc_dir" || pt_fail "Cannot rmdir $proc_dir."
+}
+pt_push_cleanup_after_suite cpu_usage_cleanup

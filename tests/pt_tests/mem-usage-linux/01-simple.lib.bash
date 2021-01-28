@@ -1,41 +1,4 @@
-main_fifo_file=./tmp-fifo-main
-proc_dir=$(mktemp -d) || fail "Cannot create temporary directory."
-meminfo_file=$proc_dir/meminfo
-
-mem_usage_testcase() {
-    local testcase_name=$1
-    local expect_str=$2
-    local meminfo_content=$3
-
-    testcase_begin "mem-usage-linux/$testcase_name"
-    add_fifo "$main_fifo_file"
-    printf '%s' "$meminfo_content" > "$meminfo_file" || fail "Cannot write to $meminfo_file."
-    add_file_to_remove "$meminfo_file"
-    write_widget_file <<__EOF__
-f = assert(io.open('$main_fifo_file', 'w'))
-f:setvbuf('line')
-f:write('init\n')
-function my_event_func() end
-x = dofile('$SOURCE_DIR/plugins/mem-usage-linux/mem-usage-linux.lua')
-widget = x.widget{
-    _procpath = '$proc_dir',
-    cb = function(t)
-        f:write(string.format('cb avail=%s(%s) total=%s(%s)\n', t.avail.value, t.avail.unit, t.total.value, t.total.unit))
-    end,
-    event = my_event_func,
-}
-widget.plugin = ('$BUILD_DIR/plugins/{}/plugin-{}.so'):gsub('{}', widget.plugin)
-assert(widget.event == my_event_func)
-__EOF__
-    spawn_luastatus
-    exec 3<"$main_fifo_file"
-    expect_line 'init' <&3
-    expect_line "$expect_str" <&3
-    exec 3<&-
-    testcase_end
-}
-
-mem_usage_testcase 'simple' 'cb avail=1527556(kB) total=3877576(kB)' "\
+mem_usage_testcase 'cb avail=1527556(kB) total=3877576(kB)' "\
 MemTotal:        3877576 kB
 MemFree:          774760 kB
 MemAvailable:    1527556 kB
@@ -88,5 +51,3 @@ DirectMap4k:      836220 kB
 DirectMap2M:     3203072 kB
 DirectMap1G:           0 kB
 "
-
-rmdir "$proc_dir" || fail "Cannot rmdir $proc_dir."

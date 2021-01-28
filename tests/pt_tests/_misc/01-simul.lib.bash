@@ -1,10 +1,10 @@
 # Regression test for https://github.com/shdown/luastatus/issues/63.
 
-testcase_begin 'simul/err'
+pt_testcase_begin
 for (( i = 0; i < 8; ++i )); do
-    write_widget_file <<__EOF__
+    pt_write_widget_file <<__EOF__
 widget = {
-    plugin = '$BUILD_DIR/plugins/mpd/plugin-mpd.so',
+    plugin = '$PT_BUILD_DIR/plugins/mpd/plugin-mpd.so',
     opts = {
         port = 0,
         retry_in = -1,
@@ -13,6 +13,6 @@ widget = {
 }
 __EOF__
 done
-spawn_luastatus -e
-wait_luastatus || fail "luastatus exited with non-zero code"
-testcase_end
+pt_spawn_luastatus -e
+pt_wait_luastatus || pt_fail "luastatus exited with non-zero code"
+pt_testcase_end

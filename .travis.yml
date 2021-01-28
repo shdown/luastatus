@@ -20,4 +20,4 @@ script:
   - make
   - ./tests/misc.sh .
   - ./tests/torture.sh .
-  - TOOL=valgrind MAX_LAG=150 ./tests/pt.sh .
+  - PT_TOOL=valgrind PT_MAX_LAG=150 ./tests/pt.sh .
