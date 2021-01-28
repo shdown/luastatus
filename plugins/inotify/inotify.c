@@ -119,7 +119,12 @@ static const EventType EVENT_TYPES[] = {
 #endif
     {IN_MASK_ADD,      true,  false, "mask_add"},
     {IN_ONESHOT,       true,  false, "oneshot"},
+#ifdef IN_ONLYDIR
     {IN_ONLYDIR,       true,  false, "onlydir"},
+#endif
+#ifdef IN_MASK_CREATE
+    {IN_MASK_CREATE,   true,  false, "mask_create"},
+#endif
 
     {IN_IGNORED,       false, true,  "ignored"},
     {IN_ISDIR,         false, true,  "isdir"},
