@@ -29,8 +29,8 @@ esac
 PT_LUASTATUS=( "$PT_BUILD_DIR"/luastatus/luastatus ${DEBUG:+-l trace} )
 PT_WIDGET_FILES=()
 PT_FILES_TO_REMOVE=()
+PT_DIRS_TO_REMOVE=()
 declare -A PT_SPAWNED_THINGS=()
-PT_CLEANUP_AFTER_SUITE=()
 PT_LINE=
 
 pt_stack_trace() {
@@ -69,6 +69,10 @@ pt_add_file_to_remove() {
     PT_FILES_TO_REMOVE+=("$1")
 }
 
+pt_add_dir_to_remove() {
+    PT_DIRS_TO_REMOVE+=("$1")
+}
+
 pt_add_fifo() {
     rm -f "$1" || pt_fail "Cannot remove $1."
     mkfifo "$1" || pt_fail "Cannot make FIFO $1."
@@ -83,7 +87,7 @@ pt_read_line() {
 pt_expect_line() {
     echo >&2 "Expecting line “$1”..."
     IFS= read -r PT_LINE || pt_fail "expect_line: cannot read next line (luastatus process died?)"
-    if [[ $PT_LINE != $1 ]]; then
+    if [[ "$PT_LINE" != "$1" ]]; then
         pt_fail "pt_expect_line: line does not match" "Expected: '$1'" "Found: '$PT_LINE'"
     fi
 }
@@ -100,6 +104,18 @@ pt_spawn_thing() {
     "$@" &
     pid=$!
     PT_SPAWNED_THINGS[$k]=$pid
+}
+
+pt_add_spawned_thing() {
+    local k=$1
+    local newpid=$2
+
+    local oldpid=${PT_SPAWNED_THINGS[$k]}
+    if [[ -n $oldpid ]]; then
+        pt_fail_internal_error "pt_add_spawned_thing: thing '$k' has already been spawned (PID $oldpid)."
+    fi
+
+    PT_SPAWNED_THINGS[$k]=$newpid
 }
 
 pt_wait_thing() {
@@ -144,6 +160,11 @@ pt_kill_everything() {
     done
 }
 
+pt_close_fd() {
+    echo >&2 "Closing fd $1..."
+    eval "exec ${1}>&-"
+}
+
 pt_testcase_begin() {
     true
 }
@@ -156,12 +177,12 @@ pt_testcase_end() {
     for x in "${PT_FILES_TO_REMOVE[@]}"; do
         rm -f "$x" || pt_fail "Cannot rm $x."
     done
+    for x in "${PT_DIRS_TO_REMOVE[@]}"; do
+        rmdir "$x" || pt_fail "Cannot rmdir $x."
+    done
     PT_FILES_TO_REMOVE=()
+    PT_DIRS_TO_REMOVE=()
     PT_WIDGET_FILES=()
-}
-
-pt_push_cleanup_after_suite() {
-    PT_CLEANUP_AFTER_SUITE+=("$1")
 }
 
 trap '
@@ -177,19 +198,6 @@ pt_run_test_case() {
     source "$1" || pt_fail_internal_error "“source $1” failed"
 }
 
-pt_begin_test_suite() {
-    true
-}
-
-pt_end_test_suite() {
-    local f
-    for f in "${PT_CLEANUP_AFTER_SUITE[@]}"; do
-        echo >&2 "Invoking after-suite cleanup function '$f'..."
-        "$f"
-    done
-    PT_CLEANUP_AFTER_SUITE=()
-}
-
 pt_main() {
     local d f
     for d in ./pt_tests/*; do
@@ -197,7 +205,6 @@ pt_main() {
             pt_fail_internal_error "'$d' is not a directory."
         fi
         echo >&2 "==> Listing files in '$d'..."
-        pt_begin_test_suite
         for f in "$d"/*; do
             if [[ $f != *.lib.bash ]]; then
                 pt_fail_internal_error "File '$f' does not have suffix '.lib.bash'."
@@ -207,7 +214,6 @@ pt_main() {
             fi
             pt_run_test_case "$f"
         done
-        pt_end_test_suite
     done
 }
 

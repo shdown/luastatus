@@ -1,5 +1,7 @@
 pt_testcase_begin
 pt_add_fifo "$main_fifo_file"
+globtest_dir=$(mktemp -d) || pt_fail "Cannot create temporary directory."
+pt_add_dir_to_remove "$globtest_dir"
 for f in havoc alligator za all cucumber; do
     touch "$globtest_dir/$f" || pt_fail "Cannot touch $globtest_dir/$f."
     pt_add_file_to_remove "$globtest_dir/$f"

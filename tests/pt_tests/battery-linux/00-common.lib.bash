@@ -1,13 +1,14 @@
 main_fifo_file=./tmp-fifo-main
-batdev_dir=$(mktemp -d) || pt_fail "Cannot create temporary directory."
-uevent_file=$batdev_dir/uevent
 
 battery_testcase() {
     local expect_str=$1
-    local uevent_content=$2 # empty value here means remove the file
+    local uevent_content=$2 # empty string here means remove the file
 
     pt_testcase_begin
     pt_add_fifo "$main_fifo_file"
+    local batdev_dir; batdev_dir=$(mktemp -d) || pt_fail "Cannot create temporary directory."
+    pt_add_dir_to_remove "$batdev_dir"
+    local uevent_file=$batdev_dir/uevent
     if [[ -n "$uevent_content" ]]; then
         printf '%s' "$uevent_content" > "$uevent_file" || pt_fail "Cannot write to $uevent_file."
     else
@@ -50,8 +51,3 @@ __EOF__
     exec 3<&-
     pt_testcase_end
 }
-
-battery_linux_cleanup() {
-    rmdir "$batdev_dir" || pt_fail "Cannot rmdir $batdev_dir."
-}
-pt_push_cleanup_after_suite battery_linux_cleanup

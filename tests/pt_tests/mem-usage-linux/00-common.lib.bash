@@ -1,6 +1,4 @@
 main_fifo_file=./tmp-fifo-main
-proc_dir=$(mktemp -d) || pt_fail "Cannot create temporary directory."
-meminfo_file=$proc_dir/meminfo
 
 mem_usage_testcase() {
     local expect_str=$1
@@ -8,6 +6,9 @@ mem_usage_testcase() {
 
     pt_testcase_begin
     pt_add_fifo "$main_fifo_file"
+    local proc_dir; proc_dir=$(mktemp -d) || pt_fail "Cannot create temporary directory."
+    pt_add_dir_to_remove "$proc_dir"
+    local meminfo_file=$proc_dir/meminfo
     printf '%s' "$meminfo_content" > "$meminfo_file" || pt_fail "Cannot write to $meminfo_file."
     pt_add_file_to_remove "$meminfo_file"
     pt_write_widget_file <<__EOF__
@@ -33,8 +34,3 @@ __EOF__
     exec 3<&-
     pt_testcase_end
 }
-
-mem_usage_cleanup() {
-    rmdir "$proc_dir" || pt_fail "Cannot rmdir $proc_dir."
-}
-pt_push_cleanup_after_suite mem_usage_cleanup

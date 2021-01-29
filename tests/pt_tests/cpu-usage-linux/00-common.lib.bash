@@ -1,6 +1,4 @@
 main_fifo_file=./tmp-fifo-main
-proc_dir=$(mktemp -d) || pt_fail "Cannot create temporary directory."
-stat_file=$proc_dir/stat
 
 stat_content_1="\
 cpu  32855780 19344 19217634 468500203 300653 0 273158 0 0 0
@@ -24,6 +22,10 @@ cpu_usage_testcase() {
 
     pt_testcase_begin
     pt_add_fifo "$main_fifo_file"
+
+    local proc_dir; proc_dir=$(mktemp -d) || pt_fail "Cannot create temporary directory."
+    pt_add_dir_to_remove "$proc_dir"
+    local stat_file=$proc_dir/stat
     printf '%s' "$stat_content_1" > "$stat_file" || pt_fail "Cannot write to $stat_file."
     pt_add_file_to_remove "$stat_file"
     pt_write_widget_file <<__EOF__
@@ -56,8 +58,3 @@ __EOF__
     exec 3<&-
     pt_testcase_end
 }
-
-cpu_usage_cleanup() {
-    rmdir "$proc_dir" || pt_fail "Cannot rmdir $proc_dir."
-}
-pt_push_cleanup_after_suite cpu_usage_cleanup

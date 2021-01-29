@@ -1,6 +1,5 @@
 main_fifo_file=./tmp-fifo-main
 wakeup_fifo_file=./tmp-fifo-wakeup
-globtest_dir=$(mktemp -d) || pt_fail "Cannot create temporary directory."
 
 preface='
 local function _validate_t(t, ks)
@@ -30,8 +29,3 @@ local function _validate_t(t, ks)
     end
 end
 '
-
-fs_cleanup() {
-    rmdir "$globtest_dir" || pt_fail "Cannot rmdir $globtest_dir."
-}
-pt_push_cleanup_after_suite fs_cleanup
