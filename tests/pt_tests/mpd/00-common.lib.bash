@@ -1,4 +1,5 @@
 main_fifo_file=./tmp-fifo-main
+retry_fifo_file=./tmp-fifo-mpd-retry
 port=12121
 
 while true; do
