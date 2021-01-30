@@ -1,6 +1,6 @@
 pt_testcase_begin
 
-coproc socat stdio "TCP-LISTEN:$port,reuseport,bind=localhost" || pt_fail "coproc failed"
+coproc socat stdio "TCP-LISTEN:$port,reuseaddr,bind=localhost" || pt_fail "coproc failed"
 pt_add_spawned_thing socat "$COPROC_PID"
 
 mpd_wait_for_socat
