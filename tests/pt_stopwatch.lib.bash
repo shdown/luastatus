@@ -1,50 +1,25 @@
-MEASURE_LAST=
-MEASURE_MAX_LAG_MS=${PT_MAX_LAG:-75}
+coproc "$PT_BUILD_DIR"/tests/stopwatch "${PT_MAX_LAG:-75}" \
+    || pt_fail "coproc failed"
 
-stopwatch_now() {
-    date +%s.%N
-}
-
-stopwatch_delta_ms() {
-    awk "BEGIN { printf(\"%d\\n\", ($1 - $2) * 1000) }"
-}
+STOPWATCH_PID=$COPROC_PID
+STOPWATCH_FDS=( "${COPROC[0]}" "${COPROC[1]}" )
 
 measure_start() {
-    MEASURE_LAST=$(stopwatch_now) || pt_fail "stopwatch_now failed"
+    echo s >&${STOPWATCH_FDS[1]} || pt_fail "Cannot communicate with stopwatch."
 }
 
 measure_get_ms() {
-    if [[ -z $MEASURE_LAST ]]; then
-        pt_fail_internal_error "measure_get_ms: MEASURE_LAST is empty"
-    fi
-
-    local now
-    now=$(stopwatch_now) || pt_fail "stopwatch_now failed"
-
-    local delta
-    delta=$(stopwatch_delta_ms "$now" "$MEASURE_LAST") || pt_fail "stopwatch_delta_ms failed"
-
-    MEASURE_LAST=$now
-
-    printf '%s\n' "$delta"
+    echo q >&${STOPWATCH_FDS[1]} || pt_fail "Cannot communicate with stopwatch."
+    local ans
+    IFS= read -r ans <&${STOPWATCH_FDS[0]} || pt_fail "Cannot communicate with stopwatch."
+    echo "$ans"
 }
 
 measure_check_ms() {
-    if [[ -z $MEASURE_LAST ]]; then
-        pt_fail_internal_error "measure_get_ms: MEASURE_LAST is empty"
+    echo "c $1" >&${STOPWATCH_FDS[1]}
+    local ans
+    IFS= read -r ans <&${STOPWATCH_FDS[0]} || pt_fail "Cannot communicate with stopwatch."
+    if [[ $ans != 1* ]]; then
+        pt_fail "measure_check_ms $1: stopwatch said: '$ans'."
     fi
-
-    local now
-    now=$(stopwatch_now) || pt_fail "stopwatch_now failed"
-
-    local delta
-    delta=$(stopwatch_delta_ms "$now" "$MEASURE_LAST") || pt_fail "stopwatch_delta_ms failed"
-    if (( delta < $1 - MEASURE_MAX_LAG_MS )); then
-        pt_fail "Actual delay ($delta ms) is not $1 (+/- $MEASURE_MAX_LAG_MS) ms (less)."
-    fi
-    if (( delta > $1 + MEASURE_MAX_LAG_MS )); then
-        pt_fail "Actual delay ($delta ms) is not $1 (+/- $MEASURE_MAX_LAG_MS) ms (greater)."
-    fi
-
-    MEASURE_LAST=$now
 }

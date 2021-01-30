@@ -16,3 +16,6 @@ set (THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package (Threads REQUIRED)
 # link against pthreads
 target_link_libraries (parrot PUBLIC Threads::Threads)
+
+add_executable (stopwatch "stopwatch.c")
+target_compile_definitions (stopwatch PUBLIC -D_POSIX_C_SOURCE=200809L)

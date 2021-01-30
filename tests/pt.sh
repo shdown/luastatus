@@ -6,7 +6,6 @@ PT_OPWD=$PWD
 cd -- "$(dirname "$(readlink "$0" || printf '%s\n' "$0")")" || exit $?
 
 source ./utils.lib.bash || exit $?
-source ./pt_stopwatch.lib.bash || exit $?
 
 if (( $# != 1 )); then
     echo >&2 "USAGE: $0 <build root>"
@@ -33,6 +32,9 @@ PT_FILES_TO_REMOVE=()
 PT_DIRS_TO_REMOVE=()
 declare -A PT_SPAWNED_THINGS=()
 PT_LINE=
+
+STOPWATCH_PID=
+source ./pt_stopwatch.lib.bash || exit $?
 
 pt_stack_trace() {
     echo >&2 "Stack trace:"
