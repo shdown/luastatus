@@ -2,16 +2,14 @@ pt_testcase_begin
 
 socket_file=$PWD/tmp-fake-mpd-socket
 rm -f "$socket_file" || pt_fail "Cannot rm $socket_file."
-
 pt_add_file_to_remove "$socket_file"
 
-coproc socat stdio "UNIX-LISTEN:$socket_file" || pt_fail "coproc failed"
-pt_add_spawned_thing socat "$COPROC_PID"
+coproc "$PT_PARROT" --print-line-when-ready UNIX-SERVER "$socket_file" \
+    || pt_fail "coproc failed"
 
-echo >&2 "Waiting for socket file '$socket_file' to appear..."
-while ! [[ -S "$socket_file" ]]; do
-    true
-done
+pt_add_spawned_thing parrot "$COPROC_PID"
+
+pt_expect_line 'parrot: ready' <&${COPROC[0]}
 
 pt_add_fifo "$main_fifo_file"
 pt_write_widget_file <<__EOF__
@@ -58,7 +56,7 @@ for (( i = 0; i < 3; ++i )); do
     echo "OK" >&${COPROC[1]}
 done
 
-pt_kill_thing socat
+pt_kill_thing parrot
 
 pt_expect_line 'cb error' <&3
 

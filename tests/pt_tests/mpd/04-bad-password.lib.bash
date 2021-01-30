@@ -1,9 +1,11 @@
 pt_testcase_begin
 
-coproc socat stdio "TCP-LISTEN:$port,reuseaddr,bind=localhost" || pt_fail "coproc failed"
-pt_add_spawned_thing socat "$COPROC_PID"
+coproc "$PT_PARROT" --reuseaddr --print-line-when-ready TCP-SERVER "$port" \
+    || pt_fail "coproc failed"
 
-mpd_wait_for_socat
+pt_add_spawned_thing parrot "$COPROC_PID"
+
+pt_expect_line 'parrot: ready' <&${COPROC[0]}
 
 pt_add_fifo "$main_fifo_file"
 pt_write_widget_file <<__EOF__
@@ -33,6 +35,6 @@ echo 'ACK wrong password (even though it is with "QUOTE MARKS" he-he)' >&${COPRO
 
 pt_expect_line 'cb error' <&3
 
-pt_wait_thing socat
+pt_wait_thing parrot
 
 pt_testcase_end

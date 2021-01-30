@@ -6,7 +6,6 @@ luastatus itself, without any barlibs and/or plugins, has the following dependen
 
 For running tests, you will also need:
 * valgrind (some older versions don't like LuaJIT; >=3.11.0 are known to be OK)
-* socat
 
 Barlib 'dwm' has the following dependencies:
 * xcb >=1.10

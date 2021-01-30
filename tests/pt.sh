@@ -13,6 +13,7 @@ if (( $# != 1 )); then
     exit 2
 fi
 PT_BUILD_DIR=$(resolve_relative "$1" "$PT_OPWD") || exit $?
+PT_PARROT=$PT_BUILD_DIR/tests/parrot
 PT_SOURCE_DIR=..
 case "$PT_TOOL" in
 '')

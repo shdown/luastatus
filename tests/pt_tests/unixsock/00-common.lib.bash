@@ -11,6 +11,6 @@ wait_for_socket_to_appear() {
 }
 
 send_verbatim_to_socket() {
-    printf '%s' "$1" | socat stdio "UNIX-CONNECT:$socket_file" \
-        || pt_fail "socat failed"
+    printf '%s' "$1" | "$PT_PARROT" UNIX-CLIENT "$socket_file" \
+        || pt_fail "parrot failed"
 }

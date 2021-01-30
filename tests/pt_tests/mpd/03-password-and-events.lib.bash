@@ -1,9 +1,11 @@
 pt_testcase_begin
 
-coproc socat stdio "TCP-LISTEN:$port,reuseaddr,bind=localhost" || pt_fail "coproc failed"
-pt_add_spawned_thing socat "$COPROC_PID"
+coproc "$PT_PARROT" --reuseaddr --print-line-when-ready TCP-SERVER "$port" \
+    || pt_fail "coproc failed"
 
-mpd_wait_for_socat
+pt_add_spawned_thing parrot "$COPROC_PID"
+
+pt_expect_line 'parrot: ready' <&${COPROC[0]}
 
 pt_add_fifo "$main_fifo_file"
 pt_write_widget_file <<__EOF__
@@ -55,7 +57,7 @@ for (( i = 0; i < 3; ++i )); do
     echo "OK" >&${COPROC[1]}
 done
 
-pt_kill_thing socat
+pt_kill_thing parrot
 
 pt_expect_line 'cb error' <&3
 

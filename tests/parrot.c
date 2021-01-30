@@ -82,7 +82,7 @@ static void *thread_func(void *varg)
     }
 
     if (!global_flags.half_duplex_ok) {
-        fail();
+        _exit(0);
     }
     return NULL;
 }
@@ -143,7 +143,7 @@ static int client(int (*func)(const char *arg), const char *arg)
     }
     parrot(fd);
     close(fd);
-    return 1;
+    return 0;
 }
 
 static int server(int (*func)(const char *arg), const char *arg)
@@ -173,7 +173,7 @@ static int server(int (*func)(const char *arg), const char *arg)
 
     parrot(client_fd);
     close(client_fd);
-    return 1;
+    return 0;
 }
 
 static int make_unix_client(const char *path)
