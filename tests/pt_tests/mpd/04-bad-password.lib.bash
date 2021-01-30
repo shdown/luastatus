@@ -33,8 +33,6 @@ echo 'ACK wrong password (even though it is with "QUOTE MARKS" he-he)' >&${COPRO
 
 pt_expect_line 'cb error' <&3
 
-pt_close_fd "${COPROC[0]}"
-pt_close_fd "${COPROC[1]}"
-pt_kill_thing socat
+pt_wait_thing socat
 
 pt_testcase_end

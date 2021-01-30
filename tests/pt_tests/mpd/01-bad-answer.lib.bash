@@ -18,8 +18,6 @@ pt_spawn_luastatus -e
 echo "I'm not music player daemon, huh." >&${COPROC[1]}
 pt_wait_luastatus || pt_fail "luastatus exited with non-zero code"
 
-pt_close_fd "${COPROC[0]}"
-pt_close_fd "${COPROC[1]}"
-pt_kill_thing socat
+pt_wait_thing socat
 
 pt_testcase_end

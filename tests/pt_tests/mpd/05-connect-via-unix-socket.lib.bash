@@ -58,8 +58,6 @@ for (( i = 0; i < 3; ++i )); do
     echo "OK" >&${COPROC[1]}
 done
 
-pt_close_fd "${COPROC[0]}"
-pt_close_fd "${COPROC[1]}"
 pt_kill_thing socat
 
 pt_expect_line 'cb error' <&3

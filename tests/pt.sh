@@ -114,7 +114,6 @@ pt_add_spawned_thing() {
     if [[ -n $oldpid ]]; then
         pt_fail_internal_error "pt_add_spawned_thing: thing '$k' has already been spawned (PID $oldpid)."
     fi
-
     PT_SPAWNED_THINGS[$k]=$newpid
 }
 
@@ -158,11 +157,6 @@ pt_kill_everything() {
     for k in "${!PT_SPAWNED_THINGS[@]}"; do
         pt_kill_thing "$k"
     done
-}
-
-pt_close_fd() {
-    echo >&2 "Closing fd $1..."
-    eval "exec ${1}>&-"
 }
 
 pt_testcase_begin() {
