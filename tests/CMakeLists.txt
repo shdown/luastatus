@@ -7,3 +7,12 @@ luastatus_add_barlib_noinstall (barlib-mock $<TARGET_OBJECTS:ls> "mock_barlib.c"
 target_compile_definitions (barlib-mock PUBLIC -D_POSIX_C_SOURCE=200809L)
 luastatus_target_compile_with (barlib-mock LUA)
 target_include_directories (barlib-mock PUBLIC "${PROJECT_SOURCE_DIR}")
+
+add_executable (parrot "parrot.c")
+target_compile_definitions (parrot PUBLIC -D_POSIX_C_SOURCE=200809L)
+# find pthreads
+set (CMAKE_THREAD_PREFER_PTHREAD TRUE)
+set (THREADS_PREFER_PTHREAD_FLAG TRUE)
+find_package (Threads REQUIRED)
+# link against pthreads
+target_link_libraries (parrot PUBLIC Threads::Threads)
