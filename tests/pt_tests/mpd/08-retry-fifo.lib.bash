@@ -26,7 +26,8 @@ widget = {
     plugin = '$PT_BUILD_DIR/plugins/mpd/plugin-mpd.so',
     opts = {
         port = $port,
-        retry_in = 0.5,
+        hostname = '127.0.0.1',
+        retry_in = 1,
         retry_fifo = '$retry_fifo_file',
     },
     cb = function(t)
@@ -75,7 +76,7 @@ for (( i = 0; i < 6; ++i )); do
 
     if (( i % 2 == 0 )); then
         pt_expect_line 'cb connecting' <&3
-        measure_check_ms 500
+        measure_check_ms 1000
     else
         measure_start
         touch "$retry_fifo_file" || fail "Cannot touch $retry_fifo_file."

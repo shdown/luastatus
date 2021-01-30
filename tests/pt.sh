@@ -33,7 +33,6 @@ PT_DIRS_TO_REMOVE=()
 declare -A PT_SPAWNED_THINGS=()
 PT_LINE=
 
-STOPWATCH_PID=
 source ./pt_stopwatch.lib.bash || exit $?
 
 pt_stack_trace() {

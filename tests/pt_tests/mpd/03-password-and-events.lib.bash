@@ -17,6 +17,7 @@ widget = {
     plugin = '$PT_BUILD_DIR/plugins/mpd/plugin-mpd.so',
     opts = {
         port = $port,
+        hostname = 'localhost',
         password = 'qwerty123456',
         events = {'my', 'custom', 'events', 'string'},
     },
