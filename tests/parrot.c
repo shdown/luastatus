@@ -274,11 +274,10 @@ static int make_tcp_server(const char *portstr)
         }
     }
 
-    struct sockaddr_in sain = {
-        .sin_family = AF_INET,
-        .sin_addr = {.s_addr = htonl(INADDR_LOOPBACK)},
-        .sin_port = htons(port),
-    };
+    struct sockaddr_in sain = {0};
+    sain.sin_family = AF_INET;
+    sain.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    sain.sin_port = htons(port);
     if (bind(fd, (struct sockaddr *) &sain, sizeof(sain)) < 0) {
         perror("parrot: bind");
         goto error;
