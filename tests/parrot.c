@@ -346,7 +346,7 @@ int main(int argc, char **argv)
         *out = true;
     }
     if (argc - argi != 2) {
-        fprintf(stderr, "Expected exactly 2 position arguments, found %d.\n", argc - argi);
+        fprintf(stderr, "Expected exactly 2 positional arguments, found %d.\n", argc - argi);
         print_usage();
         return 2;
     }
