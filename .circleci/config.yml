@@ -1,12 +1,12 @@
 version: 2
 workflows:
   version: 2
-  dist-compile:
+  nanodesu:
     jobs:
-      - subete
+      - subetedesu
 
 jobs:
-  subete:
+  subetedesu:
     docker:
       - image: cimg/base:2021.01-20.04
     steps:
