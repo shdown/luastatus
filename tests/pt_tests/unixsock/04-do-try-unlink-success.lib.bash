@@ -18,10 +18,10 @@ widget = {
 }
 __EOF__
 pt_spawn_luastatus
-exec 3<"$main_fifo_file"
-pt_expect_line 'init' <&3
+exec {pfd}<"$main_fifo_file"
+pt_expect_line 'init' <&$pfd
 unixsock_wait_socket
 unixsock_send_verbatim $'aloha\n'
-pt_expect_line 'line aloha' <&3
-exec 3<&-
+pt_expect_line 'line aloha' <&$pfd
+pt_close_fd "$pfd"
 pt_testcase_end

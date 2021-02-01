@@ -50,11 +50,11 @@ widget.plugin = ('$PT_BUILD_DIR/plugins/{}/plugin-{}.so'):gsub('{}', widget.plug
 assert(widget.event == my_event_func)
 __EOF__
     pt_spawn_luastatus
-    exec 3<"$main_fifo_file"
-    pt_expect_line 'init' <&3
-    pt_expect_line 'cb nil' <&3
+    exec {pfd}<"$main_fifo_file"
+    pt_expect_line 'init' <&$pfd
+    pt_expect_line 'cb nil' <&$pfd
     printf '%s' "$stat_content_2" > "$stat_file" || pt_fail "Cannot write to $stat_file."
-    pt_expect_line "$expect_str" <&3
-    exec 3<&-
+    pt_expect_line "$expect_str" <&$pfd
+    pt_close_fd "$pfd"
     pt_testcase_end
 }

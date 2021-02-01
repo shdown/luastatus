@@ -28,20 +28,20 @@ widget = {
 }
 __EOF__
 pt_spawn_luastatus
-exec 3<"$main_fifo_file"
-pt_expect_line 'init' <&3
-pt_expect_line 'hello n=1' <&3
+exec {pfd}<"$main_fifo_file"
+pt_expect_line 'init' <&$pfd
+pt_expect_line 'hello n=1' <&$pfd
 measure_start
 for (( i = 0; i < 4; ++i )); do
     echo bye >> "$myfile" || pt_fail "Cannot write to $myfile."
-    pt_expect_line "event" <&3
+    pt_expect_line "event" <&$pfd
     measure_check_ms 0
-    pt_expect_line 'timeout n=2' <&3
+    pt_expect_line 'timeout n=2' <&$pfd
     measure_check_ms 100
-    pt_expect_line 'timeout n=0' <&3
+    pt_expect_line 'timeout n=0' <&$pfd
     measure_check_ms 100
-    pt_expect_line 'timeout n=1' <&3
+    pt_expect_line 'timeout n=1' <&$pfd
     measure_check_ms 600
 done
-exec 3<&-
+pt_close_fd "$pfd"
 pt_testcase_end

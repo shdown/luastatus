@@ -22,11 +22,11 @@ widget = {
 }
 __EOF__
 pt_spawn_luastatus
-exec 3<"$main_fifo_file"
-pt_expect_line 'init' <&3
+exec {pfd}<"$main_fifo_file"
+pt_expect_line 'init' <&$pfd
 
 measure_start
-pt_expect_line 'cb connecting' <&3
+pt_expect_line 'cb connecting' <&$pfd
 measure_check_ms 0
 
 for (( i = 0; i < 3; ++i )); do
@@ -45,22 +45,22 @@ for (( i = 0; i < 3; ++i )); do
     fakempd_say "OK"
 
     fakempd_expect 'idle mixer player'
-    pt_expect_line "cb update song={Song_Baz=>quiz,Song_Foo=>bar} status={Status_One=>ein,Status_Three=>drei,Status_Two=>zwei,Z=>$i}" <&3
+    pt_expect_line "cb update song={Song_Baz=>quiz,Song_Foo=>bar} status={Status_One=>ein,Status_Three=>drei,Status_Two=>zwei,Z=>$i}" <&$pfd
 
     measure_check_ms 0
 
     fakempd_kill
 
-    pt_expect_line 'cb error' <&3
+    pt_expect_line 'cb error' <&$pfd
     measure_check_ms 0
 
     fakempd_spawn
 
-    pt_expect_line 'cb connecting' <&3
+    pt_expect_line 'cb connecting' <&$pfd
     measure_check_ms 1250
 done
 
 fakempd_kill
-pt_expect_line 'cb error' <&3
+pt_expect_line 'cb error' <&$pfd
 
 pt_testcase_end

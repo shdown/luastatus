@@ -20,20 +20,20 @@ widget = {
 }
 __EOF__
 pt_spawn_luastatus
-exec 3<"$main_fifo_file"
+exec {pfd}<"$main_fifo_file"
 measure_start
-pt_expect_line 'init' <&3
+pt_expect_line 'init' <&$pfd
 measure_check_ms 0
-pt_expect_line 'cb called' <&3
+pt_expect_line 'cb called' <&$pfd
 measure_check_ms 0
-pt_expect_line 'cb called' <&3
+pt_expect_line 'cb called' <&$pfd
 measure_check_ms 500
-pt_expect_line 'cb called' <&3
+pt_expect_line 'cb called' <&$pfd
 measure_check_ms 500
 touch "$wakeup_fifo_file" || pt_fail "Cannot touch FIFO $wakeup_fifo_file."
-pt_expect_line 'cb called' <&3
+pt_expect_line 'cb called' <&$pfd
 measure_check_ms 0
-pt_expect_line 'cb called' <&3
+pt_expect_line 'cb called' <&$pfd
 measure_check_ms 500
-exec 3<&-
+pt_close_fd "$pfd"
 pt_testcase_end

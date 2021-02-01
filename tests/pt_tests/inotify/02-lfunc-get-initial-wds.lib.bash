@@ -44,17 +44,17 @@ widget = {
 }
 __EOF__
 pt_spawn_luastatus
-exec 3<"$main_fifo_file"
-pt_expect_line 'init' <&3
-pt_expect_line 'cb hello' <&3
+exec {pfd}<"$main_fifo_file"
+pt_expect_line 'init' <&$pfd
+pt_expect_line 'cb hello' <&$pfd
 echo hello >> "$myfile2" || pt_fail "Cannot write to $myfile2."
 echo hello >> "$myfile1" || pt_fail "Cannot write to $myfile1."
-pt_expect_line 'cb event file1 mask=close_write' <&3
+pt_expect_line 'cb event file1 mask=close_write' <&$pfd
 rm -f "$myfile2" || pt_fail "Cannot remove $myfile2."
-pt_expect_line 'cb event file2 mask=delete_self' <&3
-pt_expect_line 'cb event file2 mask=ignored' <&3
+pt_expect_line 'cb event file2 mask=delete_self' <&$pfd
+pt_expect_line 'cb event file2 mask=ignored' <&$pfd
 rm -f "$myfile1" || pt_fail "Cannot remove $myfile1."
-pt_expect_line 'cb event file1 mask=delete_self' <&3
-pt_expect_line 'cb event file1 mask=ignored' <&3
-exec 3<&-
+pt_expect_line 'cb event file1 mask=delete_self' <&$pfd
+pt_expect_line 'cb event file1 mask=ignored' <&$pfd
+pt_close_fd "$pfd"
 pt_testcase_end

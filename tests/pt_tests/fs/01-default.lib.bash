@@ -14,10 +14,10 @@ widget = {
 }
 __EOF__
 pt_spawn_luastatus
-exec 3<"$main_fifo_file"
-pt_expect_line 'init' <&3
+exec {pfd}<"$main_fifo_file"
+pt_expect_line 'init' <&$pfd
 measure_start
-pt_expect_line 'cb' <&3
+pt_expect_line 'cb' <&$pfd
 measure_check_ms 0
-exec 3<&-
+pt_close_fd "$pfd"
 pt_testcase_end

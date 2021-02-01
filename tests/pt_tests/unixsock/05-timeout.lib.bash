@@ -22,19 +22,19 @@ widget = {
 }
 __EOF__
 pt_spawn_luastatus
-exec 3<"$main_fifo_file"
-pt_expect_line 'init' <&3
+exec {pfd}<"$main_fifo_file"
+pt_expect_line 'init' <&$pfd
 unixsock_wait_socket
-pt_expect_line 'hello' <&3
+pt_expect_line 'hello' <&$pfd
 measure_start
-pt_expect_line 'timeout' <&3
+pt_expect_line 'timeout' <&$pfd
 measure_check_ms 250
-pt_expect_line 'timeout' <&3
+pt_expect_line 'timeout' <&$pfd
 measure_check_ms 250
 unixsock_send_verbatim $'boo\n'
-pt_expect_line 'line boo' <&3
+pt_expect_line 'line boo' <&$pfd
 measure_check_ms 0
-pt_expect_line 'timeout' <&3
+pt_expect_line 'timeout' <&$pfd
 measure_check_ms 250
-exec 3<&-
+pt_close_fd "$pfd"
 pt_testcase_end

@@ -28,9 +28,9 @@ widget.plugin = ('$PT_BUILD_DIR/plugins/{}/plugin-{}.so'):gsub('{}', widget.plug
 assert(widget.event == my_event_func)
 __EOF__
 pt_spawn_luastatus
-exec 3<"$main_fifo_file"
-pt_expect_line 'init' <&3
-pt_expect_line 'cb nil' <&3
+exec {pfd}<"$main_fifo_file"
+pt_expect_line 'init' <&$pfd
+pt_expect_line 'cb nil' <&$pfd
 
 fakeimap_say "* OK IMAP4rev1 Service Ready"
 
@@ -48,7 +48,7 @@ for (( i = 17; i < 20; ++i )); do
     fakeimap_cmd_done "OK [READ-WRITE] SELECT completed"
 
     fakeimap_cmd_expect "IDLE"
-    pt_expect_line "cb $i" <&3
+    pt_expect_line "cb $i" <&$pfd
 
     fakeimap_say "* SOMETHING"
     fakeimap_expect "DONE"
@@ -57,6 +57,6 @@ done
 
 fakeimap_kill
 
-pt_expect_line 'cb nil' <&3
+pt_expect_line 'cb nil' <&$pfd
 
 pt_testcase_end

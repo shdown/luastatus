@@ -22,16 +22,16 @@ widget.plugin = ('$PT_BUILD_DIR/plugins/{}/plugin-{}.so'):gsub('{}', widget.plug
 assert(widget.event == my_event_func)
 __EOF__
 pt_spawn_luastatus
-exec 3<"$main_fifo_file"
-pt_expect_line 'init' <&3
+exec {pfd}<"$main_fifo_file"
+pt_expect_line 'init' <&$pfd
 measure_start
-pt_expect_line 'cb one' <&3
+pt_expect_line 'cb one' <&$pfd
 measure_check_ms 0
-pt_expect_line 'cb two' <&3
+pt_expect_line 'cb two' <&$pfd
 measure_check_ms 1000
-pt_expect_line 'cb three' <&3
+pt_expect_line 'cb three' <&$pfd
 measure_check_ms 1000
-pt_expect_line 'eof' <&3
+pt_expect_line 'eof' <&$pfd
 measure_check_ms 0
-exec 3<&-
+pt_close_fd "$pfd"
 pt_testcase_end

@@ -19,16 +19,16 @@ widget = {
 }
 __EOF__
 pt_spawn_luastatus
-exec 3<"$main_fifo_file"
-pt_expect_line 'init' <&3
+exec {pfd}<"$main_fifo_file"
+pt_expect_line 'init' <&$pfd
 
 # Try to avoid race condition: we may modify the file before the watch is set up.
 sleep 1 || pt_fail 'Cannot sleep 1.'
 
 echo hello >> "$myfile" || pt_fail "Cannot write to $myfile."
-pt_expect_line 'cb event mask=close_write' <&3
+pt_expect_line 'cb event mask=close_write' <&$pfd
 rm -f "$myfile" || pt_fail "Cannot remove $myfile."
-pt_expect_line 'cb event mask=delete_self' <&3
-pt_expect_line 'cb event mask=ignored' <&3
-exec 3<&-
+pt_expect_line 'cb event mask=delete_self' <&$pfd
+pt_expect_line 'cb event mask=ignored' <&$pfd
+pt_close_fd "$pfd"
 pt_testcase_end

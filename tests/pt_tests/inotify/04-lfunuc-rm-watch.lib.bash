@@ -38,16 +38,16 @@ widget = {
 }
 __EOF__
 pt_spawn_luastatus
-exec 3<"$main_fifo_file"
-pt_expect_line 'init' <&3
-pt_expect_line 'cb hello' <&3
-pt_expect_line 'cb timeout' <&3
+exec {pfd}<"$main_fifo_file"
+pt_expect_line 'init' <&$pfd
+pt_expect_line 'cb hello' <&$pfd
+pt_expect_line 'cb timeout' <&$pfd
 echo hello >> "$myfile" || pt_fail "Cannot write to $myfile."
-pt_expect_line 'cb event mask=close_write (remove_watch: ok)' <&3
-pt_expect_line 'cb event mask=ignored (remove_watch: error)' <&3
+pt_expect_line 'cb event mask=close_write (remove_watch: ok)' <&$pfd
+pt_expect_line 'cb event mask=ignored (remove_watch: error)' <&$pfd
 echo hello >> "$myfile" || pt_fail "Cannot write to $myfile."
-pt_expect_line 'cb timeout' <&3
+pt_expect_line 'cb timeout' <&$pfd
 echo hello >> "$myfile" || pt_fail "Cannot write to $myfile."
-pt_expect_line 'cb timeout' <&3
-exec 3<&-
+pt_expect_line 'cb timeout' <&$pfd
+pt_close_fd "$pfd"
 pt_testcase_end

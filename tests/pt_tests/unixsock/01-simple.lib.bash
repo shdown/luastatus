@@ -17,17 +17,17 @@ widget = {
 }
 __EOF__
 pt_spawn_luastatus
-exec 3<"$main_fifo_file"
-pt_expect_line 'init' <&3
+exec {pfd}<"$main_fifo_file"
+pt_expect_line 'init' <&$pfd
 unixsock_wait_socket
 unixsock_send_verbatim $'one\n'
-pt_expect_line 'line one' <&3
+pt_expect_line 'line one' <&$pfd
 unixsock_send_verbatim $'two\n'
-pt_expect_line 'line two' <&3
+pt_expect_line 'line two' <&$pfd
 unixsock_send_verbatim 'without newline'
 unixsock_send_verbatim $'with newline\n'
-pt_expect_line 'line with newline' <&3
+pt_expect_line 'line with newline' <&$pfd
 unixsock_send_verbatim $'aypibmmwxrdxdknh\ngmstvxwxamouhlmw\ncybymucjtfxrauwn'
-pt_expect_line 'line aypibmmwxrdxdknh' <&3
-exec 3<&-
+pt_expect_line 'line aypibmmwxrdxdknh' <&$pfd
+pt_close_fd "$pfd"
 pt_testcase_end

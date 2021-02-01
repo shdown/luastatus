@@ -24,21 +24,21 @@ widget = {
 }
 __EOF__
 pt_spawn_luastatus
-exec 3<"$main_fifo_file"
+exec {pfd}<"$main_fifo_file"
 measure_start
-pt_expect_line 'init' <&3
+pt_expect_line 'init' <&$pfd
 measure_check_ms 0
-pt_expect_line 'cb hello' <&3
+pt_expect_line 'cb hello' <&$pfd
 measure_check_ms 0
-pt_expect_line 'cb timeout n=1' <&3
+pt_expect_line 'cb timeout n=1' <&$pfd
 measure_check_ms 100
 for (( i = 0; i < 3; ++i )); do
-    pt_expect_line 'cb timeout n=2' <&3
+    pt_expect_line 'cb timeout n=2' <&$pfd
     measure_check_ms 100
-    pt_expect_line 'cb timeout n=0' <&3
+    pt_expect_line 'cb timeout n=0' <&$pfd
     measure_check_ms 100
-    pt_expect_line 'cb timeout n=1' <&3
+    pt_expect_line 'cb timeout n=1' <&$pfd
     measure_check_ms 600
 done
-exec 3<&-
+pt_close_fd "$pfd"
 pt_testcase_end

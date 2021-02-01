@@ -23,21 +23,21 @@ assert(widget.event == my_event_func)
 __EOF__
 
 pt_spawn_luastatus
-exec 3<"$main_fifo_file"
-pt_expect_line 'init' <&3
-pt_expect_line 'update ' <&3
+exec {pfd}<"$main_fifo_file"
+pt_expect_line 'init' <&$pfd
+pt_expect_line 'update ' <&$pfd
 
 echo hello > "$myfile" || pt_fail "Cannot write to $myfile."
-pt_read_line <&3
-pt_expect_line 'update hello;' <&3
+pt_read_line <&$pfd
+pt_expect_line 'update hello;' <&$pfd
 
 echo bye >> "$myfile" || pt_fail "Cannot write to $myfile."
-pt_read_line <&3
-pt_expect_line 'update hello;bye;' <&3
+pt_read_line <&$pfd
+pt_expect_line 'update hello;bye;' <&$pfd
 
 echo -n nonl > "$myfile" || pt_fail "Cannot write to $myfile."
-pt_read_line <&3
-pt_expect_line 'update nonl' <&3
+pt_read_line <&$pfd
+pt_expect_line 'update nonl' <&$pfd
 
-exec 3<&-
+pt_close_fd "$pfd"
 pt_testcase_end

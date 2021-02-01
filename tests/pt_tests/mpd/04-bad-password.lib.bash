@@ -20,16 +20,16 @@ widget = {
 }
 __EOF__
 pt_spawn_luastatus
-exec 3<"$main_fifo_file"
-pt_expect_line 'init' <&3
-pt_expect_line 'cb connecting' <&3
+exec {pfd}<"$main_fifo_file"
+pt_expect_line 'init' <&$pfd
+pt_expect_line 'cb connecting' <&$pfd
 
 fakempd_say "OK MPD I-am-actually-a-shell-script"
 
 fakempd_expect 'password "this is password with \"QUOTE MARKS\" ha-ha"'
 fakempd_say 'ACK wrong password (even though it is with "QUOTE MARKS" he-he)'
 
-pt_expect_line 'cb error' <&3
+pt_expect_line 'cb error' <&$pfd
 
 fakempd_wait
 

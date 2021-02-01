@@ -137,17 +137,19 @@ pt_has_spawned_thing() {
     [[ -n "${PT_SPAWNED_THINGS[$k]}" ]]
 }
 
+pt_close_fd() {
+    eval "exec ${1}>&-"
+}
+
 pt_close_thing_fds() {
     local k=$1
 
-    local fd_0=${PT_SPAWNED_THINGS_FDS_0[$k]}
-    local fd_1=${PT_SPAWNED_THINGS_FDS_1[$k]}
-    if [[ -n $fd_0 ]]; then
-        exec {fd_0}>&-
-    fi
-    if [[ -n $fd_1 ]]; then
-        exec {fd_1}>&-
-    fi
+    local fd
+    for fd in "${PT_SPAWNED_THINGS_FDS_0[$k]}" "${PT_SPAWNED_THINGS_FDS_1[$k]}"; do
+        if [[ -n $fd ]]; then
+            pt_close_fd "$fd"
+        fi
+    done
     unset PT_SPAWNED_THINGS_FDS_0[$k]
     unset PT_SPAWNED_THINGS_FDS_1[$k]
 }
