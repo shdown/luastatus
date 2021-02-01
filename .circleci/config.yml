@@ -11,6 +11,9 @@ jobs:
   subetedesu:
     docker:
       - image: cimg/base:2021.01-20.04
+    parameters:
+      luaver:
+        type: string
     steps:
       - checkout
       - run: sudo apt-get update
