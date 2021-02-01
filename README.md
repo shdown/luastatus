@@ -1,4 +1,4 @@
-[![Travis CI build status](https://travis-ci.com/shdown/luastatus.svg?branch=master)](https://travis-ci.org/shdown/luastatus)
+[![Travis CI build status](https://travis-ci.com/shdown/luastatus.svg?branch=master)](https://travis-ci.com/shdown/luastatus)
 [![CircleCI build status](https://circleci.com/gh/shdown/luastatus.svg?style=shield)](https://circleci.com/gh/shdown/luastatus)
 [![Gitter](https://badges.gitter.im/luastatus/community.svg)](https://gitter.im/luastatus/community)
 
