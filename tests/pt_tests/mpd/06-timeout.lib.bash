@@ -30,8 +30,6 @@ pt_expect_line 'cb connecting' <&$pfd
 
 fakempd_say "OK MPD I-am-actually-a-shell-script"
 
-measure_start
-
 for (( i = 0; i < 3; ++i )); do
     fakempd_expect 'currentsong'
     fakempd_say "Song_Foo: bar"
@@ -46,6 +44,8 @@ for (( i = 0; i < 3; ++i )); do
     fakempd_say "OK"
 
     fakempd_expect 'idle mixer player'
+
+    measure_start
     pt_expect_line "cb update song={Song_Baz=>quiz,Song_Foo=>bar} status={Status_One=>ein,Status_Three=>drei,Status_Two=>zwei,Z=>$i}" <&$pfd
     measure_check_ms 0
 

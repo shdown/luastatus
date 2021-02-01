@@ -12,6 +12,7 @@ widget = {
     opts = {
         watch = {['$myfile'] = {'close_write', 'delete_self'}},
         timeout = 0.3,
+        greet = true,
     },
     cb = function(t)
         if t.what == 'event' then
@@ -25,11 +26,10 @@ __EOF__
 pt_spawn_luastatus
 exec {pfd}<"$main_fifo_file"
 
-measure_start
-
 pt_expect_line 'init' <&$pfd
-measure_check_ms 0
+pt_expect_line 'cb hello' <&$pfd
 
+measure_start
 pt_expect_line 'cb timeout' <&$pfd
 measure_check_ms 300
 pt_expect_line 'cb timeout' <&$pfd

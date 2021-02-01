@@ -24,9 +24,8 @@ __EOF__
 pt_spawn_luastatus
 exec {pfd}<"$main_fifo_file"
 pt_expect_line 'init' <&$pfd
-measure_start
 pt_expect_line 'cb one' <&$pfd
-measure_check_ms 0
+measure_start
 pt_expect_line 'cb two' <&$pfd
 measure_check_ms 1000
 pt_expect_line 'cb three' <&$pfd

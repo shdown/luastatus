@@ -16,8 +16,6 @@ __EOF__
 pt_spawn_luastatus
 exec {pfd}<"$main_fifo_file"
 pt_expect_line 'init' <&$pfd
-measure_start
 pt_expect_line 'cb' <&$pfd
-measure_check_ms 0
 pt_close_fd "$pfd"
 pt_testcase_end
