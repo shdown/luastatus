@@ -31,6 +31,8 @@ PT_WIDGET_FILES=()
 PT_FILES_TO_REMOVE=()
 PT_DIRS_TO_REMOVE=()
 declare -A PT_SPAWNED_THINGS=()
+declare -A PT_SPAWNED_THINGS_FDS_0=()
+declare -A PT_SPAWNED_THINGS_FDS_1=()
 PT_LINE=
 
 source ./pt_stopwatch.lib.bash || exit $?
@@ -108,15 +110,46 @@ pt_spawn_thing() {
     PT_SPAWNED_THINGS[$k]=$pid
 }
 
-pt_add_spawned_thing() {
+pt_spawn_thing_pipe() {
     local k=$1
-    local newpid=$2
+    shift
 
-    local oldpid=${PT_SPAWNED_THINGS[$k]}
-    if [[ -n $oldpid ]]; then
-        pt_fail_internal_error "pt_add_spawned_thing: thing '$k' has already been spawned (PID $oldpid)."
+    local pid=${PT_SPAWNED_THINGS[$k]}
+    if [[ -n $pid ]]; then
+        pt_fail_internal_error "pt_spawn_thing_pipe: thing '$k' has already been spawned (PID $pid)."
     fi
-    PT_SPAWNED_THINGS[$k]=$newpid
+
+    local fifo_in=./_internal-tmpfifo-$k-in
+    local fifo_out=./_internal-tmpfifo-$k-out
+    pt_add_fifo "$fifo_in"
+    pt_add_fifo "$fifo_out"
+
+    "$@" >"$fifo_out" <"$fifo_in" &
+    pid=$!
+    PT_SPAWNED_THINGS[$k]=$pid
+
+    exec {PT_SPAWNED_THINGS_FDS_0[$k]}<"$fifo_out" || pt_fail "Cannot allocate a file descriptor."
+    exec {PT_SPAWNED_THINGS_FDS_1[$k]}>"$fifo_in" || pt_fail "Cannot allocate a file descriptor."
+}
+
+pt_has_spawned_thing() {
+    local k=$1
+    [[ -n "${PT_SPAWNED_THINGS[$k]}" ]]
+}
+
+pt_close_thing_fds() {
+    local k=$1
+
+    local fd_0=${PT_SPAWNED_THINGS_FDS_0[$k]}
+    local fd_1=${PT_SPAWNED_THINGS_FDS_1[$k]}
+    if [[ -n $fd_0 ]]; then
+        exec {fd_0}>&-
+    fi
+    if [[ -n $fd_1 ]]; then
+        exec {fd_1}>&-
+    fi
+    unset PT_SPAWNED_THINGS_FDS_0[$k]
+    unset PT_SPAWNED_THINGS_FDS_1[$k]
 }
 
 pt_wait_thing() {
@@ -129,6 +162,7 @@ pt_wait_thing() {
     wait "${PT_SPAWNED_THINGS[$k]}"
     local c=$?
     unset PT_SPAWNED_THINGS[$k]
+    pt_close_thing_fds "$k"
     return -- "$c"
 }
 
@@ -140,6 +174,7 @@ pt_kill_thing() {
         wait "$pid" || true
     fi
     unset PT_SPAWNED_THINGS[$k]
+    pt_close_thing_fds "$k"
 }
 
 pt_spawn_luastatus() {

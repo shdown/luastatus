@@ -29,11 +29,11 @@ __EOF__
 pt_spawn_luastatus
 exec 3<"$main_fifo_file"
 pt_expect_line 'init' <&3
-wait_for_socket_to_appear
+unixsock_wait_socket
 pt_expect_line 'hello n=1' <&3
 measure_start
 for (( i = 0; i < 4; ++i )); do
-    send_verbatim_to_socket "foobar$i"$'\n'
+    unixsock_send_verbatim "foobar$i"$'\n'
     pt_expect_line "line foobar$i" <&3
     measure_check_ms 0
     pt_expect_line 'timeout n=2' <&3

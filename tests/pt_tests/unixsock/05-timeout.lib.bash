@@ -24,14 +24,14 @@ __EOF__
 pt_spawn_luastatus
 exec 3<"$main_fifo_file"
 pt_expect_line 'init' <&3
-wait_for_socket_to_appear
+unixsock_wait_socket
 pt_expect_line 'hello' <&3
 measure_start
 pt_expect_line 'timeout' <&3
 measure_check_ms 250
 pt_expect_line 'timeout' <&3
 measure_check_ms 250
-send_verbatim_to_socket $'boo\n'
+unixsock_send_verbatim $'boo\n'
 pt_expect_line 'line boo' <&3
 measure_check_ms 0
 pt_expect_line 'timeout' <&3

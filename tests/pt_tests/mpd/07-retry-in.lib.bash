@@ -1,20 +1,5 @@
-mpd_parrot_spawn() {
-    coproc "$PT_PARROT" --reuseaddr --print-line-when-ready TCP-SERVER "$port" \
-        || pt_fail "coproc failed"
-
-    pt_add_spawned_thing parrot "$COPROC_PID"
-
-    pt_expect_line 'parrot: ready' <&${COPROC[0]}
-}
-
-mpd_parrot_kill() {
-    pt_kill_thing parrot
-}
-
-mpd_parrot_spawn
-
 pt_testcase_begin
-
+fakempd_spawn
 pt_add_fifo "$main_fifo_file"
 pt_write_widget_file <<__EOF__
 f = assert(io.open('$main_fifo_file', 'w'))
@@ -45,37 +30,37 @@ pt_expect_line 'cb connecting' <&3
 measure_check_ms 0
 
 for (( i = 0; i < 3; ++i )); do
-    echo "OK MPD I-am-actually-a-shell-script" >&${COPROC[1]}
+    fakempd_say "OK MPD I-am-actually-a-shell-script"
 
-    pt_expect_line 'currentsong' <&${COPROC[0]}
-    echo "Song_Foo: bar" >&${COPROC[1]}
-    echo "Song_Baz: quiz" >&${COPROC[1]}
-    echo "OK" >&${COPROC[1]}
+    fakempd_expect 'currentsong'
+    fakempd_say "Song_Foo: bar"
+    fakempd_say "Song_Baz: quiz"
+    fakempd_say "OK"
 
-    pt_expect_line 'status' <&${COPROC[0]}
-    echo "Status_One: ein" >&${COPROC[1]}
-    echo "Status_Two: zwei" >&${COPROC[1]}
-    echo "Status_Three: drei" >&${COPROC[1]}
-    echo "Z: $i" >&${COPROC[1]}
-    echo "OK" >&${COPROC[1]}
+    fakempd_expect 'status'
+    fakempd_say "Status_One: ein"
+    fakempd_say "Status_Two: zwei"
+    fakempd_say "Status_Three: drei"
+    fakempd_say "Z: $i"
+    fakempd_say "OK"
 
-    pt_expect_line 'idle mixer player' <&${COPROC[0]}
+    fakempd_expect 'idle mixer player'
     pt_expect_line "cb update song={Song_Baz=>quiz,Song_Foo=>bar} status={Status_One=>ein,Status_Three=>drei,Status_Two=>zwei,Z=>$i}" <&3
 
     measure_check_ms 0
 
-    mpd_parrot_kill
+    fakempd_kill
 
     pt_expect_line 'cb error' <&3
     measure_check_ms 0
 
-    mpd_parrot_spawn
+    fakempd_spawn
 
     pt_expect_line 'cb connecting' <&3
     measure_check_ms 1250
 done
 
-mpd_parrot_kill
+fakempd_kill
 pt_expect_line 'cb error' <&3
 
 pt_testcase_end

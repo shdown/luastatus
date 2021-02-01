@@ -3,14 +3,14 @@ socket_file=./pt-test-socket
 
 rm -f "$socket_file" || pt_fail "Cannot remove $socket_file."
 
-wait_for_socket_to_appear() {
+unixsock_wait_socket() {
     echo >&2 "Waiting for socket $socket_file to appear..."
     while ! [[ -S $socket_file ]]; do
         true
     done
 }
 
-send_verbatim_to_socket() {
+unixsock_send_verbatim() {
     printf '%s' "$1" | "$PT_PARROT" UNIX-CLIENT "$socket_file" \
         || pt_fail "parrot failed"
 }

@@ -19,15 +19,15 @@ __EOF__
 pt_spawn_luastatus
 exec 3<"$main_fifo_file"
 pt_expect_line 'init' <&3
-wait_for_socket_to_appear
-send_verbatim_to_socket $'one\n'
+unixsock_wait_socket
+unixsock_send_verbatim $'one\n'
 pt_expect_line 'line one' <&3
-send_verbatim_to_socket $'two\n'
+unixsock_send_verbatim $'two\n'
 pt_expect_line 'line two' <&3
-send_verbatim_to_socket 'without newline'
-send_verbatim_to_socket $'with newline\n'
+unixsock_send_verbatim 'without newline'
+unixsock_send_verbatim $'with newline\n'
 pt_expect_line 'line with newline' <&3
-send_verbatim_to_socket $'aypibmmwxrdxdknh\ngmstvxwxamouhlmw\ncybymucjtfxrauwn'
+unixsock_send_verbatim $'aypibmmwxrdxdknh\ngmstvxwxamouhlmw\ncybymucjtfxrauwn'
 pt_expect_line 'line aypibmmwxrdxdknh' <&3
 exec 3<&-
 pt_testcase_end

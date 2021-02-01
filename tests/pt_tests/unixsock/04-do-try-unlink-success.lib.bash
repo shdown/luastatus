@@ -20,8 +20,8 @@ __EOF__
 pt_spawn_luastatus
 exec 3<"$main_fifo_file"
 pt_expect_line 'init' <&3
-wait_for_socket_to_appear
-send_verbatim_to_socket $'aloha\n'
+unixsock_wait_socket
+unixsock_send_verbatim $'aloha\n'
 pt_expect_line 'line aloha' <&3
 exec 3<&-
 pt_testcase_end

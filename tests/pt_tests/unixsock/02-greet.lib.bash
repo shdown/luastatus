@@ -23,13 +23,13 @@ __EOF__
 pt_spawn_luastatus
 exec 3<"$main_fifo_file"
 pt_expect_line 'init' <&3
-wait_for_socket_to_appear
+unixsock_wait_socket
 pt_expect_line 'hello' <&3
-send_verbatim_to_socket $'one\n'
+unixsock_send_verbatim $'one\n'
 pt_expect_line 'line one' <&3
-send_verbatim_to_socket $'two\n'
+unixsock_send_verbatim $'two\n'
 pt_expect_line 'line two' <&3
-send_verbatim_to_socket $'three\n'
+unixsock_send_verbatim $'three\n'
 pt_expect_line 'line three' <&3
 exec 3<&-
 pt_testcase_end
