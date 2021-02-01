@@ -167,6 +167,7 @@ static int server(int (*func)(const char *arg), const char *arg)
 
     int client_fd = accept(server_fd, NULL, NULL);
     if (client_fd < 0) {
+        perror("parrot: accept");
         fail();
     }
     close(server_fd);
