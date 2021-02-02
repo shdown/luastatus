@@ -7,13 +7,22 @@ cd -- "$(dirname "$(readlink "$0" || printf '%s\n' "$0")")" || exit $?
 
 source ./utils.lib.bash || exit $?
 
-if (( $# != 1 )); then
-    echo >&2 "USAGE: $0 <build root>"
+fail_wrong_usage() {
+    printf >&2 '%s\n' "$*"
+    printf >&2 '%s\n' "USAGE: $0 <build root> [{run:<suite> | skip:<suite>}...]"
     exit 2
+}
+
+if (( $# < 1 )); then
+    fail_wrong_usage "No build root passed."
 fi
+
 PT_BUILD_DIR=$(resolve_relative "$1" "$PT_OPWD") || exit $?
-PT_PARROT=$PT_BUILD_DIR/tests/parrot
+# Shift the build root
+shift
+
 PT_SOURCE_DIR=..
+
 case "$PT_TOOL" in
 '')
     PT_PREFIX=()
@@ -26,7 +35,11 @@ valgrind)
     exit 2
     ;;
 esac
+
 PT_LUASTATUS=( "$PT_BUILD_DIR"/luastatus/luastatus ${DEBUG:+-l trace} )
+
+PT_PARROT=$PT_BUILD_DIR/tests/parrot
+
 PT_WIDGET_FILES=()
 PT_FILES_TO_REMOVE=()
 PT_DIRS_TO_REMOVE=()
@@ -231,25 +244,76 @@ pt_run_test_case() {
     source "$1" || pt_fail_internal_error "“source $1” failed"
 }
 
-pt_main() {
-    local d f
-    for d in ./pt_tests/*; do
-        if ! [[ -d $d ]]; then
-            pt_fail_internal_error "'$d' is not a directory."
+pt_run_test_suite() {
+    if ! [[ -d $1 ]]; then
+        pt_fail_internal_error "'$1' is not a directory."
+    fi
+    echo >&2 "==> Listing files in '$1'..."
+    local f
+    for f in "$1"/*; do
+        if [[ $f != *.lib.bash ]]; then
+            pt_fail_internal_error "File '$f' does not have suffix '.lib.bash'."
         fi
-        echo >&2 "==> Listing files in '$d'..."
-        for f in "$d"/*; do
-            if [[ $f != *.lib.bash ]]; then
-                pt_fail_internal_error "File '$f' does not have suffix '.lib.bash'."
-            fi
-            if [[ ${f##*/} != [0-9][0-9]-* ]]; then
-                pt_fail_internal_error "File '$f' does not have prefix of two digits and a dash (e.g. '99-testcase.lib.bash')."
-            fi
-            pt_run_test_case "$f"
-        done
+        if [[ ${f##*/} != [0-9][0-9]-* ]]; then
+            pt_fail_internal_error "File '$f' does not have prefix of two digits and a dash (e.g. '99-testcase.lib.bash')."
+        fi
+        pt_run_test_case "$f"
     done
 }
 
-pt_main
+pt_main() {
+    local args_run=()
+    local -A args_skip=()
+
+    local arg
+    for arg in "$@"; do
+        if [[ $arg == */* ]]; then
+            fail_wrong_usage "Invalid argument: '$arg': suite name can not contain a slash."
+        fi
+        if [[ $arg != *:* ]]; then
+            fail_wrong_usage "Invalid argument: '$arg': is not of key:value form."
+        fi
+        local k=${arg%%:*}
+        local v=${arg#*:}
+        if [[ -z "$v" ]]; then
+            fail_wrong_usage "Invalid argument: '$arg': value is empty."
+        fi
+        case "$k" in
+        run)
+            args_run+=("$v")
+            ;;
+        skip)
+            args_skip[$v]=1
+            ;;
+        *)
+            fail_wrong_usage "Invalid argument: '$arg': unknown key '$k'."
+            ;;
+        esac
+    done
+
+    if (( ${#args_run[@]} != 0 )); then
+        local x
+        for x in "${args_run[@]}"; do
+            local d=./pt_tests/$x
+            if [[ -n "${args_skip[$x]}" ]]; then
+                echo >&2 "==> Skipping test suite '$d'."
+                continue
+            fi
+            pt_run_test_suite "$d"
+        done
+    else
+        local d
+        for d in ./pt_tests/*; do
+            local x=${d##*/}
+            if [[ -n "${args_skip[$x]}" ]]; then
+                echo >&2 "==> Skipping test suite '$d'."
+                continue
+            fi
+            pt_run_test_suite "$d"
+        done
+    fi
+}
+
+pt_main "$@"
 
 echo >&2 "=== PASSED ==="
