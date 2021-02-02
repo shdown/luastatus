@@ -12,6 +12,7 @@ widget = {
             {
                 object_path = '/org/luastatus/sample/object/name',
                 interface = 'org.luastatus.ExampleInterface',
+                bus = 'system',
             },
         },
         greet = true,
@@ -31,6 +32,7 @@ pt_expect_line 'init' <&$pfd
 pt_expect_line 'cb {["what"]="hello"}' <&$pfd
 
 dbus-send \
+    --system \
     /org/luastatus/sample/object/name \
     org.luastatus.ExampleInterface.ExampleMethod \
     int32:47 string:'hello world' double:63.125 \
@@ -40,7 +42,7 @@ dbus-send \
     objpath:/org/luastatus/sample/object/name \
         || pt_fail "dbus-send failed."
 
-pt_expect_line 'cb {["bus"]="session",["interface"]="org.luastatus.ExampleInterface",["object_path"]="/org/luastatus/sample/object/name",["parameters"]={"47","hello world",63.125,{"1st item","next item","last item"},{{"one","1"},{"two","2"},{"three","3"}},"-8","/org/luastatus/sample/object/name"},["sender"]="(non-deterministic)",["signal"]="ExampleMethod",["what"]="signal"}' <&$pfd
+pt_expect_line 'cb {["bus"]="system",["interface"]="org.luastatus.ExampleInterface",["object_path"]="/org/luastatus/sample/object/name",["parameters"]={"47","hello world",63.125,{"1st item","next item","last item"},{{"one","1"},{"two","2"},{"three","3"}},"-8","/org/luastatus/sample/object/name"},["sender"]="(non-deterministic)",["signal"]="ExampleMethod",["what"]="signal"}' <&$pfd
 
 pt_close_fd "$pfd"
 pt_testcase_end
