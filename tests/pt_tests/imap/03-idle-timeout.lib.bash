@@ -15,6 +15,7 @@ widget = x.widget{
     password = 'mypassword',
     mailbox = 'Inbox',
     error_sleep_period = 1,
+    timeout = 1.5,
     cb = function(n)
         if n == nil then
             f:write('cb nil\n')
@@ -32,8 +33,18 @@ exec {pfd}<"$main_fifo_file"
 pt_expect_line 'init' <&$pfd
 pt_expect_line 'cb nil' <&$pfd
 
-imap_interact_begin
-imap_interact_middle_simple "$pfd"
+for (( i = 0; i < 3; ++i )); do
+    imap_interact_begin
+    imap_interact_middle_idle "$pfd"
+
+    measure_start
+    fakeimap_wait
+    measure_check_ms 1500
+
+    pt_expect_line 'cb nil' <&$pfd
+
+    fakeimap_spawn_check_accept_time_ms 1000
+done
 
 fakeimap_kill
 pt_expect_line 'cb nil' <&$pfd

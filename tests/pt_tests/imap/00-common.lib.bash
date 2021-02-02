@@ -19,6 +19,14 @@ fakeimap_spawn() {
     pt_expect_line 'parrot: ready' <&${PT_SPAWNED_THINGS_FDS_0[imap_parrot]}
 }
 
+fakeimap_spawn_check_accept_time_ms() {
+    pt_spawn_thing_pipe imap_parrot "$PT_PARROT" --reuseaddr --print-line-when-ready --print-line-on-accept TCP-SERVER "$port"
+    pt_expect_line 'parrot: ready' <&${PT_SPAWNED_THINGS_FDS_0[imap_parrot]}
+    measure_start
+    pt_expect_line 'parrot: accepted' <&${PT_SPAWNED_THINGS_FDS_0[imap_parrot]}
+    measure_check_ms "$1"
+}
+
 fakeimap_read_line() {
     pt_read_line <&${PT_SPAWNED_THINGS_FDS_0[imap_parrot]}
     if [[ $PT_LINE != *$'\r' ]]; then
@@ -65,4 +73,44 @@ fakeimap_kill() {
 
 fakeimap_wait() {
     pt_wait_thing imap_parrot
+}
+
+imap_interact_begin() {
+    fakeimap_say "* OK IMAP4rev1 Service Ready"
+
+    fakeimap_cmd_expect "LOGIN mylogin mypassword"
+    fakeimap_cmd_done "OK LOGIN completed"
+
+    fakeimap_cmd_expect "SELECT Inbox"
+    fakeimap_say "* 18 EXISTS"
+    fakeimap_say "* OK [UNSEEN 17] Message 17 is the first unseen message"
+    fakeimap_cmd_done "OK [READ-WRITE] SELECT completed"
+}
+
+imap_interact_middle_simple() {
+    local pfd=$1
+    local i
+    for (( i = 17; i < 20; ++i )); do
+        fakeimap_cmd_expect "STATUS Inbox (UNSEEN)"
+        fakeimap_say "* STATUS Inbox (UNSEEN $i)"
+        fakeimap_cmd_done "OK [READ-WRITE] SELECT completed"
+
+        fakeimap_cmd_expect "IDLE"
+        pt_expect_line "cb $i" <&$pfd
+
+        fakeimap_say "* SOMETHING"
+        fakeimap_expect "DONE"
+        fakeimap_cmd_done "OK IDLE completed"
+    done
+}
+
+imap_interact_middle_idle() {
+    local pfd=$1
+
+    fakeimap_cmd_expect "STATUS Inbox (UNSEEN)"
+    fakeimap_say "* STATUS Inbox (UNSEEN 135)"
+    fakeimap_cmd_done "OK [READ-WRITE] SELECT completed"
+    pt_expect_line "cb 135" <&$pfd
+
+    fakeimap_cmd_expect "IDLE"
 }

@@ -32,8 +32,14 @@ exec {pfd}<"$main_fifo_file"
 pt_expect_line 'init' <&$pfd
 pt_expect_line 'cb nil' <&$pfd
 
-imap_interact_begin
-imap_interact_middle_simple "$pfd"
+for (( i = 0; i < 3; ++i )); do
+    imap_interact_begin
+    imap_interact_middle_simple "$pfd"
+
+    fakeimap_kill
+    pt_expect_line 'cb nil' <&$pfd
+    fakeimap_spawn_check_accept_time_ms 1000
+done
 
 fakeimap_kill
 pt_expect_line 'cb nil' <&$pfd

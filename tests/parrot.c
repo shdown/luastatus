@@ -34,6 +34,7 @@ static struct {
     bool half_duplex_ok;
     bool reuseaddr;
     bool print_line_when_ready;
+    bool print_line_on_accept;
     bool just_check;
 } global_flags;
 
@@ -117,6 +118,7 @@ static FlagOption flag_options[] = {
     {&global_flags.half_duplex_ok,        "--half-duplex-ok"},
     {&global_flags.reuseaddr,             "--reuseaddr"},
     {&global_flags.print_line_when_ready, "--print-line-when-ready"},
+    {&global_flags.print_line_on_accept,  "--print-line-on-accept"},
     {&global_flags.just_check,            "--just-check"},
     {0},
 };
@@ -130,7 +132,9 @@ static void print_usage(void)
     fprintf(stderr, "  --reuseaddr\n");
     fprintf(stderr, "    Set SO_REUSEADDR option on the TCP server socket.\n");
     fprintf(stderr, "  --print-line-when-ready\n");
-    fprintf(stderr, "    Write 'parrot: ready' line when the server is ready.\n");
+    fprintf(stderr, "    Write 'parrot: ready' line when the server is ready to accept a connection.\n");
+    fprintf(stderr, "  --print-line-on-accept\n");
+    fprintf(stderr, "    Write 'parrot: accepted' line when the server has accepted a connection.\n");
     fprintf(stderr, "  --just-check\n");
     fprintf(stderr, "    Exit with code 0 after creating the server.\n");
 }
@@ -171,6 +175,13 @@ static int server(int (*func)(const char *arg), const char *arg)
         fail();
     }
     close(server_fd);
+
+    if (global_flags.print_line_on_accept) {
+        const char *line = "parrot: accepted\n";
+        if (full_write(1, line, strlen(line)) < 0) {
+            fail();
+        }
+    }
 
     parrot(client_fd);
     close(client_fd);
