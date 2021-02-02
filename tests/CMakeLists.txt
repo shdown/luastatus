@@ -19,3 +19,6 @@ target_link_libraries (parrot PUBLIC Threads::Threads)
 
 add_executable (stopwatch "stopwatch.c")
 target_compile_definitions (stopwatch PUBLIC -D_POSIX_C_SOURCE=200809L)
+
+add_executable (listnets "listnets.c")
+target_compile_definitions (listnets PUBLIC -D_POSIX_C_SOURCE=200809L)
