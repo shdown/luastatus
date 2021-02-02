@@ -81,6 +81,10 @@ A table with a ``what`` entry.
 * If ``what`` is ``"signal"``, a signal has been received. In this case, the table has the
   following additional entries:
 
+  - ``bus``: string
+
+      Either ``"session"`` or ``"system"``.
+
   - ``sender``: string
 
       Unique sender name.

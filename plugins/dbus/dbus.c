@@ -216,10 +216,12 @@ mverror:
 typedef struct {
     LuastatusPluginData *pd;
     LuastatusPluginRunFuncs funcs;
+    GDBusConnection *cnx_session;
+    GDBusConnection *cnx_system;
 } PluginRunArgs;
 
 static void callback_signal(
-    GDBusConnection *connection,
+    GDBusConnection *cnx,
     const gchar *sender_name,
     const gchar *object_path,
     const gchar *interface_name,
@@ -227,11 +229,20 @@ static void callback_signal(
     GVariant *parameters,
     gpointer user_data)
 {
-    (void) connection;
-    PluginRunArgs args = *(PluginRunArgs *) user_data;
-    lua_State *L = args.funcs.call_begin(args.pd->userdata);
+    PluginRunArgs *args = (PluginRunArgs *) user_data;
 
-    lua_createtable(L, 0, 6); // L: table
+    const char *bus_name = "";
+    if (cnx == args->cnx_session) {
+        bus_name = "session";
+    } else if (cnx == args->cnx_system) {
+        bus_name = "system";
+    }
+
+    lua_State *L = args->funcs.call_begin(args->pd->userdata);
+
+    lua_createtable(L, 0, 7); // L: table
+    lua_pushstring(L, bus_name); // L: table string
+    lua_setfield(L, -2, "bus"); // L: table
     lua_pushstring(L, "signal"); // L: table string
     lua_setfield(L, -2, "what"); // L: table
     lua_pushstring(L, sender_name); // L: table string
@@ -245,17 +256,17 @@ static void callback_signal(
     marshal(L, parameters); // L: table value
     lua_setfield(L, -2, "parameters"); // L: table
 
-    args.funcs.call_end(args.pd->userdata);
+    args->funcs.call_end(args->pd->userdata);
 }
 
 static gboolean callback_timeout(gpointer user_data)
 {
-    PluginRunArgs args = *(PluginRunArgs *) user_data;
-    lua_State *L = args.funcs.call_begin(args.pd->userdata);
+    PluginRunArgs *args = (PluginRunArgs *) user_data;
+    lua_State *L = args->funcs.call_begin(args->pd->userdata);
     lua_createtable(L, 0, 1); // L: table
     lua_pushstring(L, "timeout"); // L: table string
     lua_setfield(L, -2, "what"); // L: table
-    args.funcs.call_end(args.pd->userdata);
+    args->funcs.call_end(args->pd->userdata);
     return G_SOURCE_CONTINUE;
 }
 
@@ -268,15 +279,15 @@ static GDBusConnection * maybe_connect_and_subscribe(
     if (!x.size)
         return NULL;
 
-    GDBusConnection *conn = g_bus_get_sync(bus_type, NULL, err);
+    GDBusConnection *cnx = g_bus_get_sync(bus_type, NULL, err);
     if (*err)
         return NULL;
 
-    assert(conn);
+    assert(cnx);
     for (size_t i = 0; i < x.size; ++i) {
         Signal s = x.data[i];
         g_dbus_connection_signal_subscribe(
-            conn,
+            cnx,
             s.sender,
             s.interface,
             s.signal,
@@ -287,7 +298,7 @@ static GDBusConnection * maybe_connect_and_subscribe(
             userdata,
             NULL);
     }
-    return conn;
+    return cnx;
 }
 
 static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
@@ -318,6 +329,9 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         LS_FATALF(pd, "cannot connect to the system bus: %s", err->message);
         goto error;
     }
+
+    userdata.cnx_session = session_bus;
+    userdata.cnx_system = system_bus;
 
     if (p->tmo >= 0) {
         int tmo_ms = ls_tmo_to_ms(p->tmo);
