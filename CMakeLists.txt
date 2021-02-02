@@ -96,7 +96,6 @@ endfunction ()
 add_subdirectory (libls)
 add_subdirectory (libmoonvisit)
 add_subdirectory (luastatus)
-add_subdirectory (tests)
 
 #------------------------------------------------------------------------------
 
@@ -131,3 +130,5 @@ DEF_OPT (BUILD_PLUGIN_UDEV                "plugins/udev"                ON)
 DEF_OPT (BUILD_PLUGIN_UNIXSOCK            "plugins/unixsock"            OFF)
 DEF_OPT (BUILD_PLUGIN_XKB                 "plugins/xkb"                 ON)
 DEF_OPT (BUILD_PLUGIN_XTITLE              "plugins/xtitle"              ON)
+
+DEF_OPT (BUILD_TESTS                      "tests"                       OFF)
