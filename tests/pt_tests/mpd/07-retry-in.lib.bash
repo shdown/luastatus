@@ -1,5 +1,8 @@
 pt_testcase_begin
+using_measure
+
 fakempd_spawn
+
 pt_add_fifo "$main_fifo_file"
 pt_write_widget_file <<__EOF__
 f = assert(io.open('$main_fifo_file', 'w'))

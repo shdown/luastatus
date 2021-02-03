@@ -1,6 +1,10 @@
+using_measure() {
+    pt_spawn_thing_pipe stopwatch "$PT_BUILD_DIR"/tests/stopwatch "${PT_MAX_LAG:-75}"
+}
+
 measure_start() {
     if ! pt_has_spawned_thing stopwatch; then
-        pt_spawn_thing_pipe stopwatch "$PT_BUILD_DIR"/tests/stopwatch "${PT_MAX_LAG:-75}"
+        pt_fail_internal_error "measure_start: stopwatch was not spawned (did you forget 'using_measure'?)."
     fi
     echo s >&${PT_SPAWNED_THINGS_FDS_1[stopwatch]} || pt_fail "Cannot communicate with stopwatch."
 }

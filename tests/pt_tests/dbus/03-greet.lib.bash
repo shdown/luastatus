@@ -31,6 +31,9 @@ exec {pfd}<"$main_fifo_file"
 pt_expect_line 'init' <&$pfd
 pt_expect_line 'cb {["what"]="hello"}' <&$pfd
 
+# Try to avoid race condition: we may invoke dbus-send before subscription.
+sleep 2 || pt_fail "Cannot sleep 2."
+
 dbus-send \
     --session \
     /org/luastatus/sample/object/name \

@@ -1,4 +1,5 @@
 pt_testcase_begin
+using_measure
 
 fakempd_spawn
 

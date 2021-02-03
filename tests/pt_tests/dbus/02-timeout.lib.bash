@@ -1,4 +1,6 @@
 pt_testcase_begin
+using_measure
+
 pt_add_fifo "$main_fifo_file"
 pt_write_widget_file <<__EOF__
 f = assert(io.open('$main_fifo_file', 'w'))
@@ -15,7 +17,7 @@ widget = {
                 bus = 'session',
             },
         },
-        timeout = 0.5,
+        timeout = 2,
         greet = true,
     },
     cb = function(t)
@@ -31,6 +33,9 @@ pt_spawn_luastatus
 exec {pfd}<"$main_fifo_file"
 pt_expect_line 'init' <&$pfd
 pt_expect_line 'cb {["what"]="hello"}' <&$pfd
+
+# Try to avoid race condition...
+pt_expect_line 'cb {["what"]="timeout"}' <&$pfd
 
 for (( i = 0; i < 3; ++i )); do
     dbus-send \
@@ -49,10 +54,10 @@ for (( i = 0; i < 3; ++i )); do
     measure_check_ms 0
 
     pt_expect_line 'cb {["what"]="timeout"}' <&$pfd
-    measure_check_ms 500
+    measure_check_ms 2000
 
     pt_expect_line 'cb {["what"]="timeout"}' <&$pfd
-    measure_check_ms 500
+    measure_check_ms 2000
 done
 
 pt_close_fd "$pfd"

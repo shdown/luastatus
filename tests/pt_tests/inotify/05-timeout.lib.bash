@@ -1,4 +1,6 @@
 pt_testcase_begin
+using_measure
+
 pt_add_fifo "$main_fifo_file"
 myfile=$(mktemp) || pt_fail "Cannot create temporary file."
 pt_add_file_to_remove "$myfile"

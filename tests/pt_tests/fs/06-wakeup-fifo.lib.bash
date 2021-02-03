@@ -1,4 +1,6 @@
 pt_testcase_begin
+using_measure
+
 pt_add_fifo "$main_fifo_file"
 pt_add_fifo "$wakeup_fifo_file"
 pt_write_widget_file <<__EOF__
