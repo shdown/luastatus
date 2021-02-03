@@ -9,6 +9,13 @@ local function _fmt_x(x)
         assert(s:find("\n") == nil, "string contains a line break")
         assert(s:find("\"") == nil, "string contains a double quote sign")
     end
+    local function _fmt_num(n)
+        if n == math.floor(n) then
+            return string.format('%d', n)
+        else
+            return string.format('%.4f', n)
+        end
+    end
     local t = type(x)
     if t == "table" then
         local tk = type(next(x))
@@ -40,6 +47,8 @@ local function _fmt_x(x)
     elseif t == "string" then
         _validate_str(x)
         return string.format("\"%s\"", x)
+    elseif t == "number" then
+        return _fmt_num(x)
     else
         return tostring(x)
     end
@@ -66,5 +75,5 @@ __EOF__
 }
 
 x_testcase_input '{"name":"0","foo":"bar"}' '{["foo"]="bar",["name"]="0"}'
-x_testcase_input '{"name":"0","foo":[1,2,3,{"k":"v"},4]}' '{["foo"]={1.0,2.0,3.0,{["k"]="v"},4.0},["name"]="0"}'
+x_testcase_input '{"name":"0","foo":[1,2,3,{"k":"v"},4]}' '{["foo"]={1,2,3,{["k"]="v"},4},["name"]="0"}'
 x_testcase_input '{"name":"0","foo":null,"bar":true,"baz":false}' '{["bar"]=true,["baz"]=false,["name"]="0"}'
