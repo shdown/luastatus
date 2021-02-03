@@ -11,9 +11,9 @@ local function _fmt_x(x)
     end
     local function _fmt_num(n)
         if n == math.floor(n) then
-            return string.format('%d', n)
+            return string.format("%d", n)
         else
-            return string.format('%.4f', n)
+            return string.format("%.4f", n)
         end
     end
     local t = type(x)
