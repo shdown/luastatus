@@ -98,12 +98,12 @@ pt_add_fifo() {
 
 pt_read_line() {
     echo >&2 "Reading line..."
-    IFS= read -r PT_LINE || pt_fail "pt_read_line: cannot read next line (luastatus process died?)"
+    IFS= read -r PT_LINE || pt_fail "pt_read_line: cannot read next line (process died?)"
 }
 
 pt_expect_line() {
     echo >&2 "Expecting line “$1”..."
-    IFS= read -r PT_LINE || pt_fail "expect_line: cannot read next line (luastatus process died?)"
+    IFS= read -r PT_LINE || pt_fail "expect_line: cannot read next line (process died?)"
     if [[ "$PT_LINE" != "$1" ]]; then
         pt_fail "pt_expect_line: line does not match" "Expected: '$1'" "Found: '$PT_LINE'"
     fi
