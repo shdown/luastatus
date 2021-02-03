@@ -22,5 +22,4 @@ jobs:
       - run: make
       - run: ./tests/misc.sh .
       - run: ./tests/torture.sh .
-      - run: PT_TOOL=valgrind PT_MAX_LAG=150 ./tests/pt.sh . skip:dbus
-      - run: BT_TOOL=valgrind ./tests/bt.sh .
+      - run: PT_TOOL=valgrind PT_MAX_LAG=150 ./tests/pt.sh . skip:plugin-dbus

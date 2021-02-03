@@ -7,11 +7,11 @@ f:write('init\n')
 local function _fmt_t(t)
     local s = {}
     for k, v in pairs(t) do
-        if v.ipv4 then
-            s[#s + 1] = string.format('%s ipv4 %s', k, v.ipv4)
+        for _, x in ipairs(v.ipv4 or {}) do
+            s[#s + 1] = string.format('%s ipv4 %s', k, x)
         end
-        if v.ipv6 then
-            s[#s + 1] = string.format('%s ipv6 %s', k, v.ipv6)
+        for _, x in ipairs(v.ipv6 or {}) do
+            s[#s + 1] = string.format('%s ipv6 %s', k, x)
         end
     end
     table.sort(s)
@@ -19,6 +19,7 @@ local function _fmt_t(t)
 end
 widget = {
     plugin = '$PT_BUILD_DIR/plugins/network-linux/plugin-network-linux.so',
+    opts = {new_ip_fmt = true},
     cb = function(t)
         if t == nil then
             f:write('cb nil\n')

@@ -13,7 +13,7 @@ measure_get_ms() {
     echo q >&${PT_SPAWNED_THINGS_FDS_1[stopwatch]} || pt_fail "Cannot communicate with stopwatch."
     local ans
     IFS= read -r ans <&${PT_SPAWNED_THINGS_FDS_0[stopwatch]} || pt_fail "Cannot communicate with stopwatch."
-    echo "$ans"
+    printf '%s\n' "$ans"
 }
 
 measure_check_ms() {

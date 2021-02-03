@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-# pt stands for Plugin Test.
-
 PT_OPWD=$PWD
 cd -- "$(dirname "$(readlink "$0" || printf '%s\n' "$0")")" || exit $?
 
@@ -150,6 +148,16 @@ pt_has_spawned_thing() {
     [[ -n "${PT_SPAWNED_THINGS[$k]}" ]]
 }
 
+pt_spawned_thing_pid() {
+    local k=$1
+    local pid=${PT_SPAWNED_THINGS[$k]}
+    if [[ -z "$pid" ]]; then
+        echo "pt_spawned_thing_pid: unknown thing '$k' (PT_SPAWNED_THINGS has no such key)."
+        exit 3
+    fi
+    printf '%s\n' "$pid"
+}
+
 pt_close_fd() {
     eval "exec ${1}>&-"
 }
@@ -194,6 +202,18 @@ pt_kill_thing() {
 
 pt_spawn_luastatus() {
     pt_spawn_thing luastatus "${PT_PREFIX[@]}" "${PT_LUASTATUS[@]}" -b ./barlib-mock.so "$@" "${PT_WIDGET_FILES[@]}"
+}
+
+pt_spawn_luastatus_for_barlib_test_via_runner() {
+    local runner=$1
+    shift
+    pt_spawn_thing_pipe luastatus \
+        "$runner" "${PT_PREFIX[@]}" "${PT_LUASTATUS[@]}" "$@" "${PT_WIDGET_FILES[@]}"
+}
+
+pt_spawn_luastatus_directly() {
+    pt_spawn_thing luastatus \
+        "${PT_PREFIX[@]}" "${PT_LUASTATUS[@]}" "$@" "${PT_WIDGET_FILES[@]}"
 }
 
 pt_wait_luastatus() {

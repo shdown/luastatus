@@ -53,6 +53,7 @@ typedef struct {
     bool report_ip;
     bool report_wireless;
     bool report_ethernet;
+    bool new_ip_fmt;
     double tmo;
     StringSet wlan_ifaces;
     int eth_sockfd;
@@ -73,6 +74,7 @@ static int init(LuastatusPluginData *pd, lua_State *L)
         .report_ip = true,
         .report_wireless = false,
         .report_ethernet = false,
+        .new_ip_fmt = false,
         .tmo = -1,
         .wlan_ifaces = string_set_new(),
         .eth_sockfd = -1,
@@ -90,6 +92,10 @@ static int init(LuastatusPluginData *pd, lua_State *L)
 
     // Parse ethernet
     if (moon_visit_bool(&mv, -1, "ethernet", &p->report_ethernet, true) < 0)
+        goto mverror;
+
+    // Parse new_ip_fmt
+    if (moon_visit_bool(&mv, -1, "new_ip_fmt", &p->new_ip_fmt, true) < 0)
         goto mverror;
 
     // Parse timeout
@@ -121,7 +127,7 @@ static void report_error(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     funcs.call_end(pd->userdata);
 }
 
-static void inject_ip_info(lua_State *L, struct ifaddrs *addr)
+static void inject_ip_info(lua_State *L, struct ifaddrs *addr, bool new_ip_fmt)
 {
     // L: ? ifacetbl
     if (!addr->ifa_addr) {
@@ -140,8 +146,28 @@ static void inject_ip_info(lua_State *L, struct ifaddrs *addr)
     if (r) {
         return;
     }
-    lua_pushstring(L, host); // L: ? ifacetbl ip
-    lua_setfield(L, -2, family == AF_INET ? "ipv4" : "ipv6"); // L: ? ifacetbl
+
+    const char *k = family == AF_INET ? "ipv4" : "ipv6";
+    if (new_ip_fmt) {
+        lua_getfield(L, -1, k); // L: ? ifacetbl tbl
+        if (lua_isnil(L, -1)) {
+            lua_pop(L, 1); // L: ? ifacetbl
+            lua_newtable(L); // L: ? ifacetbl tbl
+            lua_pushstring(L, host); // L: ? ifacetbl tbl str
+            lua_rawseti(L, -2, 1); // L: ? ifacetbl tbl
+            lua_setfield(L, -2, k); // L: ? ifacetbl
+        } else {
+            lua_len(L, -1); // L: ? ifacetbl tbl len
+            size_t n = lua_tointeger(L, -1);
+            lua_pop(L, 1); // L: ? ifacetbl tbl
+            lua_pushstring(L, host); // L: ? ifacetbl tbl str
+            lua_rawseti(L, -2, n + 1); // L: ? ifacetbl tbl
+            lua_pop(L, 1); // L: ? ifacetbl
+        }
+    } else {
+        lua_pushstring(L, host); // L: ? ifacetbl str
+        lua_setfield(L, -2, k); // L: ? ifacetbl
+    }
 }
 
 static void inject_wireless_info(lua_State *L, struct ifaddrs *addr)
@@ -236,7 +262,7 @@ static void make_call(
         }
 
         if (p->report_ip) {
-            inject_ip_info(L, cur); // L: ? table ifacetbl
+            inject_ip_info(L, cur, p->new_ip_fmt); // L: ? table ifacetbl
         }
 
         lua_pop(L, 1); // L: ? table

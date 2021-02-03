@@ -1,7 +1,7 @@
 x_testcase_input() {
-    bt_testcase_begin
-    bt_add_fifo "$main_fifo_file"
-    bt_write_widget_file <<__EOF__
+    pt_testcase_begin
+    pt_add_fifo "$main_fifo_file"
+    pt_write_widget_file <<__EOF__
 f = assert(io.open('$main_fifo_file', 'w'))
 f:setvbuf('line')
 local function _fmt_x(x)
@@ -54,7 +54,7 @@ local function _fmt_x(x)
     end
 end
 widget = {
-    plugin = '$BT_BUILD_DIR/tests/plugin-mock.so',
+    plugin = '$PT_BUILD_DIR/tests/plugin-mock.so',
     opts = {make_calls = 0},
     cb = function()
     end,
@@ -66,12 +66,12 @@ __EOF__
     x_spawn_luastatus
     local pfd
     exec {pfd}<"$main_fifo_file"
-    bt_expect_line '{"version":1,"click_events":true,"stop_signal":0,"cont_signal":0}' <&${BT_SPAWNED_THINGS_FDS_0[luastatus]}
-    bt_expect_line '[' <&${BT_SPAWNED_THINGS_FDS_0[luastatus]}
-    printf '[\n%s\n' "$1" >&${BT_SPAWNED_THINGS_FDS_1[luastatus]} || bt_fail "Cannot communicate with luastatus."
-    bt_expect_line "event $2" <&$pfd
-    bt_close_fd "$pfd"
-    bt_testcase_end
+    pt_expect_line '{"version":1,"click_events":true,"stop_signal":0,"cont_signal":0}' <&${PT_SPAWNED_THINGS_FDS_0[luastatus]}
+    pt_expect_line '[' <&${PT_SPAWNED_THINGS_FDS_0[luastatus]}
+    printf '[\n%s\n' "$1" >&${PT_SPAWNED_THINGS_FDS_1[luastatus]} || pt_fail "Cannot communicate with luastatus."
+    pt_expect_line "event $2" <&$pfd
+    pt_close_fd "$pfd"
+    pt_testcase_end
 }
 
 x_testcase_input '{"name":"0","foo":"bar"}' '{["foo"]="bar",["name"]="0"}'

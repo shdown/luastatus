@@ -5,15 +5,15 @@ Actual:   $2"
 
     local out
     out=$(jq --argfile a <(printf '%s\n' "$1") --argfile b <(printf '%s\n' "$2") -n '$a == $b') \
-        || bt_fail "jq failed"
+        || pt_fail "jq failed"
     case "$out" in
     true)
         ;;
     false)
-        bt_fail 'x_assert_json_eq: JSON does not match.' "Expected: $1" "Found: $2"
+        pt_fail 'x_assert_json_eq: JSON does not match.' "Expected: $1" "Found: $2"
         ;;
     *)
-        bt_fail "Unexpected output of jq: '$out'."
+        pt_fail "Unexpected output of jq: '$out'."
         ;;
     esac
 }
@@ -22,11 +22,11 @@ x_testcase_output() {
     local lua_expr=$1
     local expect_json=$2
 
-    bt_testcase_begin
-    bt_write_widget_file <<__EOF__
+    pt_testcase_begin
+    pt_write_widget_file <<__EOF__
 local _my_flag = false
 widget = {
-    plugin = '$BT_BUILD_DIR/tests/plugin-mock.so',
+    plugin = '$PT_BUILD_DIR/tests/plugin-mock.so',
     opts = {make_calls = 2},
     cb = function()
         if _my_flag then
@@ -67,17 +67,17 @@ __EOF__
     last_line+='}],'
 
     x_spawn_luastatus "${opts[@]}"
-    bt_expect_line "$first_line" <&${BT_SPAWNED_THINGS_FDS_0[luastatus]}
-    bt_expect_line '[' <&${BT_SPAWNED_THINGS_FDS_0[luastatus]}
+    pt_expect_line "$first_line" <&${PT_SPAWNED_THINGS_FDS_0[luastatus]}
+    pt_expect_line '[' <&${PT_SPAWNED_THINGS_FDS_0[luastatus]}
     if [[ -n "$expect_json" ]]; then
-        bt_read_line <&${BT_SPAWNED_THINGS_FDS_0[luastatus]}
-        if [[ $BT_LINE != *, ]]; then
-            bt_fail "Line does not end with ','." "Line: '$BT_LINE'."
+        pt_read_line <&${PT_SPAWNED_THINGS_FDS_0[luastatus]}
+        if [[ $PT_LINE != *, ]]; then
+            pt_fail "Line does not end with ','." "Line: '$PT_LINE'."
         fi
-        x_assert_json_eq "$expect_json" "${BT_LINE%,}"
+        x_assert_json_eq "$expect_json" "${PT_LINE%,}"
     fi
-    bt_expect_line "$last_line" <&${BT_SPAWNED_THINGS_FDS_0[luastatus]}
-    bt_testcase_end
+    pt_expect_line "$last_line" <&${PT_SPAWNED_THINGS_FDS_0[luastatus]}
+    pt_testcase_end
 }
 
 x_testcase_output 'nil' ''

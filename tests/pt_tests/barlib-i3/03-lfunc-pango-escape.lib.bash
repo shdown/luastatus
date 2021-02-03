@@ -1,6 +1,6 @@
-bt_testcase_begin
-bt_add_fifo "$main_fifo_file"
-bt_write_widget_file <<__EOF__
+pt_testcase_begin
+pt_add_fifo "$main_fifo_file"
+pt_write_widget_file <<__EOF__
 f = assert(io.open('$main_fifo_file', 'w'))
 f:setvbuf('line')
 local function check(arg, expected)
@@ -15,7 +15,7 @@ local function check(arg, expected)
     end
 end
 widget = {
-    plugin = '$BT_BUILD_DIR/tests/plugin-mock.so',
+    plugin = '$PT_BUILD_DIR/tests/plugin-mock.so',
     opts = {make_calls = 1},
     cb = function()
         check('', '')
@@ -29,6 +29,6 @@ widget = {
 __EOF__
 x_spawn_luastatus
 exec {pfd}<"$main_fifo_file"
-bt_expect_line 'ok' <&$pfd
-bt_close_fd "$pfd"
-bt_testcase_end
+pt_expect_line 'ok' <&$pfd
+pt_close_fd "$pfd"
+pt_testcase_end
