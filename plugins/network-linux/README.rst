@@ -30,6 +30,11 @@ The following options are supported:
 
     Whether to report ethernet connection info. Defaults to false.
 
+* ``new_ip_fmt``: boolean
+
+    Whether to report IP (``ipv4`` and ``ipv6``) addresses as tables (as opposed to strings).
+    Defaults to false.
+
 * ``timeout``: number
 
     If specified and not negative, requery information and call ``cb`` every ``timeout`` seconds.
@@ -45,7 +50,13 @@ If the list of network interfaces cannot be fetched, ``nil``.
 Otherwise, a table where keys are network interface names (e.g. ``wlan0`` or ``wlp1s0``) and values
 are tables with the following entries (all are optional):
 
-* ``ipv4``, ``ipv6``: strings (only if the ``ip`` option is enabled)
+* ``ipv4``, ``ipv6`` (only if the ``ip`` option is enabled)
+
+  - If ``new_ip_fmt`` option was set to true, arrays (tables with numeric keys) of strings;
+    each element corresponds to a local IPv4/IPv6 address of the interface.
+
+  - Otherwise, the value behind ``ipv4``/``ipv6`` key is a string corresponding to *some* local
+    IPv4/IPv6 address of the interface.
 
 * ``wireless``: table with following entries (only if the ``wireless`` option is enabled):
 
