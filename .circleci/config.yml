@@ -20,6 +20,5 @@ jobs:
       - run: v=<< parameters.luaver >>; sudo apt-get install -y ${v#*/} lua-socket lua-sec python3-docutils cmake valgrind dbus jq libxcb1-dev libyajl-dev libasound2-dev libglib2.0-dev libpulse-dev libudev-dev libnl-3-dev libnl-genl-3-dev libx11-dev libxcb1-dev libxcb-ewmh-dev libxcb-icccm4-dev libxcb-util0-dev
       - run: v=<< parameters.luaver >>; cmake -DWITH_LUA_LIBRARY=${v%/*} -DBUILD_PLUGIN_PULSE=ON -DBUILD_PLUGIN_UNIXSOCK=ON -DBUILD_TESTS=ON .
       - run: make
-      - run: ./tests/misc.sh .
       - run: ./tests/torture.sh .
       - run: PT_TOOL=valgrind PT_MAX_LAG=150 ./tests/pt.sh . skip:plugin-dbus
