@@ -280,7 +280,9 @@ static int event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
         const char *command = parse_command(buf, nread - 1, &ncommand, &widget_idx);
         if (!command)
             continue;
-
+        if (widget_idx >= p->nwidgets) {
+            continue;
+        }
         lua_State *L = funcs.call_begin(bd->userdata, widget_idx);
         lua_pushlstring(L, command, ncommand);
         funcs.call_end(bd->userdata, widget_idx);
