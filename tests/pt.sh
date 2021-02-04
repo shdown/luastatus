@@ -148,16 +148,6 @@ pt_has_spawned_thing() {
     [[ -n "${PT_SPAWNED_THINGS[$k]}" ]]
 }
 
-pt_spawned_thing_pid() {
-    local k=$1
-    local pid=${PT_SPAWNED_THINGS[$k]}
-    if [[ -z "$pid" ]]; then
-        echo "pt_spawned_thing_pid: unknown thing '$k' (PT_SPAWNED_THINGS has no such key)."
-        exit 3
-    fi
-    printf '%s\n' "$pid"
-}
-
 pt_close_fd() {
     eval "exec ${1}>&-"
 }

@@ -5,18 +5,6 @@ hang_timeout=${PT_HANG_TIMEOUT:-7}
 mock_barlib="$PT_BUILD_DIR"/tests/barlib-mock.so
 mock_plugin="$PT_BUILD_DIR"/tests/plugin-mock.so
 
-if [[ "$(uname -s)" == Linux ]]; then
-    is_process_sleeping() {
-        local state
-        state=$(awk '$1 == "State:" { print $2 }' /proc/"$1"/status) || return 3
-        [[ $state == S ]]
-    }
-else
-    is_process_sleeping() {
-        true
-    }
-fi
-
 assert_exits_with_code() {
     local expected_c=$1
     shift
@@ -38,8 +26,6 @@ assert_fails() {
 
 assert_hangs() {
     pt_spawn_luastatus_directly "$@"
-    local pid=$(pt_spawned_thing_pid luastatus)
-    is_process_sleeping "$pid" || pt_fail "luastatus (PID $pid) does not appear to be sleeping."
     sleep "$hang_timeout" || pt_fail "Cannot sleep for hang_timeout=$hang_timeout seconds."
     pt_kill_thing luastatus
 }
