@@ -48,6 +48,18 @@ PT_LINE=
 
 source ./pt_stopwatch.lib.bash || exit $?
 
+# Sanity checks
+if ! [[ -x "$PT_BUILD_DIR"/luastatus/luastatus ]]; then
+    echo >&2 "FATAL ERROR: '$PT_BUILD_DIR/luastatus/luastatus' is not an executable file."
+    echo >&2 "Is '$PT_BUILD_DIR' the correct build root? Did you forget to build the project?"
+    exit 1
+fi
+if ! [[ -x "$PT_PARROT" ]]; then
+    echo >&2 "FATAL ERROR: '$PT_PARROT' is not an executable file."
+    echo >&2 "Did you forget to pass '-DBUILD_TESTS=ON' to cmake?"
+    exit 1
+fi
+
 pt_stack_trace() {
     echo >&2 "Stack trace:"
     local n=${#FUNCNAME[@]}

@@ -24,6 +24,7 @@ override_dh_auto_configure:
 		-DWITH_LUA_LIBRARY=lua5.3 \
 		-DBUILD_PLUGIN_PULSE=on \
 		-DBUILD_PLUGIN_UNIXSOCK=on \
+		-DBUILD_TESTS=on \
 		-S .. -B .
 
 override_dh_auto_build:
@@ -75,7 +76,7 @@ override_dh_auto_install:
 
 override_dh_auto_test:
 ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
-	./tests/misc.sh $(BUILD_DIR)
+	./tests/pt.sh $(BUILD_DIR) skip:plugin-dbus
 	./tests/torture.sh $(BUILD_DIR)
 endif
 

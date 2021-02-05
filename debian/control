@@ -7,6 +7,7 @@ Build-Depends:
  cmake (>= 3.1.3),
  debhelper (>= 10),
  valgrind,
+ jq,
  liblua5.3-dev,
  pkg-config,
  python3-docutils,
