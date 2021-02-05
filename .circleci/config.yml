@@ -5,7 +5,7 @@ workflows:
       - subetedesu:
           matrix:
             parameters:
-              luaver: ["lua5.1/liblua5.1-dev", "lua5.2/liblua5.2-dev", "lua5.3/liblua5.3-dev", "luajit/libluajit-5.1-dev"]
+              luaver: ["lua5.1/liblua5.1-dev", "luajit/libluajit-5.1-dev", "lua5.2/liblua5.2-dev", "lua5.3/liblua5.3-dev", "lua5.4/liblua5.4-dev"]
 
 jobs:
   subetedesu:
