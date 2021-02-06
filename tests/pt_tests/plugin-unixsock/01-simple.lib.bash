@@ -1,4 +1,5 @@
 pt_testcase_begin
+rm -f "$socket_file"
 pt_add_fifo "$main_fifo_file"
 pt_add_file_to_remove "$socket_file"
 pt_write_widget_file <<__EOF__

@@ -32,7 +32,7 @@ pt_expect_line 'cb called' <&$pfd
 measure_check_ms 500
 pt_expect_line 'cb called' <&$pfd
 measure_check_ms 500
-touch "$wakeup_fifo_file" || pt_fail "Cannot touch FIFO $wakeup_fifo_file."
+touch "$wakeup_fifo_file"
 pt_expect_line 'cb called' <&$pfd
 measure_check_ms 0
 pt_expect_line 'cb called' <&$pfd

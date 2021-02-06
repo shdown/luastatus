@@ -62,7 +62,7 @@ for (( i = 0; i < 6; ++i )); do
         pt_expect_line 'cb connecting' <&$pfd
         measure_check_ms 1000
     else
-        touch "$retry_fifo_file" || fail "Cannot touch $retry_fifo_file."
+        touch "$retry_fifo_file"
         measure_start
         pt_expect_line 'cb connecting' <&$pfd
         measure_check_ms 0

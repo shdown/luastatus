@@ -26,7 +26,7 @@ pt_expect_line 'cb hello' <&$pfd
 measure_check_ms 0
 pt_expect_line 'cb timeout' <&$pfd
 measure_check_ms 1000
-touch "$wakeup_fifo_file" || pt_fail "Cannot touch FIFO $wakeup_fifo_file."
+touch "$wakeup_fifo_file"
 pt_expect_line 'cb fifo' <&$pfd
 measure_check_ms 0
 pt_expect_line 'cb timeout' <&$pfd

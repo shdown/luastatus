@@ -34,7 +34,7 @@ exec {pfd}<"$main_fifo_file"
 pt_expect_line 'init' <&$pfd
 
 listnets_binary=$PT_BUILD_DIR/tests/listnets
-nets=$("$listnets_binary"); c=$?
+c=0; nets=$("$listnets_binary") || c=$?
 case "$c" in
 0)
     nets=$(printf '%s\n' "$nets" | sort | tr '\n' ';')

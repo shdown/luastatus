@@ -23,10 +23,10 @@ cpu_usage_testcase() {
     pt_testcase_begin
     pt_add_fifo "$main_fifo_file"
 
-    local proc_dir; proc_dir=$(mktemp -d) || pt_fail "Cannot create temporary directory."
+    local proc_dir; proc_dir=$(mktemp -d)
     pt_add_dir_to_remove "$proc_dir"
     local stat_file=$proc_dir/stat
-    printf '%s' "$stat_content_1" > "$stat_file" || pt_fail "Cannot write to $stat_file."
+    printf '%s' "$stat_content_1" > "$stat_file"
     pt_add_file_to_remove "$stat_file"
     pt_write_widget_file <<__EOF__
 f = assert(io.open('$main_fifo_file', 'w'))
@@ -53,7 +53,7 @@ __EOF__
     exec {pfd}<"$main_fifo_file"
     pt_expect_line 'init' <&$pfd
     pt_expect_line 'cb nil' <&$pfd
-    printf '%s' "$stat_content_2" > "$stat_file" || pt_fail "Cannot write to $stat_file."
+    printf '%s' "$stat_content_2" > "$stat_file"
     pt_expect_line "$expect_str" <&$pfd
     pt_close_fd "$pfd"
     pt_testcase_end

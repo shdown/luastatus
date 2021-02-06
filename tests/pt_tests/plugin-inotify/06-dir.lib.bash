@@ -1,4 +1,4 @@
-stage_dir=$(mktemp -d) || pt_fail "Cannot create temporary directory."
+stage_dir=$(mktemp -d)
 stage_subdir=$stage_dir/subdir
 actor_file_1=$stage_dir/foo1
 actor_file_2=$stage_dir/foo2
@@ -49,21 +49,21 @@ exec {pfd}<"$main_fifo_file"
 pt_expect_line 'init' <&$pfd
 pt_expect_line 'cb hello' <&$pfd
 
-echo hello >> "$actor_file_1" || pt_fail "Cannot write to $actor_file_1."
+echo hello >> "$actor_file_1"
 pt_expect_line 'cb event mask=close_write cookie=(none) name=foo1' <&$pfd
 
-mv -f "$actor_file_1" "$actor_file_2" || pt_fail "Cannot rename $actor_file_1 to $actor_file_2."
+mv -f "$actor_file_1" "$actor_file_2"
 pt_expect_line 'cb event mask=moved_from cookie=(cookie #1) name=foo1' <&$pfd
 pt_expect_line 'cb event mask=moved_to cookie=(cookie #1) name=foo2' <&$pfd
 
-rm -f "$actor_file_2" || pt_fail "Cannot rm $actor_file_2."
+rm -f "$actor_file_2"
 pt_expect_line 'cb event mask=delete cookie=(none) name=foo2' <&$pfd
 
-mkdir "$stage_subdir" || pt_fail "Cannot mkdir $stage_subdir."
-rmdir "$stage_subdir" || pt_fail "Cannot rmdir $stage_subdir."
+mkdir "$stage_subdir"
+rmdir "$stage_subdir"
 pt_expect_line 'cb event mask=delete,isdir cookie=(none) name=subdir' <&$pfd
 
-rmdir "$stage_dir" || pt_fail "Cannot rmdir $stage_dir."
+rmdir "$stage_dir"
 pt_expect_line 'cb event mask=ignored cookie=(none) name=(nil)' <&$pfd
 
 pt_close_fd "$pfd"

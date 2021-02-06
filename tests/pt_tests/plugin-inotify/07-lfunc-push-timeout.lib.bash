@@ -2,7 +2,7 @@ pt_testcase_begin
 using_measure
 
 pt_add_fifo "$main_fifo_file"
-myfile=$(mktemp) || pt_fail "Cannot create temporary file."
+myfile=$(mktemp)
 pt_add_file_to_remove "$myfile"
 pt_write_widget_file <<__EOF__
 f = assert(io.open('$main_fifo_file', 'w'))
@@ -35,7 +35,7 @@ pt_expect_line 'init' <&$pfd
 pt_expect_line 'hello n=1' <&$pfd
 measure_start
 for (( i = 0; i < 4; ++i )); do
-    echo bye >> "$myfile" || pt_fail "Cannot write to $myfile."
+    echo bye >> "$myfile"
     pt_expect_line "event" <&$pfd
     measure_check_ms 0
     pt_expect_line 'timeout n=2' <&$pfd

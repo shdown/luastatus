@@ -1,4 +1,5 @@
 pt_testcase_begin
+rm -f "$socket_file"
 pt_add_fifo "$main_fifo_file"
 true > "$socket_file" || pt_fail "Cannot create regular file $socket_file."
 pt_add_file_to_remove "$socket_file"

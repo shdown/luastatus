@@ -30,7 +30,7 @@ exec {pfd}<"$main_fifo_file"
 pt_expect_line 'init' <&$pfd
 
 # Try to avoid race condition: we may invoke dbus-send before subscription.
-sleep 2 || pt_fail "Cannot sleep 2."
+sleep 2
 
 dbus-send \
     --session \
@@ -40,8 +40,7 @@ dbus-send \
     array:string:"1st item","next item","last item" \
     dict:string:int32:"one",1,"two",2,"three",3 \
     variant:int32:-8 \
-    objpath:/org/luastatus/sample/object/name \
-        || pt_fail "dbus-send failed."
+    objpath:/org/luastatus/sample/object/name
 
 pt_expect_line 'cb {["bus"]="session",["interface"]="org.luastatus.ExampleInterface",["object_path"]="/org/luastatus/sample/object/name",["parameters"]={"47","hello world",63.1250,{"1st item","next item","last item"},{{"one","1"},{"two","2"},{"three","3"}},"-8","/org/luastatus/sample/object/name"},["sender"]="(non-deterministic)",["signal"]="ExampleMethod",["what"]="signal"}' <&$pfd
 

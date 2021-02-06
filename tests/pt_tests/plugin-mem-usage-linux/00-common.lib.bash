@@ -6,10 +6,10 @@ mem_usage_testcase() {
 
     pt_testcase_begin
     pt_add_fifo "$main_fifo_file"
-    local proc_dir; proc_dir=$(mktemp -d) || pt_fail "Cannot create temporary directory."
+    local proc_dir; proc_dir=$(mktemp -d)
     pt_add_dir_to_remove "$proc_dir"
     local meminfo_file=$proc_dir/meminfo
-    printf '%s' "$meminfo_content" > "$meminfo_file" || pt_fail "Cannot write to $meminfo_file."
+    printf '%s' "$meminfo_content" > "$meminfo_file"
     pt_add_file_to_remove "$meminfo_file"
     pt_write_widget_file <<__EOF__
 f = assert(io.open('$main_fifo_file', 'w'))

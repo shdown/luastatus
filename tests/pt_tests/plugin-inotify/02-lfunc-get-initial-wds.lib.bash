@@ -1,7 +1,7 @@
 pt_testcase_begin
 pt_add_fifo "$main_fifo_file"
-myfile1=$(mktemp) || pt_fail "Cannot create temporary file."
-myfile2=$(mktemp) || pt_fail "Cannot create temporary file."
+myfile1=$(mktemp)
+myfile2=$(mktemp)
 pt_add_file_to_remove "$myfile1"
 pt_add_file_to_remove "$myfile2"
 pt_write_widget_file <<__EOF__
@@ -47,13 +47,13 @@ pt_spawn_luastatus
 exec {pfd}<"$main_fifo_file"
 pt_expect_line 'init' <&$pfd
 pt_expect_line 'cb hello' <&$pfd
-echo hello >> "$myfile2" || pt_fail "Cannot write to $myfile2."
-echo hello >> "$myfile1" || pt_fail "Cannot write to $myfile1."
+echo hello >> "$myfile2"
+echo hello >> "$myfile1"
 pt_expect_line 'cb event file1 mask=close_write' <&$pfd
-rm -f "$myfile2" || pt_fail "Cannot remove $myfile2."
+rm -f "$myfile2"
 pt_expect_line 'cb event file2 mask=delete_self' <&$pfd
 pt_expect_line 'cb event file2 mask=ignored' <&$pfd
-rm -f "$myfile1" || pt_fail "Cannot remove $myfile1."
+rm -f "$myfile1"
 pt_expect_line 'cb event file1 mask=delete_self' <&$pfd
 pt_expect_line 'cb event file1 mask=ignored' <&$pfd
 pt_close_fd "$pfd"

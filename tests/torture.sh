@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
 
-opwd=$PWD
-cd -- "$(dirname "$(readlink "$0" || printf '%s\n' "$0")")" || exit $?
+set -e
 
-source ./utils.lib.bash || exit $?
+opwd=$PWD
+cd -- "$(dirname "$(readlink "$0" || printf '%s\n' "$0")")"
+
+source ./utils.lib.bash
 
 if (( $# != 1 )); then
     echo >&2 "USAGE: $0 <build root>"
     exit 2
 fi
-BUILD_DIR=$(resolve_relative "$1" "$opwd") || exit $?
+BUILD_DIR=$(resolve_relative "$1" "$opwd")
 
 LUASTATUS=(
     "$BUILD_DIR"/luastatus/luastatus ${DEBUG:+-l trace}
@@ -20,11 +22,13 @@ VALGRIND=(
 )
 
 run1() {
-    local n=$1 m=$2 sep_st=$3 c
+    local n=$1 m=$2 sep_st=$3 event_beg event_end
     if (( sep_st )); then
-        local event_beg='function()' event_end='end'
+        event_beg='function()'
+        event_end='end'
     else
-        local event_beg='[['         event_end=']]'
+        event_beg='[['
+        event_end=']]'
     fi
     shift 3
     "${VALGRIND[@]}" "$@" "${LUASTATUS[@]}" -e -b "$BUILD_DIR"/tests/barlib-mock.so -B gen_events="$m" <(cat <<__EOF__
@@ -49,10 +53,6 @@ widget = {
 }
 __EOF__
 )
-    c=$?
-    if (( c != 0 )); then
-        exit $c
-    fi
 }
 
 run2() {

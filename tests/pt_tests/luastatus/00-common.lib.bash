@@ -9,8 +9,8 @@ assert_exits_with_code() {
     local expected_c=$1
     shift
     pt_spawn_luastatus_directly "$@"
-    local actual_c
-    pt_wait_luastatus; actual_c=$?
+    local actual_c=0
+    pt_wait_luastatus || actual_c=$?
     if (( expected_c != actual_c )); then
         pt_fail "Expected exit code $expected_c, found $actual_c."
     fi
@@ -26,7 +26,7 @@ assert_fails() {
 
 assert_hangs() {
     pt_spawn_luastatus_directly "$@"
-    sleep "$hang_timeout" || pt_fail "Cannot sleep for hang_timeout=$hang_timeout seconds."
+    sleep "$hang_timeout"
     pt_kill_thing luastatus
 }
 

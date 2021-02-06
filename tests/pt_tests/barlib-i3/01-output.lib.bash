@@ -4,8 +4,7 @@ Expected: $1
 Actual:   $2"
 
     local out
-    out=$(jq --argfile a <(printf '%s\n' "$1") --argfile b <(printf '%s\n' "$2") -n '$a == $b') \
-        || pt_fail "jq failed"
+    out=$(jq --argfile a <(printf '%s\n' "$1") --argfile b <(printf '%s\n' "$2") -n '$a == $b')
     case "$out" in
     true)
         ;;

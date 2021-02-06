@@ -6,13 +6,13 @@ battery_testcase() {
 
     pt_testcase_begin
     pt_add_fifo "$main_fifo_file"
-    local batdev_dir; batdev_dir=$(mktemp -d) || pt_fail "Cannot create temporary directory."
+    local batdev_dir; batdev_dir=$(mktemp -d)
     pt_add_dir_to_remove "$batdev_dir"
     local uevent_file=$batdev_dir/uevent
     if [[ -n "$uevent_content" ]]; then
-        printf '%s' "$uevent_content" > "$uevent_file" || pt_fail "Cannot write to $uevent_file."
+        printf '%s' "$uevent_content" > "$uevent_file"
     else
-        rm -f "$uevent_file" || pt_fail "Cannot remove $uevent_file."
+        rm -f "$uevent_file"
     fi
     pt_add_file_to_remove "$uevent_file"
     pt_write_widget_file <<__EOF__

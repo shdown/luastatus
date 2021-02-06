@@ -1,4 +1,5 @@
 pt_testcase_begin
+rm -f "$socket_file"
 using_measure
 pt_add_fifo "$main_fifo_file"
 pt_add_file_to_remove "$socket_file"

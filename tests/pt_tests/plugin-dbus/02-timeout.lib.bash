@@ -46,8 +46,7 @@ for (( i = 0; i < 3; ++i )); do
         array:string:"1st item","next item","last item" \
         dict:string:int32:"one",1,"two",2,"three",3 \
         variant:int32:-8 \
-        objpath:/org/luastatus/sample/object/name \
-            || pt_fail "dbus-send failed."
+        objpath:/org/luastatus/sample/object/name
 
     measure_start
     pt_expect_line 'cb {["bus"]="session",["interface"]="org.luastatus.ExampleInterface",["object_path"]="/org/luastatus/sample/object/name",["parameters"]={"47","hello world",63.1250,{"1st item","next item","last item"},{{"one","1"},{"two","2"},{"three","3"}},"-8","/org/luastatus/sample/object/name"},["sender"]="(non-deterministic)",["signal"]="ExampleMethod",["what"]="signal"}' <&$pfd

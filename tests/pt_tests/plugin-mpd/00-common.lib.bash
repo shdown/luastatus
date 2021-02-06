@@ -8,7 +8,7 @@ while true; do
         break
     fi
     echo >&2 "[mpd] Port $port does not seem to be free, incrementing."
-    (( ++port ))
+    port=$(( port + 1 ))
     if (( port >= 65536 )); then
         pt_fail "[mpd] Cannot find a free port."
     fi
@@ -45,8 +45,7 @@ fakempd_expect() {
 }
 
 fakempd_say() {
-    printf '%s\n' "$1" >&${PT_SPAWNED_THINGS_FDS_1[mpd_parrot]} \
-        || pt_fail "Cannot communicate with parrot."
+    printf '%s\n' "$1" >&${PT_SPAWNED_THINGS_FDS_1[mpd_parrot]}
 }
 
 fakempd_kill() {
@@ -54,5 +53,5 @@ fakempd_kill() {
 }
 
 fakempd_wait() {
-    pt_wait_thing mpd_parrot
+    pt_wait_thing mpd_parrot || true
 }

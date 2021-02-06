@@ -1,7 +1,7 @@
 pt_testcase_begin
 
 socket_file=$PWD/tmp-fake-mpd-socket
-rm -f "$socket_file" || pt_fail "Cannot rm $socket_file."
+rm -f "$socket_file"
 pt_add_file_to_remove "$socket_file"
 
 fakempd_spawn_unixsocket "$socket_file"

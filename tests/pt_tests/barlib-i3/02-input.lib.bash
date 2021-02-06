@@ -64,11 +64,10 @@ widget = {
 }
 __EOF__
     x_spawn_luastatus
-    local pfd
     exec {pfd}<"$main_fifo_file"
     pt_expect_line '{"version":1,"click_events":true,"stop_signal":0,"cont_signal":0}' <&${PT_SPAWNED_THINGS_FDS_0[luastatus]}
     pt_expect_line '[' <&${PT_SPAWNED_THINGS_FDS_0[luastatus]}
-    printf '[\n%s\n' "$1" >&${PT_SPAWNED_THINGS_FDS_1[luastatus]} || pt_fail "Cannot communicate with luastatus."
+    printf '[\n%s\n' "$1" >&${PT_SPAWNED_THINGS_FDS_1[luastatus]}
     pt_expect_line "event $2" <&$pfd
     pt_close_fd "$pfd"
     pt_testcase_end

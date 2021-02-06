@@ -12,7 +12,7 @@ widget = {
 }
 __EOF__
 pt_spawn_luastatus -e
-pt_wait_luastatus || pt_fail "luastatus exited with non-zero code"
+pt_wait_luastatus || pt_fail "luastatus exited with non-zero code $?"
 
 fakempd_kill
 

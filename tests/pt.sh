@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 
-PT_OPWD=$PWD
-cd -- "$(dirname "$(readlink "$0" || printf '%s\n' "$0")")" || exit $?
+set -e
 
-source ./utils.lib.bash || exit $?
+PT_OPWD=$PWD
+cd -- "$(dirname "$(readlink "$0" || printf '%s\n' "$0")")"
+
+source ./utils.lib.bash
 
 fail_wrong_usage() {
     printf >&2 '%s\n' "$*"
@@ -15,7 +17,7 @@ if (( $# < 1 )); then
     fail_wrong_usage "No build root passed."
 fi
 
-PT_BUILD_DIR=$(resolve_relative "$1" "$PT_OPWD") || exit $?
+PT_BUILD_DIR=$(resolve_relative "$1" "$PT_OPWD")
 # Shift the build root
 shift
 
@@ -46,7 +48,7 @@ declare -A PT_SPAWNED_THINGS_FDS_0=()
 declare -A PT_SPAWNED_THINGS_FDS_1=()
 PT_LINE=
 
-source ./pt_stopwatch.lib.bash || exit $?
+source ./pt_stopwatch.lib.bash
 
 # Sanity checks
 if ! [[ -x "$PT_BUILD_DIR"/luastatus/luastatus ]]; then
@@ -86,10 +88,10 @@ pt_fail() {
 
 pt_write_widget_file() {
     local f
-    f=$(mktemp --suffix=.lua) || pt_fail "Cannot create temporary file."
+    f=$(mktemp --suffix=.lua)
     PT_WIDGET_FILES+=("$f")
     PT_FILES_TO_REMOVE+=("$f")
-    cat > "$f" || pt_fail "Cannot write to widget file $f."
+    cat > "$f"
 }
 
 pt_add_file_to_remove() {
@@ -101,8 +103,8 @@ pt_add_dir_to_remove() {
 }
 
 pt_add_fifo() {
-    rm -f "$1" || pt_fail "Cannot remove $1."
-    mkfifo "$1" || pt_fail "Cannot make FIFO $1."
+    rm -f "$1"
+    mkfifo "$1"
     pt_add_file_to_remove "$1"
 }
 
@@ -151,8 +153,8 @@ pt_spawn_thing_pipe() {
     pid=$!
     PT_SPAWNED_THINGS[$k]=$pid
 
-    exec {PT_SPAWNED_THINGS_FDS_0[$k]}<"$fifo_out" || pt_fail "Cannot allocate a file descriptor."
-    exec {PT_SPAWNED_THINGS_FDS_1[$k]}>"$fifo_in" || pt_fail "Cannot allocate a file descriptor."
+    exec {PT_SPAWNED_THINGS_FDS_0[$k]}<"$fifo_out"
+    exec {PT_SPAWNED_THINGS_FDS_1[$k]}>"$fifo_in"
 }
 
 pt_has_spawned_thing() {
@@ -161,7 +163,8 @@ pt_has_spawned_thing() {
 }
 
 pt_close_fd() {
-    eval "exec ${1}>&-"
+    local fd=$(( $1 ))
+    exec {fd}>&-
 }
 
 pt_close_thing_fds() {
@@ -184,8 +187,8 @@ pt_wait_thing() {
         pt_fail_internal_error "pt_wait_thing: unknown thing '$k' (PT_SPAWNED_THINGS has no such key)"
     fi
     echo >&2 "Waiting for '$k' (PID $pid)..."
-    wait "${PT_SPAWNED_THINGS[$k]}"
-    local c=$?
+    local c=0
+    wait "${PT_SPAWNED_THINGS[$k]}" || c=$?
     unset PT_SPAWNED_THINGS[$k]
     pt_close_thing_fds "$k"
     return -- "$c"
@@ -203,7 +206,8 @@ pt_kill_thing() {
 }
 
 pt_spawn_luastatus() {
-    pt_spawn_thing luastatus "${PT_PREFIX[@]}" "${PT_LUASTATUS[@]}" -b ./barlib-mock.so "$@" "${PT_WIDGET_FILES[@]}"
+    pt_spawn_thing luastatus \
+        "${PT_PREFIX[@]}" "${PT_LUASTATUS[@]}" -b ./barlib-mock.so "$@" "${PT_WIDGET_FILES[@]}"
 }
 
 pt_spawn_luastatus_for_barlib_test_via_runner() {
@@ -243,10 +247,10 @@ pt_testcase_end() {
 
     local x
     for x in "${PT_FILES_TO_REMOVE[@]}"; do
-        rm -f "$x" || pt_fail "Cannot rm $x."
+        rm -f "$x"
     done
     for x in "${PT_DIRS_TO_REMOVE[@]}"; do
-        rmdir "$x" || pt_fail "Cannot rmdir $x."
+        rmdir "$x"
     done
     PT_FILES_TO_REMOVE=()
     PT_DIRS_TO_REMOVE=()
@@ -263,7 +267,7 @@ trap '
 
 pt_run_test_case() {
     echo >&2 "==> Invoking file '$1'..."
-    source "$1" || pt_fail_internal_error "“source $1” failed"
+    source "$1"
 }
 
 pt_run_test_suite() {
