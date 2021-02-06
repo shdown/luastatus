@@ -2,12 +2,28 @@
 
 set -e
 
-./.circleci/mini-systemd.sh init
-./.circleci/mini-systemd.sh launch pa pulseaudio --daemonize=no
+atexit=()
 
-c=0
-PT_TOOL=valgrind PT_MAX_LAG=200 ./tests/pt.sh . skip:plugin-dbus || c=$?
+trap '
+    for func in "${atexit[@]}"; do
+        $func
+    done
+' EXIT
 
-./.circleci/mini-systemd.sh kill-everything
+pa_start() {
+    atexit+=(pa_end)
 
-exit "$c"
+    pulseaudio --daemonize=no &
+    while ! pactl info; do
+        echo >&2 "Waiting for PulseAudio daemon..."
+        sleep 1
+    done
+}
+
+pa_end() {
+    pulseaudio --kill || true
+}
+
+pa_start
+
+PT_TOOL=valgrind PT_MAX_LAG=200 ./tests/pt.sh . skip:plugin-dbus
