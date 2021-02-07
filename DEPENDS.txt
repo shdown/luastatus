@@ -7,7 +7,7 @@ luastatus itself, without any barlibs and/or plugins, has the following dependen
 For running tests, you will also need:
 * valgrind (some older versions don't like LuaJIT; >=3.11.0 are known to be OK)
 * For 'i3' barlib tests: 'jq' binary
-* For 'dbus' plugin tests: 'dbus-send' binary
+* For 'dbus' plugin tests: a D-Bus daemon running in session mode; 'dbus-send' binary
 * For 'pulse' plugin tests: a running PulseAudio daemon; 'pactl' and 'pacmd' binaries
 
 Barlib 'dwm' has the following dependencies:
