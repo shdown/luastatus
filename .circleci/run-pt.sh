@@ -29,6 +29,7 @@ dbus_start() {
     atexit+=(dbus_end)
 
     local addr_file=/tmp/dbus-session-addr.txt
+    true > "$addr_file"
 
     dbus-daemon --session --nofork --print-address=3 3>"$addr_file" &
     DBUS_DAEMON_PID=$!

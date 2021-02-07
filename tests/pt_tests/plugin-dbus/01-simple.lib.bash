@@ -29,7 +29,7 @@ pt_spawn_luastatus
 exec {pfd}<"$main_fifo_file"
 pt_expect_line 'init' <&$pfd
 
-(
+my_sender_process() {
     set -e
     while true; do
         dbus-send \
@@ -43,13 +43,11 @@ pt_expect_line 'init' <&$pfd
             objpath:/org/luastatus/sample/object/name
         sleep 2
     done
-) &
-sender_pid=$!
+}
+
+pt_spawn_thing dbus_sender my_sender_process
 
 pt_expect_line 'cb {["bus"]="session",["interface"]="org.luastatus.ExampleInterface",["object_path"]="/org/luastatus/sample/object/name",["parameters"]={"47","hello world",63.1250,{"1st item","next item","last item"},{{"one","1"},{"two","2"},{"three","3"}},"-8","/org/luastatus/sample/object/name"},["sender"]="(non-deterministic)",["signal"]="ExampleMethod",["what"]="signal"}' <&$pfd
-
-kill "$sender_pid"
-wait "$sender_pid" || true
 
 pt_close_fd "$pfd"
 pt_testcase_end
