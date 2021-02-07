@@ -26,8 +26,4 @@ pa_end() {
 
 pa_start
 
-if [[ $LUAVER == *jit* ]]; then
-    PT_MAX_LAG=150 ./tests/pt.sh . skip:plugin-dbus
-else
-    PT_TOOL=valgrind PT_MAX_LAG=200 ./tests/pt.sh . skip:plugin-dbus
-fi
+PT_TOOL=valgrind PT_MAX_LAG=250 ./tests/pt.sh . skip:plugin-dbus
