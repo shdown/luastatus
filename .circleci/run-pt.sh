@@ -13,7 +13,7 @@ trap '
 pa_start() {
     atexit+=(pa_end)
 
-    pulseaudio --daemonize=no &
+    pulseaudio --daemonize=no --disallow-exit=yes --exit-idle-time=-1 &
     while ! pactl info; do
         echo >&2 "Waiting for PulseAudio daemon..."
         sleep 1
