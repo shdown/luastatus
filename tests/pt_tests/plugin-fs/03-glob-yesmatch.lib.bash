@@ -1,6 +1,4 @@
 pt_testcase_begin
-using_measure
-
 pt_add_fifo "$main_fifo_file"
 globtest_dir=$(mktemp -d)
 pt_add_dir_to_remove "$globtest_dir"
@@ -26,7 +24,6 @@ widget = {
 __EOF__
 pt_spawn_luastatus
 exec {pfd}<"$main_fifo_file"
-measure_start
 pt_expect_line 'init' <&$pfd
 pt_expect_line 'cb glob seems to work...' <&$pfd
 pt_close_fd "$pfd"

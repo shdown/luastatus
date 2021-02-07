@@ -19,9 +19,8 @@ widget = {
 __EOF__
 pt_spawn_luastatus
 exec {pfd}<"$main_fifo_file"
-measure_start
 pt_expect_line 'init' <&$pfd
-measure_check_ms 0
+measure_start
 pt_expect_line 'cb hello' <&$pfd
 measure_check_ms 0
 pt_expect_line 'cb timeout' <&$pfd
