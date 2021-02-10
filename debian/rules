@@ -76,7 +76,7 @@ override_dh_auto_install:
 
 override_dh_auto_test:
 ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
-	./tests/pt.sh $(BUILD_DIR) skip:plugin-dbus
+	./tests/pt.sh $(BUILD_DIR) skip:plugin-dbus skip:plugin-pulse
 	./tests/torture.sh $(BUILD_DIR)
 endif
 
