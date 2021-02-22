@@ -18,7 +18,6 @@
  */
 
 #include <pthread.h>
-#include <poll.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -26,9 +25,11 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
-#include <sys/un.h>
+#include <sys/types.h>
 #include <sys/socket.h>
-#include <netdb.h>
+#include <sys/un.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
 
 static struct {
     bool half_duplex_ok;
@@ -188,6 +189,16 @@ static int server(int (*func)(const char *arg), const char *arg)
     return 0;
 }
 
+static in_addr_t localhost(void)
+{
+    in_addr_t res = inet_addr("127.0.0.1");
+    if (res == (in_addr_t) -1) {
+        perror("parrot: inet_addr");
+        fail();
+    }
+    return res;
+}
+
 static int make_unix_client(const char *path)
 {
     int fd = -1;
@@ -216,50 +227,34 @@ error:
 
 static int make_tcp_client(const char *portstr)
 {
-    struct addrinfo *ai = NULL;
     int fd = -1;
 
-    struct addrinfo hints = {
-        .ai_family = AF_UNSPEC,
-        .ai_socktype = SOCK_STREAM,
-        .ai_protocol = 0,
-        .ai_flags = AI_ADDRCONFIG,
-    };
-
-    int gai_r = getaddrinfo(NULL, portstr, &hints, &ai);
-    if (gai_r) {
-        if (gai_r == EAI_SYSTEM) {
-            perror("parrot: getaddrinfo");
-        } else {
-            fprintf(stderr, "parrot: getaddrinfo: %s\n", gai_strerror(gai_r));
-        }
-        ai = NULL;
-        goto cleanup;
+    unsigned port;
+    if (sscanf(portstr, "%u", &port) != 1) {
+        fprintf(stderr, "parrot: invalid port number: '%s'.\n", portstr);
+        goto error;
     }
 
-    for (struct addrinfo *pai = ai; pai; pai = pai->ai_next) {
-        fd = socket(pai->ai_family, pai->ai_socktype, pai->ai_protocol);
-        if (fd < 0) {
-            perror("parrot: WARNING: (candidate) socket");
-            continue;
-        }
-        if (connect(fd, pai->ai_addr, pai->ai_addrlen) < 0) {
-            perror("parrot: WARNING: (candidate) connect");
-            close(fd);
-            fd = -1;
-            continue;
-        }
-        break;
-    }
+    fd = socket(AF_INET, SOCK_STREAM, 0);
     if (fd < 0) {
-        fprintf(stderr, "parrot: cannot connect to any of the candidates.\n");
+        perror("parrot: socket");
+        goto error;
     }
 
-cleanup:
-    if (ai) {
-        freeaddrinfo(ai);
+    struct sockaddr_in sain = {
+        .sin_family = AF_INET,
+        .sin_addr = {.s_addr = localhost()},
+        .sin_port = htons(port),
+    };
+    if (connect(fd, (struct sockaddr *) &sain, sizeof(sain)) < 0) {
+        perror("parrot: connect");
+        goto error;
     }
     return fd;
+
+error:
+    close(fd);
+    return -1;
 }
 
 static int make_tcp_server(const char *portstr)
@@ -286,10 +281,11 @@ static int make_tcp_server(const char *portstr)
         }
     }
 
-    struct sockaddr_in sain = {0};
-    sain.sin_family = AF_INET;
-    sain.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-    sain.sin_port = htons(port);
+    struct sockaddr_in sain = {
+        .sin_family = AF_INET,
+        .sin_addr = {.s_addr = localhost()},
+        .sin_port = htons(port),
+    };
     if (bind(fd, (struct sockaddr *) &sain, sizeof(sain)) < 0) {
         perror("parrot: bind");
         goto error;
