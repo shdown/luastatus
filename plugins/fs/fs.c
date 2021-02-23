@@ -60,7 +60,7 @@ static int parse_paths_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
 
     Priv *p = ud;
 
-    if (moon_visit_checktype_at(mv, "", vpos, LUA_TSTRING) < 0)
+    if (moon_visit_checktype_at(mv, NULL, vpos, LUA_TSTRING) < 0)
         return -1;
 
     const char *s = lua_tostring(mv->L, vpos);
@@ -75,7 +75,7 @@ static int parse_globs_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
 
     Priv *p = ud;
 
-    if (moon_visit_checktype_at(mv, "", vpos, LUA_TSTRING) < 0)
+    if (moon_visit_checktype_at(mv, NULL, vpos, LUA_TSTRING) < 0)
         return -1;
 
     const char *s = lua_tostring(mv->L, vpos);

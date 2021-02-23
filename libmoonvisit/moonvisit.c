@@ -77,7 +77,7 @@ int moon_visit_checktype_at(
 {
     int got_type = lua_type(mv->L, pos);
     if (got_type != type) {
-        if (what[0] != '\0') {
+        if (what) {
             moon_visit_err(
                 mv, "%s: expected %s, found %s",
                 what,

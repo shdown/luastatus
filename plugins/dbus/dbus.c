@@ -123,7 +123,7 @@ static int parse_flags_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
 
     GDBusSignalFlags *out = ud;
 
-    if (moon_visit_checktype_at(mv, "", vpos, LUA_TSTRING) < 0)
+    if (moon_visit_checktype_at(mv, NULL, vpos, LUA_TSTRING) < 0)
         goto error;
 
     const char *s = lua_tostring(mv->L, vpos);
@@ -148,7 +148,7 @@ static int parse_signals_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
     Priv *p = ud;
     Signal s = {0};
 
-    if (moon_visit_checktype_at(mv, "", vpos, LUA_TTABLE) < 0)
+    if (moon_visit_checktype_at(mv, NULL, vpos, LUA_TTABLE) < 0)
         goto error;
 
     int bus = BUS_SESSION;

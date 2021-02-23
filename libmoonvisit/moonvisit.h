@@ -74,24 +74,6 @@ int moon_visit_checktype_at(
     int pos,
     int type);
 
-// All 'visit' functions (whose names do *not* end with "_at") operate on a *field* of the table at
-// stack position 'table_pos' in 'mv->L', at key 'key'. The fact that the value at stack position
-// 'table_pos' is a table is *not* checked, simply assumed to be true.
-//
-// If 'skip_nil' is true and the value is nil, no action is performed, and 0 is returned.
-//
-// On error, the error message is written into 'mv->errbuf', and -1 is returned.
-//
-// Otherwise, the return value depends on whether the function is "_f"-type (accepting a "visitor"
-// function pointer 'f') or not:
-//
-// * If it *is* "_f"-type, then the return value of 'f' is returned. If 'f' might be called multiple
-// times, then the return value of the last call is returned, but if 'f' returns negative value, no
-// further calls are made. If 'f' has not been called at all, 0 is returned.
-//
-// * If it is *not* "_f"-type, then 1 is returned, indicating that the value was *not* nil and has
-// been written to the output pointer.
-
 int moon_visit_str_f(
     MoonVisit *mv,
     int table_pos,
