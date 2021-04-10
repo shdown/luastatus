@@ -128,7 +128,7 @@ function P.widget(tbl)
                 if not line:match('^%*') then
                     return
                 end
-                local m = line:match('^%* STATUS .* %(UNSEEN (%d+)%)$')
+                local m = line:match('^%* STATUS .* %(UNSEEN (%d+)%)%s*$')
                 if m then
                     unseen = m
                 else

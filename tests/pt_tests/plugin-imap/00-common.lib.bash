@@ -91,7 +91,10 @@ imap_interact_middle_simple() {
     local i
     for (( i = 17; i < 20; ++i )); do
         fakeimap_cmd_expect "STATUS Inbox (UNSEEN)"
-        fakeimap_say "* STATUS Inbox (UNSEEN $i)"
+
+        # outlook.com sends the '* STATUS' line with trailing whitespace.
+        # See https://github.com/shdown/luastatus/issues/64
+        fakeimap_say "* STATUS Inbox (UNSEEN $i) "
         fakeimap_cmd_done "OK [READ-WRITE] SELECT completed"
 
         fakeimap_cmd_expect "IDLE"
