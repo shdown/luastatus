@@ -58,13 +58,16 @@ function get_device_info(mac_address)
         local key, value = string.match(line, "(%w+): ([%w%s]+)")
         -- Filter junk
         if key ~= "UUID" and key ~= nil and value ~= nil then
-            if value == "yes" then
-                value = true
+            key = string.lower(key)
+            if key ~= "name" and key ~= "alias" and key ~= "icon" then
+                if value == "yes" then
+                    value = true
+                end
+                if value == "no" then
+                    value = false
+                end
             end
-            if value == "no" then
-                value = false
-            end
-            device_info[string.lower(key)] = value
+            device_info[key] = value
         end
     end
     handle:close()
