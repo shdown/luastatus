@@ -77,13 +77,12 @@ end
 devices = {}
 
 function reprint_devices()
-    local s = ""
+    local t = {}
     for mac_address, device in pairs(devices) do
-        s = s .. string.format("%s(%s)", device["name"], mac_address) .. separator
+        table.insert(t, string.format("%s(%s)", device["name"], mac_address))
     end
-    return string.sub(s, 1, #s - #separator) -- remove last separator
+    return table.concat(t, separator)
 end
-
 
 widget = {
     plugin = "dbus",
