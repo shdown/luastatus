@@ -74,6 +74,8 @@ function get_device_info(mac_address)
     return device_info
 end
 
+devices = {}
+
 function reprint_devices()
     local s = ""
     for mac_address, device in pairs(devices) do
@@ -82,7 +84,6 @@ function reprint_devices()
     return string.sub(s, 1, #s - #separator) -- remove last separator
 end
 
-devices = {}
 
 widget = {
     plugin = "dbus",
