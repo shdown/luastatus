@@ -79,7 +79,7 @@ function reprint_devices()
     for mac_address, device in pairs(devices) do
         s = s .. string.format("%s(%s)", device["name"], mac_address) .. separator
     end
-    return string.sub(s, 1, #s - 1) -- remove last separator
+    return string.sub(s, 1, #s - #separator) -- remove last separator
 end
 
 devices = {}
