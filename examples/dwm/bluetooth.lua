@@ -55,7 +55,7 @@ function get_device_info(mac_address)
     local device_info = {}
     local handle = io.popen(string.format("bluetoothctl info %s", mac_address))
     for line in handle:lines() do
-        local key, value = string.match(line, "(%w+): ([%w%s]+)")
+        local key, value = string.match(line, "(%w+): (.*)")
         -- Filter junk
         if key ~= "UUID" and key ~= nil and value ~= nil then
             key = string.lower(key)
