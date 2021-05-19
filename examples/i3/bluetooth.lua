@@ -55,7 +55,7 @@ function get_device_info(mac_address)
     local device_info = {}
     local handle = io.popen(string.format("bluetoothctl info %s", mac_address))
     for line in handle:lines() do
-        local key, value = string.match(line, "(%w+): ([%w%s]+)")
+        local key, value = string.match(line, "(%w+): (.*)")
         -- Filter junk
         if key ~= "UUID" and key ~= nil and value ~= nil then
             key = string.lower(key)
@@ -74,15 +74,15 @@ function get_device_info(mac_address)
     return device_info
 end
 
-function reprint_devices()
-    local s = ""
-    for mac_address, device in pairs(devices) do
-        s = s .. string.format("%s(%s)", device["name"], mac_address) .. separator
-    end
-    return string.sub(s, 1, #s - 1) -- remove last separator
-end
-
 devices = {}
+
+function reprint_devices()
+    local t = {}
+    for mac_address, device in pairs(devices) do
+        table.insert(t, string.format("%s(%s)", device["name"], mac_address))
+    end
+    return table.concat(t, separator)
+end
 
 widget = {
     plugin = "dbus",
