@@ -45,14 +45,14 @@
 // </!!!>
 typedef struct {
     double value;
-    pthread_spinlock_t lock;
+    pthread_mutex_t lock;
 } LSPushedTimeout;
 
 // Initializes /p/ with an absence of pushed timeout value and a newly-created lock.
 LS_INHEADER void ls_pushed_timeout_init(LSPushedTimeout *p)
 {
     p->value = -1;
-    LS_PTH_CHECK(pthread_spin_init(&p->lock, PTHREAD_PROCESS_PRIVATE));
+    LS_PTH_CHECK(pthread_mutex_init(&p->lock, NULL));
 }
 
 // Does the following actions atomically:
@@ -62,14 +62,14 @@ LS_INHEADER void ls_pushed_timeout_init(LSPushedTimeout *p)
 LS_INHEADER double ls_pushed_timeout_fetch(LSPushedTimeout *p, double alt)
 {
     double r;
-    pthread_spin_lock(&p->lock);
+    LS_PTH_CHECK(pthread_mutex_lock(&p->lock));
     if (p->value < 0) {
         r = alt;
     } else {
         r = p->value;
         p->value = -1;
     }
-    pthread_spin_unlock(&p->lock);
+    LS_PTH_CHECK(pthread_mutex_unlock(&p->lock));
     return r;
 }
 
@@ -81,9 +81,9 @@ LS_INHEADER int ls_pushed_timeout_lfunc(lua_State *L)
 
     LSPushedTimeout *p = lua_touserdata(L, lua_upvalueindex(1));
 
-    pthread_spin_lock(&p->lock);
+    LS_PTH_CHECK(pthread_mutex_lock(&p->lock));
     p->value = arg;
-    pthread_spin_unlock(&p->lock);
+    LS_PTH_CHECK(pthread_mutex_unlock(&p->lock));
 
     return 0;
 }
@@ -105,7 +105,7 @@ LS_INHEADER void ls_pushed_timeout_push_luafunc(LSPushedTimeout *p, lua_State *L
 // Destroys /p/.
 LS_INHEADER void ls_pushed_timeout_destroy(LSPushedTimeout *p)
 {
-    pthread_spin_destroy(&p->lock);
+    LS_PTH_CHECK(pthread_mutex_destroy(&p->lock));
 }
 
 // Some plugins provide the so-called self-pipe facility; that is, the ability to "wake up" the
