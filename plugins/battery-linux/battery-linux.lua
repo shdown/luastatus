@@ -45,7 +45,10 @@ local function get_battery_info(devpath, use_energy_full_design)
     if p.charge_full then
         p.energy_full = p.charge_full * p.voltage_now / 1e6
         p.energy_now = p.charge_now * p.voltage_now / 1e6
-        p.power_now = p.current_now * p.voltage_now / 1e6
+        -- Some drivers don't report current_now
+        if p.current_now ~= nil then
+          p.power_now = p.current_now * p.voltage_now / 1e6
+        end
     end
 
     local r = {status = p.status}
@@ -55,7 +58,7 @@ local function get_battery_info(devpath, use_energy_full_design)
     r.capacity = math.min(math.floor(p.energy_now / ef * 100 + 0.5), 100)
 
     local pn = tonumber(p.power_now)
-    if pn ~= 0 then
+    if pn ~= nil and pn ~= 0 then
         r.consumption = pn / 1e6
         if p.status == 'Charging' then
             r.rem_time = (p.energy_full - p.energy_now) / pn
