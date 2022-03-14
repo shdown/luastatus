@@ -3,22 +3,21 @@ do
     -- Replace "*" with "[^0]*" in the first glob if your zeroeth thermal sensor is virtual (and
     -- thus useless):
     local f = io.popen([[ sh -c '
-shopt -s nullglob
 for file in /sys/class/thermal/thermal_zone*/temp
 do
+    [ -e "$file" ] || break
     echo "$file"
 done
 for dir in /sys/class/hwmon/*
 do
-    monitor_name="$(< "$dir"/name)"
+    [ -e "$dir" ] || break
+    IFS= read -r monitor_name < "$dir"/name
     # You may have more than one hardware monitor enabled
     # If so, disable ones that are not needed
-    if [ $monitor_name = "coretemp" ] ||
-       [ $monitor_name = "fam15h_power" ] ||
-       [ $monitor_name = "k10temp" ]
-    then
+    case "$monitor_name" in
+    coretemp|fam15h_power|k10temp)
         echo "$dir"/temp*_input
-    fi
+    esac
 done
 ']])
     for p in f:lines() do
