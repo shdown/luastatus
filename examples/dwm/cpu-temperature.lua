@@ -2,7 +2,7 @@ paths = {}
 do
     -- Replace "*" with "[^0]*" in the first glob if your zeroeth thermal sensor is virtual (and
     -- thus useless):
-    local f = io.popen([[
+    local f = assert(io.popen([[
 for file in /sys/class/thermal/thermal_zone*/temp
 do
     [ -e "$file" ] || break
@@ -19,7 +19,7 @@ do
         echo "$dir"/temp*_input
     esac
 done
-]])
+]]))
     for p in f:lines() do
         table.insert(paths, p)
     end
