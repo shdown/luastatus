@@ -1,8 +1,25 @@
 paths = {}
 do
-    -- Replace "*" with "[^0]*" in the following line if your zeroeth thermal sensor is virtual (and
+    -- Replace "*" with "[^0]*" in the first glob if your zeroeth thermal sensor is virtual (and
     -- thus useless):
-    local f = assert(io.popen("printf '%s\n' /sys/class/thermal/thermal_zone*/temp"))
+    local f = assert(io.popen([[
+for file in /sys/class/thermal/thermal_zone*/temp
+do
+    [ -e "$file" ] || break
+    echo "$file"
+done
+for dir in /sys/class/hwmon/*
+do
+    [ -e "$dir" ] || break
+    IFS= read -r monitor_name < "$dir"/name
+    # You may have more than one hardware monitor enabled
+    # If so, disable ones that are not needed
+    case "$monitor_name" in
+    coretemp|fam15h_power|k10temp)
+        echo "$dir"/temp*_input
+    esac
+done
+]]))
     for p in f:lines() do
         table.insert(paths, p)
     end
