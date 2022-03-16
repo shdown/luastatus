@@ -6,7 +6,7 @@ do
 for file in /sys/class/thermal/thermal_zone*/temp
 do
     [ -e "$file" ] || break
-    echo "$file"
+    printf "%s\n" "$file"
 done
 for dir in /sys/class/hwmon/*
 do
@@ -16,7 +16,7 @@ do
     # If so, disable ones that are not needed
     case "$monitor_name" in
     coretemp|fam15h_power|k10temp)
-        echo "$dir"/temp*_input
+        printf "%s\n" "$dir"/temp*_input
     esac
 done
 ]]))
