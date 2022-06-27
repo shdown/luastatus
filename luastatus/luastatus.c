@@ -479,7 +479,7 @@ static bool check_lua_call(lua_State *L, int ret)
         prefix = "(lua) error while running error handler: ";
         break;
 #ifdef LUA_ERRGCMM
-    // first introduced in Lua 5.2
+    // Introduced in Lua 5.2 and removed in in Lua 5.4.
     case LUA_ERRGCMM:
         prefix = "(lua) error while running __gc metamethod: ";
         break;
