@@ -65,7 +65,7 @@ static void destroy(LuastatusBarlibData *bd)
 
 // Returns zero on success, non-zero XCB error code on failure. In either case, /*out_conn/ is
 // written to, and should be closed with /xcb_disconnect()/.
-static int connect(
+static int do_connect(
         const char *dpyname,
         xcb_connection_t **out_conn,
         xcb_window_t *out_root)
@@ -156,7 +156,7 @@ static int init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidget
     }
     p->sep = ls_xstrdup(sep ? sep : " | ");
 
-    int r = connect(dpyname, &p->conn, &p->root);
+    int r = do_connect(dpyname, &p->conn, &p->root);
     if (r != 0) {
         LS_FATALF(bd, "can't connect to display: XCB error %d", r);
         goto error;

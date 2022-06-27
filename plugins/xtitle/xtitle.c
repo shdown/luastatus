@@ -88,7 +88,7 @@ typedef struct {
     bool visible;
 } Data;
 
-static inline void watch(Data *d, xcb_window_t win, bool state)
+static inline void do_watch(Data *d, xcb_window_t win, bool state)
 {
     if (win == XCB_NONE)
         return;
@@ -180,9 +180,9 @@ static bool title_changed(
     xcb_property_notify_event_t *pne = (xcb_property_notify_event_t *) evt;
 
     if (pne->atom == d->ewmh->_NET_ACTIVE_WINDOW) {
-        watch(d, *last_win, false);
+        do_watch(d, *last_win, false);
         if (get_active_window(d, win)) {
-            watch(d, *win, true);
+            do_watch(d, *win, true);
             *last_win = *win;
         } else {
             *win = *last_win = XCB_NONE;
@@ -257,8 +257,8 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     }
 
     // set up initial watchers
-    watch(&d, d.root, true);
-    watch(&d, win, true);
+    do_watch(&d, d.root, true);
+    do_watch(&d, win, true);
 
     // poll for changes
 
