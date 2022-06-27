@@ -32,7 +32,7 @@ typedef struct {
     size_t capacity;
 } StringSet;
 
-LS_INHEADER StringSet string_set_new()
+LS_INHEADER StringSet string_set_new(void)
 {
     return (StringSet) {NULL, 0, 0};
 }
