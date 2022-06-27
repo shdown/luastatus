@@ -2,21 +2,17 @@
 
 set -e
 
-case "$#" in
-1)
+if (( $# == 1 )); then
     sink_name=$1
     pactl_opts=()
-    ;;
-2)
+elif (( $# == 2 )); then
     sink_name=$1
     server_name=$2
     pactl_opts=( --server="$server_name" )
-    ;;
-*)
+else
     echo >&2 "USAGE: $0 SINK_NAME [SERVER_NAME]"
     exit 2
-    ;;
-esac
+fi
 
 unset mod_idx
 
