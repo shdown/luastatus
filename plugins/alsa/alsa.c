@@ -141,7 +141,7 @@ static bool card_has_nicename(
     return r;
 }
 
-static char * xalloc_card_realname(const char *nicename)
+static char *xalloc_card_realname(const char *nicename)
 {
     snd_ctl_card_info_t *info;
     if (snd_ctl_card_info_malloc(&info) < 0)
