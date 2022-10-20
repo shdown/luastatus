@@ -44,6 +44,77 @@ The following options are supported:
 
       Whether the sink is mute.
 
+  - ``index``: integer
+
+      Index of the default sink.
+
+  - ``name``: string
+
+      Name of the default sink.
+
+  - ``desc``: string
+
+      Description of the default sink.
+
+  - ``port_name``: string
+
+      Name of the default sink's active port.
+
+  - ``port_desc``: string
+
+      Description of the default sink's active port.
+
+  - ``port_type``: string
+
+      Type of the default sink's active port.
+      Possible values are:
+
+      - ``"unknown"``
+
+      - ``"aux"``
+
+      - ``"speaker"``
+
+      - ``"headphones"``
+
+      - ``"line"``
+
+      - ``"mic"``
+
+      - ``"headset"``
+
+      - ``"handset"``
+
+      - ``"earpiece"``
+
+      - ``"spdif"``
+
+      - ``"hdmi"``
+
+      - ``"tv"``
+
+      - ``"radio"``
+
+      - ``"video"``
+
+      - ``"usb"``
+
+      - ``"bluetooth"``
+
+      - ``"portable"``
+
+      - ``"handsfree"``
+
+      - ``"car"``
+
+      - ``"hifi"``
+
+      - ``"phone"``
+
+      - ``"network"``
+
+      - ``"analog"``
+
 Functions
 =========
 The following functions are provided:

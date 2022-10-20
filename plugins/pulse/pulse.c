@@ -143,13 +143,52 @@ static void store_volume_from_sink_cb(
         if (info->index == ud->sink_idx) {
             lua_State *L = ud->funcs.call_begin(ud->pd->userdata);
             // L: ?
-            lua_createtable(L, 0, 3); // L: ? table
+            lua_createtable(L, 0, 9); // L: ? table
             lua_pushinteger(L, pa_cvolume_avg(&info->volume)); // L: ? table integer
             lua_setfield(L, -2, "cur"); // L: ? table
             lua_pushinteger(L, PA_VOLUME_NORM); // L: ? table integer
             lua_setfield(L, -2, "norm"); // L: ? table
             lua_pushboolean(L, info->mute); // L: ? table boolean
             lua_setfield(L, -2, "mute"); // L: ? table
+            lua_pushinteger(L, info->index); // L: ? table integer
+            lua_setfield(L, -2, "index"); // L: ? table
+            lua_pushstring(L, info->name); // L: ? table string
+            lua_setfield(L, -2, "name"); // L: ? table
+            lua_pushstring(L, info->description); // L: ? table string
+            lua_setfield(L, -2, "desc"); // L: ? table
+            lua_pushstring(L, info->active_port->name); // L: ? table string
+            lua_setfield(L, -2, "port_name"); // L: ? table
+            lua_pushstring(L, info->active_port->description); // L: ? table string
+            lua_setfield(L, -2, "port_desc"); // L: ? table
+            switch (info->active_port->type) {
+            case PA_DEVICE_PORT_TYPE_UNKNOWN:     lua_pushstring(L, "unknown"); break;
+            case PA_DEVICE_PORT_TYPE_AUX:         lua_pushstring(L, "aux"); break;
+            case PA_DEVICE_PORT_TYPE_SPEAKER:     lua_pushstring(L, "speaker"); break;
+            case PA_DEVICE_PORT_TYPE_HEADPHONES:  lua_pushstring(L, "headphones"); break;
+            case PA_DEVICE_PORT_TYPE_LINE:        lua_pushstring(L, "line"); break;
+            case PA_DEVICE_PORT_TYPE_MIC:         lua_pushstring(L, "mic"); break;
+            case PA_DEVICE_PORT_TYPE_HEADSET:     lua_pushstring(L, "headset"); break;
+            case PA_DEVICE_PORT_TYPE_HANDSET:     lua_pushstring(L, "handset"); break;
+            case PA_DEVICE_PORT_TYPE_EARPIECE:    lua_pushstring(L, "earpiece"); break;
+            case PA_DEVICE_PORT_TYPE_SPDIF:       lua_pushstring(L, "spdif"); break;
+            case PA_DEVICE_PORT_TYPE_HDMI:        lua_pushstring(L, "hdmi"); break;
+            case PA_DEVICE_PORT_TYPE_TV:          lua_pushstring(L, "tv"); break;
+            case PA_DEVICE_PORT_TYPE_RADIO:       lua_pushstring(L, "radio"); break;
+            case PA_DEVICE_PORT_TYPE_VIDEO:       lua_pushstring(L, "video"); break;
+            case PA_DEVICE_PORT_TYPE_USB:         lua_pushstring(L, "usb"); break;
+            case PA_DEVICE_PORT_TYPE_BLUETOOTH:   lua_pushstring(L, "bluetooth"); break;
+            case PA_DEVICE_PORT_TYPE_PORTABLE:    lua_pushstring(L, "portable"); break;
+            case PA_DEVICE_PORT_TYPE_HANDSFREE:   lua_pushstring(L, "handsfree"); break;
+            case PA_DEVICE_PORT_TYPE_CAR:         lua_pushstring(L, "car"); break;
+            case PA_DEVICE_PORT_TYPE_HIFI:        lua_pushstring(L, "hifi"); break;
+            case PA_DEVICE_PORT_TYPE_PHONE:       lua_pushstring(L, "phone"); break;
+            case PA_DEVICE_PORT_TYPE_NETWORK:     lua_pushstring(L, "network"); break;
+            case PA_DEVICE_PORT_TYPE_ANALOG:      lua_pushstring(L, "analog"); break;
+            default:
+                lua_pushstring(L, "unknown");
+                break;
+            }
+            lua_setfield(L, -2, "port_type"); // L: ? table
             ud->funcs.call_end(ud->pd->userdata);
         }
     }
