@@ -173,7 +173,7 @@ static void store_volume_from_sink_cb(
         if (info->index == ud->sink_idx) {
             lua_State *L = ud->funcs.call_begin(ud->pd->userdata);
             // L: ?
-            lua_createtable(L, 0, 9); // L: ? table
+            lua_createtable(L, 0, 7); // L: ? table
             lua_pushinteger(L, pa_cvolume_avg(&info->volume)); // L: ? table integer
             lua_setfield(L, -2, "cur"); // L: ? table
             lua_pushinteger(L, PA_VOLUME_NORM); // L: ? table integer
@@ -186,12 +186,18 @@ static void store_volume_from_sink_cb(
             lua_setfield(L, -2, "name"); // L: ? table
             lua_pushstring(L, info->description); // L: ? table string
             lua_setfield(L, -2, "desc"); // L: ? table
-            lua_pushstring(L, info->active_port->name); // L: ? table string
-            lua_setfield(L, -2, "port_name"); // L: ? table
-            lua_pushstring(L, info->active_port->description); // L: ? table string
-            lua_setfield(L, -2, "port_desc"); // L: ? table
-            push_port_type(L, info->active_port->type); // L: ? table string
-            lua_setfield(L, -2, "port_type"); // L: ? table
+            if (!info->active_port) {
+                lua_pushnil(L); // L: ? table nil
+            } else {
+                lua_createtable(L, 0, 3); // L: ? table table
+                lua_pushstring(L, info->active_port->name); // L: ? table table string
+                lua_setfield(L, -2, "name"); // L: ? table table
+                lua_pushstring(L, info->active_port->description); // L: ? table table string
+                lua_setfield(L, -2, "desc"); // L: ? table table
+                push_port_type(L, info->active_port->type); // L: ? table table string
+                lua_setfield(L, -2, "type"); // L: ? table table
+            }
+            lua_setfield(L, -2, "port"); // L: ? table
             ud->funcs.call_end(ud->pd->userdata);
         }
     }
