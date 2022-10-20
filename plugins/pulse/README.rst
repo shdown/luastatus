@@ -56,64 +56,66 @@ The following options are supported:
 
       Description of the default sink.
 
-  - ``port_name``: string
+  - ``port``: table with following entries, or ``nil`` if there is no active port:
 
-      Name of the default sink's active port.
+      - ``name``: string
 
-  - ``port_desc``: string
+          Name of the default sink's active port.
 
-      Description of the default sink's active port.
+      - ``desc``: string
 
-  - ``port_type``: string
+          Description of the default sink's active port.
 
-      Type of the default sink's active port.
-      Possible values are:
+      - ``type``: string
 
-      - ``"unknown"``
+          Type of the default sink's active port.
+          Possible values are:
 
-      - ``"aux"``
+          - ``"unknown"``
 
-      - ``"speaker"``
+          - ``"aux"``
 
-      - ``"headphones"``
+          - ``"speaker"``
 
-      - ``"line"``
+          - ``"headphones"``
 
-      - ``"mic"``
+          - ``"line"``
 
-      - ``"headset"``
+          - ``"mic"``
 
-      - ``"handset"``
+          - ``"headset"``
 
-      - ``"earpiece"``
+          - ``"handset"``
 
-      - ``"spdif"``
+          - ``"earpiece"``
 
-      - ``"hdmi"``
+          - ``"spdif"``
 
-      - ``"tv"``
+          - ``"hdmi"``
 
-      - ``"radio"``
+          - ``"tv"``
 
-      - ``"video"``
+          - ``"radio"``
 
-      - ``"usb"``
+          - ``"video"``
 
-      - ``"bluetooth"``
+          - ``"usb"``
 
-      - ``"portable"``
+          - ``"bluetooth"``
 
-      - ``"handsfree"``
+          - ``"portable"``
 
-      - ``"car"``
+          - ``"handsfree"``
 
-      - ``"hifi"``
+          - ``"car"``
 
-      - ``"phone"``
+          - ``"hifi"``
 
-      - ``"network"``
+          - ``"phone"``
 
-      - ``"analog"``
+          - ``"network"``
+
+          - ``"analog"``
 
 Functions
 =========
