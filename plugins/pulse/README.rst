@@ -18,11 +18,11 @@ The following options are supported:
 
 * ``sink``: string
 
-    Sink name; default is ``"@DEFAULT_SINK@"``.
+  Sink name; default is ``"@DEFAULT_SINK@"``.
 
 * ``make_self_pipe``: boolean
 
-    If ``true``, the ``wake_up()`` function (see `Functions`_) will be available.
+  If ``true``, the ``wake_up()`` function (see `Functions`_) will be available.
 
 ``cb`` argument
 ===============
@@ -34,88 +34,88 @@ The following options are supported:
 
   - ``cur``: integer
 
-      Current volume level.
+    Current volume level.
 
   - ``norm``: integer
 
-      "Normal" (corresponding to 100%) volume level.
+    "Normal" (corresponding to 100%) volume level.
 
   - ``mute``: boolean
 
-      Whether the sink is mute.
+    Whether the sink is mute.
 
   - ``index``: integer
 
-      Index of the default sink.
+    Index of the default sink.
 
   - ``name``: string
 
-      Name of the default sink.
+    Name of the default sink.
 
   - ``desc``: string
 
-      Description of the default sink.
+    Description of the default sink.
 
   - ``port``: table with following entries, or ``nil`` if there is no active port:
 
-      - ``name``: string
+    - ``name``: string
 
-          Name of the default sink's active port.
+      Name of the default sink's active port.
 
-      - ``desc``: string
+    - ``desc``: string
 
-          Description of the default sink's active port.
+      Description of the default sink's active port.
 
-      - ``type``: string
+    - ``type``: string
 
-          Type of the default sink's active port.
-          Possible values are:
+      Type of the default sink's active port.
+      Possible values are:
 
-          - ``"unknown"``
+      + ``"unknown"``
 
-          - ``"aux"``
+      + ``"aux"``
 
-          - ``"speaker"``
+      + ``"speaker"``
 
-          - ``"headphones"``
+      + ``"headphones"``
 
-          - ``"line"``
+      + ``"line"``
 
-          - ``"mic"``
+      + ``"mic"``
 
-          - ``"headset"``
+      + ``"headset"``
 
-          - ``"handset"``
+      + ``"handset"``
 
-          - ``"earpiece"``
+      + ``"earpiece"``
 
-          - ``"spdif"``
+      + ``"spdif"``
 
-          - ``"hdmi"``
+      + ``"hdmi"``
 
-          - ``"tv"``
+      + ``"tv"``
 
-          - ``"radio"``
+      + ``"radio"``
 
-          - ``"video"``
+      + ``"video"``
 
-          - ``"usb"``
+      + ``"usb"``
 
-          - ``"bluetooth"``
+      + ``"bluetooth"``
 
-          - ``"portable"``
+      + ``"portable"``
 
-          - ``"handsfree"``
+      + ``"handsfree"``
 
-          - ``"car"``
+      + ``"car"``
 
-          - ``"hifi"``
+      + ``"hifi"``
 
-          - ``"phone"``
+      + ``"phone"``
 
-          - ``"network"``
+      + ``"network"``
 
-          - ``"analog"``
+      + ``"analog"``
 
 Functions
 =========
@@ -123,7 +123,7 @@ The following functions are provided:
 
 * ``wake_up()``
 
-    Forces a call to ``cb`` (with ``nil`` argument).
+  Forces a call to ``cb`` (with ``nil`` argument).
 
-    Only available if the ``make_self_pipe`` option was set to ``true``; otherwise, it throws an
-    error.
+  Only available if the ``make_self_pipe`` option was set to ``true``; otherwise, it throws an
+  error.
