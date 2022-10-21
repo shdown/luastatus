@@ -26,7 +26,7 @@
 #include <limits.h>
 #include <stdbool.h>
 #include <pulse/pulseaudio.h>
-#include <pulse/def.h>
+#include <pulse/version.h>
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
@@ -128,6 +128,7 @@ static void self_pipe_cb(
     ud->funcs.call_end(ud->pd->userdata);
 }
 
+#if PA_CHECK_VERSION(14, 0, 0)
 static void push_port_type(lua_State *L, int type)
 {
     switch (type) {
@@ -157,6 +158,7 @@ static void push_port_type(lua_State *L, int type)
     case PA_DEVICE_PORT_TYPE_ANALOG:      lua_pushstring(L, "analog"); break;
     }
 }
+#endif
 
 static void store_volume_from_sink_cb(
         pa_context *c,
@@ -187,6 +189,8 @@ static void store_volume_from_sink_cb(
             lua_setfield(L, -2, "name"); // L: ? table
             lua_pushstring(L, info->description); // L: ? table string
             lua_setfield(L, -2, "desc"); // L: ? table
+
+#if PA_CHECK_VERSION(0, 9, 16)
             if (!info->active_port) {
                 lua_pushnil(L); // L: ? table nil
             } else {
@@ -195,10 +199,14 @@ static void store_volume_from_sink_cb(
                 lua_setfield(L, -2, "name"); // L: ? table table
                 lua_pushstring(L, info->active_port->description); // L: ? table table string
                 lua_setfield(L, -2, "desc"); // L: ? table table
+# if PA_CHECK_VERSION(14, 0, 0)
                 push_port_type(L, info->active_port->type); // L: ? table table string
                 lua_setfield(L, -2, "type"); // L: ? table table
+# endif
             }
             lua_setfield(L, -2, "port"); // L: ? table
+#endif
+
             ud->funcs.call_end(ud->pd->userdata);
         }
     }
