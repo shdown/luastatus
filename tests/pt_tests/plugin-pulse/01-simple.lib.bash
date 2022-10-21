@@ -19,7 +19,7 @@ widget = {
     },
     cb = function(t)
         assert(t)
-        local line = string.format('cb %.0f%%', t.cur / t.norm * 100)
+        local line = string.format('[%s] cb %.0f%%', t.name, t.cur / t.norm * 100)
         if t.mute then
             line = line .. ' (mute)'
         end
@@ -33,16 +33,16 @@ __EOF__
 pt_spawn_luastatus
 exec {pfd}<"$main_fifo_file"
 pt_expect_line 'init' <&$pfd
-pt_expect_line 'cb 100%' <&$pfd
+pt_expect_line "[$sink_name] cb 100%" <&$pfd
 
 pacmd set-sink-volume "$sink_name" 32768
-pt_expect_line 'cb 50%' <&$pfd
+pt_expect_line "[$sink_name] cb 50%" <&$pfd
 
 pacmd set-sink-mute "$sink_name" true
-pt_expect_line 'cb 50% (mute)' <&$pfd
+pt_expect_line "[$sink_name] cb 50% (mute)" <&$pfd
 
 pacmd set-sink-volume "$sink_name" 2048
-pt_expect_line 'cb 3% (mute)' <&$pfd
+pt_expect_line "[$sink_name] cb 3% (mute)" <&$pfd
 
 pt_close_fd "$pfd"
 pt_testcase_end
