@@ -26,6 +26,7 @@
 #include <limits.h>
 #include <stdbool.h>
 #include <pulse/pulseaudio.h>
+#include <pulse/def.h>
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
