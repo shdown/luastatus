@@ -38,6 +38,12 @@
 #include "libls/evloop_lfuncs.h"
 #include "libls/time_utils.h"
 
+#ifdef PA_CHECK_VERSION
+# define MY_CHECK_VERSION(A_, B_, C_) PA_CHECK_VERSION(A_, B_, C_)
+#else
+# define MY_CHECK_VERSION(A_, B_, C_) 0
+#endif
+
 // Note: some parts of this file are stolen from i3status' src/pulse.c.
 // This is fine since the BSD 3-Clause licence, under which it is licenced, is compatible with
 // LGPL-3.0.
@@ -128,7 +134,7 @@ static void self_pipe_cb(
     ud->funcs.call_end(ud->pd->userdata);
 }
 
-#if PA_CHECK_VERSION(14, 0, 0)
+#if MY_CHECK_VERSION(14, 0, 0)
 static void push_port_type(lua_State *L, int type)
 {
     switch (type) {
@@ -190,7 +196,7 @@ static void store_volume_from_sink_cb(
             lua_pushstring(L, info->description); // L: ? table string
             lua_setfield(L, -2, "desc"); // L: ? table
 
-#if PA_CHECK_VERSION(0, 9, 16)
+#if MY_CHECK_VERSION(0, 9, 16)
             if (!info->active_port) {
                 lua_pushnil(L); // L: ? table nil
             } else {
@@ -199,7 +205,7 @@ static void store_volume_from_sink_cb(
                 lua_setfield(L, -2, "name"); // L: ? table table
                 lua_pushstring(L, info->active_port->description); // L: ? table table string
                 lua_setfield(L, -2, "desc"); // L: ? table table
-# if PA_CHECK_VERSION(14, 0, 0)
+# if MY_CHECK_VERSION(14, 0, 0)
                 push_port_type(L, info->active_port->type); // L: ? table table string
                 lua_setfield(L, -2, "type"); // L: ? table table
 # endif
