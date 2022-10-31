@@ -111,6 +111,18 @@ You can disable building certain barlibs and plugins, e.g. `cmake -DBUILD_PLUGIN
 
 You can disable building man pages: `cmake -DBUILD_DOCS=OFF .`
 
+ArchLinux
+---
+ArchLinux users can use one of the following AUR packages:
+
+* [luastatus](https://aur.archlinux.org/packages/luastatus)
+* [luastatus-luajit](https://aur.archlinux.org/packages/luastatus-luajit)
+* [luastatus-git](https://aur.archlinux.org/packages/luastatus-git)
+* [luastatus-luajit-git](https://aur.archlinux.org/packages/luastatus-luajit-git)
+
+There is also the [luastatus-meta](https://aur.archlinux.org/packages/luastatus-meta)
+meta package which installs the dependencies of all of luastatus's plugins.
+
 Getting started
 ===
 It is recommended to first have a look at the
