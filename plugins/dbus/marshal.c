@@ -75,7 +75,8 @@ static void push_gvariant_iterable(lua_State *L, GVariant *var, unsigned recurli
     }
 }
 
-static void push_small_fstr(lua_State *L, const char *fmt, ...)
+static LS_ATTR_PRINTF(2, 3)
+void push_small_fstr(lua_State *L, const char *fmt, ...)
 {
     char buf[32];
     va_list vl;
