@@ -22,9 +22,10 @@ data from event sources is processed and shown, with Lua.
 OPTIONS
 =======
 -b barlib
-   Specify a barlib to load. If *barlib* contains a slash, it is treated as a path to a shared
+   Specify a barlib to use. If *barlib* contains a slash, it is treated as a path to a shared
    library. If it does not, the program tries to load barlib-*barlib*.so from the directory
-   configured at the build time.
+   configured at the build time (CMake ``BARLIBS_DIR`` variable, defaults to
+   ``${CMAKE_INSTALL_FULL_LIBDIR}/luastatus/barlibs``).
 
 -B barlib_option
    Pass an option to *barlib*. May be specified multiple times.
@@ -59,9 +60,9 @@ contain the following entries:
 * ``cb``: function
 
     The callback that converts the data received from a *plugin* to the format a *barlib* (see
-    `BARLIBS`_) understands. It should take one argument and return one value. (Although in Lua one
-    can omit the argument if you don't care about its value, and not returning anything is the same
-    as returning ``nil``.)
+    `BARLIBS`_) understands. It should take one argument and return one value. (The returned values
+    will be coerced to exactly one value, so not returning anything is the same as returning
+    ``nil``.)
 
 The ``widget`` table **may** contain the following entries:
 
@@ -78,7 +79,9 @@ The ``widget`` table **may** contain the following entries:
 
 PLUGINS
 =======
-A plugin is a thing that knows when to call the ``cb`` function and what to pass to.
+Plugins are data providers for widgets.
+In other words, a plugin is a thing that knows when to call the ``cb`` function of a widget and
+what to pass to it.
 
 Plugins are shared libraries.
 
@@ -86,24 +89,25 @@ These plugins are also referred to as *proper plugins*, as opposed to *dervied p
 
 DERIVED PLUGINS
 ===============
-Starting with version 0.3.0, luastatus features *derived plugins*, which are wrappers around proper
-plugins (or even other derived plugins) written in Lua.
+Starting with version 0.3.0, luastatus features *derived plugins*, which are wrappers, written in
+Lua, around proper plugins (or even other derived plugins).
 
 Derived plugins are loaded by calling ``luastatus.require_plugin(name)`` (see `LUA LIBRARIES`_).
 
 BARLIBS
 =======
-A barlib (**bar** **lib**\rary) is a thing that knows:
+A barlib (**bar** **lib**\rary) is an adapter that communicates with the status bar.
+In other words, a barlib is a thing that knows:
 
-  * what to do with values the ``cb`` function returns;
+  * what to do with values that the ``cb`` function of a widget returns;
 
-  * when to call the ``event`` function and what to pass to;
+  * when to call the ``event`` function and what to pass to it;
 
   * how to indicate an error, should one happen.
 
-Barlibs are shared libraries, too.
+Just like plugins, barlibs are shared libraries.
 
-Barlibs are capable of taking options.
+Barlibs can take options, which can be passed with ``-B`` command-line options to luastatus.
 
 ARCHITECTURE
 ============
@@ -126,8 +130,14 @@ The ``luastatus`` module
 ------------------------
 luastatus provides the ``luastatus`` module, which currently contains only one function:
 
-  * ``luastatus.require_plugin(name)`` is like the ``require`` function, except that it loads a file
-    named ``<name>.lua`` from luastatus' plugins directory.
+  * ``luastatus.require_plugin(name)`` acts like the Lua's built-in ``require`` function, except
+    that it loads a file named ``<name>.lua`` from luastatus' derived plugins directory. This
+    directory is configured at the build time (CMake ``LUA_PLUGINS_DIR`` variable, defaults to
+    ``${CMAKE_INSTALL_FULL_DATAROOTDIR}/luastatus/plugins``).
+
+    The file is read, compiled as a Lua code, and executed, and its return value is returned from
+    ``luastatus.require_plugin``.
+    If this derived plugin has already been loaded, the cached return value is returned.
 
 Plugins' and barlib's Lua functions
 -----------------------------------
@@ -141,21 +151,21 @@ In luastatus, ``os.setlocale`` always fails as it is inherently not thread-safe.
 SEPARATE STATE
 ==============
 If ``widget.cb`` field has string type, it gets compiled as a function in a *separate state* (as if
-with Lua's ``loadstring`` function).
+with Lua's built-in ``loadstring`` function).
 Whenever an event on such a widget occurs, the compiled function will be called in that state (not
 in the widget's state, in which ``cb`` gets called).
 
-This is useful for widgets that want not to receive data from plugin, but to generate it themselves
-(possibly using some external modules). Such a widget may want to specify
+This is useful for widgets that want not to receive data from a plugin, but to generate the data
+themselves (possibly using some external modules). Such a widget may want to specify
 ::
 
    widget = {
        plugin = 'timer',
        opts = {period = 0},
 
-and block in ``cb`` until it wants to update. The problem is that in this case, widget's Lua mutex
-is almost always being acquired by ``cb``, and there is very little chance for ``event`` to get
-called.
+and block in ``cb`` until it wants to update. The problem is that in this case, the widget's Lua
+mutex is almost always being acquired by ``cb``, so the event handler has to wait until the next
+update.
 A separate-state ``event`` function solves that.
 
 EXAMPLES
