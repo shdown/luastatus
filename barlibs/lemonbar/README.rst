@@ -8,26 +8,6 @@
 .. :X-man-page-only: :Copyright: LGPLv3
 .. :X-man-page-only: :Manual section: 7
 
-Warning
-=======
-``lemonbar`` has a critical bug that will likely spoil your impression of using luastatus with it.
-For details, please see:
-
-* https://github.com/LemonBoy/bar/pull/198
-
-* https://github.com/LemonBoy/bar/issues/107
-
-* https://github.com/shdown/luastatus/issues/12#issuecomment-277616761 and down the thread.
-
-Please use ``lemonbar`` from
-
-   https://github.com/shdown/bar/tree/buffer-bug-fix,
-
-or simply apply the
-following patch:
-
-   https://github.com/shdown/bar/commit/eb0e9e79b9a35c3093f6e2e90d9fbd175a2305ef.patch
-
 Overview
 ========
 This barlib talks with ``lemonbar``.
