@@ -127,7 +127,7 @@ static void report_error(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     funcs.call_end(pd->userdata);
 }
 
-static size_t get_the_bloody_length(lua_State *L, int i)
+static inline size_t get_the_bloody_length(lua_State *L, int i)
 {
 #if LUA_VERSION_NUM <= 501
     return lua_objlen(L, i);

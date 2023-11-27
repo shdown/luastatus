@@ -160,7 +160,7 @@ static bool push_window_title(Data *d, lua_State *L, xcb_window_t win)
     return false;
 }
 
-static void push_arg(Data *d, lua_State *L, xcb_window_t win)
+static inline void push_arg(Data *d, lua_State *L, xcb_window_t win)
 {
     if (!push_window_title(d, L, win)) {
         lua_pushnil(L);

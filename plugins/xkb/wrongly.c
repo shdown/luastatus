@@ -30,7 +30,7 @@
 
 static const char *NAMES_PROP_ATOM = "_XKB_RULES_NAMES";
 
-static char *dup_and_advance(const char **pcur, const char *end)
+static inline char *dup_and_advance(const char **pcur, const char *end)
 {
     const char *cur = *pcur;
     if (cur == end)

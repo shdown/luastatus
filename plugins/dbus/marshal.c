@@ -49,7 +49,7 @@ static void on_recur_lim(lua_State *L)
     lua_pushcclosure(L, l_special_object, 2); // L: closure
 }
 
-static void push_gvariant_strlike(lua_State *L, GVariant *var)
+static inline void push_gvariant_strlike(lua_State *L, GVariant *var)
 {
     gsize ns;
     const gchar *s = g_variant_get_string(var, &ns);
@@ -75,7 +75,7 @@ static void push_gvariant_iterable(lua_State *L, GVariant *var, unsigned recurli
     }
 }
 
-static LS_ATTR_PRINTF(2, 3)
+static inline LS_ATTR_PRINTF(2, 3)
 void push_small_fstr(lua_State *L, const char *fmt, ...)
 {
     char buf[32];

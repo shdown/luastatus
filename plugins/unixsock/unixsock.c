@@ -126,13 +126,13 @@ typedef struct {
     LSString buf;
 } Client;
 
-static void client_drop(Client *c)
+static inline void client_drop(Client *c)
 {
     close(c->fd);
     c->fd = -1;
 }
 
-static void client_destroy(Client *c)
+static inline void client_destroy(Client *c)
 {
     close(c->fd);
     ls_string_free(c->buf);
@@ -144,7 +144,7 @@ typedef struct {
     struct pollfd *pfds;
 } ServerState;
 
-static ServerState server_state_new(void)
+static inline ServerState server_state_new(void)
 {
     return (ServerState) {
         .nclients = 0,
@@ -153,7 +153,7 @@ static ServerState server_state_new(void)
     };
 }
 
-static void server_state_update_pfds(ServerState *s)
+static inline void server_state_update_pfds(ServerState *s)
 {
     for (size_t i = 0; i < s->nclients; ++i) {
         s->pfds[i + 1] = (struct pollfd) {
@@ -163,7 +163,7 @@ static void server_state_update_pfds(ServerState *s)
     }
 }
 
-static void server_state_set_nclients(ServerState *s, size_t n)
+static inline void server_state_set_nclients(ServerState *s, size_t n)
 {
     if (s->nclients != n) {
         s->nclients = n;
@@ -176,7 +176,8 @@ static void server_state_compact(ServerState *s)
 {
     // Remove in-place clients that have been "dropped".
     size_t off = 0;
-    for (size_t i = 0; i < s->nclients; ++i) {
+    size_t nclients = s->nclients;
+    for (size_t i = 0; i < nclients; ++i) {
         if (s->clients[i].fd < 0) {
             client_destroy(&s->clients[i]);
             ++off;
@@ -185,18 +186,18 @@ static void server_state_compact(ServerState *s)
         }
     }
 
-    server_state_set_nclients(s, s->nclients - off);
+    server_state_set_nclients(s, nclients - off);
     server_state_update_pfds(s);
 }
 
-static void server_state_add_client(ServerState *s, Client c)
+static inline void server_state_add_client(ServerState *s, Client c)
 {
     server_state_set_nclients(s, s->nclients + 1);
     s->clients[s->nclients - 1] = c;
     server_state_update_pfds(s);
 }
 
-static void server_state_destroy(ServerState *s)
+static inline void server_state_destroy(ServerState *s)
 {
     for (size_t i = 0; i < s->nclients; ++i)
         client_destroy(&s->clients[i]);
@@ -204,7 +205,7 @@ static void server_state_destroy(ServerState *s)
     free(s->pfds);
 }
 
-static double new_tmo_pt(Priv *p)
+static inline double new_tmo_pt(Priv *p)
 {
     double tmo = ls_pushed_timeout_fetch(&p->pushed_tmo, p->tmo);
     if (!(tmo >= 0))
@@ -212,7 +213,7 @@ static double new_tmo_pt(Priv *p)
     return ls_monotonic_now() + tmo;
 }
 
-static double get_tmo_until_pt(double tmo_pt)
+static inline double get_tmo_until_pt(double tmo_pt)
 {
     if (tmo_pt < 0)
         return -1;

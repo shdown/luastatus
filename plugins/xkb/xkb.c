@@ -226,7 +226,7 @@ static bool query_somehow(LuastatusPluginData *pd, Display *dpy, LSStringArray *
     return true;
 }
 
-static bool query(LuastatusPluginData *pd, Display *dpy, LSStringArray *groups)
+static inline bool query(LuastatusPluginData *pd, Display *dpy, LSStringArray *groups)
 {
     Priv *p = pd->priv;
     switch (p->how) {
@@ -273,8 +273,8 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 
     // These are events related to LED.
     const unsigned long LED_EVENTS_MASK =
-        XkbIndicatorStateNotifyMask
-        | XkbIndicatorMapNotifyMask;
+        XkbIndicatorStateNotifyMask |
+        XkbIndicatorMapNotifyMask;
 
     if (XkbSelectEvents(
                 dpy,
