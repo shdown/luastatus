@@ -1,9 +1,9 @@
-# Copyright 1999-2018 Gentoo Foundation
+# Copyright 1999-2023 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=6
+EAPI=8
 CMAKE_IN_SOURCE_BUILD=1
-inherit cmake-utils
+inherit cmake
 
 DESCRIPTION="Universal status bar content generator"
 HOMEPAGE="https://github.com/shdown/luastatus"
@@ -35,6 +35,7 @@ PROPER_PLUGINS="
 	+${PN}_plugins_pulse
 	+${PN}_plugins_timer
 	+${PN}_plugins_udev
+	+${PN}_plugins_unixsock
 	+${PN}_plugins_xkb
 	+${PN}_plugins_xtitle
 "
@@ -72,7 +73,7 @@ DEPEND="
 "
 RDEPEND="
 	luajit? ( dev-lang/luajit:2 )
-	!luajit? ( dev-lang/lua:0 )
+	!luajit? ( dev-lang/lua )
 	${PN}_barlibs_dwm? ( x11-libs/libxcb )
 	${PN}_barlibs_i3? ( >=dev-libs/yajl-2.0.4 )
 	${PN}_plugins_alsa? ( media-libs/alsa-lib )
@@ -108,14 +109,15 @@ src_configure() {
 		-DBUILD_PLUGIN_PULSE=$(usex ${PN}_plugins_pulse)
 		-DBUILD_PLUGIN_TIMER=$(usex ${PN}_plugins_timer)
 		-DBUILD_PLUGIN_UDEV=$(usex ${PN}_plugins_udev)
+		-DBUILD_PLUGIN_UNIXSOCK=$(usex ${PN}_plugins_unixsock)
 		-DBUILD_PLUGIN_XKB=$(usex ${PN}_plugins_xkb)
 		-DBUILD_PLUGIN_XTITLE=$(usex ${PN}_plugins_xtitle)
 	)
-	cmake-utils_src_configure
+	cmake_src_configure
 }
 
 src_install() {
-	default
+	cmake_src_install
 	local i
 	if use examples; then
 		dodir /usr/share/doc/${PF}/examples
