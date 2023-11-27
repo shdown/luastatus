@@ -78,6 +78,27 @@ Each file being watched is assigned a *watch descriptor*, which is a non-negativ
 
     Removes a watch by its watch descriptor. Returns ``true`` on success, or ``false`` on failure.
 
+* ``tbl = luastatus.plugin.get_supported_events()``
+
+    Returns a table with all events supported by the plugin.
+
+    In this table, keys are events names, values are strings which represent the mode of the event.
+    The value is
+    ``"i"`` for an input-only event (can only be listened to, never occurs in a returned event),
+    ``"o"`` for an output-only event (only occurs in a returned event, cannot be listened to),
+    ``"io"`` for an event that can be both listened to and occur in a returned event.
+
+    This set depends on the version of glibc that the plugin has been compiled with, which is
+    something a widget should not be required to know. By calling this function, the widget can
+    query which events are supported by the plugin.
+
+    Testing which events are actually supported by the Linux kernel that the system is running is a
+    harder problem.
+    The ``inotify(7)`` man page gives kernel versions in which certain events were introduced
+    (e.g. ``IN_DONT_FOLLOW (since Linux 2.6.15)``).
+    One should probably parse the output of ``uname -r`` command or the contents of
+    ``/proc/sys/kernel/osrelease`` file in order to check for the version of the kernel.
+
 * ``luastatus.plugin.push_timeout(seconds)``
 
     Changes the timeout for one iteration.

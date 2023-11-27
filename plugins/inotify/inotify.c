@@ -290,6 +290,17 @@ static int l_get_initial_wds(lua_State *L)
     return 1;
 }
 
+static int l_get_supported_events(lua_State *L)
+{
+    lua_newtable(L); // L: table
+    for (const EventType *et = EVENT_TYPES; et->name; ++et) {
+        const char *v = et->in ? (et->out ? "io" : "i") : "o";
+        lua_pushstring(L, v); // L: table v
+        lua_setfield(L, -2, et->name); // L: table
+    }
+    return 1;
+}
+
 static void register_funcs(LuastatusPluginData *pd, lua_State *L)
 {
     // L: table
@@ -306,6 +317,10 @@ static void register_funcs(LuastatusPluginData *pd, lua_State *L)
     lua_pushlightuserdata(L, pd); // L: table pd
     lua_pushcclosure(L, l_get_initial_wds, 1); // L: table closure
     lua_setfield(L, -2, "get_initial_wds"); // L: table
+
+    // L: table
+    lua_pushcfunction(L, l_get_supported_events); // L: table func
+    lua_setfield(L, -2, "get_supported_events"); // L: table
 
     Priv *p = pd->priv;
     // L: table
