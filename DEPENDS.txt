@@ -45,7 +45,7 @@ Plugin 'inotify' has the following dependencies:
 Plugin 'mem-usage-linux' has the following dependencies:
 * plugin 'timer'
 
-Plugin 'network' has the following dependencies:
+Plugin 'network-linux' has the following dependencies:
 * a Linux system with Linux kernel headers
 * libnl >=3.0
 * libnl-genl >=3.0
