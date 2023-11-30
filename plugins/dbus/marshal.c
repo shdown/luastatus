@@ -24,7 +24,7 @@
 
 #include <stdio.h>
 #include <stdarg.h>
-#include <limits.h>
+#include <stdint.h>
 #include <inttypes.h>
 
 static int l_special_object(lua_State *L)
@@ -99,31 +99,31 @@ static void push_gvariant(lua_State *L, GVariant *var, unsigned recurlim)
         break;
 
     case G_VARIANT_CLASS_BYTE:
-        push_small_fstr(L, "%u", (unsigned) g_variant_get_byte(var));
+        push_small_fstr(L, "%" PRIu8, (uint8_t) g_variant_get_byte(var));
         break;
 
     case G_VARIANT_CLASS_INT16:
-        push_small_fstr(L, "%" G_GINT16_FORMAT, g_variant_get_int16(var));
+        push_small_fstr(L, "%" PRIi16, (int16_t) g_variant_get_int16(var));
         break;
 
     case G_VARIANT_CLASS_UINT16:
-        push_small_fstr(L, "%" G_GUINT16_FORMAT, g_variant_get_uint16(var));
+        push_small_fstr(L, "%" PRIu16, (uint16_t) g_variant_get_uint16(var));
         break;
 
     case G_VARIANT_CLASS_INT32:
-        push_small_fstr(L, "%" G_GINT32_FORMAT, g_variant_get_int32(var));
+        push_small_fstr(L, "%" PRIi32, (int32_t) g_variant_get_int32(var));
         break;
 
     case G_VARIANT_CLASS_UINT32:
-        push_small_fstr(L, "%" G_GUINT32_FORMAT, g_variant_get_uint32(var));
+        push_small_fstr(L, "%" PRIu32, (uint32_t) g_variant_get_uint32(var));
         break;
 
     case G_VARIANT_CLASS_INT64:
-        push_small_fstr(L, "%" G_GINT64_FORMAT, g_variant_get_int64(var));
+        push_small_fstr(L, "%" PRIi64, (int64_t) g_variant_get_int64(var));
         break;
 
     case G_VARIANT_CLASS_UINT64:
-        push_small_fstr(L, "%" G_GUINT64_FORMAT, g_variant_get_uint64(var));
+        push_small_fstr(L, "%" PRIu64, (uint64_t) g_variant_get_uint64(var));
         break;
 
     case G_VARIANT_CLASS_DOUBLE:
