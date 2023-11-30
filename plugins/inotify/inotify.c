@@ -342,7 +342,7 @@ static void push_event(lua_State *L, const struct inotify_event *event)
     lua_newtable(L); // L: table table
     for (const EventType *et = EVENT_TYPES; et->name; ++et) {
         if (et->out && (event->mask & et->mask)) {
-            lua_pushboolean(L, 1); // L: table table true
+            lua_pushboolean(L, true); // L: table table true
             lua_setfield(L, -2, et->name); // L: table table
         }
     }

@@ -187,7 +187,7 @@ static void store_volume_from_sink_cb(
             lua_setfield(L, -2, "cur"); // L: ? table
             lua_pushinteger(L, PA_VOLUME_NORM); // L: ? table integer
             lua_setfield(L, -2, "norm"); // L: ? table
-            lua_pushboolean(L, info->mute); // L: ? table boolean
+            lua_pushboolean(L, !!info->mute); // L: ? table boolean
             lua_setfield(L, -2, "mute"); // L: ? table
             lua_pushinteger(L, info->index); // L: ? table integer
             lua_setfield(L, -2, "index"); // L: ? table

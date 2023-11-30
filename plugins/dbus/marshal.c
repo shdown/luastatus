@@ -95,7 +95,7 @@ static void push_gvariant(lua_State *L, GVariant *var, unsigned recurlim)
 
     switch (g_variant_classify(var)) {
     case G_VARIANT_CLASS_BOOLEAN:
-        lua_pushboolean(L, g_variant_get_boolean(var));
+        lua_pushboolean(L, !!g_variant_get_boolean(var));
         break;
 
     case G_VARIANT_CLASS_BYTE:
