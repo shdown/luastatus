@@ -289,6 +289,8 @@ error:
     return -1;
 }
 
+enum { NCHUNK = 1024 };
+
 static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
@@ -335,7 +337,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
                 ls_make_nonblock(fd);
                 server_state_add_client(&st, (Client) {
                     .fd = fd,
-                    .buf = ls_string_new(),
+                    .buf = ls_string_new_reserve(NCHUNK),
                 });
                 continue;
             }
@@ -347,7 +349,6 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 
             Client *c = &st.clients[i];
 
-            enum { NCHUNK = 1024 };
             ls_string_ensure_avail(&c->buf, NCHUNK);
             ssize_t r = read(c->fd, c->buf.data + c->buf.size, NCHUNK);
             if (r < 0) {
