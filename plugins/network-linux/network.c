@@ -296,16 +296,6 @@ static void setup_sock_timeout(LuastatusPluginData *pd, int fd)
 
 static bool interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
-    // We allocate the buffer for netlink messages on the heap rather than on the stack, for two
-    // reasons:
-    //
-    // 1. Alignment. The code in the netlink(7) man page seems to be wrong as it does not use
-    // /__attribute__((aligned(...)))/, which is used, e.g., in the inotify(7) example.
-    //
-    // 2. Stack space is not free, and 8K is quite a large allocation for the stack.
-    //
-    // As for the buffer size, netlink(7) says "8192 to avoid message truncation on platforms with
-    // page size > 4096".
     enum { NBUF = 8192 };
 
     bool ret = false;
@@ -333,7 +323,15 @@ static bool interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         make_call(pd, funcs, false);
 
         struct iovec iov = {buf, NBUF};
-        struct msghdr msg = {NULL, 0, &iov, 1, NULL, 0, 0};
+        struct msghdr msg = {
+            .msg_name = NULL,
+            .msg_namelen = 0,
+            .msg_iov = &iov,
+            .msg_iovlen = 1,
+            .msg_control = NULL,
+            .msg_controllen = 0,
+            .msg_flags = 0
+        };
         ssize_t len = recvmsg(fd, &msg, 0);
         if (len < 0) {
             if (errno == EINTR) {
