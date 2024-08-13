@@ -332,8 +332,8 @@ static bool interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     while (1) {
         make_call(pd, funcs, false);
 
-        struct iovec iov = {buf, NBUF};
-        struct msghdr msg = {NULL, 0, &iov, 1, NULL, 0, 0};
+        struct iovec iov = {.iov_base = buf, .iov_len = NBUF};
+        struct msghdr msg = {.msg_iov = &iov, .msg_iovlen = 1};
         ssize_t len = recvmsg(fd, &msg, 0);
         if (len < 0) {
             if (errno == EINTR) {
