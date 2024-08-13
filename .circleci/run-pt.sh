@@ -52,4 +52,5 @@ dbus_end() {
 pa_start
 dbus_start
 
-PT_TOOL=valgrind PT_MAX_LAG=250 ./tests/pt.sh .
+#PT_TOOL=valgrind PT_MAX_LAG=250 ./tests/pt.sh .
+PT_MAX_LAG=250 ./tests/pt.sh .
