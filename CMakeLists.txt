@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.5)
+cmake_minimum_required (VERSION 3.10)
 project (luastatus C)
 
 if (NOT CMAKE_BUILD_TYPE)
@@ -51,7 +51,7 @@ function (luastatus_add_barlib_or_plugin destdir name)
     list (REMOVE_AT sources 0 1)
     add_library ("${name}" MODULE ${sources})
     set_target_properties ("${name}" PROPERTIES PREFIX "")
-    if (destdir)
+    if (NOT "${destdir}" STREQUAL "-")
         install (TARGETS "${name}" DESTINATION "${destdir}")
     endif ()
 endfunction ()
@@ -65,11 +65,11 @@ function (luastatus_add_plugin)
 endfunction ()
 
 function (luastatus_add_barlib_noinstall)
-    luastatus_add_barlib_or_plugin ("" ${ARGV})
+    luastatus_add_barlib_or_plugin ("-" ${ARGV})
 endfunction ()
 
 function (luastatus_add_plugin_noinstall)
-    luastatus_add_barlib_or_plugin ("" ${ARGV})
+    luastatus_add_barlib_or_plugin ("-" ${ARGV})
 endfunction ()
 
 option (BUILD_DOCS "build man pages" ON)
