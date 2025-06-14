@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.1.3)
+cmake_minimum_required (VERSION 3.5)
 project (luastatus C)
 
 if (NOT CMAKE_BUILD_TYPE)
