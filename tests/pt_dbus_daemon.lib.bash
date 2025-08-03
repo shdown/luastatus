@@ -30,7 +30,7 @@ pt_dbus_daemon_spawn() {
     pt_add_fifo "$PT_DBUS_DAEMON_FIFO"
 
     echo >&2 "Spawning dbus-daemon ${bus_arg}."
-    pt_spawn_thing __dbus_daemon__ pt_dbus_daemon__wrapper "$bus_arg"
+    pt_spawn_thing __dbus_daemon__ pt_dbus_daemon__wrapper --nofork "$bus_arg"
 
     local response
     local rc=0
