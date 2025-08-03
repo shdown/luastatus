@@ -21,12 +21,7 @@ Expected: $1
 Actual:   $2"
 
     local out
-    if ! out=$(
-        jq
-        --$x_jq_read_file_option a <(printf '%s\n' "$1")
-        --$x_jq_read_file_option b <(printf '%s\n' "$2")
-        -n '$a == $b');
-    then
+    if ! out=$(jq --$x_jq_read_file_option a <(printf '%s\n' "$1") --$x_jq_read_file_option b <(printf '%s\n' "$2") -n '$a == $b'); then
         pt_fail "jq failed"
     fi
     case "$out" in
