@@ -5,7 +5,9 @@ set -e
 atexit=()
 
 trap '
-    for func in "${atexit[@]}"; do
+    # We need to run finalizers in reversed order.
+    for (( i = ${#atexit[@]} - 1; i >= 0; --i )); do
+        func=${atexit[$i]}
         $func
     done
 ' EXIT
@@ -49,8 +51,9 @@ dbus_end() {
     fi
 }
 
-pa_start
 dbus_start
+sleep 1
+pa_start
 
 #PT_TOOL=valgrind PT_MAX_LAG=250 ./tests/pt.sh .
 PT_MAX_LAG=250 ./tests/pt.sh .
