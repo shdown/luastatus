@@ -1,10 +1,34 @@
+pt_require_tools jq
+
+x_jq_read_file_option=
+x_figure_out_jq_version() {
+    x_jq_read_file_option=argfile
+    local out
+    if ! out=$(jq --slurpfile foo /dev/null -n '123'); then
+        return 0
+    fi
+    if [[ "$out" != '123' ]]; then
+        return 0
+    fi
+    x_jq_read_file_option=slurpfile
+}
+x_figure_out_jq_version
+echo >&2 "Figured out jq option for reading a file into a variable: --$x_jq_read_file_option"
+
 x_assert_json_eq() {
     echo >&2 "Comparing JSONs:
 Expected: $1
 Actual:   $2"
 
     local out
-    out=$(jq --argfile a <(printf '%s\n' "$1") --argfile b <(printf '%s\n' "$2") -n '$a == $b')
+    if ! out=$(
+        jq
+        --$x_jq_read_file_option a <(printf '%s\n' "$1")
+        --$x_jq_read_file_option b <(printf '%s\n' "$2")
+        -n '$a == $b');
+    then
+        pt_fail "jq failed"
+    fi
     case "$out" in
     true)
         ;;
