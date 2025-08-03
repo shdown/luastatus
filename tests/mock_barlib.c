@@ -20,6 +20,7 @@
 #include <lua.h>
 #include <stdlib.h>
 #include <time.h>
+#include <sys/time.h>
 
 #include "include/barlib_v1.h"
 #include "include/sayf_macros.h"
@@ -28,10 +29,13 @@
 #include "libls/cstring_utils.h"
 #include "libls/parse_int.h"
 
+#include "minstd_prng.h"
+
 typedef struct {
     size_t nwidgets;
     unsigned char *widgets;
     int nevents;
+    int32_t prng_seed;
 } Priv;
 
 static void destroy(LuastatusBarlibData *bd)
@@ -48,6 +52,7 @@ static int init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidget
         .nwidgets = nwidgets,
         .widgets = LS_XNEW0(unsigned char, nwidgets),
         .nevents = 0,
+        .prng_seed = -1,
     };
     for (const char *const *s = opts; *s; ++s) {
         const char *v;
@@ -56,6 +61,13 @@ static int init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidget
                 LS_FATALF(bd, "gen_events value is not a proper integer");
                 goto error;
             }
+
+        } else if ((v = ls_strfollow(*s, "prng_seed="))) {
+            if ((p->prng_seed = ls_full_strtou(v)) < 0) {
+                LS_FATALF(bd, "prng_seed value is not a proper integer");
+                goto error;
+            }
+
         } else {
             LS_FATALF(bd, "unknown option: '%s'", *s);
             goto error;
@@ -86,6 +98,21 @@ static int set_error(LuastatusBarlibData *bd, size_t widget_idx)
     return LUASTATUS_OK;
 }
 
+static uint32_t gen_prng_seed(void)
+{
+    struct timespec ts;
+    if (clock_gettime(CLOCK_REALTIME, &ts) < 0) {
+        goto fallback;
+    }
+
+    uint32_t s = ts.tv_sec;
+    uint32_t ns = ts.tv_nsec;
+    return s ^ ns;
+
+fallback:
+    return time(NULL);
+}
+
 static int event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
 {
     Priv *p = bd->priv;
@@ -93,9 +120,12 @@ static int event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
         LS_FATALF(bd, "no widgets to generate events on");
         return LUASTATUS_ERR;
     }
-    unsigned seed = time(NULL);
+
+    uint32_t seed = (p->prng_seed >= 0) ? (uint32_t) p->prng_seed : gen_prng_seed();
+    MinstdPRNG my_prng = minstd_prng_new(seed);
+
     for (int i = 0; i < p->nevents; ++i) {
-        size_t widget_idx = rand_r(&seed) % p->nwidgets;
+        size_t widget_idx = minstd_prng_next_u64(&my_prng) % p->nwidgets;
         lua_State *L = funcs.call_begin(bd->userdata, widget_idx);
         lua_pushnil(L);
         funcs.call_end(bd->userdata, widget_idx);
