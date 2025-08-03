@@ -1,3 +1,5 @@
+pt_require_tools mktemp
+
 pt_testcase_begin
 pt_add_fifo "$main_fifo_file"
 globtest_dir=$(mktemp -d)

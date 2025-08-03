@@ -1,3 +1,5 @@
+pt_require_tools mktemp
+
 stage_dir=$(mktemp -d)
 stage_subdir=$stage_dir/subdir
 actor_file_1=$stage_dir/foo1

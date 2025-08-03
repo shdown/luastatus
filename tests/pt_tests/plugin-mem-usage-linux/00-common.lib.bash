@@ -1,3 +1,5 @@
+pt_require_tools mktemp
+
 main_fifo_file=./tmp-fifo-main
 
 mem_usage_testcase() {

@@ -1,3 +1,5 @@
+pt_require_tools mktemp
+
 pt_testcase_begin
 using_measure
 

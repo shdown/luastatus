@@ -108,6 +108,15 @@ pt_add_fifo() {
     pt_add_file_to_remove "$1"
 }
 
+pt_require_tools() {
+    local tool
+    for tool in "$@"; do
+        if ! command -v "$tool" >/dev/null; then
+            pt_fail "pt_require_tools: tool '$tool' was not found."
+        fi
+    done
+}
+
 pt_read_line() {
     echo >&2 "Reading line..."
     IFS= read -r PT_LINE || pt_fail "pt_read_line: cannot read next line (process died?)"

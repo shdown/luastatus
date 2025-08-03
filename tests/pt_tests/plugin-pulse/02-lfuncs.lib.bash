@@ -1,3 +1,5 @@
+pt_require_tools pacmd
+
 pt_testcase_begin
 
 pt_spawn_thing_pipe pulsetalker "$PT_SOURCE_DIR"/tests/pulsetalker.sh "$sink_name"

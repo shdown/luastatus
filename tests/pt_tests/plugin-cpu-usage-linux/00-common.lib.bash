@@ -1,3 +1,5 @@
+pt_require_tools mktemp
+
 main_fifo_file=./tmp-fifo-main
 
 stat_content_1="\

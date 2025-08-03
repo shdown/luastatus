@@ -14,6 +14,11 @@ else
     exit 2
 fi
 
+if ! command -v pactl >/dev/null; then
+    echo >&2 "'pactl' tool was not found."
+    exit 1
+fi
+
 unset mod_idx
 
 trap '

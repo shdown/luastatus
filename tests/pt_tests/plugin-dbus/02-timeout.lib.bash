@@ -1,3 +1,5 @@
+pt_require_tools dbus-send
+
 pt_testcase_begin
 using_measure
 
