@@ -50,6 +50,7 @@ PT_LINE=
 
 source ./pt_stopwatch.lib.bash
 source ./pt_dbus_daemon.lib.bash
+source ./pt_pulseaudio_daemon.lib.bash
 
 # Sanity checks
 if ! [[ -x "$PT_BUILD_DIR"/luastatus/luastatus ]]; then

@@ -3,8 +3,10 @@ sink_name='PX7NE64ItQVFBw2'
 
 x_pulse_begin() {
     pt_dbus_daemon_spawn --session
+    pt_pulseaudio_daemon_spawn
 }
 
 x_pulse_end() {
+    pt_pulseaudio_daemon_kill
     pt_dbus_daemon_kill
 }
