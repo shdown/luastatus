@@ -1,5 +1,13 @@
 main_fifo_file=./tmp-fifo-main
 
+x_dbus_begin() {
+    pt_dbus_daemon_spawn --session
+}
+
+x_dbus_end() {
+    pt_dbus_daemon_kill
+}
+
 preface='
 local function _fmt_x(x)
     local function _validate_str(s)

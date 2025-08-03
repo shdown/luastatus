@@ -1,5 +1,7 @@
 pt_require_tools pacmd
 
+x_pulse_begin
+
 pt_testcase_begin
 
 pt_spawn_thing_pipe pulsetalker "$PT_SOURCE_DIR"/tests/pulsetalker.sh "$sink_name"
@@ -48,3 +50,6 @@ pt_expect_line "[$sink_name] cb 3% (mute)" <&$pfd
 
 pt_close_fd "$pfd"
 pt_testcase_end
+
+x_pulse_end
+

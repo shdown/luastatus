@@ -1,5 +1,7 @@
 pt_require_tools dbus-send
 
+x_dbus_begin
+
 pt_testcase_begin
 using_measure
 
@@ -63,3 +65,5 @@ done
 
 pt_close_fd "$pfd"
 pt_testcase_end
+
+x_dbus_end

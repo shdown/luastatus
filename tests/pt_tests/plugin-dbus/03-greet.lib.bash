@@ -1,5 +1,7 @@
 pt_require_tools dbus-send
 
+x_dbus_begin
+
 pt_testcase_begin
 pt_add_fifo "$main_fifo_file"
 pt_write_widget_file <<__EOF__
@@ -50,3 +52,5 @@ pt_expect_line 'cb {["bus"]="session",["interface"]="org.luastatus.ExampleInterf
 
 pt_close_fd "$pfd"
 pt_testcase_end
+
+x_dbus_end

@@ -49,6 +49,7 @@ declare -A PT_SPAWNED_THINGS_FDS_1=()
 PT_LINE=
 
 source ./pt_stopwatch.lib.bash
+source ./pt_dbus_daemon.lib.bash
 
 # Sanity checks
 if ! [[ -x "$PT_BUILD_DIR"/luastatus/luastatus ]]; then
