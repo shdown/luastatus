@@ -58,6 +58,7 @@ done:
     return ret;
 }
 
+// Assumes that /s[nbad]/ and /bad[nbad]/ are defined and set to either the next symbol or '\0'.
 static inline bool bad_matches(const char *bad, size_t nbad, const char *s, size_t ns)
 {
     if (ns >= nbad && memcmp(bad, s, nbad) == 0) {
