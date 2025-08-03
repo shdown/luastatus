@@ -403,17 +403,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         //     typedef union { __SOCKADDR_ALLTYPES
         //                   } __SOCKADDR_ARG __attribute__ ((__transparent_union__));
         //
-        // Ugh. The C standard is a terrible mess. X.org is a terrible mess. A proper solution would
-        // be any of those:
-        //
-        // 1. Somehow undo the brain damage that the C standard is, and write a sane C standard
-        // instead. The semantics of such "sane C" would include what '-fno-strict-aliasing' and
-        // '-fwrapv' options to gcc do.
-        //
-        // 2. Force X upstream to provide headers with '__attribute__((__may_alias__))' on
-        // appropriate structures/unions. Well, *at least* if gcc or clang is used - nobody
-        // actually uses anything else.
-        //
+        // Ugh.
 
         // interpret the event
         requery_everything = false;
