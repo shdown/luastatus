@@ -31,7 +31,7 @@ dbus_start() {
     atexit+=(dbus_end)
 
     local addr_file=/tmp/dbus-session-addr.txt
-    true > "$addr_file"
+    true > "$addr_file" || return $?
 
     dbus-daemon --session --nofork --print-address=3 3>"$addr_file" &
     DBUS_DAEMON_PID=$!
@@ -39,9 +39,9 @@ dbus_start() {
     local x
     while ! IFS= read -r x < "$addr_file"; do
         echo >&2 "Waiting for D-Bus daemon..."
-        sleep 1
+        sleep 1 || return $?
     done
-    rm -f "$addr_file"
+    rm -f "$addr_file" || return $?
     export DBUS_SESSION_BUS_ADDRESS="$x"
 }
 
