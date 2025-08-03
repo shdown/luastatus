@@ -22,14 +22,40 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <inttypes.h>
+#include <sys/time.h>
 
-static uint64_t now_ms(void)
+static inline struct timespec now_ts(void)
 {
     struct timespec ts;
-    if (clock_gettime(CLOCK_MONOTONIC, &ts) < 0) {
-        perror("stopwatch: clock_gettime (CLOCK_MONOTONIC)");
+    int rc;
+
+#if (!defined(_POSIX_MONOTONIC_CLOCK)) || (_POSIX_MONOTONIC_CLOCK < 0)
+    // CLOCK_MONOTONIC is not supported at compile-time.
+    rc = clock_gettime(CLOCK_REALTIME, &ts);
+
+#elif _POSIX_MONOTONIC_CLOCK > 0
+    // CLOCK_MONOTONIC is supported both at compile-time and at run-time.
+    rc = clock_gettime(CLOCK_MONOTONIC, &ts);
+
+#else
+    // CLOCK_MONOTONIC is supported at compile-time, but might or might not
+    // be supported at run-time.
+    rc = clock_gettime(CLOCK_MONOTONIC, &ts);
+    if (rc < 0) {
+        rc = clock_gettime(CLOCK_REALTIME, &ts);
+    }
+#endif
+
+    if (rc < 0) {
+        fprintf(stderr, "stopwatch: clock_gettime() failed.\n");
         abort();
     }
+    return ts;
+}
+
+static inline uint64_t now_ms(void)
+{
+    struct timespec ts = now_ts();
     return ((uint64_t) ts.tv_sec) * 1000 + (ts.tv_nsec / 1000000);
 }
 

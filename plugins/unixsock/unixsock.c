@@ -210,14 +210,14 @@ static inline double new_tmo_pt(Priv *p)
     double tmo = ls_pushed_timeout_fetch(&p->pushed_tmo, p->tmo);
     if (!(tmo >= 0))
         return -1;
-    return ls_monotonic_now() + tmo;
+    return ls_now() + tmo;
 }
 
 static inline double get_tmo_until_pt(double tmo_pt)
 {
     if (tmo_pt < 0)
         return -1;
-    double delta = tmo_pt - ls_monotonic_now();
+    double delta = tmo_pt - ls_now();
     return delta < 0 ? 0 : delta;
 }
 

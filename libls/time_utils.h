@@ -24,6 +24,7 @@
 #include <sys/time.h>
 #include <errno.h>
 #include <limits.h>
+#include <stdbool.h>
 
 #include "compdep.h"
 #include "panic.h"
@@ -37,14 +38,37 @@ LS_INHEADER double ls_ts_to_tmo(struct timespec ts)
     return s + ns / 1e9;
 }
 
-LS_INHEADER double ls_monotonic_now(void)
+LS_INHEADER struct timespec ls_now_ts(void)
 {
     struct timespec ts;
-    if (clock_gettime(CLOCK_MONOTONIC, &ts) < 0)
-        goto error;
-    return ls_ts_to_tmo(ts);
-error:
-    LS_PANIC("clock_gettime(CLOCK_MONOTONIC, ...) failed");
+    int rc;
+
+#if (!defined(_POSIX_MONOTONIC_CLOCK)) || (_POSIX_MONOTONIC_CLOCK < 0)
+    // CLOCK_MONOTONIC is not supported at compile-time.
+    rc = clock_gettime(CLOCK_REALTIME, &ts);
+
+#elif _POSIX_MONOTONIC_CLOCK > 0
+    // CLOCK_MONOTONIC is supported both at compile-time and at run-time.
+    rc = clock_gettime(CLOCK_MONOTONIC, &ts);
+
+#else
+    // CLOCK_MONOTONIC is supported at compile-time, but might or might not
+    // be supported at run-time.
+    rc = clock_gettime(CLOCK_MONOTONIC, &ts);
+    if (rc < 0) {
+        rc = clock_gettime(CLOCK_REALTIME, &ts);
+    }
+#endif
+
+    if (rc < 0) {
+        LS_PANIC("clock_gettime() failed");
+    }
+    return ts;
+}
+
+LS_INHEADER double ls_now(void)
+{
+    return ls_ts_to_tmo(ls_now_ts());
 }
 
 LS_INHEADER struct timespec ls_tmo_to_ts(double tmo)
