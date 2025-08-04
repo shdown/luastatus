@@ -1,11 +1,12 @@
 PT_PULSEAUDIO_DAEMON_ALREADY_RUNNING=-1
 
 pt_pulseaudio_daemon__check() {
+    local n=$1
+
     pt_require_tools pactl
 
     echo >&2 "Checking if PulseAudio daemon is available ($n time(s))..."
 
-    local n=$1
     local i
     for (( i = 1; i <= n; ++i )); do
         if pactl info; then
