@@ -106,20 +106,9 @@ static int parse_bind_params(Priv *p, MoonVisit *mv, int table_pos)
         goto ok;
     }
 
-    //lua_getfield(mv->L, table_pos, "bind"); // L: ? bind
-    //if (moon_visit_checktype_at(mv, "bind", -1, LUA_TTABLE) < 0) {
-    //    return -1;
-    //}
-
     if (moon_visit_str(mv, -1, "addr", &p->bind_addr, NULL, false) < 0) {
         goto fail;
     }
-
-    //lua_getfield(mv->L, -1, "ipver"); // L: ? bind ipver
-    //if (moon_visit_checktype_at(mv, "ipver", -1, LUA_TSTRING) < 0) {
-    //    return -1;
-    //}
-    //const char *ipver = lua_tostring(mv->L, -1);
 
     const char *ipver;
     if (moon_visit_scrutinize_str(mv, -1, "ipver", &ipver, NULL, false) < 0) {
