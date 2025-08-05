@@ -312,3 +312,52 @@ int moon_visit_uint(
     }
     return r;
 }
+
+int moon_visit_scrutinize_table(
+    MoonVisit *mv,
+    int table_pos,
+    const char *key,
+    bool nil_ok)
+{
+    lua_getfield(mv->L, table_pos, key);
+    int type = lua_type(mv->L, -1);
+    if (type == LUA_TNIL && nil_ok) {
+        return 0;
+    }
+    if (moon_visit_checktype_at(mv, key, -1, LUA_TTABLE) < 0) {
+        lua_pop(mv->L, 1);
+        return -1;
+    }
+    return 0;
+}
+
+int moon_visit_scrutinize_str(
+    MoonVisit *mv,
+    int table_pos,
+    const char *key,
+    const char **out,
+    size_t *out_len,
+    bool nil_ok)
+{
+    lua_getfield(mv->L, table_pos, key);
+    int type = lua_type(mv->L, -1);
+    if (type == LUA_TNIL && nil_ok) {
+        *out = NULL;
+        if (out_len) {
+            *out_len = 0;
+        }
+        return 0;
+    }
+
+    if (moon_visit_checktype_at(mv, key, -1, LUA_TSTRING) < 0) {
+        lua_pop(mv->L, 1);
+        return -1;
+    }
+
+    if (out_len) {
+        *out = lua_tolstring(mv->L, -1, out_len);
+    } else {
+        *out = lua_tostring(mv->L, -1);
+    }
+    return 0;
+}

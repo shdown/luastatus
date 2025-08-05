@@ -51,6 +51,9 @@ typedef struct {
     double retry_tmo;
     char *retry_fifo;
     LSString idle_str;
+
+    char *bind_addr;
+    int bind_addr_family;
 } Priv;
 
 static void destroy(LuastatusPluginData *pd)
@@ -79,6 +82,67 @@ static int parse_events_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
     return 1;
 }
 
+static int parse_ipver(const char *s)
+{
+    if (strcmp(s, "ipv4") == 0) {
+        return FAMILY_IPV4;
+    }
+    if (strcmp(s, "ipv6") == 0) {
+        return FAMILY_IPV6;
+    }
+    return -1;
+}
+
+static int parse_bind_params(Priv *p, MoonVisit *mv, int table_pos)
+{
+    int old_top = lua_gettop(mv->L);
+
+    // mv->L: ?
+    if (moon_visit_scrutinize_table(mv, table_pos, "bind", true) < 0) {
+        goto fail;
+    }
+    // mv->L: ? bind
+    if (lua_isnil(mv->L, -1)) {
+        goto ok;
+    }
+
+    //lua_getfield(mv->L, table_pos, "bind"); // L: ? bind
+    //if (moon_visit_checktype_at(mv, "bind", -1, LUA_TTABLE) < 0) {
+    //    return -1;
+    //}
+
+    if (moon_visit_str(mv, -1, "addr", &p->bind_addr, NULL, false) < 0) {
+        goto fail;
+    }
+
+    //lua_getfield(mv->L, -1, "ipver"); // L: ? bind ipver
+    //if (moon_visit_checktype_at(mv, "ipver", -1, LUA_TSTRING) < 0) {
+    //    return -1;
+    //}
+    //const char *ipver = lua_tostring(mv->L, -1);
+
+    const char *ipver;
+    if (moon_visit_scrutinize_str(mv, -1, "ipver", &ipver, NULL, false) < 0) {
+        goto fail;
+    }
+    // mv->L: ? bind ipver
+
+    int family = parse_ipver(ipver);
+    if (family < 0) {
+        moon_visit_err(mv, "bind.ipver is invalid");
+        goto fail;
+    }
+    p->bind_addr_family = family;
+
+ok:
+    lua_settop(mv->L, old_top);
+    return 0;
+
+fail:
+    lua_settop(mv->L, old_top);
+    return -1;
+}
+
 static int init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
@@ -90,6 +154,8 @@ static int init(LuastatusPluginData *pd, lua_State *L)
         .retry_tmo = 10,
         .retry_fifo = NULL,
         .idle_str = ls_string_new_from_s("idle"),
+        .bind_addr = NULL,
+        .bind_addr_family = FAMILY_NONE,
     };
     char errbuf[256];
     MoonVisit mv = {.L = L, .errbuf = errbuf, .nerrbuf = sizeof(errbuf)};
@@ -126,13 +192,19 @@ static int init(LuastatusPluginData *pd, lua_State *L)
     if (moon_visit_str(&mv, -1, "retry_fifo", &p->retry_fifo, NULL, true) < 0)
         goto mverror;
 
-    // Parse events
-    int has_events =
-        moon_visit_table_f(&mv, -1, "events", parse_events_elem, p, true);
-    if (has_events < 0)
+    // Parse bind
+    if (parse_bind_params(p, &mv, -1) < 0) {
         goto mverror;
-    if (!has_events)
+    }
+
+    // Parse events
+    int has_events = moon_visit_table_f(&mv, -1, "events", parse_events_elem, p, true);
+    if (has_events < 0) {
+        goto mverror;
+    }
+    if (!has_events) {
         ls_string_append_s(&p->idle_str, " mixer player");
+    }
     ls_string_append_b(&p->idle_str, "\n", 2); // append '\n' and '\0'
 
     return LUASTATUS_OK;
@@ -391,7 +463,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 
         int fd = (p->hostname && p->hostname[0] == '/')
             ? unixdom_open(pd, p->hostname)
-            : inetdom_open(pd, p->hostname, portstr);
+            : inetdom_open(pd, p->hostname, portstr, p->bind_addr, p->bind_addr_family);
 
         if (fd >= 0)
             interact(pd, funcs, fd);

@@ -22,8 +22,19 @@
 
 #include "include/plugin_data_v1.h"
 
+enum {
+    FAMILY_NONE,
+    FAMILY_IPV4,
+    FAMILY_IPV6,
+};
+
 int unixdom_open(LuastatusPluginData *pd, const char *path);
 
-int inetdom_open(LuastatusPluginData *pd, const char *hostname, const char *service);
+int inetdom_open(
+    LuastatusPluginData *pd,
+    const char *hostname,
+    const char *service,
+    const char *bind_addr,
+    int bind_addr_family);
 
 #endif

@@ -19,11 +19,14 @@
 
 #include "connect.h"
 
+#include <assert.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <string.h>
 #include <sys/un.h>
 #include <sys/socket.h>
+#include <arpa/inet.h>
 #include <netdb.h>
 #include <errno.h>
 
@@ -32,6 +35,7 @@
 
 #include "libls/tls_ebuf.h"
 #include "libls/osdep.h"
+#include "libls/panic.h"
 
 int unixdom_open(LuastatusPluginData *pd, const char *path)
 {
@@ -59,7 +63,48 @@ error:
     return -1;
 }
 
-int inetdom_open(LuastatusPluginData *pd, const char *hostname, const char *service)
+static int do_bind_to_addr(int fd, const char *addr_str, int family)
+{
+    if (family == FAMILY_NONE) {
+        return 0;
+    }
+    assert(addr_str);
+
+    if (family == FAMILY_IPV4) {
+        struct sockaddr_in sa = {
+            .sin_family = AF_INET,
+        };
+        if (!inet_pton(AF_INET, addr_str, &sa.sin_addr)) {
+            goto bad_str;
+        }
+        return bind(fd, (struct sockaddr *) &sa, sizeof(sa));
+
+    } else if (family == FAMILY_IPV6) {
+        struct sockaddr_in6 sa = {
+            .sin6_family = AF_INET6,
+        };
+        if (!inet_pton(AF_INET6, addr_str, &sa.sin6_addr)) {
+            goto bad_str;
+        }
+        return bind(fd, (struct sockaddr *) &sa, sizeof(sa));
+
+    } else {
+        char msg[70];
+        snprintf(msg, sizeof(msg), "mpd plugin: do_bind_to_addr() got invalid family=%d", family);
+        LS_PANIC(msg);
+    }
+
+bad_str:
+    errno = EINVAL;
+    return -1;
+}
+
+int inetdom_open(
+        LuastatusPluginData *pd,
+        const char *hostname,
+        const char *service,
+        const char *bind_addr,
+        int bind_addr_family)
 {
     struct addrinfo *ai = NULL;
     int fd = -1;
@@ -86,6 +131,12 @@ int inetdom_open(LuastatusPluginData *pd, const char *hostname, const char *serv
         fd = ls_cloexec_socket(pai->ai_family, pai->ai_socktype, pai->ai_protocol);
         if (fd < 0) {
             LS_WARNF(pd, "(candiate) socket: %s", ls_tls_strerror(errno));
+            continue;
+        }
+        if (do_bind_to_addr(fd, bind_addr, bind_addr_family) < 0) {
+            LS_WARNF(pd, "(candiate) cannot bind to address: %s", ls_tls_strerror(errno));
+            close(fd);
+            fd = -1;
             continue;
         }
         if (connect(fd, pai->ai_addr, pai->ai_addrlen) < 0) {

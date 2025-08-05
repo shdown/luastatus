@@ -17,7 +17,7 @@ Options
 * ``hostname``: string
 
     Hostname to connect to. Default is to connect to the local host. An absolute path to a UNIX
-    domain socket can also be specified (``port`` is ignored then).
+    domain socket can also be specified (``port`` and ``bind`` are ignored then).
 
 * ``port``: number
 
@@ -47,6 +47,21 @@ Options
     List of MPD subsystems to poll for changes in. See the description of ``idle`` command at
     https://www.musicpd.org/doc/html/protocol.html#querying-mpd-s-status for the complete list.
     Default is ``{"mixer","player"}``.
+
+* ``bind``: table
+
+    If provided, the plugin will bind the (TCP, not UNIX) socket to a specific address.
+    The parameters for the binding are specified by this table.
+    If the plugin is otherwise configured to connect to a UNIX domain socket (via ``hostname``
+    option that starts with a slash), this option is ignored.
+
+    If this option is provided, it must be a table with the following keys:
+    - ``addr``: the value must be a string representing either IPv4 or IPv6 address.
+    - ``ipver``: the value must be a string, either ``"ipv4"`` for IPv4 address or ``"ipv6"`` for IPv6 address.
+
+    Note that there is no default for the ``ipver`` field, and there is no guessing what sort of
+    address it is; if the ``bind`` table is present, but does not contain ``ipver`` key, the
+    plugin will fail to initialize.
 
 
 ``cb`` argument

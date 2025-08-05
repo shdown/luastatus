@@ -139,4 +139,28 @@ int moon_visit_uint(
     uint64_t *p,
     bool skip_nil);
 
+// Pushes /t[key]/ on the stack, where /t/ is the table residing at stack position /table_pos/.
+// Checks that the result is a table.
+// If /nil_ok/ is true and the result is nil, pushes a nil instead of a table.
+int moon_visit_scrutinize_table(
+    MoonVisit *mv,
+    int table_pos,
+    const char *key,
+    bool nil_ok);
+
+// Pushes /t[key]/ on the stack, where /t/ is the table residing at stack position /table_pos/.
+//
+// Checks that the result is a string. If so, /*out/ is set to the contents of the string,
+// and, if /out_len != NULL/, writes the length of the string into /*out_len/.
+//
+// If /nil_ok/ is true and the result is nil, pushes a nil instead of a table, sets /*out/ to
+// NULL, and, if /out_len != NULL/, sets /*out_len/ to zero.
+int moon_visit_scrutinize_str(
+    MoonVisit *mv,
+    int table_pos,
+    const char *key,
+    const char **out,
+    size_t *out_len,
+    bool nil_ok);
+
 #endif
