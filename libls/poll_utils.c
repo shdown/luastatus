@@ -26,6 +26,7 @@
 #include <sys/stat.h>
 
 #include "time_utils.h"
+#include "panic.h"
 
 int ls_poll(struct pollfd *fds, nfds_t nfds, double tmo)
 {
@@ -35,12 +36,14 @@ int ls_poll(struct pollfd *fds, nfds_t nfds, double tmo)
     sigfillset(&allsigs);
 
     sigset_t origmask;
-    sigprocmask(SIG_SETMASK, &allsigs, &origmask);
-    int r = poll(fds, nfds, tmo_ms);
-    int saved_errno = errno;
-    sigprocmask(SIG_SETMASK, &origmask, NULL);
+    LS_PTH_CHECK(pthread_sigmask(SIG_SETMASK, &allsigs, &origmask));
 
+    int r = poll(fds, nfds, tmo_ms);
+
+    int saved_errno = errno;
+    LS_PTH_CHECK(pthread_sigmask(SIG_SETMASK, &origmask, NULL));
     errno = saved_errno;
+
     return r;
 }
 
