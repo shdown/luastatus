@@ -28,7 +28,7 @@ case "$PT_TOOL" in
     PT_PREFIX=()
     ;;
 valgrind)
-    PT_PREFIX=( valgrind -q --error-exitcode=42 )
+    PT_PREFIX=( valgrind -q --exit-on-first-error=yes --error-exitcode=42 )
     ;;
 *)
     echo >&2 "$0: Unknown PT_TOOL: $PT_TOOL."

@@ -77,8 +77,13 @@ LS_INHEADER void *ls_xrealloc(void *p, size_t nelems, size_t elemsz)
     if (elemsz && nelems > SIZE_MAX / elemsz) {
         goto oom;
     }
-    void *r = realloc(p, nelems * elemsz);
-    if (nelems && elemsz && !r) {
+    size_t new_nbytes = nelems * elemsz;
+    if (!new_nbytes) {
+        free(p);
+        return NULL;
+    }
+    void *r = realloc(p, new_nbytes);
+    if (!r) {
         goto oom;
     }
     return r;
@@ -94,9 +99,13 @@ oom:
 // panics.
 LS_INHEADER void *ls_x2realloc(void *p, size_t *pnelems, size_t elemsz)
 {
+    if (!elemsz) {
+        LS_PANIC("ls_x2realloc: got elemsz=0");
+    }
+
     size_t new_nelems;
     if (*pnelems) {
-        if (elemsz && *pnelems > SIZE_MAX / 2 / elemsz) {
+        if (*pnelems > SIZE_MAX / 2 / elemsz) {
             goto oom;
         }
         new_nelems = *pnelems * 2;
@@ -105,7 +114,7 @@ LS_INHEADER void *ls_x2realloc(void *p, size_t *pnelems, size_t elemsz)
     }
 
     void *r = realloc(p, new_nelems * elemsz);
-    if (elemsz && !r) {
+    if (!r) {
         goto oom;
     }
     *pnelems = new_nelems;
