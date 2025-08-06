@@ -63,6 +63,7 @@ static void destroy(LuastatusPluginData *pd)
     free(p->password);
     free(p->retry_fifo);
     ls_string_free(p->idle_str);
+    free(p->bind_addr);
     free(p);
 }
 
