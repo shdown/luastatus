@@ -72,6 +72,10 @@ LS_INHEADER void *ls_xcalloc(size_t nelems, size_t elemsz)
 //     /realloc(p, nelems * elemsz)/,
 // except when the multiplication overflows, or the reallocation fails. In these cases, this
 // function panics.
+//
+// Zero /nelems/ and/or /elemsz/ are supported (even though C23 declared /realloc/ to zero size
+// undefined behavior): if the total size requested is zero, this function /free/s the pointer
+// and returns NULL.
 LS_INHEADER void *ls_xrealloc(void *p, size_t nelems, size_t elemsz)
 {
     if (elemsz && nelems > SIZE_MAX / elemsz) {
@@ -97,6 +101,12 @@ oom:
 // where F(n) = max(1, 2 * n),
 // except when a multiplication overflows, or the reallocation fails. In these cases, this function
 // panics.
+//
+// Zero /elemsz/ is NOT supported: it isn't clear what the semantics of this function should be in
+// this case: technically you can store any number of zero-sized elements in an allocation of any
+// size, but /*pnelems/ is limited to /SIZE_MAX/ (should we alter /*pnelems/ at all? If yes, what
+// should we do in case of an overflow?). Also, C99 says there can't be any zero-sized types: empty
+// structs or unions, and arrays of size 0, are prohibited.
 LS_INHEADER void *ls_x2realloc(void *p, size_t *pnelems, size_t elemsz)
 {
     if (!elemsz) {
