@@ -53,7 +53,7 @@ LS_INHEADER int compat_inotify_init(bool nonblock, bool cloexec)
 
 error:
     saved_errno = errno;
-    close(fd);
+    ls_close(fd);
     errno = saved_errno;
     return -1;
 #endif

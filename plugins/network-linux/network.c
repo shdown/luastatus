@@ -63,7 +63,7 @@ static void destroy(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
     string_set_destroy(p->wlan_ifaces);
-    close(p->eth_sockfd);
+    ls_close(p->eth_sockfd);
     free(p);
 }
 
@@ -382,7 +382,7 @@ static bool interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 
 error:
     free(buf);
-    close(fd);
+    ls_close(fd);
     return ret;
 }
 

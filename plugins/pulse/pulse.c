@@ -37,6 +37,7 @@
 #include "libls/tls_ebuf.h"
 #include "libls/evloop_lfuncs.h"
 #include "libls/time_utils.h"
+#include "libls/io_utils.h"
 
 #ifdef PA_CHECK_VERSION
 # define MY_CHECK_VERSION(A_, B_, C_) PA_CHECK_VERSION(A_, B_, C_)
@@ -57,8 +58,8 @@ static void destroy(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
     free(p->sink_name);
-    close(p->pipefds[0]);
-    close(p->pipefds[1]);
+    ls_close(p->pipefds[0]);
+    ls_close(p->pipefds[1]);
     free(p);
 }
 

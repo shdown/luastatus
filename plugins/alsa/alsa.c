@@ -36,6 +36,7 @@
 #include "libls/poll_utils.h"
 #include "libls/evloop_lfuncs.h"
 #include "libls/time_utils.h"
+#include "libls/io_utils.h"
 
 typedef struct {
     char *card;
@@ -51,8 +52,8 @@ static void destroy(LuastatusPluginData *pd)
     Priv *p = pd->priv;
     free(p->card);
     free(p->channel);
-    close(p->pipefds[0]);
-    close(p->pipefds[1]);
+    ls_close(p->pipefds[0]);
+    ls_close(p->pipefds[1]);
     free(p);
 }
 

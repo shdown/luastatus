@@ -128,13 +128,13 @@ typedef struct {
 
 static inline void client_drop(Client *c)
 {
-    close(c->fd);
+    ls_close(c->fd);
     c->fd = -1;
 }
 
 static inline void client_destroy(Client *c)
 {
-    close(c->fd);
+    ls_close(c->fd);
     ls_string_free(c->buf);
 }
 
@@ -285,7 +285,7 @@ static int mk_server(LuastatusPluginData *pd)
     return sockfd;
 
 error:
-    close(sockfd);
+    ls_close(sockfd);
     return -1;
 }
 
@@ -379,7 +379,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     }
 
 error:
-    close(sockfd);
+    ls_close(sockfd);
     server_state_destroy(&st);
 }
 

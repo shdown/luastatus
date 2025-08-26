@@ -36,6 +36,7 @@
 #include "libls/time_utils.h"
 #include "libls/tls_ebuf.h"
 #include "libls/poll_utils.h"
+#include "libls/io_utils.h"
 
 typedef struct {
     LSStringArray paths;
@@ -190,7 +191,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     }
 
 error:
-    close(fifo_fd);
+    ls_close(fifo_fd);
 }
 
 LuastatusPluginIface luastatus_plugin_iface_v1 = {

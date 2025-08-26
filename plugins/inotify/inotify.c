@@ -37,6 +37,7 @@
 #include "libls/tls_ebuf.h"
 #include "libls/poll_utils.h"
 #include "libls/evloop_lfuncs.h"
+#include "libls/io_utils.h"
 
 #include "inotify_compat.h"
 
@@ -82,7 +83,7 @@ typedef struct {
 static void destroy(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
-    close(p->fd);
+    ls_close(p->fd);
     watch_list_free(&p->init_watch);
     ls_pushed_timeout_destroy(&p->pushed_tmo);
     free(p);

@@ -21,6 +21,7 @@
 #define ls_io_utils_h_
 
 #include <fcntl.h>
+#include <unistd.h>
 #include <errno.h>
 
 #include "compdep.h"
@@ -53,6 +54,14 @@ LS_INHEADER int ls_make_nonblock(int fd)
         return -1;
     }
     return fd;
+}
+
+LS_INHEADER int ls_close(int fd)
+{
+    if (fd < 0) {
+        return 0;
+    }
+    return close(fd);
 }
 
 #endif

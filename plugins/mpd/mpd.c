@@ -39,6 +39,7 @@
 #include "libls/time_utils.h"
 #include "libls/poll_utils.h"
 #include "libls/strarr.h"
+#include "libls/io_utils.h"
 
 #include "connect.h"
 #include "proto.h"
@@ -431,9 +432,10 @@ static void interact(
     }
 
 done:
-    if (ctx.f)
+    if (ctx.f) {
         fclose(ctx.f);
-    close(fd_to_close);
+    }
+    ls_close(fd_to_close);
     free(ctx.buf);
     ls_strarr_destroy(kv_song);
     ls_strarr_destroy(kv_status);
@@ -475,7 +477,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     }
 
 error:
-    close(retry_fifo_fd);
+    ls_close(retry_fifo_fd);
 }
 
 LuastatusPluginIface luastatus_plugin_iface_v1 = {

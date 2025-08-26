@@ -44,13 +44,15 @@
 static void destroy(LuastatusBarlibData *bd)
 {
     Priv *p = bd->priv;
-    for (size_t i = 0; i < p->nwidgets; ++i)
+    for (size_t i = 0; i < p->nwidgets; ++i) {
         ls_string_free(p->bufs[i]);
+    }
     free(p->bufs);
     ls_string_free(p->tmpbuf);
-    close(p->in_fd);
-    if (p->out)
+    ls_close(p->in_fd);
+    if (p->out) {
         fclose(p->out);
+    }
     free(p);
 }
 

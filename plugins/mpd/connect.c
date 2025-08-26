@@ -36,6 +36,7 @@
 #include "libls/tls_ebuf.h"
 #include "libls/osdep.h"
 #include "libls/panic.h"
+#include "libls/io_utils.h"
 
 int unixdom_open(LuastatusPluginData *pd, const char *path)
 {
@@ -59,7 +60,7 @@ int unixdom_open(LuastatusPluginData *pd, const char *path)
     }
     return fd;
 error:
-    close(fd);
+    ls_close(fd);
     return -1;
 }
 

@@ -26,6 +26,7 @@
 #include <sys/stat.h>
 
 #include "time_utils.h"
+#include "io_utils.h"
 #include "panic.h"
 
 int ls_poll(struct pollfd *fds, nfds_t nfds, double tmo)
@@ -80,7 +81,7 @@ int ls_fifo_open(int *fd, const char *fifo)
 
 error:
     saved_errno = errno;
-    close(*fd);
+    ls_close(*fd);
     *fd = -1;
     errno = saved_errno;
     return -1;

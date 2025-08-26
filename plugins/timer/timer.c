@@ -31,6 +31,7 @@
 #include "libls/tls_ebuf.h"
 #include "libls/poll_utils.h"
 #include "libls/evloop_lfuncs.h"
+#include "libls/io_utils.h"
 
 typedef struct {
     double period;
@@ -116,7 +117,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     }
 
 error:
-    close(fifo_fd);
+    ls_close(fifo_fd);
 }
 
 LuastatusPluginIface luastatus_plugin_iface_v1 = {
