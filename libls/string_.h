@@ -189,11 +189,16 @@ LSString ls_string_newz_from_f(const char *fmt, ...)
     return x;
 }
 
-LS_INHEADER bool ls_string_eq(LSString x, LSString y)
+LS_INHEADER bool ls_string_eq_b(LSString x, const char *buf, size_t nbuf)
 {
     // We have to check that the size is not zero before calling /memcmp/:
     // see DOCS/c_notes/empty-ranges-and-c-stdlib.md
-    return x.size == y.size && (x.size == 0 || memcmp(x.data, y.data, x.size) == 0);
+    return x.size == nbuf && (nbuf == 0 || memcmp(x.data, buf, nbuf) == 0);
+}
+
+LS_INHEADER bool ls_string_eq(LSString x, LSString y)
+{
+    return ls_string_eq_b(x, y.data, y.size);
 }
 
 // Swaps two string efficiently (in O(1) time).
