@@ -23,7 +23,7 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <assert.h>
-#include <limits.h>
+#include <sys/types.h>
 #include <stdbool.h>
 #include <pulse/pulseaudio.h>
 #include <pulse/version.h>

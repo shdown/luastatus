@@ -25,6 +25,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <stdbool.h>
+#include <lua.h>
 #include <lauxlib.h>
 
 void push_escaped(lua_State *L, const char *s, size_t ns)

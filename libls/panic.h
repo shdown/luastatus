@@ -21,7 +21,6 @@
 #define ls_panic_h_
 
 #include <stdio.h>
-#include <stdlib.h>
 
 // Logs /Msg_/ and aborts.
 #define LS_PANIC(Msg_) \

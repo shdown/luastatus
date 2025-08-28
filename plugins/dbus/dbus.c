@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+#include <glib-object.h>
 
 #include "libls/alloc_utils.h"
 #include "libls/time_utils.h"

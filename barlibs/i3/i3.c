@@ -22,7 +22,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
-#include <unistd.h>
 #include <lua.h>
 #include <lauxlib.h>
 
@@ -35,7 +34,6 @@
 #include "libls/cstring_utils.h"
 #include "libls/tls_ebuf.h"
 #include "libls/io_utils.h"
-#include "libls/osdep.h"
 
 #include "priv.h"
 #include "generator_utils.h"

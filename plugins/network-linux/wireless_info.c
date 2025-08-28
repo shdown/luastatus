@@ -28,8 +28,13 @@
 #include <netlink/netlink.h>
 #include <netlink/genl/genl.h>
 #include <netlink/genl/ctrl.h>
+#include <netlink/attr.h>
+#include <netlink/handlers.h>
+#include <netlink/msg.h>
+#include <netlink/socket.h>
 #include <linux/nl80211.h>
 #include <linux/if_ether.h>
+#include <linux/netlink.h>
 
 // Adapted from i3status/src/print_wireless_info.c
 

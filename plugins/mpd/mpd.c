@@ -35,6 +35,7 @@
 
 #include "libls/string_.h"
 #include "libls/alloc_utils.h"
+#include "libls/cstring_utils.h"
 #include "libls/tls_ebuf.h"
 #include "libls/time_utils.h"
 #include "libls/poll_utils.h"

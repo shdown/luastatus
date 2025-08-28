@@ -18,9 +18,10 @@
  */
 
 #include <lua.h>
-#include <asm/types.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/time.h>
+#include <sys/uio.h>
 #include <ifaddrs.h>
 #include <netdb.h>
 #include <linux/netlink.h>
@@ -31,6 +32,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <netinet/in.h>
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"

@@ -22,8 +22,11 @@
 #include <X11/X.h>
 #include <X11/Xlib.h>
 #include <X11/extensions/XKB.h>
+#include <X11/extensions/XKBstr.h>
 #include <X11/XKBlib.h>
-
+#include <stdbool.h>
+#include <string.h>
+#include <stdlib.h>
 #include "libls/alloc_utils.h"
 
 char *somehow_fetch_symbols(Display *dpy, uint64_t deviceid)

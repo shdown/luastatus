@@ -21,6 +21,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"

@@ -19,6 +19,8 @@
 
 #include "event_watcher.h"
 
+#include <stdlib.h>
+#include <sys/types.h>
 #include <stdbool.h>
 #include <lua.h>
 #include <yajl/yajl_parse.h>
@@ -33,6 +35,7 @@
 #include "libls/parse_int.h"
 #include "libls/strarr.h"
 #include "libls/compdep.h"
+#include "libls/alloc_utils.h"
 
 #include "priv.h"
 

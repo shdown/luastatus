@@ -20,6 +20,7 @@
 #include <lua.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"

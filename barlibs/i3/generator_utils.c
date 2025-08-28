@@ -21,6 +21,7 @@
 
 #include <math.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 void append_json_escaped_s(LSString *s, const char *zts)
 {

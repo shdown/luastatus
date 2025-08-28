@@ -24,6 +24,7 @@
 #include <stdio.h>
 
 #include "libls/compdep.h"
+#include "libls/cstring_utils.h"
 
 typedef enum {
     RESP_OK,

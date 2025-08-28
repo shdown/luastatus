@@ -43,6 +43,7 @@
 typedef struct {
     char *dpyname;
     bool visible;
+    bool extended_fmt;
 } Priv;
 
 static void destroy(LuastatusPluginData *pd)
@@ -58,6 +59,7 @@ static int init(LuastatusPluginData *pd, lua_State *L)
     *p = (Priv) {
         .dpyname = NULL,
         .visible = false,
+        .extended_fmt = false,
     };
     char errbuf[256];
     MoonVisit mv = {.L = L, .errbuf = errbuf, .nerrbuf = sizeof(errbuf)};
@@ -68,6 +70,10 @@ static int init(LuastatusPluginData *pd, lua_State *L)
 
     // Parse visible
     if (moon_visit_bool(&mv, -1, "visible", &p->visible, true) < 0)
+        goto mverror;
+
+    // Parse extended_fmt
+    if (moon_visit_bool(&mv, -1, "extended_fmt", &p->extended_fmt, true) < 0)
         goto mverror;
 
     return LUASTATUS_OK;
@@ -86,6 +92,7 @@ typedef struct {
     xcb_window_t root;
     int screenp;
     bool visible;
+    bool extended_fmt;
 } Data;
 
 static inline void do_watch(Data *d, xcb_window_t win, bool state)
@@ -160,11 +167,63 @@ static bool push_window_title(Data *d, lua_State *L, xcb_window_t win)
     return false;
 }
 
-static inline void push_arg(Data *d, lua_State *L, xcb_window_t win)
+static inline void push_window_title_or_nil(Data *d, lua_State *L, xcb_window_t win)
 {
     if (!push_window_title(d, L, win)) {
         lua_pushnil(L);
     }
+}
+
+static bool push_window_class_and_instance(Data *d, lua_State *L, xcb_window_t win)
+{
+    if (win == XCB_NONE) {
+        return false;
+    }
+
+    xcb_get_property_cookie_t cookie =
+        xcb_icccm_get_wm_class(d->conn, win);
+
+    xcb_icccm_get_wm_class_reply_t prop;
+    if (!xcb_icccm_get_wm_class_reply(d->conn, cookie, &prop, NULL)) {
+        return false;
+    }
+
+    const char *class_name = prop.class_name;
+    if (!class_name) {
+        class_name = "";
+    }
+    lua_pushstring(L, class_name); // L: class
+
+    const char *instance_name = prop.instance_name;
+    if (!instance_name) {
+        instance_name = "";
+    }
+    lua_pushstring(L, instance_name); // L: instance
+
+    xcb_icccm_get_wm_class_reply_wipe(&prop);
+
+    return true;
+}
+
+static void push_arg(Data *d, lua_State *L, xcb_window_t win)
+{
+    if (!d->extended_fmt) {
+        push_window_title_or_nil(d, L, win); // L: title
+        return;
+    }
+
+    lua_createtable(L, 0, 3); // L: table
+
+    push_window_title_or_nil(d, L, win); // L: table title
+    lua_setfield(L, -2, "title"); // L: table
+
+    if (!push_window_class_and_instance(d, L, win)) {
+        lua_pushnil(L); // L: table nil
+        lua_pushnil(L); // L: table nil nil
+    }
+    // L: table class instance
+    lua_setfield(L, -3, "instance"); // L: table class
+    lua_setfield(L, -2, "class"); // L: table
 }
 
 // updates /*win/ and /*last_win/ if the active window was changed
@@ -219,6 +278,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         .ewmh = LS_XNEW(xcb_ewmh_connection_t, 1),
         .ewmh_inited = false,
         .visible = p->visible,
+        .extended_fmt = p->extended_fmt,
     };
     int err;
 

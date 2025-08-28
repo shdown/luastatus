@@ -20,7 +20,6 @@
 #include "moonvisit.h"
 
 #include <lua.h>
-#include <lauxlib.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdint.h>

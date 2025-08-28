@@ -21,6 +21,8 @@
 #include <X11/Xlib.h>
 #include <X11/extensions/XKB.h>
 #include <X11/XKBlib.h>
+#include <X11/extensions/XKBstr.h>
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -34,6 +36,7 @@
 
 #include "libls/alloc_utils.h"
 #include "libls/strarr.h"
+#include "libls/compdep.h"
 
 #include "wrongly.h"
 #include "somehow.h"

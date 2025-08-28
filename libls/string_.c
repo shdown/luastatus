@@ -19,7 +19,6 @@
 
 #include "string_.h"
 
-#include <assert.h>
 #include <stdio.h>
 #include <errno.h>
 #include <stdarg.h>

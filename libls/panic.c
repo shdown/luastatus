@@ -18,7 +18,7 @@
  */
 
 #include "panic.h"
-
+#include <stdlib.h>
 #include "cstring_utils.h"
 
 void ls_pth_check_impl(int ret, const char *expr, const char *file, int line)

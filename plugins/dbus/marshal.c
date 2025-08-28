@@ -20,12 +20,13 @@
 #include "marshal.h"
 
 #include "libls/compdep.h"
-#include "libls/panic.h"
 
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include <glib/gtypes.h>
+#include <lua.h>
 
 static int l_special_object(lua_State *L)
 {
