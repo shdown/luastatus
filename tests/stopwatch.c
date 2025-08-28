@@ -127,4 +127,6 @@ int main(int argc, char **argv)
         perror("stopwatch: getline");
         abort();
     }
+    free(buf);
+    return 0;
 }
