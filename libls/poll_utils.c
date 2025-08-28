@@ -19,6 +19,7 @@
 
 #include "poll_utils.h"
 
+#include <stddef.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>

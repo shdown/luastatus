@@ -20,7 +20,7 @@
 #ifndef ls_strarr_h_
 #define ls_strarr_h_
 
-#include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "string_.h"

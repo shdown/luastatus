@@ -6,7 +6,7 @@ set -e
 set -o pipefail
 
 check_dir=${1?}; shift
-extra_cflags=("$@")
+extra_cflags=( -D_POSIX_C_SOURCE=200809L "$@" )
 
 luastatus_dir="$check_dir"
 luastatus_dir_found=0

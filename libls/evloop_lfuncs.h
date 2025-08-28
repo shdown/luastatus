@@ -20,10 +20,12 @@
 #ifndef ls_evloop_lfuncs_h_
 #define ls_evloop_lfuncs_h_
 
-#include <lua.h>
-#include <lauxlib.h>
+#include <stddef.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <lua.h>
+#include <lauxlib.h>
 #include "compdep.h"
 #include "panic.h"
 #include "osdep.h"
