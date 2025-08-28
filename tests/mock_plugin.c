@@ -50,8 +50,9 @@ static int init(LuastatusPluginData *pd, lua_State *L)
     MoonVisit mv = {.L = L, .errbuf = errbuf, .nerrbuf = sizeof(errbuf)};
 
     // Parse make_calls
-    if (moon_visit_uint(&mv, -1, "make_calls", &p->ncalls, true) < 0)
+    if (moon_visit_uint(&mv, -1, "make_calls", &p->ncalls, true) < 0) {
         goto mverror;
+    }
 
     return LUASTATUS_OK;
 

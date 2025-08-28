@@ -288,9 +288,11 @@ static void **map_get(void *userdata, const char *key)
         abort();
     }
 
-    for (MapEntry *e = map.top; e; e = e->next)
-        if (strcmp(key, e->key) == 0)
+    for (MapEntry *e = map.top; e; e = e->next) {
+        if (strcmp(key, e->key) == 0) {
             return &e->value;
+        }
+    }
 
     // Not found; create a new entry with /NULL/ value.
     size_t nkey = strlen(key);

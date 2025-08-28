@@ -76,8 +76,9 @@ LS_INHEADER double ls_pushed_timeout_fetch(LSPushedTimeout *p, double alt)
 LS_INHEADER int ls_pushed_timeout_lfunc(lua_State *L)
 {
     double arg = luaL_checknumber(L, 1);
-    if (!(arg >= 0))
+    if (!(arg >= 0)) {
         return luaL_error(L, "invalid timeout");
+    }
 
     LSPushedTimeout *p = lua_touserdata(L, lua_upvalueindex(1));
 
@@ -142,8 +143,9 @@ LS_INHEADER int ls_self_pipe_lfunc(lua_State *L)
     int *fds = lua_touserdata(L, lua_upvalueindex(1));
 
     int fd = fds[1];
-    if (fd < 0)
+    if (fd < 0) {
         return luaL_error(L, "self-pipe has not been opened");
+    }
 
     ssize_t unused = write(fd, "", 1); // write '\0'
     (void) unused;

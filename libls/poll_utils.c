@@ -58,19 +58,23 @@ int ls_fifo_open(int *fd, const char *fifo)
 {
     int saved_errno;
 
-    if (*fd >= 0)
+    if (*fd >= 0) {
         return 0;
+    }
 
-    if (!fifo)
+    if (!fifo) {
         return 0;
+    }
 
     *fd = open(fifo, O_RDONLY | O_CLOEXEC | O_NONBLOCK);
-    if (*fd < 0)
+    if (*fd < 0) {
         goto error;
+    }
 
     struct stat sb;
-    if (fstat(*fd, &sb) < 0)
+    if (fstat(*fd, &sb) < 0) {
         goto error;
+    }
 
     if (!S_ISFIFO(sb.st_mode)) {
         errno = -EINVAL;

@@ -337,8 +337,9 @@ int main(int argc, char **argv)
     int argi = 1;
     for (; argi < argc; ++argi) {
         const char *arg = argv[argi];
-        if (arg[0] != '-')
+        if (arg[0] != '-') {
             break;
+        }
         bool *out = NULL;
         for (FlagOption *o = flag_options; o->out; ++o) {
             if (strcmp(arg, o->name) == 0) {

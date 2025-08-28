@@ -32,11 +32,13 @@ int main()
         return 1;
     }
     for (struct ifaddrs *p = nets; p; p = p->ifa_next) {
-        if (!p->ifa_addr)
+        if (!p->ifa_addr) {
             continue;
+        }
         int family = p->ifa_addr->sa_family;
-        if (family != AF_INET && family != AF_INET6)
+        if (family != AF_INET && family != AF_INET6) {
             continue;
+        }
         char host[1025];
         int r = getnameinfo(
             p->ifa_addr,

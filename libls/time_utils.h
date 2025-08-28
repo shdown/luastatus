@@ -72,10 +72,12 @@ LS_INHEADER double ls_now(void)
 
 LS_INHEADER struct timespec ls_tmo_to_ts(double tmo)
 {
-    if (!(tmo >= 0))
+    if (!(tmo >= 0)) {
         tmo = 0;
-    if (tmo > LS_TMO_MAX)
+    }
+    if (tmo > LS_TMO_MAX) {
         tmo = LS_TMO_MAX;
+    }
     return (struct timespec) {
         .tv_sec = tmo,
         .tv_nsec = (tmo - (time_t) tmo) * 1e9,
@@ -84,10 +86,12 @@ LS_INHEADER struct timespec ls_tmo_to_ts(double tmo)
 
 LS_INHEADER struct timeval ls_tmo_to_tv(double tmo)
 {
-    if (!(tmo >= 0))
+    if (!(tmo >= 0)) {
         tmo = 0;
-    if (tmo > LS_TMO_MAX)
+    }
+    if (tmo > LS_TMO_MAX) {
         tmo = LS_TMO_MAX;
+    }
     return (struct timeval) {
         .tv_sec = tmo,
         .tv_usec = (tmo - (time_t) tmo) * 1e6,
@@ -96,10 +100,12 @@ LS_INHEADER struct timeval ls_tmo_to_tv(double tmo)
 
 LS_INHEADER int ls_tmo_to_ms(double tmo)
 {
-    if (tmo != tmo)
+    if (tmo != tmo) {
         return 0;
-    if (tmo < 0.0)
+    }
+    if (tmo < 0.0) {
         return -1;
+    }
     double ms = tmo * 1000;
     return ms > INT_MAX ? INT_MAX : ms;
 }

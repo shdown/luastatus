@@ -40,8 +40,9 @@ static void oom_handler(void)
 // Returns number of bytes written, not including terminating NUL.
 static size_t write_str(char *dst, size_t ndst, const char *src)
 {
-    if (!ndst)
+    if (!ndst) {
         return 0;
+    }
     size_t ncopy = strnlen(src, ndst - 1);
     memcpy(dst, src, ncopy);
     dst[ncopy] = '\0';
@@ -151,8 +152,9 @@ int moon_visit_str(
     const char *s = lua_tolstring(mv->L, -1, &ns);
 
     char *buf = malloc(ns + 1);
-    if (!buf)
+    if (!buf) {
         oom_handler();
+    }
     memcpy(buf, s, ns + 1);
 
     *ps = buf;

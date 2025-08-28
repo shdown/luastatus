@@ -38,7 +38,11 @@
 LS_INHEADER int ls_make_cloexec(int fd)
 {
     int flags = fcntl(fd, F_GETFD);
-    if (flags < 0 || fcntl(fd, F_SETFD, flags | FD_CLOEXEC) < 0) {
+    if (flags < 0) {
+        return -1;
+    }
+    flags |= FD_CLOEXEC;
+    if (fcntl(fd, F_SETFD, flags) < 0) {
         return -1;
     }
     return fd;
@@ -50,7 +54,11 @@ LS_INHEADER int ls_make_cloexec(int fd)
 LS_INHEADER int ls_make_nonblock(int fd)
 {
     int flags = fcntl(fd, F_GETFL);
-    if (flags < 0 || fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0) {
+    if (flags < 0) {
+        return -1;
+    }
+    flags |= O_NONBLOCK;
+    if (fcntl(fd, F_SETFL, flags) < 0) {
         return -1;
     }
     return fd;

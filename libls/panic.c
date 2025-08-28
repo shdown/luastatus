@@ -23,8 +23,9 @@
 
 void ls_pth_check_impl(int ret, const char *expr, const char *file, int line)
 {
-    if (ret == 0)
+    if (ret == 0) {
         return;
+    }
 
     char buf[512];
     fprintf(stderr, "LS_PTH_CHECK(%s) failed at %s:%d, reason: %s\nAborting.\n",
