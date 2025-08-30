@@ -10,8 +10,8 @@
 
 Overview
 ========
-This plugin acts as a UNIX domain socket server, accpeting incoming connections and making a call
-when a client produces a line.
+This plugin acts as a UNIX domain socket server (STREAM, not DGRAM or SEQPACKET), accepting
+incoming connections and making a call when a client produces a line.
 
 In order to have it make a call, connect to the UNIX socket and send a line to it.
 From a command line, this can be done with, e.g.::
