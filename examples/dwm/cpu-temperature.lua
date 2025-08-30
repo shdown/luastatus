@@ -24,6 +24,14 @@ done
         table.insert(paths, p)
     end
     f:close()
+
+    -- numeric sort
+    local function extract_first_number(s)
+        return tonumber(s:match('[0-9]+') or '-1')
+    end
+    table.sort(paths, function(a, b)
+        return extract_first_number(a) < extract_first_number(b)
+    end)
 end
 
 widget = {
