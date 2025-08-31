@@ -1,11 +1,20 @@
 #!/usr/bin/env bash
 
 # USAGE: check_includes.sh DIRECTORY [EXTRA CFLAGS...]
+# Requires 'include-what-you-use' tool.
 
 set -e
 set -o pipefail
 
-check_dir=${1?}; shift
+check_entity=${1?}; shift
+if [[ -d $check_entity ]]; then
+    check_dir=$check_entity
+    check_file=
+else
+    check_dir=$(dirname -- "$check_entity")
+    check_file=$check_entity
+fi
+
 extra_cflags=( -D_POSIX_C_SOURCE=200809L "$@" )
 
 luastatus_dir="$check_dir"
@@ -55,9 +64,17 @@ my_filter() {
 
 cflags=$(pkg-config --cflags ${LUA_LIB:-lua} "${modules[@]}")
 
-find "$check_dir" -name '*.[ch]' | while IFS= read -r src_file; do
-    if [[ $src_file == *.in.h ]]; then
-        continue
-    fi
-    include-what-you-use -I"$luastatus_dir" $cflags "${extra_cflags[@]}" "$src_file" 2>&1 | my_filter
-done
+do_check_specific_file() {
+    include-what-you-use -I"$luastatus_dir" $cflags "${extra_cflags[@]}" "$1" 2>&1 | my_filter
+}
+
+if [[ -n $check_file ]]; then
+    do_check_specific_file "$check_file"
+else
+    find "$check_dir" -name '*.[ch]' | while IFS= read -r src_file; do
+        if [[ $src_file == *.in.h ]]; then
+            continue
+        fi
+        do_check_specific_file "$src_file"
+    done
+fi
