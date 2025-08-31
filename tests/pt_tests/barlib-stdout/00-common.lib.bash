@@ -1,4 +1,5 @@
 main_fifo_file=./tmp-fifo-main
+in_fifo_file=./tmp-fifo-main-ev-input
 
 x_spawn_luastatus() {
     pt_spawn_luastatus_for_barlib_test_via_runner \

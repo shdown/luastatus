@@ -50,19 +50,24 @@ typedef struct {
 
     // /fdopen/'ed output file descriptor.
     FILE *out;
+
+    char *in_filename;
 } Priv;
 
 static void destroy(LuastatusBarlibData *bd)
 {
     Priv *p = bd->priv;
-    for (size_t i = 0; i < p->nwidgets; ++i)
+    for (size_t i = 0; i < p->nwidgets; ++i) {
         ls_string_free(p->bufs[i]);
+    }
     free(p->bufs);
     ls_string_free(p->tmpbuf);
     free(p->sep);
     free(p->error);
-    if (p->out)
+    if (p->out) {
         fclose(p->out);
+    }
+    free(p->in_filename);
     free(p);
 }
 
@@ -83,6 +88,7 @@ static int init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidget
     // All the options may be passed multiple times!
     const char *sep = NULL;
     const char *error = NULL;
+    const char *in_filename = NULL;
     int out_fd = -1;
     for (const char *const *s = opts; *s; ++s) {
         const char *v;
@@ -95,6 +101,8 @@ static int init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidget
             sep = v;
         } else if ((v = ls_strfollow(*s, "error="))) {
             error = v;
+        } else if ((v = ls_strfollow(*s, "in_filename="))) {
+            in_filename = v;
         } else {
             LS_FATALF(bd, "unknown option '%s'", *s);
             goto error;
@@ -102,6 +110,7 @@ static int init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidget
     }
     p->sep = ls_xstrdup(sep ? sep : " | ");
     p->error = ls_xstrdup(error ? error : "(Error)");
+    p->in_filename = in_filename ? ls_xstrdup(in_filename) : NULL;
 
     // we require /out_fd/ to be >=3 because making stdin/stdout/stderr CLOEXEC has very bad
     // consequences, and we just don't want to complicate the logic.
@@ -236,9 +245,63 @@ static int set_error(LuastatusBarlibData *bd, size_t widget_idx)
     return LUASTATUS_OK;
 }
 
+static int event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
+{
+    Priv *p = bd->priv;
+
+    if (!p->in_filename) {
+        LS_INFOF(bd, "event watcher: in_filename was not specified, returning");
+        return LUASTATUS_NONFATAL_ERR;
+    }
+
+    char *line = NULL;
+    FILE *f = NULL;
+    int fd = open(p->in_filename, O_RDONLY | O_CLOEXEC);
+    if (fd < 0) {
+        LS_FATALF(bd, "event watcher: open: %s: %s", p->in_filename, ls_tls_strerror(errno));
+        goto error;
+    }
+
+    if (!(f = fdopen(fd, "r"))) {
+        LS_FATALF(bd, "event watcher: fdopen: %s", ls_tls_strerror(errno));
+        goto error;
+    }
+    fd = -1;
+
+    size_t line_buf_n = 1024;
+    ssize_t line_n;
+    while ((line_n = getline(&line, &line_buf_n, f)) > 0) {
+
+        if (line_n && line[line_n - 1] == '\n') {
+            --line_n;
+        }
+
+        for (size_t i = 0; i < p->nwidgets; ++i) {
+            lua_State *L = funcs.call_begin(bd->userdata, i);
+            lua_pushlstring(L, line, line_n);
+            funcs.call_end(bd->userdata, i);
+        }
+    }
+
+    if (feof(f)) {
+        LS_FATALF(bd, "event watcher: the other end of pipe/FIFO/something has been closed");
+    } else {
+        LS_FATALF(bd, "event watcher: I/O error: %s", ls_tls_strerror(errno));
+    }
+
+error:
+    free(line);
+    if (f) {
+        fclose(f);
+    }
+    ls_close(fd);
+    return LUASTATUS_ERR;
+}
+
 LuastatusBarlibIface luastatus_barlib_iface_v1 = {
     .init = init,
     .set = set,
     .set_error = set_error,
+    .event_watcher = event_watcher,
     .destroy = destroy,
 };
