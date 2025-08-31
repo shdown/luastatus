@@ -10,7 +10,7 @@
 
 Overview
 ========
-This plugin monitors active window title.
+This plugin monitors the title of the active window.
 
 Options
 =======
@@ -23,6 +23,15 @@ Options
 
     If true, try to retrieve the title from the ``_NET_WM_VISIBLE_NAME`` atom. Default is false.
 
+* ``extended_fmt``: boolean (defaults to false)
+
+    If true, *class* and *instance* of the active window will also be reported;
+    the argument to ``cb`` will be a table instead of string or nil.
+
 ``cb`` argument
 ===============
-String with title of active window, or ``nil`` if there is no one.
+If ``extended_fmt`` option was not enabled (this is the default), the argument is a string
+with the title of the active window, or ``nil`` if there is no active window.
+
+If ``extended_fmt`` is enabled, the argument will be a table with keys
+``class``, ``instance`` and ``title``. All values are strings or ``nil`` if there is no active window.
