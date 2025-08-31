@@ -1,12 +1,17 @@
 x_mpd_simple_template() {
     local bind_params=$1
     local expect_error_in_beginning=$2
+    local enable_tcp_keepalive=${3:-0}
 
     local extra_opts=
     if [[ -n "$bind_params" ]]; then
         local bind_ipver=${bind_params%%/*}
         local bind_addr=${bind_params#*/}
         extra_opts="bind = {addr='$bind_addr', ipver='$bind_ipver'},"
+    fi
+
+    if (( enable_tcp_keepalive )); then
+        extra_opts+='enable_tcp_keepalive = true,'
     fi
 
     fakempd_spawn

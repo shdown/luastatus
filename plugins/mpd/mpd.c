@@ -27,6 +27,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <sys/socket.h>
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
@@ -54,6 +55,7 @@ typedef struct {
     char *retry_fifo;
     LSString idle_str;
 
+    bool enable_tcp_keepalive;
     char *bind_addr;
     int bind_addr_family;
 } Priv;
@@ -146,6 +148,7 @@ static int init(LuastatusPluginData *pd, lua_State *L)
         .retry_tmo = 10,
         .retry_fifo = NULL,
         .idle_str = ls_string_new_from_s("idle"),
+        .enable_tcp_keepalive = false,
         .bind_addr = NULL,
         .bind_addr_family = FAMILY_NONE,
     };
@@ -183,6 +186,11 @@ static int init(LuastatusPluginData *pd, lua_State *L)
     // Parse retry_fifo
     if (moon_visit_str(&mv, -1, "retry_fifo", &p->retry_fifo, NULL, true) < 0)
         goto mverror;
+
+    // Parse enable_tcp_keepalive
+    if (moon_visit_bool(&mv, -1, "enable_tcp_keepalive", &p->enable_tcp_keepalive, true) < 0) {
+        goto mverror;
+    }
 
     // Parse bind
     if (parse_bind_params(p, &mv, -1) < 0) {
@@ -442,6 +450,14 @@ done:
     ls_strarr_destroy(kv_status);
 }
 
+static void do_enable_tcp_keepalive(LuastatusPluginData *pd, int fd)
+{
+    int value = 1;
+    if (setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &value, sizeof(value)) < 0) {
+        LS_WARNF(pd, "setsockopt: SO_KEEPALIVE: %s", ls_tls_strerror(errno));
+    }
+}
+
 static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
@@ -454,13 +470,25 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     while (1) {
         report_status(pd, funcs, "connecting");
 
-        int fd = (p->hostname && p->hostname[0] == '/')
-            ? unixdom_open(pd, p->hostname)
-            : inetdom_open(pd, p->hostname, portstr, p->bind_addr, p->bind_addr_family);
+        int fd;
+        if (p->hostname && p->hostname[0] == '/') {
+            fd = unixdom_open(pd, p->hostname);
+            if (fd < 0) {
+                goto retry;
+            }
+        } else {
+            fd = inetdom_open(pd, p->hostname, portstr, p->bind_addr, p->bind_addr_family);
+            if (fd < 0) {
+                goto retry;
+            }
+            if (p->enable_tcp_keepalive) {
+                do_enable_tcp_keepalive(pd, fd);
+            }
+        }
 
-        if (fd >= 0)
-            interact(pd, funcs, fd);
+        interact(pd, funcs, fd);
 
+retry:
         if (p->retry_tmo < 0) {
             LS_FATALF(pd, "an error occurred; not retrying as requested");
             goto error;

@@ -48,6 +48,11 @@ Options
     https://www.musicpd.org/doc/html/protocol.html#querying-mpd-s-status for the complete list.
     Default is ``{"mixer","player"}``.
 
+* ``enable_tcp_keepalive``: bool
+
+    Whether or not to enable TCP keepalive. Defaults to ``false``.
+    This option is ignored if the plugin is configured to connect to a UNIX domain socket.
+
 * ``bind``: table
 
     If provided, the plugin will bind the (TCP, not UNIX) socket to a specific address.
