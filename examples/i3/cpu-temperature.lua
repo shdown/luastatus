@@ -1,13 +1,43 @@
+local function run_shell_and_numsort_lines_and_append_to(append_to, cmd)
+    -- run shell command, redirect output to pipe
+    local f = assert(io.popen(cmd))
+
+    -- read all lines from pipe
+    local r = {}
+    for line in f:lines() do
+        r[#r + 1] = line
+    end
+
+    -- close pipe
+    f:close()
+
+    -- numeric sort
+    local function extract_first_number(s)
+        return tonumber(s:match('[0-9]+') or '-1')
+    end
+    table.sort(r, function(a, b)
+        return extract_first_number(a) < extract_first_number(b)
+    end)
+
+    -- append results to 'append_to'
+    for _, line in ipairs(r) do
+        table.insert(append_to, line)
+    end
+end
+
 paths = {}
-do
-    -- Replace "*" with "[^0]*" in the first glob if your zeroeth thermal sensor is virtual (and
-    -- thus useless):
-    local f = assert(io.popen([[
+
+-- Replace "*" with "[^0]*" if your zeroeth thermal sensor is virtual (and
+-- thus useless):
+run_shell_and_numsort_lines_and_append_to(paths, [[
 for file in /sys/class/thermal/thermal_zone*/temp
 do
     [ -e "$file" ] || break
     printf "%s\n" "$file"
 done
+]])
+
+run_shell_and_numsort_lines_and_append_to(paths, [[
 for dir in /sys/class/hwmon/*
 do
     [ -e "$dir" ] || break
@@ -19,20 +49,7 @@ do
         printf "%s\n" "$dir"/temp*_input
     esac
 done
-]]))
-    for p in f:lines() do
-        table.insert(paths, p)
-    end
-    f:close()
-
-    -- numeric sort
-    local function extract_first_number(s)
-        return tonumber(s:match('[0-9]+') or '-1')
-    end
-    table.sort(paths, function(a, b)
-        return extract_first_number(a) < extract_first_number(b)
-    end)
-end
+]])
 
 COOL_TEMP = 50
 HEAT_TEMP = 75
