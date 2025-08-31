@@ -20,8 +20,6 @@
 #include <lua.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <time.h>
-#include <sys/time.h>
 
 #include "include/barlib_v1.h"
 #include "include/sayf_macros.h"
@@ -29,14 +27,13 @@
 #include "libls/alloc_utils.h"
 #include "libls/cstring_utils.h"
 #include "libls/parse_int.h"
-
-#include "minstd_prng.h"
+#include "libls/prng.h"
 
 typedef struct {
     size_t nwidgets;
     unsigned char *widgets;
     int nevents;
-    int32_t prng_seed;
+    int64_t prng_seed;
 } Priv;
 
 static void destroy(LuastatusBarlibData *bd)
@@ -55,6 +52,12 @@ static int init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidget
         .nevents = 0,
         .prng_seed = -1,
     };
+
+    if (nwidgets > (size_t) INT32_MAX) {
+        LS_FATALF(bd, "too many widgets");
+        goto error;
+    }
+
     for (const char *const *s = opts; *s; ++s) {
         const char *v;
         if ((v = ls_strfollow(*s, "gen_events="))) {
@@ -99,21 +102,6 @@ static int set_error(LuastatusBarlibData *bd, size_t widget_idx)
     return LUASTATUS_OK;
 }
 
-static uint32_t gen_prng_seed(void)
-{
-    struct timespec ts;
-    if (clock_gettime(CLOCK_REALTIME, &ts) < 0) {
-        goto fallback;
-    }
-
-    uint32_t s = ts.tv_sec;
-    uint32_t ns = ts.tv_nsec;
-    return s ^ ns;
-
-fallback:
-    return time(NULL);
-}
-
 static int event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
 {
     Priv *p = bd->priv;
@@ -122,11 +110,17 @@ static int event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
         return LUASTATUS_ERR;
     }
 
-    uint32_t seed = (p->prng_seed >= 0) ? (uint32_t) p->prng_seed : gen_prng_seed();
-    MinstdPRNG my_prng = minstd_prng_new(seed);
+    uint32_t seed;
+    if (p->prng_seed >= 0) {
+        seed = (uint32_t) p->prng_seed;
+    } else {
+        static const uint32_t SALT = 41744457;
+        seed = ls_prng_make_up_some_seed() ^ SALT;
+    }
+    LS_Prng my_prng = ls_prng_new(seed);
 
     for (int i = 0; i < p->nevents; ++i) {
-        size_t widget_idx = minstd_prng_next_u64(&my_prng) % p->nwidgets;
+        size_t widget_idx = ls_prng_next_limit_u32(&my_prng, p->nwidgets);
         lua_State *L = funcs.call_begin(bd->userdata, widget_idx);
         lua_pushnil(L);
         funcs.call_end(bd->userdata, widget_idx);
