@@ -341,6 +341,9 @@ pt_main() {
     else
         local d
         for d in ./pt_tests/*; do
+            if ! [[ -d $d ]]; then
+                continue
+            fi
             local x=${d##*/}
             if [[ -n "${args_skip[$x]}" ]]; then
                 echo >&2 "==> Skipping test suite '$d'."
