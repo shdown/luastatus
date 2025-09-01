@@ -12,7 +12,7 @@ Overview
 ========
 This plugin monitors network routing and link updates.
 It can report IP addresses used for outgoing connections by various network interfaces, information
-about a wireless connection, and speed of an ethernet connection.
+about a wireless connection, and the speed of an ethernet connection.
 
 Options
 =======

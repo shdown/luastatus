@@ -66,7 +66,7 @@ The following options are supported:
    Enable event watcher.
    If specified, this barlib will open the specified filename for reading
    and will read lines from it. Each line will be treated as an event.
-   The barlib will not try to interpret the content of the line; instead, the event
+   This barlib doesn't try to interpret the content of the line; instead, the event
    will be broadcast to all widgets. Thus, if this option is used, it is the
    responsibility of each widget (that listens to the events) to check if the event
    is somehow related to it.
