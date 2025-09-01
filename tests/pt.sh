@@ -88,12 +88,16 @@ pt_fail() {
     exit 1
 }
 
+pt_check() {
+    "$@" || pt_fail "pt_check($*) failed with code $?"
+}
+
 pt_write_widget_file() {
     local f
-    f=$(mktemp --suffix=.lua)
+    f=$(mktemp --suffix=.lua) || pt_fail "mktemp failed"
     PT_WIDGET_FILES+=("$f")
     PT_FILES_TO_REMOVE+=("$f")
-    cat > "$f"
+    cat > "$f" || pt_fail "cannot write widget file"
 }
 
 pt_add_file_to_remove() {
@@ -104,9 +108,13 @@ pt_add_dir_to_remove() {
     PT_DIRS_TO_REMOVE+=("$1")
 }
 
+pt_add_dirs_to_remove_inorder() {
+    PT_DIRS_TO_REMOVE+=("$@")
+}
+
 pt_add_fifo() {
-    rm -f "$1"
-    mkfifo "$1"
+    rm -f "$1" || true
+    mkfifo "$1" || pt_fail "mkfifo failed"
     pt_add_file_to_remove "$1"
 }
 
@@ -258,10 +266,10 @@ pt_testcase_end() {
 
     local x
     for x in "${PT_FILES_TO_REMOVE[@]}"; do
-        rm -f "$x"
+        rm -f "$x" || true
     done
     for x in "${PT_DIRS_TO_REMOVE[@]}"; do
-        rmdir "$x"
+        rmdir "$x" || true
     done
     PT_FILES_TO_REMOVE=()
     PT_DIRS_TO_REMOVE=()
@@ -278,7 +286,7 @@ trap '
 
 pt_run_test_case() {
     echo >&2 "==> Invoking file '$1'..."
-    source "$1"
+    source "$1" || pt_fail "'source' failed"
 }
 
 pt_run_test_suite() {

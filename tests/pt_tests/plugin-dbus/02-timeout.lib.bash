@@ -42,7 +42,7 @@ pt_expect_line 'cb {["what"]="hello"}' <&$pfd
 pt_expect_line 'cb {["what"]="timeout"}' <&$pfd
 
 for (( i = 0; i < 3; ++i )); do
-    dbus-send \
+    pt_check dbus-send \
         --session \
         /org/luastatus/sample/object/name \
         org.luastatus.ExampleInterface.ExampleMethod \

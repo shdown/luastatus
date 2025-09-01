@@ -7,8 +7,8 @@ pt_testcase_begin
 pt_spawn_thing_pipe pulsetalker "$PT_SOURCE_DIR"/tests/pulsetalker.sh "$sink_name"
 pt_expect_line 'ready' <&${PT_SPAWNED_THINGS_FDS_0[pulsetalker]}
 
-pacmd set-sink-mute "$sink_name" false
-pacmd set-sink-volume "$sink_name" 65536
+pt_check pacmd set-sink-mute "$sink_name" false
+pt_check pacmd set-sink-volume "$sink_name" 65536
 
 pt_add_fifo "$main_fifo_file"
 pt_write_widget_file <<__EOF__

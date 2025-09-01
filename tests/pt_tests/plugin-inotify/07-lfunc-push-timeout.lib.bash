@@ -4,7 +4,7 @@ pt_testcase_begin
 using_measure
 
 pt_add_fifo "$main_fifo_file"
-myfile=$(mktemp)
+myfile=$(mktemp) || pt_fail "'mktemp -d' failed"
 pt_add_file_to_remove "$myfile"
 pt_write_widget_file <<__EOF__
 f = assert(io.open('$main_fifo_file', 'w'))

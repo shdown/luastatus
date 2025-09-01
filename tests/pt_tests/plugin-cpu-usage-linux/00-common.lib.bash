@@ -25,10 +25,10 @@ cpu_usage_testcase() {
     pt_testcase_begin
     pt_add_fifo "$main_fifo_file"
 
-    local proc_dir; proc_dir=$(mktemp -d)
+    local proc_dir; proc_dir=$(mktemp -d) || pt_fail "'mktemp -d' failed"
     pt_add_dir_to_remove "$proc_dir"
     local stat_file=$proc_dir/stat
-    printf '%s' "$stat_content_1" > "$stat_file"
+    printf '%s' "$stat_content_1" > "$stat_file" || pt_fail 'cannot write stat_file'
     pt_add_file_to_remove "$stat_file"
     pt_write_widget_file <<__EOF__
 f = assert(io.open('$main_fifo_file', 'w'))

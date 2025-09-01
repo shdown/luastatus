@@ -2,8 +2,8 @@ pt_require_tools mktemp
 
 pt_testcase_begin
 pt_add_fifo "$main_fifo_file"
-myfile1=$(mktemp)
-myfile2=$(mktemp)
+myfile1=$(mktemp) || pt_fail 'mktemp failed'
+myfile2=$(mktemp) || pt_fail 'mktemp failed'
 pt_add_file_to_remove "$myfile1"
 pt_add_file_to_remove "$myfile2"
 pt_write_widget_file <<__EOF__

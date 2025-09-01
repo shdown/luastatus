@@ -34,7 +34,6 @@ exec {pfd}<"$main_fifo_file"
 pt_expect_line 'init' <&$pfd
 
 my_sender_process() {
-    set -e
     while true; do
         dbus-send \
             --session \
@@ -44,7 +43,8 @@ my_sender_process() {
             array:string:"1st item","next item","last item" \
             dict:string:int32:"one",1,"two",2,"three",3 \
             variant:int32:-8 \
-            objpath:/org/luastatus/sample/object/name
+            objpath:/org/luastatus/sample/object/name \
+                || exit $?
         sleep 2
     done
 }

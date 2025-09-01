@@ -1,6 +1,6 @@
 pt_require_tools mktemp
 
-stage_dir=$(mktemp -d)
+stage_dir=$(mktemp -d) || pt_fail "'mktemp -d' failed"
 stage_subdir=$stage_dir/subdir
 actor_file_1=$stage_dir/foo1
 actor_file_2=$stage_dir/foo2
