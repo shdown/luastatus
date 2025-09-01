@@ -50,6 +50,9 @@ Plugin 'network-linux' has the following dependencies:
 * libnl >=3.0
 * libnl-genl >=3.0
 
+Plugin 'network-rate-linux' has the following dependencies:
+* plugin 'timer'
+
 Plugin 'pipe' has the following dependencies:
 * plugin 'timer'
 
