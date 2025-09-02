@@ -24,8 +24,8 @@
 
 #include "libls/string_.h"
 
-void append_json_escaped_s(LSString *s, const char *zts);
+void append_json_escaped_s(LS_String *s, const char *zts);
 
-bool append_json_number(LSString *s, double value);
+bool append_json_number(LS_String *s, double value);
 
 #endif

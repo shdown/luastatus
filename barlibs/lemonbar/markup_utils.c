@@ -47,7 +47,7 @@ void push_escaped(lua_State *L, const char *s, size_t ns)
     luaL_pushresult(&b);
 }
 
-void append_sanitized_b(LSString *buf, size_t widget_idx, const char *s, size_t ns)
+void append_sanitized_b(LS_String *buf, size_t widget_idx, const char *s, size_t ns)
 {
     size_t prev = 0;
     bool a_tag = false;

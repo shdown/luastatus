@@ -41,10 +41,10 @@
 typedef struct {
     size_t nwidgets;
 
-    LSString *bufs;
+    LS_String *bufs;
 
     // Temporary buffer for secondary buffering, to avoid unneeded redraws.
-    LSString tmpbuf;
+    LS_String tmpbuf;
 
     char *sep;
 
@@ -75,7 +75,7 @@ static int init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidget
     Priv *p = bd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
         .nwidgets = nwidgets,
-        .bufs = LS_XNEW(LSString, nwidgets),
+        .bufs = LS_XNEW(LS_String, nwidgets),
         .tmpbuf = ls_string_new_reserve(512),
         .sep = NULL,
         .in = NULL,
@@ -170,7 +170,7 @@ static bool redraw(LuastatusBarlibData *bd)
     Priv *p = bd->priv;
     FILE *out = p->out;
     size_t n = p->nwidgets;
-    LSString *bufs = p->bufs;
+    LS_String *bufs = p->bufs;
     const char *sep = p->sep;
 
     bool first = true;
@@ -195,7 +195,7 @@ static bool redraw(LuastatusBarlibData *bd)
 static int set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
 {
     Priv *p = bd->priv;
-    LSString *buf = &p->tmpbuf;
+    LS_String *buf = &p->tmpbuf;
     ls_string_clear(buf);
 
     // L: ? data

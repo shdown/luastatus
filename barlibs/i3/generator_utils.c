@@ -23,7 +23,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-void append_json_escaped_s(LSString *s, const char *zts)
+void append_json_escaped_s(LS_String *s, const char *zts)
 {
     static const char *HEX_CHARS = "0123456789ABCDEF";
 
@@ -46,7 +46,7 @@ void append_json_escaped_s(LSString *s, const char *zts)
     ls_string_append_c(s, '"');
 }
 
-bool append_json_number(LSString *s, double value)
+bool append_json_number(LS_String *s, double value)
 {
     if (!isfinite(value))
         return false;

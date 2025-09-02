@@ -29,10 +29,10 @@
 typedef struct {
     size_t nwidgets;
 
-    LSString *bufs;
+    LS_String *bufs;
 
     // Temporary buffer for secondary buffering, to avoid unneeded redraws.
-    LSString tmpbuf;
+    LS_String tmpbuf;
 
     // Input file descriptor.
     int in_fd;

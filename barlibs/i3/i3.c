@@ -59,7 +59,7 @@ static int init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidget
     Priv *p = bd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
         .nwidgets = nwidgets,
-        .bufs = LS_XNEW(LSString, nwidgets),
+        .bufs = LS_XNEW(LS_String, nwidgets),
         .tmpbuf = ls_string_new_reserve(1024),
         .in_fd = -1,
         .out = NULL,
@@ -150,7 +150,7 @@ static bool redraw(LuastatusBarlibData *bd)
 
     FILE *out = p->out;
     size_t n = p->nwidgets;
-    LSString *bufs = p->bufs;
+    LS_String *bufs = p->bufs;
 
     putc_unlocked('[', out);
     bool first = true;
@@ -215,7 +215,7 @@ static void register_funcs(LuastatusBarlibData *bd, lua_State *L)
 static bool append_segment(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
 {
     Priv *p = bd->priv;
-    LSString *s = &p->tmpbuf;
+    LS_String *s = &p->tmpbuf;
 
     // add a "prologue"
     if (s->size) {
@@ -361,7 +361,7 @@ invalid_data:
 static int set_error(LuastatusBarlibData *bd, size_t widget_idx)
 {
     Priv *p = bd->priv;
-    LSString *s = &p->bufs[widget_idx];
+    LS_String *s = &p->bufs[widget_idx];
 
     ls_string_assign_s(
         s, "{\"full_text\":\"(Error)\",\"color\":\"#ff0000\",\"background\":\"#000000\"");

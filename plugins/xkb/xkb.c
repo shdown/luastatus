@@ -185,7 +185,7 @@ static Display *open_dpy(
     return NULL;
 }
 
-static bool query_wrongly(LuastatusPluginData *pd, Display *dpy, LSStringArray *groups)
+static bool query_wrongly(LuastatusPluginData *pd, Display *dpy, LS_StringArray *groups)
 {
     ls_strarr_clear(groups);
 
@@ -210,7 +210,7 @@ static bool query_wrongly(LuastatusPluginData *pd, Display *dpy, LSStringArray *
     return true;
 }
 
-static bool query_somehow(LuastatusPluginData *pd, Display *dpy, LSStringArray *groups)
+static bool query_somehow(LuastatusPluginData *pd, Display *dpy, LS_StringArray *groups)
 {
     ls_strarr_clear(groups);
 
@@ -229,7 +229,7 @@ static bool query_somehow(LuastatusPluginData *pd, Display *dpy, LSStringArray *
     return true;
 }
 
-static inline bool query(LuastatusPluginData *pd, Display *dpy, LSStringArray *groups)
+static inline bool query(LuastatusPluginData *pd, Display *dpy, LS_StringArray *groups)
 {
     Priv *p = pd->priv;
     switch (p->how) {
@@ -245,7 +245,7 @@ static inline bool query(LuastatusPluginData *pd, Display *dpy, LSStringArray *g
 static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
-    LSStringArray groups = ls_strarr_new();
+    LS_StringArray groups = ls_strarr_new();
     Display *dpy = NULL;
     int ext_base_ev_code;
 

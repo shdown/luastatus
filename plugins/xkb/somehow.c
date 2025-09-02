@@ -87,7 +87,7 @@ static inline bool check_bad(const char *bad, const char *s, size_t ns)
     return bad_matches(bad, strlen(bad), s, ns);
 }
 
-void somehow_parse_symbols(const char *symbols, LSStringArray *out, const char *bad)
+void somehow_parse_symbols(const char *symbols, LS_StringArray *out, const char *bad)
 {
     const char *prev = symbols;
     size_t balance = 0;

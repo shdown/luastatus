@@ -41,7 +41,7 @@ typedef struct {
     bool kernel_ev;
     bool greet;
     double tmo;
-    LSPushedTimeout pushed_tmo;
+    LS_PushedTimeout pushed_tmo;
 } Priv;
 
 static void destroy(LuastatusPluginData *pd)

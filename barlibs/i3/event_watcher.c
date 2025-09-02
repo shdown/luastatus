@@ -102,7 +102,7 @@ typedef struct {
     bool last_key_is_name;
 
     // An array in which all the JSON strings, including keys, are stored.
-    LSStringArray strarr;
+    LS_StringArray strarr;
 
     // A flat list of current event's tokens.
     TokenList tokens;

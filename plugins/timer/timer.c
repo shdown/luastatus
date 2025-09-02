@@ -38,7 +38,7 @@
 typedef struct {
     double period;
     char *fifo;
-    LSPushedTimeout pushed_tmo;
+    LS_PushedTimeout pushed_tmo;
 } Priv;
 
 static void destroy(LuastatusPluginData *pd)

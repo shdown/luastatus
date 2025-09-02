@@ -24,7 +24,7 @@
 #include <stdarg.h>
 #include <stdbool.h>
 
-bool ls_string_append_vf(LSString *x, const char *fmt, va_list vl)
+bool ls_string_append_vf(LS_String *x, const char *fmt, va_list vl)
 {
     va_list vl2;
     va_copy(vl2, vl);

@@ -102,7 +102,7 @@ done:
     return ret;
 }
 
-void wrongly_parse_layout(const char *layout, LSStringArray *out)
+void wrongly_parse_layout(const char *layout, LS_StringArray *out)
 {
     const char *prev = layout;
     size_t balance = 0;

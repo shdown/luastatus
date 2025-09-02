@@ -51,7 +51,7 @@ typedef struct {
     uint64_t max_clients;
     double tmo;
     LS_TimeDelta tmo_as_TD;
-    LSPushedTimeout pushed_tmo;
+    LS_PushedTimeout pushed_tmo;
 } Priv;
 
 static void destroy(LuastatusPluginData *pd)
@@ -126,7 +126,7 @@ static void register_funcs(LuastatusPluginData *pd, lua_State *L)
 
 typedef struct {
     int fd;
-    LSString buf;
+    LS_String buf;
 } Client;
 
 static inline void client_drop(Client *c)

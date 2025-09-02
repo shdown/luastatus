@@ -39,8 +39,8 @@
 #include "libls/time_utils.h"
 
 typedef struct {
-    LSStringArray paths;
-    LSStringArray globs;
+    LS_StringArray paths;
+    LS_StringArray globs;
     double period;
     char *fifo;
 } Priv;

@@ -35,6 +35,6 @@ typedef struct {
 
 bool wrongly_fetch(Display *dpy, WronglyResult *out);
 
-void wrongly_parse_layout(const char *layout, LSStringArray *out);
+void wrongly_parse_layout(const char *layout, LS_StringArray *out);
 
 #endif

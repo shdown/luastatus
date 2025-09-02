@@ -28,6 +28,6 @@
 // Returns either NULL or a NUL-terminated string allocated as if with /malloc()/.
 char *somehow_fetch_symbols(Display *dpy, uint64_t deviceid);
 
-void somehow_parse_symbols(const char *symbols, LSStringArray *out, const char *bad);
+void somehow_parse_symbols(const char *symbols, LS_StringArray *out, const char *bad);
 
 #endif

@@ -34,13 +34,13 @@
 typedef struct {
     size_t nwidgets;
 
-    LSString *bufs;
+    LS_String *bufs;
 
     // Temporary buffer for secondary buffering, to avoid unneeded redraws.
-    LSString tmpbuf;
+    LS_String tmpbuf;
 
     // Buffer for the content of the widgets joined by /sep/.
-    LSString joined;
+    LS_String joined;
 
     char *sep;
 
@@ -90,9 +90,9 @@ static bool redraw(LuastatusBarlibData *bd)
 {
     Priv *p = bd->priv;
 
-    LSString *joined = &p->joined;
+    LS_String *joined = &p->joined;
     size_t n = p->nwidgets;
-    LSString *bufs = p->bufs;
+    LS_String *bufs = p->bufs;
     const char *sep = p->sep;
 
     ls_string_clear(joined);
@@ -131,7 +131,7 @@ static int init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidget
     Priv *p = bd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
         .nwidgets = nwidgets,
-        .bufs = LS_XNEW(LSString, nwidgets),
+        .bufs = LS_XNEW(LS_String, nwidgets),
         .tmpbuf = ls_string_new_reserve(512),
         .joined = ls_string_new_reserve(1024),
         .sep = NULL,
@@ -176,7 +176,7 @@ error:
 static int set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
 {
     Priv *p = bd->priv;
-    LSString *buf = &p->tmpbuf;
+    LS_String *buf = &p->tmpbuf;
     ls_string_clear(buf);
 
     // L: ? data

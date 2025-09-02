@@ -53,7 +53,7 @@ typedef struct {
     double tmo;
     double retry_tmo;
     char *retry_fifo;
-    LSString idle_str;
+    LS_String idle_str;
 
     bool enable_tcp_keepalive;
     char *bind_addr;
@@ -225,7 +225,7 @@ static inline size_t rstrip_nl_strlen(const char *s)
 }
 
 // If /line/ is of form "key: value\n", appends /key/ and /value/ to /sa/.
-static void kv_strarr_line_append(LSStringArray *sa, const char *line)
+static void kv_strarr_line_append(LS_StringArray *sa, const char *line)
 {
     const char *colon_pos = strchr(line, ':');
     if (!colon_pos || colon_pos[1] != ' ')
@@ -235,7 +235,7 @@ static void kv_strarr_line_append(LSStringArray *sa, const char *line)
     ls_strarr_append(sa, value_pos, rstrip_nl_strlen(value_pos));
 }
 
-static void kv_strarr_table_push(LSStringArray sa, lua_State *L)
+static void kv_strarr_table_push(LS_StringArray sa, lua_State *L)
 {
     size_t n = ls_strarr_size(sa);
     assert(n % 2 == 0);
@@ -296,7 +296,7 @@ static void log_bad_response(
 static int loop_until_ok(
         LuastatusPluginData *pd,
         Context *ctx,
-        LSStringArray *kv)
+        LS_StringArray *kv)
 {
     for (;;) {
         if (getline(&ctx->buf, &ctx->nbuf, ctx->f) < 0) {
@@ -325,8 +325,8 @@ static void interact(
     Priv *p = pd->priv;
 
     Context ctx = {.buf = NULL, .nbuf = 0};
-    LSStringArray kv_song   = ls_strarr_new();
-    LSStringArray kv_status = ls_strarr_new();
+    LS_StringArray kv_song   = ls_strarr_new();
+    LS_StringArray kv_status = ls_strarr_new();
     int fd_to_close = fd;
 
     if (!(ctx.f = fdopen(fd, "r+"))) {

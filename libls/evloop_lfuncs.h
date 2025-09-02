@@ -39,7 +39,7 @@
 // function may be called from the /event/ function of a widget (that is, asynchronously from the
 // plugin's viewpoint).
 //
-// /LSPushedTimeout/ is a structure containing the pushed timeout value (or an absence of such, as
+// /LS_PushedTimeout/ is a structure containing the pushed timeout value (or an absence of such, as
 // indicated by the value being negative), and a lock.
 //
 // <!!!>
@@ -49,10 +49,10 @@
 typedef struct {
     double value;
     pthread_mutex_t lock;
-} LSPushedTimeout;
+} LS_PushedTimeout;
 
 // Initializes /p/ with an absence of pushed timeout value and a newly-created lock.
-LS_INHEADER void ls_pushed_timeout_init(LSPushedTimeout *p)
+LS_INHEADER void ls_pushed_timeout_init(LS_PushedTimeout *p)
 {
     p->value = -1;
     LS_PTH_CHECK(pthread_mutex_init(&p->lock, NULL));
@@ -62,7 +62,7 @@ LS_INHEADER void ls_pushed_timeout_init(LSPushedTimeout *p)
 // * checks if /p/ has a pushed timeout value;
 //   * if it does, clears it and returns the timeout value that /p/ has previously had;
 //   * if it does not, returns /alt/.
-LS_INHEADER LS_TimeDelta ls_pushed_timeout_fetch(LSPushedTimeout *p, LS_TimeDelta alt)
+LS_INHEADER LS_TimeDelta ls_pushed_timeout_fetch(LS_PushedTimeout *p, LS_TimeDelta alt)
 {
     LS_TimeDelta r;
     LS_PTH_CHECK(pthread_mutex_lock(&p->lock));
@@ -83,7 +83,7 @@ LS_INHEADER int ls_pushed_timeout_lfunc(lua_State *L)
         return luaL_error(L, "invalid timeout");
     }
 
-    LSPushedTimeout *p = lua_touserdata(L, lua_upvalueindex(1));
+    LS_PushedTimeout *p = lua_touserdata(L, lua_upvalueindex(1));
 
     LS_PTH_CHECK(pthread_mutex_lock(&p->lock));
     p->value = arg;
@@ -100,14 +100,14 @@ LS_INHEADER int ls_pushed_timeout_lfunc(lua_State *L)
 // (atomically) alter /p/'s timeout value.
 //
 // The caller must ensure that the /L/'s stack has at least 2 free slots.
-LS_INHEADER void ls_pushed_timeout_push_luafunc(LSPushedTimeout *p, lua_State *L)
+LS_INHEADER void ls_pushed_timeout_push_luafunc(LS_PushedTimeout *p, lua_State *L)
 {
     lua_pushlightuserdata(L, p);
     lua_pushcclosure(L, ls_pushed_timeout_lfunc, 1);
 }
 
 // Destroys /p/.
-LS_INHEADER void ls_pushed_timeout_destroy(LSPushedTimeout *p)
+LS_INHEADER void ls_pushed_timeout_destroy(LS_PushedTimeout *p)
 {
     LS_PTH_CHECK(pthread_mutex_destroy(&p->lock));
 }
