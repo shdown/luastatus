@@ -99,6 +99,19 @@ Each file being watched is assigned a *watch descriptor*, which is a non-negativ
     One should probably parse the output of ``uname -r`` command or the contents of
     ``/proc/sys/kernel/osrelease`` file in order to check for the version of the kernel.
 
+* ``ok, err = luastatus.plugin.access(path)``
+
+    Tries to check if a file or directory at specified path exists (as if with ``access(..., F_OK)```
+    system call). ``path`` must be a string with a path to file or directory.
+
+    Returns ``true, nil`` if it exists, ``false, nil`` if it does not exist, ``false, err_msg``
+    if the check for existence failed in some other reason; ``err_msg`` is a string with error message.
+
+    This is useful in the following situation: suppose that the purpose of the widget is in checking
+    whether a certain directory exists. It uses this plugin to poll for changes, and when it sees a
+    change, it needs to check whether the directory currently exists; with Lua's standard library you
+    can only check if a *file* exists, not a *directory*.
+
 * ``luastatus.plugin.push_timeout(seconds)``
 
     Changes the timeout for one iteration.
