@@ -56,7 +56,7 @@ function stringify_results(tbl)
     end
     local chunks = {}
     for _, PQ in ipairs(tbl) do
-        table.insert(chunks, string.format("%s=>{R:%s,S:%s}", PQ[1], PQ[2].R, PQ[2].S))
+        table.insert(chunks, string.format("%s=>{R:%.1f,S:%.1f}", PQ[1], PQ[2].R, PQ[2].S))
     end
     return string.format("[%s]", table.concat(chunks, ","))
 end
