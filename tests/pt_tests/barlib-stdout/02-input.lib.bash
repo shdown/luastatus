@@ -21,6 +21,7 @@ __EOF__
 
     local line
     for line in "$@"; do
+        sleep 1
         printf '%s\n' "$line" >&${pfd_in}
         pt_expect_line "event $line" <&$pfd
     done
