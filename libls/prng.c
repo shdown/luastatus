@@ -19,11 +19,14 @@
 
 #include "prng.h"
 #include <time.h>
+#include <unistd.h>
 
 uint32_t ls_prng_make_up_some_seed(void)
 {
     struct timespec ts;
-    clock_gettime(CLOCK_REALTIME, &ts);
+    if (clock_gettime(CLOCK_REALTIME, &ts) < 0) {
+        return getpid();
+    }
 
     uint32_t nsec = ts.tv_nsec;
     uint32_t sec = ts.tv_sec;
