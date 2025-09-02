@@ -47,7 +47,7 @@ function get_weather(format)
     local url = string.format('https://%s.%s/%s?format=%s', LANG, BASE_URL, LOCATION, format)
     local is_ok, body = pcall(request_check_code, url)
     if is_ok then
-        return body:gsub("\n", "")
+        return body:gsub("[\n\r]", "")
     else
         return nil
     end
