@@ -39,7 +39,7 @@
 #include "libls/cstring_utils.h"
 #include "libls/tls_ebuf.h"
 #include "libls/time_utils.h"
-#include "libls/poll_utils.h"
+#include "libls/fifo_device.h"
 #include "libls/strarr.h"
 #include "libls/io_utils.h"
 
@@ -368,6 +368,8 @@ static void interact(
         }
     }
 
+    LS_TimeDelta tmo = ls_double_to_TD(p->tmo, LS_TD_FOREVER);
+
     for (;;) {
         // write "currentsong\n"
         fputs("currentsong\n", ctx.f);
@@ -421,9 +423,9 @@ static void interact(
         }
 
         // if we need to, report timeouts until we have data on fd
-        if (p->tmo >= 0) {
+        if (!ls_TD_is_forever(tmo)) {
             for (;;) {
-                int nfds = ls_wait_input_on_fd(fd, p->tmo);
+                int nfds = ls_wait_input_on_fd(fd, tmo);
                 if (nfds < 0) {
                     LS_ERRF(pd, "ls_wait_input_on_fd: %s", ls_tls_strerror(errno));
                     goto done;
@@ -462,7 +464,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
 
-    int retry_fifo_fd = -1;
+    LS_FifoDevice retry_fifo_dev = ls_fifo_device_new();
 
     char portstr[8];
     snprintf(portstr, sizeof(portstr), "%d", (int) p->port);
@@ -489,24 +491,26 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         interact(pd, funcs, fd);
 
 retry:
-        if (p->retry_tmo < 0) {
+        report_status(pd, funcs, "error");
+
+        LS_TimeDelta retry_tmo;
+        if (!ls_double_to_TD_checked(p->retry_tmo, &retry_tmo)) {
             LS_FATALF(pd, "an error occurred; not retrying as requested");
             goto error;
         }
 
-        report_status(pd, funcs, "error");
-
-        if (ls_fifo_open(&retry_fifo_fd, p->retry_fifo) < 0) {
-            LS_WARNF(pd, "ls_fifo_open: %s: %s", p->retry_fifo, ls_tls_strerror(errno));
+        if (ls_fifo_device_open(&retry_fifo_dev, p->retry_fifo) < 0) {
+            LS_WARNF(pd, "ls_fifo_device_open: %s: %s", p->retry_fifo, ls_tls_strerror(errno));
         }
-        if (ls_fifo_wait(&retry_fifo_fd, p->retry_tmo) < 0) {
-            LS_FATALF(pd, "ls_fifo_wait: %s: %s", p->retry_fifo, ls_tls_strerror(errno));
+
+        if (ls_fifo_device_wait(&retry_fifo_dev, retry_tmo) < 0) {
+            LS_FATALF(pd, "ls_fifo_device_wait: %s: %s", p->retry_fifo, ls_tls_strerror(errno));
             goto error;
         }
     }
 
 error:
-    ls_close(retry_fifo_fd);
+    ls_fifo_device_close(&retry_fifo_dev);
 }
 
 LuastatusPluginIface luastatus_plugin_iface_v1 = {

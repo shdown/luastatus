@@ -30,9 +30,10 @@
 
 #include "libls/alloc_utils.h"
 #include "libls/tls_ebuf.h"
-#include "libls/poll_utils.h"
+#include "libls/fifo_device.h"
 #include "libls/evloop_lfuncs.h"
 #include "libls/io_utils.h"
+#include "libls/time_utils.h"
 
 typedef struct {
     double period;
@@ -63,7 +64,7 @@ static int init(LuastatusPluginData *pd, lua_State *L)
     // Parse period
     if (moon_visit_num(&mv, -1, "period", &p->period, true) < 0)
         goto mverror;
-    if (p->period < 0) {
+    if (!ls_double_is_good_time_delta(p->period)) {
         LS_FATALF(pd, "period is invalid");
         goto error;
     }
@@ -93,22 +94,24 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
 
-    int fifo_fd = -1;
+    LS_FifoDevice dev = ls_fifo_device_new();
 
     const char *what = "hello";
+
+    LS_TimeDelta default_tmo = ls_double_to_TD_or_die(p->period);
 
     while (1) {
         lua_State *L = funcs.call_begin(pd->userdata);
         lua_pushstring(L, what);
         funcs.call_end(pd->userdata);
 
-        if (ls_fifo_open(&fifo_fd, p->fifo) < 0) {
-            LS_WARNF(pd, "ls_fifo_open: %s: %s", p->fifo, ls_tls_strerror(errno));
+        if (ls_fifo_device_open(&dev, p->fifo) < 0) {
+            LS_WARNF(pd, "ls_fifo_device_open: %s: %s", p->fifo, ls_tls_strerror(errno));
         }
-        double tmo = ls_pushed_timeout_fetch(&p->pushed_tmo, p->period);
-        int r = ls_fifo_wait(&fifo_fd, tmo);
+        LS_TimeDelta TD = ls_pushed_timeout_fetch(&p->pushed_tmo, default_tmo);
+        int r = ls_fifo_device_wait(&dev, TD);
         if (r < 0) {
-            LS_FATALF(pd, "ls_fifo_wait: %s", ls_tls_strerror(errno));
+            LS_FATALF(pd, "ls_fifo_device_wait: %s", ls_tls_strerror(errno));
             goto error;
         } else if (r == 0) {
             what = "timeout";
@@ -118,7 +121,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     }
 
 error:
-    ls_close(fifo_fd);
+    ls_fifo_device_close(&dev);
 }
 
 LuastatusPluginIface luastatus_plugin_iface_v1 = {

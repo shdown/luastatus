@@ -334,8 +334,9 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     userdata.cnx_session = session_bus;
     userdata.cnx_system = system_bus;
 
-    if (p->tmo >= 0) {
-        int tmo_ms = ls_tmo_to_ms(p->tmo);
+    LS_TimeDelta TD = ls_double_to_TD(p->tmo, LS_TD_FOREVER);
+    if (!ls_TD_is_forever(TD)) {
+        int tmo_ms = ls_TD_to_poll_ms_tmo(TD);
         source = g_timeout_source_new(tmo_ms);
         g_source_set_callback(source, callback_timeout, &userdata, NULL);
         if (g_source_attach(source, context) == 0) {

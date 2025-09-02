@@ -38,7 +38,6 @@
 #include "libls/evloop_lfuncs.h"
 #include "libls/string_.h"
 #include "libls/tls_ebuf.h"
-#include "libls/poll_utils.h"
 #include "libls/time_utils.h"
 #include "libls/io_utils.h"
 #include "libls/osdep.h"
@@ -51,6 +50,7 @@ typedef struct {
     bool greet;
     uint64_t max_clients;
     double tmo;
+    LS_TimeDelta tmo_as_TD;
     LSPushedTimeout pushed_tmo;
 } Priv;
 
@@ -102,8 +102,10 @@ static int init(LuastatusPluginData *pd, lua_State *L)
     }
 
     // Parse timeout
-    if (moon_visit_num(&mv, -1, "timeout", &p->tmo, true) < 0)
+    if (moon_visit_num(&mv, -1, "timeout", &p->tmo, true) < 0) {
         goto mverror;
+    }
+    p->tmo_as_TD = ls_double_to_TD(p->tmo, LS_TD_FOREVER);
 
     return LUASTATUS_OK;
 
@@ -206,20 +208,21 @@ static inline void server_state_destroy(ServerState *s)
     free(s->pfds);
 }
 
-static inline double new_tmo_pt(Priv *p)
+static inline LS_TimeStamp new_deadline(Priv *p)
 {
-    double tmo = ls_pushed_timeout_fetch(&p->pushed_tmo, p->tmo);
-    if (!(tmo >= 0))
-        return -1;
-    return ls_now() + tmo;
+    LS_TimeDelta tmo = ls_pushed_timeout_fetch(&p->pushed_tmo, p->tmo_as_TD);
+    if (ls_TD_is_forever(tmo)) {
+        return LS_TS_BAD;
+    }
+    return ls_TS_plus_TD(ls_now(), tmo);
 }
 
-static inline double get_tmo_until_pt(double tmo_pt)
+static inline LS_TimeDelta get_time_until_TS(LS_TimeStamp TS)
 {
-    if (tmo_pt < 0)
-        return -1;
-    double delta = tmo_pt - ls_now();
-    return delta < 0 ? 0 : delta;
+    if (ls_TS_is_bad(TS)) {
+        return LS_TD_FOREVER;
+    }
+    return ls_TS_minus_TS_nonneg(TS, ls_now());
 }
 
 static void report_status(
@@ -302,11 +305,11 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         goto error;
 
     ls_make_nonblock(sockfd);
-    double tmo_pt = new_tmo_pt(p);
+    LS_TimeStamp deadline = new_deadline(p);
 
     if (p->greet) {
         report_status(pd, funcs, "hello");
-        tmo_pt = new_tmo_pt(p);
+        deadline = new_deadline(p);
     }
 
     for (;;) {
@@ -315,7 +318,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         else
             st.pfds[0] = (struct pollfd) {.fd = -1};
 
-        double tmo = get_tmo_until_pt(tmo_pt);
+        LS_TimeDelta tmo = get_time_until_TS(deadline);
         int nfds = ls_poll(st.pfds, st.nclients + 1, tmo);
         if (nfds < 0) {
             LS_FATALF(pd, "ls_poll: %s", ls_tls_strerror(errno));
@@ -323,7 +326,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         }
         if (nfds == 0) {
             report_status(pd, funcs, "timeout");
-            tmo_pt = new_tmo_pt(p);
+            deadline = new_deadline(p);
         }
 
         if (st.pfds[0].revents & POLLIN) {
@@ -367,7 +370,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
             char *ptr = memchr(c->buf.data + c->buf.size, '\n', r);
             if (ptr) {
                 report_line(pd, funcs, c->buf.data, ptr);
-                tmo_pt = new_tmo_pt(p);
+                deadline = new_deadline(p);
 
                 client_drop(c);
                 continue;

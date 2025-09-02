@@ -35,7 +35,8 @@
 
 #include "libls/alloc_utils.h"
 #include "libls/tls_ebuf.h"
-#include "libls/poll_utils.h"
+#include "libls/io_utils.h"
+#include "libls/time_utils.h"
 
 // some parts of this file (including the name) are proudly stolen from
 // xtitle (https://github.com/baskerville/xtitle).
@@ -325,7 +326,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     int fd = xcb_get_file_descriptor(d.conn);
     xcb_flush(d.conn);
     while (1) {
-        int nfds = ls_wait_input_on_fd(fd, -1);
+        int nfds = ls_wait_input_on_fd(fd, LS_TD_FOREVER);
         if (nfds < 0) {
             LS_FATALF(pd, "ls_wait_input_on_fd: %s", ls_tls_strerror(errno));
             goto error;

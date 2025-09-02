@@ -35,7 +35,6 @@
 
 #include "libls/alloc_utils.h"
 #include "libls/tls_ebuf.h"
-#include "libls/poll_utils.h"
 #include "libls/evloop_lfuncs.h"
 #include "libls/io_utils.h"
 
@@ -376,9 +375,10 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         funcs.call_end(pd->userdata);
     }
 
+    LS_TimeDelta default_tmo = ls_double_to_TD(p->tmo, LS_TD_FOREVER);
     while (1) {
-        double tmo = ls_pushed_timeout_fetch(&p->pushed_tmo, p->tmo);
-        int nfds = ls_wait_input_on_fd(p->fd, tmo);
+        LS_TimeDelta TD = ls_pushed_timeout_fetch(&p->pushed_tmo, default_tmo);
+        int nfds = ls_wait_input_on_fd(p->fd, TD);
 
         if (nfds < 0) {
             LS_FATALF(pd, "ls_wait_input_on_fd: %s", ls_tls_strerror(errno));

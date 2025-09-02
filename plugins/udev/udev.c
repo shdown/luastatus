@@ -30,8 +30,9 @@
 
 #include "libls/alloc_utils.h"
 #include "libls/tls_ebuf.h"
-#include "libls/poll_utils.h"
+#include "libls/io_utils.h"
 #include "libls/evloop_lfuncs.h"
+#include "libls/time_utils.h"
 
 typedef struct {
     char *subsystem;
@@ -183,8 +184,9 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         report_status(pd, funcs, "hello");
     }
 
+    LS_TimeDelta default_tmo = ls_double_to_TD(p->tmo, LS_TD_FOREVER);
     while (1) {
-        double tmo = ls_pushed_timeout_fetch(&p->pushed_tmo, p->tmo);
+        LS_TimeDelta tmo = ls_pushed_timeout_fetch(&p->pushed_tmo, default_tmo);
         int r = ls_wait_input_on_fd(fd, tmo);
         if (r < 0) {
             LS_FATALF(pd, "ls_wait_input_on_fd: %s", ls_tls_strerror(errno));

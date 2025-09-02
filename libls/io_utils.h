@@ -23,8 +23,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
-
+#include <poll.h>
 #include "compdep.h"
+#include "time_utils.h"
 
 #if EAGAIN == EWOULDBLOCK
 #   define LS_IS_EAGAIN(E_) ((E_) == EAGAIN)
@@ -71,5 +72,15 @@ LS_INHEADER int ls_close(int fd)
     }
     return close(fd);
 }
+
+int ls_poll(struct pollfd *fds, nfds_t nfds, LS_TimeDelta tmo);
+
+LS_INHEADER int ls_wait_input_on_fd(int fd, LS_TimeDelta tmo)
+{
+    struct pollfd pfd = {.fd = fd, .events = POLLIN};
+    return ls_poll(&pfd, 1, tmo);
+}
+
+int ls_open_fifo(const char *fifo);
 
 #endif

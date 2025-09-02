@@ -288,9 +288,11 @@ static void make_call(
 static void setup_sock_timeout(LuastatusPluginData *pd, int fd)
 {
     Priv *p = pd->priv;
-    if (p->tmo < 0)
+    LS_TimeDelta TD = ls_double_to_TD(p->tmo, LS_TD_FOREVER);
+    if (ls_TD_is_forever(TD)) {
         return;
-    struct timeval tmo_tv = ls_tmo_to_tv(p->tmo);
+    }
+    struct timeval tmo_tv = ls_TD_to_timeval(TD);
     if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tmo_tv, sizeof(tmo_tv)) < 0) {
         LS_WARNF(pd, "setsockopt: %s", ls_tls_strerror(errno));
     }
@@ -393,7 +395,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     while (interact(pd, funcs)) {
         // a non-fatal error occurred
         report_error(pd, funcs);
-        ls_sleep(5.0);
+        ls_sleep_simple(5.0);
         LS_INFOF(pd, "resynchronizing");
     }
 }

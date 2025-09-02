@@ -30,6 +30,7 @@
 #include "panic.h"
 #include "osdep.h"
 #include "io_utils.h"
+#include "time_utils.h"
 
 // Some plugins provide a "push_timeout"/"push_period" function that allows a widget to specify the
 // next timeout for an otherwise constant timeout-based plugin's event loop.
@@ -61,14 +62,14 @@ LS_INHEADER void ls_pushed_timeout_init(LSPushedTimeout *p)
 // * checks if /p/ has a pushed timeout value;
 //   * if it does, clears it and returns the timeout value that /p/ has previously had;
 //   * if it does not, returns /alt/.
-LS_INHEADER double ls_pushed_timeout_fetch(LSPushedTimeout *p, double alt)
+LS_INHEADER LS_TimeDelta ls_pushed_timeout_fetch(LSPushedTimeout *p, LS_TimeDelta alt)
 {
-    double r;
+    LS_TimeDelta r;
     LS_PTH_CHECK(pthread_mutex_lock(&p->lock));
     if (p->value < 0) {
         r = alt;
     } else {
-        r = p->value;
+        r = ls_double_to_TD(p->value, LS_TD_FOREVER);
         p->value = -1;
     }
     LS_PTH_CHECK(pthread_mutex_unlock(&p->lock));

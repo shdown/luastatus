@@ -385,7 +385,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     for (;;) {
         if (!iteration(pd, funcs)) {
-            ls_sleep(5.0);
+            ls_sleep_simple(5.0);
         }
     }
 }

@@ -33,8 +33,12 @@ int cloexec_accept(int sockfd)
     return accept4(sockfd, NULL, NULL, SOCK_CLOEXEC);
 #else
     int fd = accept(sockfd, NULL, NULL);
-    if (fd >= 0)
-        ls_make_cloexec(fd);
+    if (fd >= 0) {
+        if (ls_make_cloexec(fd) < 0) {
+            close(fd);
+            return -1;
+        }
+    }
     return fd;
 #endif
 }

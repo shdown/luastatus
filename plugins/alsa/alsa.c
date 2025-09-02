@@ -35,7 +35,6 @@
 
 #include "libls/alloc_utils.h"
 #include "libls/tls_ebuf.h"
-#include "libls/poll_utils.h"
 #include "libls/evloop_lfuncs.h"
 #include "libls/time_utils.h"
 #include "libls/io_utils.h"
@@ -303,6 +302,7 @@ static bool iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 
     ret = true;
 
+    LS_TimeDelta tmo = ls_double_to_TD(p->tmo, LS_TD_FOREVER);
     GetVolFuncs gv_funcs = select_gv_funcs(p->capture, p->in_db);
     bool is_timeout = false;
     while (1) {
@@ -326,7 +326,7 @@ static bool iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
             goto error;
         }
 
-        int nfds = ls_poll(pollfds.data, pollfds.size, p->tmo);
+        int nfds = ls_poll(pollfds.data, pollfds.size, tmo);
         if (nfds < 0) {
             LS_FATALF(pd, "poll: %s", ls_tls_strerror(errno));
             goto error;
@@ -382,7 +382,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     for (;;) {
         if (!iteration(pd, funcs)) {
-            ls_sleep(5.0);
+            ls_sleep_simple(5.0);
         }
     }
 }
