@@ -20,26 +20,30 @@ The following functions are provided:
 * ``reader_make([iface_filter])``
 
     Creates a *reader* that can be used to query network rates for network interfaces that match
-    the filter. If specified, ``iface_filter`` must be a function that takes a string (interface
-    name) and return ``true`` if the reader should should report network rates for this interface,
-    ``false`` or ``nil`` otherwise.
-    If ``iface_filter`` is not specified or ``nil``, the reader will report network rates
-    for all interfaces.
+    the filter.
+
+    If specified, ``iface_filter`` must be a function that takes a string (interface name) and
+    return ``true`` if the reader should should report network rates for this interface,
+    ``false`` or ``nil`` otherwise. If ``iface_filter`` is not specified the reader will report
+    network rates for all interfaces.
 
 * ``reader_read(reader, divisor[, in_array_form])``
 
     Queries network rates using the given reader. ``reader`` must be a reader instance returned
     by ``reader_make``.
+
     For a given interface, we define a *datum* as a table of form with keys ``"R"`` and ``"S"``;
     the ``"R"``/``"S"`` fields contain the increase in the number of bytes received/sent,
     correspondingly, with this interface, since the last query with this reader, divided by
-    ``divisor``. Normally, ``divisor`` should be the period with which you query the network
-    rates with this reader; if not applicable, set ``divisor`` to 1 and interpret the values
-    yourself.
+    ``divisor``.
+
+    Normally, ``divisor`` should be the period with which you query the network rates with this
+    reader; if not applicable, set ``divisor`` to 1 and interpret the values yourself.
+
     If ``in_array_form`` is ``true``, the result will be an array (a table with numeric keys) of
     ``{iface_name, datum}`` entries, in the same order as reported by the kernel. Otherwise (if
-    ``in_array_form`` is not specified, or ``false`` or ``nill``), the result we be a dictionary
-    (a table with string keys) with interface names as keys and datums as values.
+    ``in_array_form`` is not specified or ``false``), the result we be a dictionary (a table
+    with string keys) with interface names as keys and datums as values.
 
 * ``widget(tbl)``
 
@@ -50,7 +54,9 @@ The following functions are provided:
 
     - ``cb``: a function
 
-        TODO
+        The callback to call each ``period`` (see below) seconds with the network rate data.
+        It is called with a single argument that is equivalent to ``reader_read`` return
+        value (please refer to the description of that function above).
 
     **(optional)**
 
@@ -82,13 +88,21 @@ The following functions are provided:
 
     - ``in_array_form``: a boolean
 
-        TODO
+        Please refer to the description of ``in_array_form`` argument to ``reader_read``
+        function above.
+
+        Defaults to ``false``.
 
     - ``period``: a number
 
-        TODO
+        The period, in seconds, with which the callback function will be called.
 
-    - ``in_array_form``: a boolean
+        This will also be a divisor (all rates will be divided by this value
+        so that the rates be per ``period`` seconds instead of 1 second). Please
+        refer to the description of ``divisor`` argument to ``reader_read`` function
+        above for more information.
+
+        Defaults to 1.
 
     - ``event``
 
