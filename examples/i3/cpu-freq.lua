@@ -26,9 +26,9 @@ local function read_from_all_paths(suffix)
     local r = {}
     for _, path in ipairs(paths) do
         local f = assert(io.open(path .. suffix))
-        local val, err = f:read('*number')
+        local val = f:read('*number')
         f:close()
-        r[#r + 1] = assert(val, err)
+        r[#r + 1] = assert(val)
         assert(val > 0, 'reported frequency is zero or negative')
     end
     return r
