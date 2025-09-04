@@ -29,6 +29,8 @@ __EOF__
     pt_testcase_end
 }
 
+O_SEPARATOR=
+
 x_testcase_output 'nil' ''
 x_testcase_output '""' ''
 x_testcase_output '"foo bar"' 'foo bar'

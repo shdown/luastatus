@@ -98,6 +98,10 @@ __EOF__
     pt_testcase_end
 }
 
+O_NO_SEPARATORS=0
+O_NO_CLICK_EVENTS=0
+O_ALLOW_STOPPING=0
+
 x_testcase_output 'nil' ''
 x_testcase_output '{}' ''
 x_testcase_output '{nil}' ''

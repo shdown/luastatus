@@ -39,6 +39,7 @@ esac
 PT_LUASTATUS=( "$PT_BUILD_DIR"/luastatus/luastatus ${DEBUG:+-l trace} )
 
 PT_PARROT=$PT_BUILD_DIR/tests/parrot
+PT_HTTPSERV=$PT_BUILD_DIR/tests/httpserv/httpserv
 
 PT_WIDGET_FILES=()
 PT_FILES_TO_REMOVE=()
@@ -118,6 +119,22 @@ pt_add_fifo() {
     pt_add_file_to_remove "$1"
 }
 
+pt_find_free_tcp_port() {
+    local port=12121
+    while true; do
+        echo >&2 "[pt_find_free_tcp_port] Checking port $port..."
+        if "$PT_PARROT" --reuseaddr --just-check TCP-SERVER "$port"; then
+            break
+        fi
+        echo >&2 "[pt_find_free_tcp_port] Port $port does not seem to be free, incrementing."
+        port=$(( port + 1 ))
+        if (( port >= 65536 )); then
+            pt_fail "[pt_find_free_tcp_port] Cannot find a free port."
+        fi
+    done
+    echo >&2 "[pt_find_free_tcp_port] Chosen port $port."
+    PT_FOUND_FREE_PORT=$port
+}
 pt_require_tools() {
     local tool
     for tool in "$@"; do

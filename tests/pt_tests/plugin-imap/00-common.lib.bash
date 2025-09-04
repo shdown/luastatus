@@ -1,18 +1,7 @@
 main_fifo_file=./tmp-fifo-main
-port=12121
 
-while true; do
-    echo >&2 "[imap] Checking port $port..."
-    if "$PT_PARROT" --reuseaddr --just-check TCP-SERVER "$port"; then
-        break
-    fi
-    echo >&2 "[imap] Port $port does not seem to be free, incrementing."
-    port=$(( port + 1 ))
-    if (( port >= 65536 )); then
-        pt_fail "[imap] Cannot find a free port."
-    fi
-done
-echo >&2 "[imap] Chosen port $port."
+pt_find_free_tcp_port
+port=$PT_FOUND_FREE_PORT
 
 fakeimap_spawn() {
     pt_spawn_thing_pipe imap_parrot "$PT_PARROT" --reuseaddr --print-line-when-ready TCP-SERVER "$port"

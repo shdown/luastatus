@@ -3,10 +3,10 @@ x_testcase_output() {
     local expect_line=$2
     local expect_error_line='(Error)'
     local opts=()
-    if [[ -v O_SEPARATOR ]]; then
+    if [[ -n O_SEPARATOR ]]; then
         opts+=(-B separator="$O_SEPARATOR")
     fi
-    if [[ -v O_ERROR ]]; then
+    if [[ -n O_ERROR ]]; then
         expect_error_line=$O_ERROR
         opts+=(-B error="$O_ERROR")
     fi
@@ -33,6 +33,9 @@ __EOF__
     pt_expect_line "$expect_error_line" <&${PT_SPAWNED_THINGS_FDS_0[luastatus]}
     pt_testcase_end
 }
+
+O_SEPARATOR=
+O_ERROR=
 
 x_testcase_output 'nil' ''
 x_testcase_output '""' ''
