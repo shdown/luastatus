@@ -36,8 +36,8 @@
 
 #include "libls/tls_ebuf.h"
 #include "libls/osdep.h"
-#include "libls/panic.h"
 #include "libls/io_utils.h"
+#include "libls/compdep.h"
 
 int unixdom_open(LuastatusPluginData *pd, const char *path)
 {
@@ -91,9 +91,7 @@ static int do_bind_to_addr(int fd, const char *addr_str, int family)
         return bind(fd, (struct sockaddr *) &sa, sizeof(sa));
 
     } else {
-        char msg[70];
-        snprintf(msg, sizeof(msg), "mpd plugin: do_bind_to_addr() got invalid family=%d", family);
-        LS_PANIC(msg);
+        LS_UNREACHABLE();
     }
 
 bad_str:
@@ -111,8 +109,23 @@ int inetdom_open(
     struct addrinfo *ai = NULL;
     int fd = -1;
 
+    int af;
+    switch (bind_addr_family) {
+    case FAMILY_NONE:
+        af = AF_UNSPEC;
+        break;
+    case FAMILY_IPV4:
+        af = AF_INET;
+        break;
+    case FAMILY_IPV6:
+        af = AF_INET6;
+        break;
+    default:
+        LS_UNREACHABLE();
+    }
+
     struct addrinfo hints = {
-        .ai_family = AF_UNSPEC,
+        .ai_family = af,
         .ai_socktype = SOCK_STREAM,
         .ai_protocol = 0,
         .ai_flags = AI_ADDRCONFIG,
