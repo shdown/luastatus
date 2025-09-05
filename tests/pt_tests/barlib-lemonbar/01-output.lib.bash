@@ -2,7 +2,7 @@ x_testcase_output() {
     local lua_expr=$1
     local expect_line=$2
     local opts=()
-    if [[ -v O_SEPARATOR ]]; then
+    if [[ -n $O_SEPARATOR ]]; then
         opts+=(-B separator="$O_SEPARATOR")
     fi
 

@@ -3,10 +3,10 @@ x_testcase_output() {
     local expect_line=$2
     local expect_error_line='(Error)'
     local opts=()
-    if [[ -n O_SEPARATOR ]]; then
+    if [[ -n $O_SEPARATOR ]]; then
         opts+=(-B separator="$O_SEPARATOR")
     fi
-    if [[ -n O_ERROR ]]; then
+    if [[ -n $O_ERROR ]]; then
         expect_error_line=$O_ERROR
         opts+=(-B error="$O_ERROR")
     fi
