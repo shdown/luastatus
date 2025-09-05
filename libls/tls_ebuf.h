@@ -23,6 +23,8 @@
 #include "compdep.h"
 #include "cstring_utils.h"
 
+// Thread-local storage buffer. Used mostly as a buffer for /ls_strerror_r/.
+
 enum { LS_TLS_EBUF_N = 512 };
 
 char *ls_tls_ebuf(void);

@@ -31,22 +31,26 @@
 #include "compdep.h"
 #include "panic.h"
 
+// Time deltas >= LS_TMO_MAX (in seconds) are treated as "forever".
 #define LS_TMO_MAX 2147483647.0
+
+// These are wrapped into structs so that it's hard to do the wrong thing.
+
+// A time stamp. Can be either valid or "bad".
+typedef struct {
+    double ts;
+} LS_TimeStamp;
+
+// A time delta. Can be either valid or "forever".
+typedef struct {
+    double delta;
+} LS_TimeDelta;
 
 #define LS_TD_FOREVER ((LS_TimeDelta) {LS_TMO_MAX})
 
 #define LS_TD_ZERO ((LS_TimeDelta) {0.0})
 
 #define LS_TS_BAD ((LS_TimeStamp) {-1.0})
-
-typedef struct {
-    double ts;
-} LS_TimeStamp;
-
-typedef struct {
-    double delta;
-} LS_TimeDelta;
-
 
 LS_INHEADER bool ls_double_is_good_time_delta(double x)
 {
@@ -189,6 +193,14 @@ LS_INHEADER LS_TimeStamp ls_TS_plus_TD(LS_TimeStamp a, LS_TimeDelta b)
     assert(!ls_TD_is_forever(b));
 
     return (LS_TimeStamp) {a.ts + b.delta};
+}
+
+LS_INHEADER bool ls_TD_less(LS_TimeDelta a, LS_TimeDelta b)
+{
+    if (ls_TD_is_forever(a) && ls_TD_is_forever(b)) {
+        return false;
+    }
+    return a.delta < b.delta;
 }
 
 LS_INHEADER void ls_sleep(LS_TimeDelta TD)

@@ -28,6 +28,7 @@
 
 #include "compdep.h"
 #include "alloc_utils.h"
+#include "algo.h"
 
 typedef struct {
     char *data;
@@ -204,9 +205,7 @@ LS_INHEADER bool ls_string_eq(LS_String x, LS_String y)
 // Swaps two string efficiently (in O(1) time).
 LS_INHEADER void ls_string_swap(LS_String *x, LS_String *y)
 {
-    LS_String tmp = *x;
-    *x = *y;
-    *y = tmp;
+    LS_SWAP(LS_String, *x, *y);
 }
 
 LS_INHEADER void ls_string_free(LS_String x)

@@ -65,6 +65,7 @@ LS_INHEADER int ls_make_nonblock(int fd)
     return fd;
 }
 
+// Close if non-negative: valgrind doesn't like /close()/ on negative FDs.
 LS_INHEADER int ls_close(int fd)
 {
     if (fd < 0) {
@@ -73,14 +74,17 @@ LS_INHEADER int ls_close(int fd)
     return close(fd);
 }
 
+// Poll restarting on /EINTR/ errors.
 int ls_poll(struct pollfd *fds, nfds_t nfds, LS_TimeDelta tmo);
 
+// Poll a single fd for /POLLIN/ events.
 LS_INHEADER int ls_wait_input_on_fd(int fd, LS_TimeDelta tmo)
 {
     struct pollfd pfd = {.fd = fd, .events = POLLIN};
     return ls_poll(&pfd, 1, tmo);
 }
 
+// Open a FIFO for reading, and check that this is really a FIFO.
 int ls_open_fifo(const char *fifo);
 
 #endif

@@ -22,4 +22,11 @@
 
 #define LS_ARRAY_SIZE(X_) (sizeof(X_) / sizeof((X_)[0]))
 
+#define LS_SWAP(Type_, X_, Y_) \
+    do { \
+        Type_ ls_swap_tmp____ = (X_); \
+        (X_) = (Y_); \
+        (Y_) = ls_swap_tmp____; \
+    } while (0)
+
 #endif
