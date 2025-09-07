@@ -18,12 +18,16 @@
  */
 
 #include "procalive_lfuncs.h"
+#include <lua.h>
 #include <lauxlib.h>
-#include <errno.h>
-#include <unistd.h>
 #include <signal.h>
-#include <glob.h>
 #include <stdbool.h>
+#include <limits.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <unistd.h>
+#include <errno.h>
+#include <glob.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include "tls_ebuf.h"
@@ -117,7 +121,7 @@ bool push_glob_t(lua_State *L, glob_t *g)
     // L: array
     for (size_t i = 0; i < g->gl_pathc; ++i) {
         lua_pushstring(L, g->gl_pathv[i]); // L: array str
-        lua_seti(L, -2, i + 1); // L: array
+        lua_rawseti(L, -2, i + 1); // L: array
     }
     return true;
 }
