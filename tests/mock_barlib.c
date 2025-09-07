@@ -27,7 +27,7 @@
 #include "libls/alloc_utils.h"
 #include "libls/cstring_utils.h"
 #include "libls/parse_int.h"
-#include "libls/prng.h"
+#include "minstd.h"
 
 typedef struct {
     size_t nwidgets;
@@ -115,12 +115,12 @@ static int event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
         seed = (uint32_t) p->prng_seed;
     } else {
         static const uint32_t SALT = 41744457;
-        seed = ls_prng_make_up_some_seed() ^ SALT;
+        seed = minstd_make_up_some_seed() ^ SALT;
     }
-    LS_Prng my_prng = ls_prng_new(seed);
+    MINSTD_Prng my_prng = minstd_prng_new(seed);
 
     for (int i = 0; i < p->nevents; ++i) {
-        size_t widget_idx = ls_prng_next_limit_u32(&my_prng, p->nwidgets);
+        size_t widget_idx = minstd_prng_next_limit_u32(&my_prng, p->nwidgets);
         lua_State *L = funcs.call_begin(bd->userdata, widget_idx);
         lua_pushnil(L);
         funcs.call_end(bd->userdata, widget_idx);

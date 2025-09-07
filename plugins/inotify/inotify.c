@@ -37,6 +37,7 @@
 #include "libls/tls_ebuf.h"
 #include "libls/evloop_lfuncs.h"
 #include "libls/io_utils.h"
+#include "libls/procalive_lfuncs.h"
 
 #include "inotify_compat.h"
 
@@ -301,30 +302,6 @@ static int l_get_supported_events(lua_State *L)
     return 1;
 }
 
-static int l_access(lua_State *L)
-{
-    const char *path = luaL_checkstring(L, 1);
-
-    if (access(path, F_OK) >= 0) {
-        lua_pushboolean(L, 1);
-        // L: true
-        lua_pushnil(L);
-        // L: true nil
-    } else {
-        int saved_errno = errno;
-        lua_pushboolean(L, 0);
-        // L: false
-        if (saved_errno == ENOENT) {
-            lua_pushnil(L);
-            // L: false nil
-        } else {
-            lua_pushstring(L, ls_tls_strerror(saved_errno));
-            // L: false str
-        }
-    }
-    return 2;
-}
-
 static void register_funcs(LuastatusPluginData *pd, lua_State *L)
 {
     // L: table
@@ -346,9 +323,7 @@ static void register_funcs(LuastatusPluginData *pd, lua_State *L)
     lua_pushcfunction(L, l_get_supported_events); // L: table func
     lua_setfield(L, -2, "get_supported_events"); // L: table
 
-    // L: table
-    lua_pushcfunction(L, l_access); // L: table func
-    lua_setfield(L, -2, "access"); // L: table
+    ls_procalive_lfuncs_register_all(L); // L: table
 
     Priv *p = pd->priv;
     // L: table

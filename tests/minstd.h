@@ -17,51 +17,64 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ls_prng_h_
-#define ls_prng_h_
+#ifndef minstd_h_
+#define minstd_h_
 
 #include <stdint.h>
+#include <time.h>
+#include <unistd.h>
 #include "libls/compdep.h"
 
 // MINSTD pseudo-random number generator, year 1990 version.
 
-uint32_t ls_prng_make_up_some_seed(void);
+LS_INHEADER uint32_t minstd_make_up_some_seed(void)
+{
+    struct timespec ts;
+    if (clock_gettime(CLOCK_REALTIME, &ts) < 0) {
+        return getpid();
+    }
+
+    uint32_t nsec = ts.tv_nsec;
+    uint32_t sec = ts.tv_sec;
+
+    return nsec + sec * (1000 * 1000 * 1000);
+}
 
 typedef struct {
     uint32_t x;
-} LS_Prng;
+} MINSTD_Prng;
 
 enum {
-    LS_PRNG_M = 0x7fffffff,
-    LS_PRNG_A = 48271,
+    MINSTD_M = 0x7fffffff,
+    MINSTD_A = 48271,
 };
 
-LS_INHEADER LS_Prng ls_prng_new(uint32_t seed)
+LS_INHEADER MINSTD_Prng minstd_prng_new(uint32_t seed)
 {
-    uint32_t res = seed % LS_PRNG_M;
+    uint32_t res = seed % MINSTD_M;
     if (!res) {
-        res = 1 + (seed % (LS_PRNG_M - 1));
+        res = 1 + (seed % (MINSTD_M - 1));
     }
-    return (LS_Prng) {res};
+    return (MINSTD_Prng) {res};
 }
 
-LS_INHEADER uint32_t ls_prng_next_u32(LS_Prng *P)
+LS_INHEADER uint32_t minstd_prng_next_u32(MINSTD_Prng *P)
 {
-    uint64_t prod = ((uint64_t) P->x) * LS_PRNG_A;
-    P->x = prod % LS_PRNG_M;
+    uint64_t prod = ((uint64_t) P->x) * MINSTD_A;
+    P->x = prod % MINSTD_M;
     return P->x;
 }
 
-LS_INHEADER uint64_t ls_prng_next_u64(LS_Prng *P)
+LS_INHEADER uint64_t minstd_prng_next_u64(MINSTD_Prng *P)
 {
-    uint32_t lo = ls_prng_next_u32(P);
-    uint32_t hi = ls_prng_next_u32(P);
+    uint32_t lo = minstd_prng_next_u32(P);
+    uint32_t hi = minstd_prng_next_u32(P);
     return lo | (((uint64_t) hi) << 32);
 }
 
 // Returns random integer x such that 0 <= x < limit.
 // If limit == 0, the behavior is undefined.
-LS_INHEADER uint32_t ls_prng_next_limit_u32(LS_Prng *P, uint32_t limit)
+LS_INHEADER uint32_t minstd_prng_next_limit_u32(MINSTD_Prng *P, uint32_t limit)
 {
     // /reject_thres/ is the largest value that fits into /uint64_t/ and
     // is divisible by /limit/.
@@ -69,7 +82,7 @@ LS_INHEADER uint32_t ls_prng_next_limit_u32(LS_Prng *P, uint32_t limit)
 
     uint64_t v;
     do {
-        v = ls_prng_next_u64(P);
+        v = minstd_prng_next_u64(P);
     } while (v >= reject_thres);
     return v % limit;
 }

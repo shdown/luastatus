@@ -34,6 +34,7 @@
 #include "libls/evloop_lfuncs.h"
 #include "libls/io_utils.h"
 #include "libls/time_utils.h"
+#include "libls/procalive_lfuncs.h"
 
 typedef struct {
     double period;
@@ -84,8 +85,10 @@ error:
 
 static void register_funcs(LuastatusPluginData *pd, lua_State *L)
 {
-    Priv *p = pd->priv;
     // L: table
+    ls_procalive_lfuncs_register_all(L); // L: table
+
+    Priv *p = pd->priv;
     ls_pushed_timeout_push_luafunc(&p->pushed_tmo, L); // L: table func
     lua_setfield(L, -2, "push_period"); // L: table
 }

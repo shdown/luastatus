@@ -17,19 +17,19 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "prng.h"
-#include <time.h>
-#include <unistd.h>
+#ifndef ls_procalive_lfuncs_h_
+#define ls_procalive_lfuncs_h_
 
-uint32_t ls_prng_make_up_some_seed(void)
-{
-    struct timespec ts;
-    if (clock_gettime(CLOCK_REALTIME, &ts) < 0) {
-        return getpid();
-    }
+#include <lua.h>
 
-    uint32_t nsec = ts.tv_nsec;
-    uint32_t sec = ts.tv_sec;
+int ls_procalive_lfunc_access(lua_State *L);
 
-    return nsec + sec * (1000 * 1000 * 1000);
-}
+int ls_procalive_lfunc_stat(lua_State *L);
+
+int ls_procalive_lfunc_glob(lua_State *L);
+
+int ls_procalive_lfunc_is_process_alive(lua_State *L);
+
+void ls_procalive_lfuncs_register_all(lua_State *L);
+
+#endif
