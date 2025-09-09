@@ -144,7 +144,6 @@ function P.widget(tbl)
         plugin = 'timer',
         opts = {
             period = period,
-            greet = true,
         },
         cb = function(t)
             return tbl.cb(P.reader_read(reader, period, tbl.in_array_form))

@@ -31,7 +31,6 @@ end
 widget = {
     plugin = '$PT_BUILD_DIR/plugins/timer/plugin-timer.so',
     opts = {
-        greet = true,
         period = 1.0,
     },
     cb = function(t)
