@@ -39,6 +39,9 @@ Plugin 'imap' has the following dependencies:
 * LuaSocket library for the Lua version that luastatus was built with
 * LuaSec library for the Lua version that luastatus was built with
 
+Plugin 'is-program-running' has the following dependencies:
+* plugin 'timer'
+
 Plugin 'inotify' has the following dependencies:
 * a Linux system with a libc that provides <sys/inotify.h> (preferably glibc)
 
