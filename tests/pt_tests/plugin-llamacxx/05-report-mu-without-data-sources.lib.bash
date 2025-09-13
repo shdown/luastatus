@@ -20,7 +20,7 @@ widget = {
     },
     cb = function(t)
         if t.what == 'answer' then
-            f:write(string.format('cb answer mu="%s" %s\n', t.mu, t.answer))
+            f:write(string.format('cb answer mu="%s" %s\n', t.mu and 'true' or 'false', t.answer))
         elseif t.what == 'error' then
             f:write('cb error')
             f:write(' error=' .. t.error)
