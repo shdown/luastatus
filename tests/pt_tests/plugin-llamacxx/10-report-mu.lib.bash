@@ -19,7 +19,7 @@ widget = {
             abcdef = [[
                 i = 0
                 LL_data_source = {
-                    plugin = 'timer',
+                    plugin = '$PT_BUILD_DIR/plugins/timer/plugin-timer.so',
                     opts = {
                         period = 0.1,
                     },
