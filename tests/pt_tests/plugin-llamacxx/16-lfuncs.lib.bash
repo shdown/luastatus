@@ -20,7 +20,7 @@ TESTCASES_1Q = {
 }
 TESTCASES_2Q = {
     '',
-    'another test',
+    'Another test',
     "with single'quote",
     'with back\`quote',
     'the so-called "double quotes" are here',
@@ -88,7 +88,7 @@ pt_expect_line '1q:`' <&$pfd
 pt_expect_line '1q:4`441``453114324032`2352154310' <&$pfd
 
 pt_expect_line '2q:' <&$pfd
-pt_expect_line '2q:another test' <&$pfd
+pt_expect_line '2q:Another test' <&$pfd
 pt_expect_line "2q:with single'quote" <&$pfd
 pt_expect_line '2q:with back`quote' <&$pfd
 pt_expect_line "2q:the so-called ''double quotes'' are here" <&$pfd
