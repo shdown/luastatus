@@ -26,6 +26,7 @@
 #include "string_.h"
 #include "alloc_utils.h"
 #include "compdep.h"
+#include "freemem.h"
 
 // An array of constant strings on a single buffer. Panics on allocation failure.
 
@@ -90,7 +91,7 @@ LS_INHEADER const char *ls_strarr_at(LS_StringArray sa, size_t index, size_t *n)
 LS_INHEADER void ls_strarr_clear(LS_StringArray *sa)
 {
     ls_string_clear(&sa->buf);
-    sa->offsets.size = 0;
+    LS_FREEMEM(sa->offsets.data, sa->offsets.size, sa->offsets.capacity);
 }
 
 LS_INHEADER void ls_strarr_destroy(LS_StringArray sa)

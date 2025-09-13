@@ -25,6 +25,7 @@
 
 #include "libls/alloc_utils.h"
 #include "libls/compdep.h"
+#include "libls/freemem.h"
 
 typedef struct {
     char **data;
@@ -40,8 +41,10 @@ LS_INHEADER StringSet string_set_new(void)
 // Clears and unfreezes the set.
 LS_INHEADER void string_set_reset(StringSet *s)
 {
-    for (size_t i = 0; i < s->size; ++i)
+    for (size_t i = 0; i < s->size; ++i) {
         free(s->data[i]);
+    }
+    LS_FREEMEM(s->data, s->size, s->capacity);
     s->size = 0;
 }
 
@@ -59,8 +62,9 @@ bool string_set_contains(StringSet s, const char *val);
 
 LS_INHEADER void string_set_destroy(StringSet s)
 {
-    for (size_t i = 0; i < s.size; ++i)
+    for (size_t i = 0; i < s.size; ++i) {
         free(s.data[i]);
+    }
     free(s.data);
 }
 

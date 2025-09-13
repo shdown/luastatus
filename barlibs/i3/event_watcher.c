@@ -36,6 +36,7 @@
 #include "libls/strarr.h"
 #include "libls/compdep.h"
 #include "libls/alloc_utils.h"
+#include "libls/freemem.h"
 
 #include "priv.h"
 
@@ -86,6 +87,7 @@ static inline void token_list_push(TokenList *x, Token token)
 
 static inline void token_list_clear(TokenList *x)
 {
+    LS_FREEMEM(x->data, x->size, x->capacity);
     x->size = 0;
 }
 
