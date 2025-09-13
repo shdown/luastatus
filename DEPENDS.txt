@@ -46,6 +46,10 @@ Plugin 'is-program-running' has the following dependencies:
 Plugin 'inotify' has the following dependencies:
 * a Linux system with a libc that provides <sys/inotify.h> (preferably glibc)
 
+Plugin 'llamacxx' has the following dependencies:
+* yajl >=2.0.4
+* libcurl >=7.8
+
 Plugin 'mem-usage-linux' has the following dependencies:
 * plugin 'timer'
 
