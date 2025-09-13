@@ -51,7 +51,7 @@
 #include "my_error.h"
 #include "dss_list.h"
 #include "pushed_str.h"
-#include "escape_quoted.h"
+#include "escape_lfuncs.h"
 #include "mini_luastatus.h"
 #include "describe_lua_err.h"
 #include "map_ref.h"
@@ -448,9 +448,9 @@ static void register_funcs(LuastatusPluginData *pd, lua_State *L)
 
     // L: table
     MyError e = {0};
-    bool ok = escape_quoted_register_all_lfuncs(L, &e); // L: table
+    bool ok = register_all_escape_lfuncs(L, &e); // L: table
     if (!ok) {
-        LS_WARNF(pd, "cannot register escape-quoted funcs: %s", my_error_cstr(&e));
+        LS_WARNF(pd, "cannot register escape Lua functions: %s", my_error_cstr(&e));
         my_error_dispose(&e);
     }
 }

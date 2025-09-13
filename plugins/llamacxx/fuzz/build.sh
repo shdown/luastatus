@@ -6,6 +6,8 @@ if [ -z "$CC" ]; then
     exit 1
 fi
 
+cd -- "$(dirname "$(readlink "$0" || printf '%s\n' "$0")")"
+
 luastatus_root=../../..
 
 $CC -Wall -Wextra -O3 -std=c99 -D_POSIX_C_SOURCE=200809L \

@@ -4,6 +4,8 @@ set -e
 set -o pipefail
 shopt -s failglob
 
+cd -- "$(dirname "$(readlink "$0" || printf '%s\n' "$0")")"
+
 sources=( ./*.[ch] )
 
 gen_symbol_list() {

@@ -24,6 +24,6 @@
 #include <stdbool.h>
 #include "my_error.h"
 
-bool escape_quoted_register_all_lfuncs(lua_State *L, MyError *out_err);
+bool register_all_escape_lfuncs(lua_State *L, MyError *out_err);
 
 #endif
