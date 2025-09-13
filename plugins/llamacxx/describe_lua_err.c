@@ -28,7 +28,7 @@ void describe_lua_err(
     const char **out_err_kind,
     const char **out_err_msg)
 {
-    assert(lretval != LUA_OK);
+    assert(lretval != 0);
 
     const char *kind;
     switch (lretval) {

@@ -637,7 +637,7 @@ static int get_prompt_via_flash_call(
 
     int retval;
     int rc = lua_pcall(L, 1, 1, 0);
-    if (rc == LUA_OK) {
+    if (rc == 0) {
         // L: retval
 
         int t = lua_type(L, -1);

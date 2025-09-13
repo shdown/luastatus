@@ -43,7 +43,7 @@ static bool push_compiled_chunk(
 
     // L: -
     int rc = luaL_loadstring(L, prog.data);
-    if (rc != LUA_OK) {
+    if (rc != 0) {
         // L: error_obj
         const char *err_kind;
         const char *err_msg;
@@ -55,7 +55,7 @@ static bool push_compiled_chunk(
 
     ls_string_free(prog);
 
-    return rc == LUA_OK;
+    return rc == 0;
 }
 
 bool escape_quoted_register_all_lfuncs(lua_State *L, MyError *out_err)

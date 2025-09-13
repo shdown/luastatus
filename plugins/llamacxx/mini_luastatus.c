@@ -296,7 +296,7 @@ static bool plugin_load_by_name(Myself *myself, Plugin *p, const char *name)
 
 static bool check_lua_call(Myself *myself, lua_State *L, int ret)
 {
-    if (ret == LUA_OK) {
+    if (ret == 0) {
         return true;
     }
     // L: ? error
