@@ -125,7 +125,7 @@ bool register_all_escape_lfuncs(lua_State *L, MyError *out_err)
 
     static const char *JSON_ESC_PROGRAM =
         "local s = ...\n"
-        "if s:find('\\0') then\n"
+        "if string.find(s, '\\0') then\n"
         "  error('cannot JSON-escape string with NUL characters')\n"
         "end\n"
         "local r, _ = string.gsub(s, '" JSON_ESC_PATTERN "', function(c)\n"
