@@ -33,7 +33,7 @@ TESTCASES_JSON = {
     'normal stuff',
     '"double-quoted stuff"',
     'stuff with \\\\backslash',
-    '/?/stuff\\\\with"all_kinds\x01of\x1fsymbols^',
+    '/?/stuff\\\\with"all_kinds\\x01of\\x1fsymbols^',
 }
 TESTCASE_JSON_BLOW_UP = 'a string with \\0 character'
 
