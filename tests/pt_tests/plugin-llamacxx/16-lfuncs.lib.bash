@@ -34,8 +34,12 @@ TESTCASES_JSON = {
     '"double-quoted stuff"',
     'stuff with \\\\backslash',
     '/?/stuff\\\\with"all_kinds$(printf \\x01)of$(printf \\x1f)symbols^',
+
+    'stuff with\\0 NUL',
+    '\\0 NUL stuff',
+    '\\0',
 }
-TESTCASE_JSON_BLOW_UP = 'a string with \\0 character'
+TESTCASE_JSON_BLOW_UP = 0
 
 widget = {
     plugin = '$PT_BUILD_DIR/plugins/llamacxx/plugin-llamacxx.so',
@@ -101,6 +105,10 @@ pt_expect_line 'json:normal stuff' <&$pfd
 pt_expect_line 'json:\u0022double-quoted stuff\u0022' <&$pfd
 pt_expect_line 'json:stuff with \u005cbackslash' <&$pfd
 pt_expect_line 'json:\u002f?\u002fstuff\u005cwith\u0022all_kinds\u0001of\u001fsymbols^' <&$pfd
+
+pt_expect_line 'json:stuff with' <&$pfd
+pt_expect_line 'json:' <&$pfd
+pt_expect_line 'json:' <&$pfd
 
 pt_expect_line 'json error ok' <&$pfd
 

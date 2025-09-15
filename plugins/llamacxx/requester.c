@@ -120,17 +120,14 @@ static LS_String make_req_body(Requester *R, const char *extra_params_json, cons
     ls_string_append_s(&r, "{\"prompt\":");
     append_json_escaped_s(&r, prompt);
 
-    bool excl = valid_str(extra_params_json) && extra_params_json[0] == '!';
-
     ls_string_append_s(&r, ",\"response_fields\":[\"content\"]");
-    if (!excl) {
-        ls_string_append_s(&r, ",\"cache_prompt\":");
-        ls_string_append_s(&r, R->settings.cache_prompt ? "true" : "false");
-    }
+
+    ls_string_append_s(&r, ",\"cache_prompt\":");
+    ls_string_append_s(&r, R->settings.cache_prompt ? "true" : "false");
 
     if (valid_str(extra_params_json)) {
         ls_string_append_c(&r, ',');
-        ls_string_append_s(&r, extra_params_json + (excl ? 1 : 0));
+        ls_string_append_s(&r, extra_params_json);
     }
 
     ls_string_append_c(&r, '}');

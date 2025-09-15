@@ -54,6 +54,11 @@ static bool push_compiled_thunk_quote_esc(
 {
     LS_String prog = ls_string_new_from_f(
         "local s = ...\n"
+
+        "if type(s) ~= 'string' then\n"
+        "  error('argument #1: expected string, found ' .. type(s))\n"
+        "end\n"
+
         "local r, _ = string.gsub(s, [[%s]], [[%s]])\n"
         "return r\n",
         repl_old,
@@ -109,7 +114,8 @@ bool register_all_escape_lfuncs(lua_State *L, MyError *out_err)
     //      $ lua5.4 -e 'print(("test"):gsub("\0", "x"))'
     //      test  0
     //
-    //    So we simply prohibit NUL characters in strings to be escaped.
+    //    So we simply ignore everything after the first NUL character; this
+    //    can be done "portable" across different versions/implementations.
     //
     //  * We embed non-printables directly into strings within Lua code.
     //    This is because Lua doesn't support \xHH escapes, but does
@@ -125,9 +131,16 @@ bool register_all_escape_lfuncs(lua_State *L, MyError *out_err)
 
     static const char *JSON_ESC_PROGRAM =
         "local s = ...\n"
-        "if string.find(s, '\\0') then\n"
-        "  error('cannot JSON-escape string with NUL characters')\n"
+
+        "if type(s) ~= 'string' then\n"
+        "  error('argument #1: expected string, found ' .. type(s))\n"
         "end\n"
+
+        "local iZ = string.find(s, '\\0')\n"
+        "if iZ then\n"
+        "  s = string.sub(s, 1, iZ - 1)\n"
+        "end\n"
+
         "local r, _ = string.gsub(s, '" JSON_ESC_PATTERN "', function(c)\n"
         "  return string.format('\\\\u00%02x', string.byte(c))\n"
         "end)\n"
