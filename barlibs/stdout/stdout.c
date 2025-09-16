@@ -51,6 +51,7 @@ typedef struct {
     // /fdopen/'ed output file descriptor.
     FILE *out;
 
+    // Value of /in_filename/ option.
     char *in_filename;
 } Priv;
 
@@ -250,7 +251,7 @@ static int event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
     Priv *p = bd->priv;
 
     if (!p->in_filename) {
-        LS_INFOF(bd, "event watcher: in_filename was not specified, returning");
+        LS_DEBUGF(bd, "event watcher: in_filename was not specified, returning");
         return LUASTATUS_NONFATAL_ERR;
     }
 
