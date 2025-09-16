@@ -198,12 +198,7 @@ typedef struct MapEntry {
     char key[]; // zero-terminated
 } MapEntry;
 
-static struct {
-    MapEntry *top;
-
-    // Whether the map is frozen after all plugins and widgets have been initialized.
-    bool frozen;
-} map = {.top = NULL, .frozen = false};
+static MapEntry *map_top;
 
 // This function exists because /dlerror()/ may return /NULL/ even if /dlsym()/ returned /NULL/.
 static inline const char *safe_dlerror(void)
@@ -283,12 +278,7 @@ static void **map_get(void *userdata, const char *key)
 {
     TRACEF("map_get(userdata=%p, key='%s')", userdata, key);
 
-    if (map.frozen) {
-        FATALF("map_get() is called after the map has been frozen");
-        abort();
-    }
-
-    for (MapEntry *e = map.top; e; e = e->next) {
+    for (MapEntry *e = map_top; e; e = e->next) {
         if (strcmp(key, e->key) == 0) {
             return &e->value;
         }
@@ -298,16 +288,16 @@ static void **map_get(void *userdata, const char *key)
     size_t nkey = strlen(key);
     MapEntry *e = ls_xmalloc(sizeof(MapEntry) + nkey + 1, 1);
     e->value = NULL;
-    e->next = map.top;
+    e->next = map_top;
     memcpy(e->key, key, nkey + 1);
-    map.top = e;
+    map_top = e;
 
     return &e->value;
 }
 
 static void map_destroy(void)
 {
-    MapEntry *e = map.top;
+    MapEntry *e = map_top;
     while (e) {
         MapEntry *next = e->next;
         free(e);
@@ -1151,9 +1141,6 @@ int main(int argc, char **argv)
         goto cleanup;
     }
     barlib_inited = true;
-
-    // Freeze the map.
-    map.frozen = true;
 
     // Register barlib's function at the separate state, if we are going to use it.
     if (sepstate.L) {
