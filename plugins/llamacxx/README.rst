@@ -197,7 +197,9 @@ Error meta-information
 
 If the ``cb`` argument has ``what = "error"``, the ``meta`` entry is a string that is indended to be a
 comuter-readable descrition of the problem. It has character-and-number format, where the character
-signifies the "domain" of the error and number signifies the error code.
+signifies the "domain" of the error and number signifies the error code. The error code is an integer,
+possibly negative.
+
 The following domains are currently defined:
 
 * ``J``: JSON parsing; error codes are unspecified;
