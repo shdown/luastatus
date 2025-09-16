@@ -79,4 +79,4 @@ The following functions are provided:
 
 * ``luastatus.plugin.push_timeout(seconds)``
 
-    Changes the timeout for one iteration.
+  Changes the timeout for one iteration.

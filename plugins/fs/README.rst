@@ -18,21 +18,21 @@ The following options are supported:
 
 * ``paths``: array of strings
 
-    For each of these paths, an information on usage of the file system it belongs to is returned.
+  For each of these paths, an information on usage of the file system it belongs to is returned.
 
 * ``globs``: array of strings
 
-    Same as ``paths`` but accepts glob patterns. It is not an error if the pattern expands to
-    nothing. Useful for monitoring filesystems which are mounted at runtime.
+  Same as ``paths`` but accepts glob patterns. It is not an error if the pattern expands to
+  nothing. Useful for monitoring filesystems which are mounted at runtime.
 
 * ``period``: number
 
-    A number of seconds to sleep before calling ``cb`` again. May be fractional. Defaults to 10.
+  A number of seconds to sleep before calling ``cb`` again. May be fractional. Defaults to 10.
 
 * ``fifo``: string
 
-    Path to an existent FIFO. The plugin does not create FIFO itself. To force a wake-up,
-    ``touch(1)`` the FIFO, that is, open it for writing and then close.
+  Path to an existent FIFO. The plugin does not create FIFO itself. To force a wake-up,
+  ``touch(1)`` the FIFO, that is, open it for writing and then close.
 
 ``cb`` argument
 ===============

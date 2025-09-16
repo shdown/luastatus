@@ -22,16 +22,15 @@ Either of:
 
 * a string
 
-    An empty string hides the widget.
+  An empty string hides the widget.
 
 * an array of strings
 
-    Equivalent to returning a string with all non-empty elements of the array joined by the
-    separator.
+  Equivalent to returning a string with all non-empty elements of the array joined by the separator.
 
 * ``nil``
 
-    Hides the widget.
+  Hides the widget.
 
 Options
 =======
@@ -39,8 +38,8 @@ The following options are supported:
 
 * ``display=<name>``
 
-    Set the name of a display to connect to. Default is to use ``DISPLAY`` environment variable.
+  Set the name of a display to connect to. Default is to use ``DISPLAY`` environment variable.
 
 * ``separator=<string>``
 
-    Set the separator.
+  Set the separator.

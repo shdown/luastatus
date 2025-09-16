@@ -38,21 +38,21 @@ Either of:
 
 * an empty table or ``nil``
 
-    Hide the widget.
+  Hide the widget.
 
 * a table with strings keys
 
-    Is interpreted as a single segment (or a "block"). The keys *should not* include ``name``, as it
-    is set automatically to be able to tell which widget was clicked.
+  Is interpreted as a single segment (or a "block"). The keys *should not* include ``name``, as it
+  is set automatically to be able to tell which widget was clicked.
 
-    For more information, see http://i3wm.org/docs/i3bar-protocol.html#_blocks_in_detail.
+  For more information, see http://i3wm.org/docs/i3bar-protocol.html#_blocks_in_detail.
 
 * an array (table with numeric keys)
 
-    Is interpreted as an array of segments. To be able to tell which one was clicked, set the
-    ``instance`` field of a segment.
+  Is interpreted as an array of segments. To be able to tell which one was clicked, set the
+  ``instance`` field of a segment.
 
-    ``nil`` elements are ignored.
+  ``nil`` elements are ignored.
 
 ``event`` argument
 ==================
@@ -66,7 +66,7 @@ The following functions are provided:
 
 * ``escaped_str = luastatus.barlib.pango_escape(str)``
 
-    Escapes text for the Pango markup.
+  Escapes text for the Pango markup.
 
 Example
 =======
@@ -123,24 +123,24 @@ The following options are supported:
 
 * ``in_fd=<fd>``
 
-    File descriptor to read ``i3bar`` input from. Usually set by the wrapper.
+  File descriptor to read ``i3bar`` input from. Usually set by the wrapper.
 
 * ``out_fd=<fd>``
 
-    File descriptor to write to. Usually set by the wrapper.
+  File descriptor to write to. Usually set by the wrapper.
 
 * ``no_click_events``
 
-    Tell ``i3bar`` we don't want to receive click events. This changes ``i3bar`` behaviour in that
-    it will interpret "clicks" on segments as if an empty space on the bar was clicked,
-    particularly, will switch workspaces if you scroll on a segment.
+  Tell ``i3bar`` we don't want to receive click events. This changes ``i3bar`` behaviour in that
+  it will interpret "clicks" on segments as if an empty space on the bar was clicked,
+  particularly, will switch workspaces if you scroll on a segment.
 
 * ``no_separators``
 
-    Append ``"separator": false`` to a segment, unless it has a ``separator`` key. Also appends it
-    to an ``(Error)`` segment.
+  Append ``"separator": false`` to a segment, unless it has a ``separator`` key. Also appends it
+  to an ``(Error)`` segment.
 
 * ``allow_stopping``
 
-    Allow i3bar to send luastatus ``SIGSTOP`` when it thinks it becomes invisible, and ``SIGCONT``
-    when it thinks it becomes visible. Quite a questionable feature.
+  Allow i3bar to send luastatus ``SIGSTOP`` when it thinks it becomes invisible, and ``SIGCONT``
+  when it thinks it becomes visible. Quite a questionable feature.

@@ -17,27 +17,27 @@ Functions
 =========
 * ``get_usage()``
 
-    Returns a table with two entries, ``avail`` and ``total``. Both are tables that have ``value``
-    (a number) and ``unit`` (a string) entries; you can assume ``unit`` is always ``"kB"``.
+  Returns a table with two entries, ``avail`` and ``total``. Both are tables that have ``value``
+  (a number) and ``unit`` (a string) entries; you can assume ``unit`` is always ``"kB"``.
 
 * ``widget(tbl)``
 
-    Constructs a ``widget`` table required by luastatus. ``tbl`` is a table with the following
-    fields:
+  Constructs a ``widget`` table required by luastatus. ``tbl`` is a table with the following
+  fields:
 
-    **(required)**
+  **(required)**
 
-    - ``cb``: function
+  - ``cb``: function
 
-        The callback that will be called with the table same as that returned by ``get_usage()``.
+    The callback that will be called with the table same as that returned by ``get_usage()``.
 
-    **(optional)**
+  **(optional)**
 
-    - ``timer_opts``: table
+  - ``timer_opts``: table
 
-        Options for the underlying ``timer`` plugin.
+    Options for the underlying ``timer`` plugin.
 
-    - ``event``
+  - ``event``
 
-        The ``event`` entry of the resulting table (see ``luastatus`` documentation for the
-        description of ``widget.event`` field).
+    The ``event`` entry of the resulting table (see ``luastatus`` documentation for the
+    description of ``widget.event`` field).

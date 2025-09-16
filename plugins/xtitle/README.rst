@@ -17,17 +17,17 @@ Options
 
 * ``display``: string
 
-    Display to connect to. Default is to use ``DISPLAY`` environment variable.
+  Display to connect to. Default is to use ``DISPLAY`` environment variable.
 
 * ``visible``: boolean
 
-    If true, try to retrieve the title from the ``_NET_WM_VISIBLE_NAME`` atom. Default is false.
+  If true, try to retrieve the title from the ``_NET_WM_VISIBLE_NAME`` atom. Default is false.
 
 * ``extended_fmt``: boolean
 
-    If true, *class* and *instance* of the active window will also be reported;
-    the argument to ``cb`` will be a table instead of string or nil.
-    Defaults to false.
+  If true, *class* and *instance* of the active window will also be reported;
+  the argument to ``cb`` will be a table instead of string or nil.
+  Defaults to false.
 
 ``cb`` argument
 ===============

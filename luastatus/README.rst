@@ -52,30 +52,30 @@ contain the following entries:
 
 * ``plugin``: string
 
-    Name or the path to a *plugin* (see `PLUGINS`_) the widget wants to receive data from. If it
-    contains a slash, it is treated as a path to a shared library. If it does not, luastatus tries
-    to load ``plugin-<plugin>.so`` from the directory configured at the build time (CMake
-    ``PLUGINS_DIR`` variable, defaults to ``${CMAKE_INSTALL_FULL_LIBDIR}/luastatus/plugins``).
+  Name or the path to a *plugin* (see `PLUGINS`_) the widget wants to receive data from. If it
+  contains a slash, it is treated as a path to a shared library. If it does not, luastatus tries
+  to load ``plugin-<plugin>.so`` from the directory configured at the build time (CMake
+  ``PLUGINS_DIR`` variable, defaults to ``${CMAKE_INSTALL_FULL_LIBDIR}/luastatus/plugins``).
 
 * ``cb``: function
 
-    The callback that converts the data received from a *plugin* to the format a *barlib* (see
-    `BARLIBS`_) understands. It should take one argument and return one value. (The returned values
-    will be coerced to exactly one value, so not returning anything is the same as returning
-    ``nil``.)
+  The callback that converts the data received from a *plugin* to the format a *barlib* (see
+  `BARLIBS`_) understands. It should take one argument and return one value. (The returned values
+  will be coerced to exactly one value, so not returning anything is the same as returning
+  ``nil``.)
 
 The ``widget`` table **may** contain the following entries:
 
 * ``opts``: table
 
-    Table with plugin's options. If undefined, an empty table will be substituted.
+  Table with plugin's options. If undefined, an empty table will be substituted.
 
 * ``event``: function or string
 
-    - If is a function, it will be called by the *barlib* whenever some event with the widget occurs
-      (typically a click). It should take one argument and not return anything.
+  - If is a function, it will be called by the *barlib* whenever some event with the widget occurs
+    (typically a click). It should take one argument and not return anything.
 
-    - If is a string, it is compiled as a function in a *separate state* (see `SEPARATE STATE`_).
+  - If is a string, it is compiled as a function in a *separate state* (see `SEPARATE STATE`_).
 
 PLUGINS
 =======
@@ -99,11 +99,11 @@ BARLIBS
 A barlib (**bar** **lib**\rary) is an adapter that communicates with the status bar.
 In other words, a barlib is a thing that knows:
 
-  * what to do with values that the ``cb`` function of a widget returns;
+* what to do with values that the ``cb`` function of a widget returns;
 
-  * when to call the ``event`` function and what to pass to it;
+* when to call the ``event`` function and what to pass to it;
 
-  * how to indicate an error, should one happen.
+* how to indicate an error, should one happen.
 
 Just like plugins, barlibs are shared libraries.
 
@@ -130,14 +130,14 @@ The ``luastatus`` module
 ------------------------
 luastatus provides the ``luastatus`` module, which currently contains only one function:
 
-  * ``luastatus.require_plugin(name)`` acts like the Lua's built-in ``require`` function, except
-    that it loads a file named ``<name>.lua`` from luastatus' derived plugins directory. This
-    directory is configured at the build time (CMake ``LUA_PLUGINS_DIR`` variable, defaults to
-    ``${CMAKE_INSTALL_FULL_DATAROOTDIR}/luastatus/plugins``).
+* ``luastatus.require_plugin(name)`` acts like the Lua's built-in ``require`` function, except
+  that it loads a file named ``<name>.lua`` from luastatus' derived plugins directory. This
+  directory is configured at the build time (CMake ``LUA_PLUGINS_DIR`` variable, defaults to
+  ``${CMAKE_INSTALL_FULL_DATAROOTDIR}/luastatus/plugins``).
 
-    The file is read, compiled as a Lua code, and executed, and its return value is returned from
-    ``luastatus.require_plugin``.
-    If this derived plugin has already been loaded, the cached return value is returned.
+  The file is read, compiled as a Lua code, and executed, and its return value is returned from
+  ``luastatus.require_plugin``.
+  If this derived plugin has already been loaded, the cached return value is returned.
 
 Plugins' and barlib's Lua functions
 -----------------------------------

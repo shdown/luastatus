@@ -16,57 +16,57 @@ Options
 ========
 The following options are supported:
 
-    * ``greet``: boolean
+* ``greet``: boolean
 
-        Whether or not a first call to ``cb`` with ``what="hello"`` should be made as soon as the
-        widget starts. Defaults to false.
+  Whether or not a first call to ``cb`` with ``what="hello"`` should be made as soon as the
+  widget starts. Defaults to false.
 
-    * ``timeout``: number
+* ``timeout``: number
 
-        If specified and not negative, this plugin calls ``cb`` with ``what="timeout"`` if no D-Bus
-        signal has been received in ``timeout`` seconds.
+  If specified and not negative, this plugin calls ``cb`` with ``what="timeout"`` if no D-Bus
+  signal has been received in ``timeout`` seconds.
 
-    * ``signals``: array of tables
+* ``signals``: array of tables
 
-        Array of tables with the following entries (all are optional):
+Array of tables with the following entries (all are optional):
 
-        - ``sender``: string
+  - ``sender``: string
 
-            Sender name to match on (unique or well-known name).
+    Sender name to match on (unique or well-known name).
 
-        - ``interface``: string
+  - ``interface``: string
 
-            D-Bus interface name to match on.
+    D-Bus interface name to match on.
 
-        - ``signal``: string
+  - ``signal``: string
 
-            D-Bus signal name to match on.
+    D-Bus signal name to match on.
 
-        -  ``object_path``: string
+  -  ``object_path``: string
 
-             Object path to match on.
+    Object path to match on.
 
-        - ``arg0``: string
+  - ``arg0``: string
 
-            Contents of first string argument to match on.
+    Contents of first string argument to match on.
 
-        - ``flags``: array of strings
+  - ``flags``: array of strings
 
-            The following flags are recognized:
+    The following flags are recognized:
 
-            + ``"match_arg0_namespace"``
+    + ``"match_arg0_namespace"``
 
-                Match first arguments that contain a bus or interface name with the given namespace.
+      Match first arguments that contain a bus or interface name with the given namespace.
 
-            + ``"match_arg0_path"``
+      + ``"match_arg0_path"``
 
-                Match first arguments that contain an object path that is either equivalent to the
-                given path, or one of the paths is a subpath of the other.
+      Match first arguments that contain an object path that is either equivalent to the
+      given path, or one of the paths is a subpath of the other.
 
-        - ``bus``: string
+      - ``bus``: string
 
-            Specify the bus to subscribe to the signal on: either ``"system"`` or ``"session"``;
-            default is ``"session"``.
+        Specify the bus to subscribe to the signal on: either ``"system"`` or ``"session"``;
+        default is ``"session"``.
 
 ``cb`` argument
 ===============

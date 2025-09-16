@@ -20,28 +20,28 @@ The following options are supported:
 
 * ``ip``: boolean
 
-    Whether to report IP addresses used for outgoing connections. Defaults to true.
+  Whether to report IP addresses used for outgoing connections. Defaults to true.
 
 * ``wireless``: boolean
 
-    Whether to report wireless connection info. Defaults to false.
+  Whether to report wireless connection info. Defaults to false.
 
 * ``ethernet``: boolean
 
-    Whether to report ethernet connection info. Defaults to false.
+  Whether to report ethernet connection info. Defaults to false.
 
 * ``new_ip_fmt``: boolean
 
-    Whether to report IP (``ipv4`` and ``ipv6``) addresses as tables (as opposed to strings).
-    Defaults to false.
+  Whether to report IP (``ipv4`` and ``ipv6``) addresses as tables (as opposed to strings).
+  Defaults to false.
 
 * ``timeout``: number
 
-    If specified and not negative, requery information and call ``cb`` every ``timeout`` seconds.
+  If specified and not negative, requery information and call ``cb`` every ``timeout`` seconds.
 
-    Note that this is done on any routing/link update anyway, so this is only useful if you want to
-    show the "volatile" properties of a wireless connection such as signal level, bitrate, and
-    frequency.
+  Note that this is done on any routing/link update anyway, so this is only useful if you want to
+  show the "volatile" properties of a wireless connection such as signal level, bitrate, and
+  frequency.
 
 ``cb`` argument
 ===============

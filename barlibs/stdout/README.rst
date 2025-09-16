@@ -34,16 +34,16 @@ Either of:
 
 * a string
 
-    An empty string hides the widget.
+  An empty string hides the widget.
 
 * an array of strings
 
-    Equivalent to returning a string with all non-empty elements of the array joined by the
-    separator.
+  Equivalent to returning a string with all non-empty elements of the array joined by the
+  separator.
 
 * ``nil``
 
-    Hides the widget.
+  Hides the widget.
 
 Options
 =======
@@ -51,27 +51,27 @@ The following options are supported:
 
 * ``out_fd=<fd>``
 
-   File descriptor to write to. Usually set by the wrapper.
+ File descriptor to write to. Usually set by the wrapper.
 
 * ``separator=<string>``
 
-   Set the separator.
+ Set the separator.
 
 * ``error=<string>``
 
-   Set the content of an "error" segment. Defaults to ``"(Error)"``.
+ Set the content of an "error" segment. Defaults to ``"(Error)"``.
 
 * ``in_filename=<string>``
 
-   Enable event watcher.
-   If specified, this barlib will open the specified filename for reading
-   and will read lines from it. Each line will be treated as an event.
-   This barlib doesn't try to interpret the content of the line; instead, the event
-   will be broadcast to all widgets. Thus, if this option is used, it is the
-   responsibility of each widget (that listens to the events) to check if the event
-   is somehow related to it.
-   The path should normally refer to a FIFO or be a file descriptor specifier
-   like ``/proc/self/fd/9``.
+  Enable event watcher.
+  If specified, this barlib will open the specified filename for reading
+  and will read lines from it. Each line will be treated as an event.
+  This barlib doesn't try to interpret the content of the line; instead, the event
+  will be broadcast to all widgets. Thus, if this option is used, it is the
+  responsibility of each widget (that listens to the events) to check if the event
+  is somehow related to it.
+  The path should normally refer to a FIFO or be a file descriptor specifier
+  like ``/proc/self/fd/9``.
 
 ``event`` argument
 ==================

@@ -21,60 +21,59 @@ The following functions are provided:
 
 * ``widget(tbl)``
 
-    Constructs a ``widget`` table required by luastatus. ``tbl`` is a table with the following
-    fields:
+  Constructs a ``widget`` table required by luastatus. ``tbl`` is a table with the following
+  fields:
 
-    **(required)**
+  **(required)**
 
-    - ``cb``: function
+  - ``cb``: function
 
-        The callback that will be called with a table with the following keys:
+    The callback that will be called with a table with the following keys:
 
-        + ``status``: string
+    + ``status``: string
 
-            A string with battery status text, e.g. ``"Full"``, ``"Unknown"``, ``"Charging"``,
-            ``"Discharging"``.
+      A string with battery status text, e.g. ``"Full"``, ``"Unknown"``, ``"Charging"``, ``"Discharging"``.
 
-            Not present if the status cannot be read (for example, when the battery is missing).
+      Not present if the status cannot be read (for example, when the battery is missing).
 
-        + ``capacity``: number
+    + ``capacity``: number
 
-            A percentage representing battery capacity.
+      A percentage representing battery capacity.
 
-            Not present if the capacity cannot be read.
+      Not present if the capacity cannot be read.
 
-        + ``rem_time``: number
+    + ``rem_time``: number
 
-            Time (in hours) remaining to full charge/discharge.
+      Time (in hours) remaining to full charge/discharge.
 
-            Usually only present on battery charge/discharge.
+      Usually only present on battery charge/discharge.
 
-        + ``consumption``: number
+    + ``consumption``: number
 
-            The current battery consumption/charge rate in watts.
+      The current battery consumption/charge rate in watts.
 
-            Usually only present on battery charge/discharge.
+      Usually only present on battery charge/discharge.
 
     **(optional)**
 
     - ``dev``: string
 
-        Device directory name under ``/sys/class/power_supply``; default is ``"BAT0"``.
+      Device directory name under ``/sys/class/power_supply``; default is ``"BAT0"``.
 
     - ``period``: number
 
-        The period in seconds for polling ``sysfs``; default is 2 seconds.
+      The period in seconds for polling ``sysfs``; default is 2 seconds.
 
-        Because this plugin utilizes ``udev`` under the hood, it is able to respond to
-        battery state changes (such as cable (un-)plugging) immediately, irrespective of
-        the value of the period.
+      Because this plugin utilizes ``udev`` under the hood, it is able to respond to
+      battery state changes (such as cable (un-)plugging) immediately, irrespective of
+      the value of the period.
 
     - ``use_energy_full_design``: boolean
 
-        If ``true``, the ``energy_full_design`` property (not ``energy_full``) will be used for
-        capacity calculation.
+      If ``true``, the ``energy_full_design`` property (not ``energy_full``) will be used for
+      capacity calculation.
 
     - ``event``
 
-        The ``event`` entry of the resulting table (see ``luastatus`` documentation for the
-        description of ``widget.event`` field).
+      The ``event`` entry of the resulting table (see ``luastatus`` documentation for the
+      description of ``widget.event`` field).

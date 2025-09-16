@@ -16,60 +16,60 @@ Options
 =======
 * ``hostname``: string
 
-    Hostname to connect to. Default is to connect to the local host. An absolute path to a UNIX
-    domain socket can also be specified (``port`` and ``bind`` are ignored then).
+  Hostname to connect to. Default is to connect to the local host. An absolute path to a UNIX
+  domain socket can also be specified (``port`` and ``bind`` are ignored then).
 
 * ``port``: number
 
-    Port to connect to. Default is 6600.
+  Port to connect to. Default is 6600.
 
 * ``password``: string
 
-    Server's password.
+  Server's password.
 
 * ``timeout``: number
 
-    If specified and not negative, the number of seconds to wait before calling ``cb`` with
-    ``what="timeout"`` again (after a connection has been established). May be fractional.
+  If specified and not negative, the number of seconds to wait before calling ``cb`` with
+  ``what="timeout"`` again (after a connection has been established). May be fractional.
 
 * ``retry_in``: number
 
-    Number of seconds to retry in after the connection is lost. A negative value means do not retry
-    and return immediately. May be fractional. Defaults to 10.
+  Number of seconds to retry in after the connection is lost. A negative value means do not retry
+  and return immediately. May be fractional. Defaults to 10.
 
 * ``retry_fifo``: string
 
-    Path to an existent FIFO. The plugin does not create FIFO itself. To force a reconnect,
-    ``touch(1)`` the FIFO, that is, open it for writing and then close.
+  Path to an existent FIFO. The plugin does not create FIFO itself. To force a reconnect,
+  ``touch(1)`` the FIFO, that is, open it for writing and then close.
 
 * ``events``: array of strings
 
-    List of MPD subsystems to poll for changes in. See the description of ``idle`` command at
-    https://www.musicpd.org/doc/html/protocol.html#querying-mpd-s-status for the complete list.
-    Default is ``{"mixer","player"}``.
+  List of MPD subsystems to poll for changes in. See the description of ``idle`` command at
+  https://www.musicpd.org/doc/html/protocol.html#querying-mpd-s-status for the complete list.
+  Default is ``{"mixer","player"}``.
 
 * ``enable_tcp_keepalive``: bool
 
-    Whether or not to enable TCP keepalive. Defaults to ``false``.
-    This option is ignored if the plugin is configured to connect to a UNIX domain socket.
+  Whether or not to enable TCP keepalive. Defaults to ``false``.
+  This option is ignored if the plugin is configured to connect to a UNIX domain socket.
 
 * ``bind``: table
 
-    If provided, the plugin will bind the (TCP, not UNIX) socket to a specific address.
-    The parameters for the binding are specified by this table.
+  If provided, the plugin will bind the (TCP, not UNIX) socket to a specific address.
+  The parameters for the binding are specified by this table.
 
-    If the plugin is otherwise configured to connect to a UNIX domain socket (via ``hostname``
-    option that starts with a slash), this option is ignored.
+  If the plugin is otherwise configured to connect to a UNIX domain socket (via ``hostname``
+  option that starts with a slash), this option is ignored.
 
-    If this option is provided, it must be a table with the following keys:
+  If this option is provided, it must be a table with the following keys:
 
-      - ``addr``: the value must be a string representing either IPv4 or IPv6 address.
+    - ``addr``: the value must be a string representing either IPv4 or IPv6 address.
 
-      - ``ipver``: the value must be a string, either ``"ipv4"`` for IPv4 address or ``"ipv6"`` for IPv6 address.
+    - ``ipver``: the value must be a string, either ``"ipv4"`` for IPv4 address or ``"ipv6"`` for IPv6 address.
 
-    Note that there is no default for the ``ipver`` field, and there is no guessing what sort of
-    address it is; if the ``bind`` table is present, but does not contain ``ipver`` key, the
-    plugin will fail to initialize.
+  Note that there is no default for the ``ipver`` field, and there is no guessing what sort of
+  address it is; if the ``bind`` table is present, but does not contain ``ipver`` key, the
+  plugin will fail to initialize.
 
 
 ``cb`` argument

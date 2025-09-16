@@ -35,16 +35,16 @@ Either of:
 
 * a string with lemonbar markup
 
-    An empty string hides the widget.
+  An empty string hides the widget.
 
 * an array of such strings
 
-    Equivalent to returning a string with all non-empty elements of the array joined by the
-    separator.
+  Equivalent to returning a string with all non-empty elements of the array joined by the
+  separator.
 
 * ``nil``
 
-    Hides the widget.
+  Hides the widget.
 
 Functions
 =========
@@ -52,7 +52,7 @@ The following functions are provided:
 
 * ``escaped_str = luastatus.barlib.escape(str)``
 
-    Escapes text for lemonbar markup.
+  Escapes text for lemonbar markup.
 
 ``event`` argument
 ==================
@@ -64,12 +64,12 @@ The following options are supported:
 
 * ``in_fd=<fd>``
 
-    File descriptor to read ``lemonbar`` input from. Usually set by the launcher.
+  File descriptor to read ``lemonbar`` input from. Usually set by the launcher.
 
 * ``out_fd=<fd>``
 
-    File descriptor to write to. Usually set by the launcher.
+  File descriptor to write to. Usually set by the launcher.
 
 * ``separator=<string>``
 
-    Set the separator.
+  Set the separator.

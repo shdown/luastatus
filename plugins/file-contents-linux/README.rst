@@ -18,26 +18,26 @@ The following functions are provided:
 
 * ``widget(tbl)``
 
-    Constructs a ``widget`` table required by luastatus. ``tbl`` is a table with the following
-    fields:
+  Constructs a ``widget`` table required by luastatus. ``tbl`` is a table with the following
+  fields:
 
-    **(required)**
+  **(required)**
 
-    * ``filename``: string
+  * ``filename``: string
 
-        Path to the file to monitor.
+    Path to the file to monitor.
 
-    * ``cb``: function
+  * ``cb``: function
 
-        The callback that will be called with ``filename`` opened for reading.
+    The callback that will be called with ``filename`` opened for reading.
 
-    **(optional)**
+  **(optional)**
 
-    * ``timeout``, ``flags``
+  * ``timeout``, ``flags``
 
-        Better do not touch (or see the code).
+    Better do not touch (or see the code).
 
-    * ``event``
+  * ``event``
 
-        The ``event`` entry of the resulting table (see ``luastatus`` documentation for the
-        description of ``widget.event`` field).
+    The ``event`` entry of the resulting table (see ``luastatus`` documentation for the
+    description of ``widget.event`` field).
