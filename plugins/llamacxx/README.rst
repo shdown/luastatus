@@ -12,7 +12,7 @@ Overview
 ========
 This plugin provides answers to the given prompts from a local LLM (large language
 model). It uses `llama.cpp <https://github.com/ggml-org/llama.cpp/>`_ REST API.
-A widget using this plugin can either generate the prompts by iteself (e.g.
+A widget using this plugin can either generate the prompts by itself (e.g.
 fetch a random prompt from a list using Lua's ``math.random``) or use data
 from "nested widgets" (e.g. ``xtitle`` or ``mpd``) that this plugin can spawn.
 
@@ -27,7 +27,7 @@ The following options are supported:
 * ``prompt``: function (required)
 
   Function to generate a prompt. Must take a single argument: a table whose
-  keys are ``data_sources``' keys and values are data from the correponding
+  keys are ``data_sources``' keys and values are data from the corresponding
   data sources (the table is empty if ``data_sources`` is empty or ``nil``).
 
   A value behind a key can be:
@@ -184,7 +184,7 @@ The argument is always a table with a ``what`` entry.
 
 * If ``what = "error"``, there was a problem obtaining answer from *llama.cpp* via the REST API.
   In this case, the table also has a string ``error`` entry with human-readable description of
-  the problem, and also a string ``meta`` entry, which is indended to be a comuter-readable descrition
+  the problem, and also a string ``meta`` entry, which is intended to be a computer-readable description
   of the problem. See the `Error meta-information`_ section below for more information.
 
 * If ``what = "prompt_error"``, there was a problem generating the prompt: the function passed as the
@@ -239,3 +239,38 @@ Functions
 
   Escapes a string for JSON encoding.
   Note that this function does not enclose the result in double quotes.
+
+But is it secure?
+=================
+Some users might be rightfully concerned about the security of using such a plugin:
+
+1. Is the title of the active window (or any other data from nested widgets) transmitted to somewhere over the network?
+2. Can this plugin be somehow "hacked" with a specially-crafted window title (or any other data from nested widgets)?
+   That is, is it possible that either the title itself, or the LLM's response to it, could cause stack buffer overrun or a similar issue?
+   This thing is implemented in C, after all!
+
+The short answer to the questions above is, "no".
+
+The longer answer to the first question is, "no, unless you explicitly configure it to do so".
+*llama.cpp* is a tool for running LLMs locally; by default, it only serves for local host, and
+this plugin's ``hostname`` defaults to ``"127.0.0.1"``. You *can* run *llama.cpp* on a remote host,
+configure it to serve over the network and configure this plugin to perform requests over
+the network, but this is not the default. This is the same as with our **mpd** plugin.
+
+The longer answer to the second question is, "no, it's not possible".
+Aside from escaping JSON, we don't mess with the strings in any way.
+It's all libcurl and YAJL. Even functions provided to Lua (``escape_double_quoted``, ``escape_single_quoted`` and ``json_escape``)
+are implemented in Lua instead of C (see ``escape_lfuncs.c``).
+
+This means any strings of the same length are equivalent in terms of security. And there are no
+reasons to suspect some string lengths are different from others, for this plugin, in terms of security.
+
+Just for laughs, we `fuzzed <https://en.wikipedia.org/wiki/Fuzzing>`_ the JSON escaping function (see FUZZING.md),
+and `AFL <https://lcamtuf.coredump.cx/afl/>`_ hasn't identified any issues.
+
+Also, luastatus has a comprehensive test suite, which includes many tests for this plugin; it
+passes both under **valgrind** and when compiled with **ubsan** (undefined behavior sanitizer,
+``-fsanitize=undefined``), under both GCC and Clang.
+
+Users concerned about security of such a setup might also want to verify the security of the underlying
+status bar program and intermediate libraries (e.g. YAJL in case of i3bar).
