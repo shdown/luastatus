@@ -13,6 +13,17 @@ endif ()
 
 #------------------------------------------------------------------------------
 
+option (WITH_UBSAN "build with ubsan (undefined behavior sanitizer)" OFF)
+if (${WITH_UBSAN})
+    if ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
+        set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=undefined")
+    else ()
+        message (FATAL_ERROR "WITH_UBSAN is enabled, but compiler is neither GCC nor Clang.")
+    endif ()
+endif ()
+
+#------------------------------------------------------------------------------
+
 find_package (PkgConfig REQUIRED)
 if (WITH_LUA_LIBRARY)
     pkg_search_module (LUA REQUIRED "${WITH_LUA_LIBRARY}")
