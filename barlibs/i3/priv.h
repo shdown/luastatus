@@ -24,7 +24,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#include "libls/string_.h"
+#include "libls/ls_string.h"
 
 typedef struct {
     size_t nwidgets;

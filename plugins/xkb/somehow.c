@@ -27,7 +27,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
-#include "libls/alloc_utils.h"
+#include "libls/ls_alloc_utils.h"
 
 char *somehow_fetch_symbols(Display *dpy, uint64_t deviceid)
 {

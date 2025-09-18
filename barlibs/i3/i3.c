@@ -28,12 +28,12 @@
 #include "include/barlib_v1.h"
 #include "include/sayf_macros.h"
 
-#include "libls/string_.h"
-#include "libls/alloc_utils.h"
-#include "libls/parse_int.h"
-#include "libls/cstring_utils.h"
-#include "libls/tls_ebuf.h"
-#include "libls/io_utils.h"
+#include "libls/ls_string.h"
+#include "libls/ls_alloc_utils.h"
+#include "libls/ls_parse_int.h"
+#include "libls/ls_cstring_utils.h"
+#include "libls/ls_tls_ebuf.h"
+#include "libls/ls_io_utils.h"
 
 #include "priv.h"
 #include "generator_utils.h"

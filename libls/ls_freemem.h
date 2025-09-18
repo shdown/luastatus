@@ -20,7 +20,7 @@
 #ifndef ls_freemem_h_
 #define ls_freemem_h_
 
-#include "alloc_utils.h"
+#include "ls_alloc_utils.h"
 
 // This function is called whenever a dynamic array is cleared.
 // We want to "preserve" at most 1 Kb of the previous capacity.

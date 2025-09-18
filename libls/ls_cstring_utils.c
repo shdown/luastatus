@@ -17,28 +17,25 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "tls_ebuf.h"
+#if _POSIX_C_SOURCE < 200112L || defined(_GNU_SOURCE)
+#   error "Unsupported feature test macros; either tune them or change the code."
+#endif
 
-#include <pthread.h>
-#include <stdlib.h>
-#include "alloc_utils.h"
-#include "panic.h"
+#include "ls_cstring_utils.h"
 
-static pthread_key_t key;
-static pthread_once_t key_once = PTHREAD_ONCE_INIT;
+#include <string.h>
+#include <errno.h>
 
-static void mk_key(void)
+const char *ls_strerror_r(int errnum, char *buf, size_t nbuf)
 {
-    LS_PTH_CHECK(pthread_key_create(&key, free));
-}
-
-char *ls_tls_ebuf(void)
-{
-    pthread_once(&key_once, mk_key);
-    char *p = pthread_getspecific(key);
-    if (!p) {
-        p = LS_XNEW(char, LS_TLS_EBUF_N);
-        LS_PTH_CHECK(pthread_setspecific(key, p));
+    // luastatus-specific "fake" errno values
+    switch (errnum) {
+    case -EINVAL:
+        return "Not a FIFO";
     }
-    return p;
+
+    // We introduce an /int/ variable in order to get a compilation warning if /strerror_r()/ is
+    // still GNU-specific and returns a pointer to char.
+    int r = strerror_r(errnum, buf, nbuf);
+    return r == 0 ? buf : "unknown error or truncated error message";
 }

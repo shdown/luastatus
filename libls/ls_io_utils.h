@@ -24,8 +24,8 @@
 #include <unistd.h>
 #include <errno.h>
 #include <poll.h>
-#include "compdep.h"
-#include "time_utils.h"
+#include "ls_compdep.h"
+#include "ls_time_utils.h"
 
 #if EAGAIN == EWOULDBLOCK
 #   define LS_IS_EAGAIN(E_) ((E_) == EAGAIN)

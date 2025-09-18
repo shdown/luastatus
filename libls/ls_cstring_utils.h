@@ -17,18 +17,24 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "panic.h"
-#include <stdlib.h>
-#include "cstring_utils.h"
+#ifndef ls_cstring_utils_h_
+#define ls_cstring_utils_h_
 
-void ls_pth_check_impl(int ret, const char *expr, const char *file, int line)
+#include <stddef.h>
+#include <string.h>
+
+#include "ls_compdep.h"
+
+// If zero-terminated string /str/ starts with zero-terminated string /prefix/, returns
+// /str + strlen(prefix)/; otherwise, returns /NULL/.
+LS_INHEADER const char *ls_strfollow(const char *str, const char *prefix)
 {
-    if (ret == 0) {
-        return;
-    }
-
-    char buf[512];
-    fprintf(stderr, "LS_PTH_CHECK(%s) failed at %s:%d, reason: %s\nAborting.\n",
-            expr, file, line, ls_strerror_r(ret, buf, sizeof(buf)));
-    abort();
+    size_t nprefix = strlen(prefix);
+    return strncmp(str, prefix, nprefix) == 0 ? str + nprefix : NULL;
 }
+
+// Behaves like the GNU-specific /strerror_r/: either fills /buf/ and returns it, or returns a
+// pointer to a static string.
+const char *ls_strerror_r(int errnum, char *buf, size_t nbuf);
+
+#endif

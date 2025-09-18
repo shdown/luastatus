@@ -25,8 +25,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "panic.h"
-#include "compdep.h"
+#include "ls_panic.h"
+#include "ls_compdep.h"
 
 #define LS_XNEW(Type_, NElems_)  ((Type_ *) ls_xmalloc(NElems_, sizeof(Type_)))
 

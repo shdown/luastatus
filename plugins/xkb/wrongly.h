@@ -23,7 +23,7 @@
 #include <X11/Xlib.h>
 #include <stdbool.h>
 
-#include "libls/strarr.h"
+#include "libls/ls_strarr.h"
 
 typedef struct {
     // These all are either zero-terminated strings allocated as if with /malloc()/, or /NULL/.

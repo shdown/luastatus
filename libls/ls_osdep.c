@@ -18,15 +18,15 @@
  */
 
 #define _GNU_SOURCE
-#include "osdep.h"
+#include "ls_osdep.h"
 
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
 #include <sys/socket.h>
 
-#include "io_utils.h"
-#include "probes.generated.h"
+#include "ls_io_utils.h"
+#include "ls_probes.generated.h"
 
 int ls_cloexec_pipe(int pipefd[2])
 {

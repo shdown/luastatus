@@ -23,8 +23,8 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "libls/compdep.h"
-#include "libls/cstring_utils.h"
+#include "libls/ls_compdep.h"
+#include "libls/ls_cstring_utils.h"
 
 typedef enum {
     RESP_OK,

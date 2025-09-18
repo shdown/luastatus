@@ -22,7 +22,7 @@
 
 #include <stdbool.h>
 
-#include "libls/string_.h"
+#include "libls/ls_string.h"
 
 void append_json_escaped_s(LS_String *s, const char *zts);
 

@@ -27,7 +27,7 @@
 
 #include "libmoonvisit/moonvisit.h"
 
-#include "libls/alloc_utils.h"
+#include "libls/ls_alloc_utils.h"
 
 typedef struct {
     uint64_t ncalls;

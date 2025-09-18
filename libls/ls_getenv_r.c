@@ -17,25 +17,24 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#if _POSIX_C_SOURCE < 200112L || defined(_GNU_SOURCE)
-#   error "Unsupported feature test macros; either tune them or change the code."
-#endif
+#include "ls_getenv_r.h"
 
-#include "cstring_utils.h"
-
+#include <stddef.h>
 #include <string.h>
-#include <errno.h>
 
-const char *ls_strerror_r(int errnum, char *buf, size_t nbuf)
+extern char **environ;
+
+const char *ls_getenv_r(const char *name)
 {
-    // luastatus-specific "fake" errno values
-    switch (errnum) {
-    case -EINVAL:
-        return "Not a FIFO";
+    if ((strchr(name, '='))) {
+        return NULL;
     }
-
-    // We introduce an /int/ variable in order to get a compilation warning if /strerror_r()/ is
-    // still GNU-specific and returns a pointer to char.
-    int r = strerror_r(errnum, buf, nbuf);
-    return r == 0 ? buf : "unknown error or truncated error message";
+    size_t nname = strlen(name);
+    for (char **s = environ; *s; ++s) {
+        const char *entry = *s;
+        if (strncmp(entry, name, nname) == 0 && entry[nname] == '=') {
+            return entry + nname + 1;
+        }
+    }
+    return NULL;
 }

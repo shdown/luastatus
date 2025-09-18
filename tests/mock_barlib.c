@@ -24,9 +24,9 @@
 #include "include/barlib_v1.h"
 #include "include/sayf_macros.h"
 
-#include "libls/alloc_utils.h"
-#include "libls/cstring_utils.h"
-#include "libls/parse_int.h"
+#include "libls/ls_alloc_utils.h"
+#include "libls/ls_cstring_utils.h"
+#include "libls/ls_parse_int.h"
 #include "minstd.h"
 
 typedef struct {

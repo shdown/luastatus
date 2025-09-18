@@ -1,4 +1,4 @@
-#include "io_utils.h"
+#include "ls_io_utils.h"
 #include <stddef.h>
 #include <poll.h>
 #include <fcntl.h>
@@ -6,8 +6,8 @@
 #include <errno.h>
 #include <signal.h>
 #include <sys/stat.h>
-#include "time_utils.h"
-#include "libls/panic.h"
+#include "ls_time_utils.h"
+#include "ls_panic.h"
 
 static int poll_forever(struct pollfd *fds, nfds_t nfds)
 {

@@ -35,12 +35,12 @@
 #include "include/plugin_data.h"
 #include "include/common.h"
 
-#include "libls/alloc_utils.h"
-#include "libls/compdep.h"
-#include "libls/getenv_r.h"
-#include "libls/string_.h"
-#include "libls/algo.h"
-#include "libls/panic.h"
+#include "libls/ls_alloc_utils.h"
+#include "libls/ls_compdep.h"
+#include "libls/ls_getenv_r.h"
+#include "libls/ls_string.h"
+#include "libls/ls_algo.h"
+#include "libls/ls_panic.h"
 
 #include "config.generated.h"
 

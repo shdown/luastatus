@@ -23,9 +23,9 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-#include "libls/alloc_utils.h"
-#include "libls/compdep.h"
-#include "libls/freemem.h"
+#include "libls/ls_alloc_utils.h"
+#include "libls/ls_compdep.h"
+#include "libls/ls_freemem.h"
 
 typedef struct {
     char **data;

@@ -23,7 +23,7 @@
 #include <X11/Xlib.h>
 #include <stdint.h>
 
-#include "libls/strarr.h"
+#include "libls/ls_strarr.h"
 
 // Returns either NULL or a NUL-terminated string allocated as if with /malloc()/.
 char *somehow_fetch_symbols(Display *dpy, uint64_t deviceid);

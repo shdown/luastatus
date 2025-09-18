@@ -19,8 +19,8 @@
 
 #include "markup_utils.h"
 
-#include "libls/string_.h"
-#include "libls/parse_int.h"
+#include "libls/ls_string.h"
+#include "libls/ls_parse_int.h"
 
 #include <stddef.h>
 #include <string.h>

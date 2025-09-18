@@ -17,24 +17,28 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ls_cstring_utils_h_
-#define ls_cstring_utils_h_
+#include "ls_tls_ebuf.h"
 
-#include <stddef.h>
-#include <string.h>
+#include <pthread.h>
+#include <stdlib.h>
+#include "ls_alloc_utils.h"
+#include "ls_panic.h"
 
-#include "compdep.h"
+static pthread_key_t key;
+static pthread_once_t key_once = PTHREAD_ONCE_INIT;
 
-// If zero-terminated string /str/ starts with zero-terminated string /prefix/, returns
-// /str + strlen(prefix)/; otherwise, returns /NULL/.
-LS_INHEADER const char *ls_strfollow(const char *str, const char *prefix)
+static void mk_key(void)
 {
-    size_t nprefix = strlen(prefix);
-    return strncmp(str, prefix, nprefix) == 0 ? str + nprefix : NULL;
+    LS_PTH_CHECK(pthread_key_create(&key, free));
 }
 
-// Behaves like the GNU-specific /strerror_r/: either fills /buf/ and returns it, or returns a
-// pointer to a static string.
-const char *ls_strerror_r(int errnum, char *buf, size_t nbuf);
-
-#endif
+char *ls_tls_ebuf(void)
+{
+    pthread_once(&key_once, mk_key);
+    char *p = pthread_getspecific(key);
+    if (!p) {
+        p = LS_XNEW(char, LS_TLS_EBUF_N);
+        LS_PTH_CHECK(pthread_setspecific(key, p));
+    }
+    return p;
+}

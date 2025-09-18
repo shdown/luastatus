@@ -17,21 +17,18 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ls_tls_ebuf_h_
-#define ls_tls_ebuf_h_
+#include "ls_panic.h"
+#include <stdlib.h>
+#include "ls_cstring_utils.h"
 
-#include "compdep.h"
-#include "cstring_utils.h"
-
-// Thread-local storage buffer. Used mostly as a buffer for /ls_strerror_r/.
-
-enum { LS_TLS_EBUF_N = 512 };
-
-char *ls_tls_ebuf(void);
-
-LS_INHEADER const char *ls_tls_strerror(int errnum)
+void ls_pth_check_impl(int ret, const char *expr, const char *file, int line)
 {
-    return ls_strerror_r(errnum, ls_tls_ebuf(), LS_TLS_EBUF_N);
-}
+    if (ret == 0) {
+        return;
+    }
 
-#endif
+    char buf[512];
+    fprintf(stderr, "LS_PTH_CHECK(%s) failed at %s:%d, reason: %s\nAborting.\n",
+            expr, file, line, ls_strerror_r(ret, buf, sizeof(buf)));
+    abort();
+}

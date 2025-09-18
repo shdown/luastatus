@@ -23,10 +23,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "string_.h"
-#include "alloc_utils.h"
-#include "compdep.h"
-#include "freemem.h"
+#include "ls_string.h"
+#include "ls_alloc_utils.h"
+#include "ls_compdep.h"
+#include "ls_freemem.h"
 
 // An array of constant strings on a single buffer. Panics on allocation failure.
 

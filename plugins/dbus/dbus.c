@@ -26,8 +26,8 @@
 #include <string.h>
 #include <glib-object.h>
 
-#include "libls/alloc_utils.h"
-#include "libls/time_utils.h"
+#include "libls/ls_alloc_utils.h"
+#include "libls/ls_time_utils.h"
 
 #include "libmoonvisit/moonvisit.h"
 

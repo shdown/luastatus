@@ -34,9 +34,9 @@
 
 #include "libmoonvisit/moonvisit.h"
 
-#include "libls/alloc_utils.h"
-#include "libls/strarr.h"
-#include "libls/compdep.h"
+#include "libls/ls_alloc_utils.h"
+#include "libls/ls_strarr.h"
+#include "libls/ls_compdep.h"
 
 #include "wrongly.h"
 #include "somehow.h"

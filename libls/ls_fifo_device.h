@@ -21,9 +21,9 @@
 #define ls_fifo_device_h_
 
 #include <unistd.h>
-#include "compdep.h"
-#include "time_utils.h"
-#include "io_utils.h"
+#include "ls_compdep.h"
+#include "ls_time_utils.h"
+#include "ls_io_utils.h"
 
 typedef struct {
     int fd;

@@ -26,11 +26,11 @@
 #include <sys/types.h>
 #include <lua.h>
 #include <lauxlib.h>
-#include "compdep.h"
-#include "panic.h"
-#include "osdep.h"
-#include "io_utils.h"
-#include "time_utils.h"
+#include "ls_compdep.h"
+#include "ls_panic.h"
+#include "ls_osdep.h"
+#include "ls_io_utils.h"
+#include "ls_time_utils.h"
 
 // Some plugins provide a "push_timeout"/"push_period" function that allows a widget to specify the
 // next timeout for an otherwise constant timeout-based plugin's event loop.

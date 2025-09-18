@@ -17,24 +17,21 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "getenv_r.h"
+#ifndef ls_tls_ebuf_h_
+#define ls_tls_ebuf_h_
 
-#include <stddef.h>
-#include <string.h>
+#include "ls_compdep.h"
+#include "ls_cstring_utils.h"
 
-extern char **environ;
+// Thread-local storage buffer. Used mostly as a buffer for /ls_strerror_r/.
 
-const char *ls_getenv_r(const char *name)
+enum { LS_TLS_EBUF_N = 512 };
+
+char *ls_tls_ebuf(void);
+
+LS_INHEADER const char *ls_tls_strerror(int errnum)
 {
-    if ((strchr(name, '='))) {
-        return NULL;
-    }
-    size_t nname = strlen(name);
-    for (char **s = environ; *s; ++s) {
-        const char *entry = *s;
-        if (strncmp(entry, name, nname) == 0 && entry[nname] == '=') {
-            return entry + nname + 1;
-        }
-    }
-    return NULL;
+    return ls_strerror_r(errnum, ls_tls_ebuf(), LS_TLS_EBUF_N);
 }
+
+#endif

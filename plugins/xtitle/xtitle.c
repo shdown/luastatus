@@ -33,10 +33,10 @@
 
 #include "libmoonvisit/moonvisit.h"
 
-#include "libls/alloc_utils.h"
-#include "libls/tls_ebuf.h"
-#include "libls/io_utils.h"
-#include "libls/time_utils.h"
+#include "libls/ls_alloc_utils.h"
+#include "libls/ls_tls_ebuf.h"
+#include "libls/ls_io_utils.h"
+#include "libls/ls_time_utils.h"
 
 // some parts of this file (including the name) are proudly stolen from
 // xtitle (https://github.com/baskerville/xtitle).

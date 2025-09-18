@@ -34,10 +34,10 @@
 #include "include/plugin_data_v1.h"
 #include "include/sayf_macros.h"
 
-#include "libls/tls_ebuf.h"
-#include "libls/osdep.h"
-#include "libls/io_utils.h"
-#include "libls/compdep.h"
+#include "libls/ls_tls_ebuf.h"
+#include "libls/ls_osdep.h"
+#include "libls/ls_io_utils.h"
+#include "libls/ls_compdep.h"
 
 int unixdom_open(LuastatusPluginData *pd, const char *path)
 {

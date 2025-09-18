@@ -26,9 +26,9 @@
 #include <unistd.h>
 #include <errno.h>
 
-#include "libls/io_utils.h"
-#include "libls/osdep.h"
-#include "libls/compdep.h"
+#include "libls/ls_io_utils.h"
+#include "libls/ls_osdep.h"
+#include "libls/ls_compdep.h"
 
 #include "probes.generated.h"
 

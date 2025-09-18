@@ -31,12 +31,12 @@
 
 #include "libmoonvisit/moonvisit.h"
 
-#include "libls/alloc_utils.h"
-#include "libls/strarr.h"
-#include "libls/fifo_device.h"
-#include "libls/tls_ebuf.h"
-#include "libls/io_utils.h"
-#include "libls/time_utils.h"
+#include "libls/ls_alloc_utils.h"
+#include "libls/ls_strarr.h"
+#include "libls/ls_fifo_device.h"
+#include "libls/ls_tls_ebuf.h"
+#include "libls/ls_io_utils.h"
+#include "libls/ls_time_utils.h"
 
 typedef struct {
     LS_StringArray paths;

@@ -26,10 +26,10 @@
 #include <stdbool.h>
 #include <assert.h>
 
-#include "compdep.h"
-#include "alloc_utils.h"
-#include "algo.h"
-#include "freemem.h"
+#include "ls_compdep.h"
+#include "ls_alloc_utils.h"
+#include "ls_algo.h"
+#include "ls_freemem.h"
 
 typedef struct {
     char *data;

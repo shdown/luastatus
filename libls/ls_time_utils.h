@@ -28,8 +28,8 @@
 #include <assert.h>
 #include <unistd.h>
 
-#include "compdep.h"
-#include "panic.h"
+#include "ls_compdep.h"
+#include "ls_panic.h"
 
 // Time deltas >= LS_TMO_MAX (in seconds) are treated as "forever".
 #define LS_TMO_MAX 2147483647.0

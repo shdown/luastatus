@@ -23,7 +23,7 @@
 #include <lua.h>
 #include <stddef.h>
 
-#include "libls/string_.h"
+#include "libls/ls_string.h"
 
 void push_escaped(lua_State *L, const char *s, size_t ns);
 

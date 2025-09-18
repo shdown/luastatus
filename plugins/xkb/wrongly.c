@@ -26,7 +26,7 @@
 #include <X11/X.h>
 #include <X11/Xatom.h>
 
-#include "libls/alloc_utils.h"
+#include "libls/ls_alloc_utils.h"
 
 static const char *NAMES_PROP_ATOM = "_XKB_RULES_NAMES";
 

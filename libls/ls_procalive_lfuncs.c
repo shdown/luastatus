@@ -17,7 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "procalive_lfuncs.h"
+#include "ls_procalive_lfuncs.h"
 #include <lua.h>
 #include <lauxlib.h>
 #include <signal.h>
@@ -30,7 +30,7 @@
 #include <glob.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include "tls_ebuf.h"
+#include "ls_tls_ebuf.h"
 
 int ls_procalive_lfunc_access(lua_State *L)
 {

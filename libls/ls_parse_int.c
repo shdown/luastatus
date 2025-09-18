@@ -17,37 +17,51 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "string_.h"
+#include "ls_parse_int.h"
 
-#include <stdio.h>
+#include <limits.h>
 #include <errno.h>
-#include <stdarg.h>
-#include <stdbool.h>
 
-bool ls_string_append_vf(LS_String *x, const char *fmt, va_list vl)
+int ls_strtou_b(const char *s, size_t ns, const char **endptr)
 {
-    va_list vl2;
-    va_copy(vl2, vl);
-    bool ret = false;
-    int saved_errno;
+    int ret = 0;
+    size_t i = 0;
 
-    size_t navail = x->capacity - x->size;
-    int r = vsnprintf(x->data + x->size, navail, fmt, vl);
-    if (r < 0) {
-        goto cleanup;
-    }
-    if (((size_t) r) >= navail) {
-        ls_string_ensure_avail(x, ((size_t) r) + 1);
-        if (vsnprintf(x->data + x->size, ((size_t) r) + 1, fmt, vl2) < 0) {
-            goto cleanup;
+    for (; i != ns; ++i) {
+        int digit = ((int) s[i]) - '0';
+        if (digit < 0 || digit > 9) {
+            break;
         }
+        if (ret > INT_MAX / 10) {
+            ret = -ERANGE;
+            break;
+        }
+        ret *= 10;
+        if (ret > INT_MAX - digit) {
+            ret = -ERANGE;
+            break;
+        }
+        ret += digit;
     }
-    x->size += r;
-    ret = true;
 
-cleanup:
-    saved_errno = errno;
-    va_end(vl2);
-    errno = saved_errno;
+    if (endptr) {
+        *endptr = s + i;
+    }
     return ret;
+}
+
+int ls_full_strtou_b(const char *s, size_t ns)
+{
+    if (!ns) {
+        return -EINVAL;
+    }
+    const char *endptr;
+    int r = ls_strtou_b(s, ns, &endptr);
+    if (r < 0) {
+        return r;
+    }
+    if (endptr != s + ns) {
+        return -EINVAL;
+    }
+    return r;
 }

@@ -24,7 +24,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include "libls/io_utils.h"
+#include "libls/ls_io_utils.h"
 
 bool is_wlan_iface(const char *iface)
 {

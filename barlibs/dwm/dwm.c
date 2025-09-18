@@ -27,9 +27,9 @@
 #include <lua.h>
 #include <lauxlib.h>
 
-#include "libls/alloc_utils.h"
-#include "libls/cstring_utils.h"
-#include "libls/string_.h"
+#include "libls/ls_alloc_utils.h"
+#include "libls/ls_cstring_utils.h"
+#include "libls/ls_string.h"
 
 typedef struct {
     size_t nwidgets;

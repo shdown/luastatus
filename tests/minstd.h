@@ -23,7 +23,7 @@
 #include <stdint.h>
 #include <time.h>
 #include <unistd.h>
-#include "libls/compdep.h"
+#include "libls/ls_compdep.h"
 
 // MINSTD pseudo-random number generator, year 1990 version.
 

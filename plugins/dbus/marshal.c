@@ -19,7 +19,7 @@
 
 #include "marshal.h"
 
-#include "libls/compdep.h"
+#include "libls/ls_compdep.h"
 
 #include <stdio.h>
 #include <stdarg.h>
