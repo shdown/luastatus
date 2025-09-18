@@ -60,7 +60,7 @@ for (( i = 2; i <= 5; ++i )); do
     pt_expect_line "cb answer response $i" <&$pfd
 done
 
-pt_expect_line 'cb fifo' <&$pfd
+pt_expect_line 'cb self_pipe' <&$pfd
 measure_check_ms 0
 
 fakellama_kill

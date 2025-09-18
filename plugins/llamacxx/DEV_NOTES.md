@@ -9,7 +9,8 @@ destroys a struct, or to destruct a variable at the end of a function.
 Point number 2, but not point number 1, can be done with GNU C’s `__attribute__(__cleanup__)` extension, but we limit
 ourselves to standard C99 in this project.
 
-So we implemented a linter for C. It serves two purposes, matching the two nice-to-haves aboves:
+This plugin is especially in the need to such checks, so, in order to deliver the best-possible software to our users,
+we implemented a linter for C. It serves two purposes, matching the two nice-to-haves aboves:
 
 1. Check that, in a struct, the sets of “heavy”✱ fields that are (1) declared, (2) initialized, and (3) freed, match each other.
 2. Check that, in a function, the sets of “heavy”✱ local variables that are (1) declared/initialized at the beginning, and (2) freed in the end, match each other.

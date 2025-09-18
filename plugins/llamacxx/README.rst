@@ -264,6 +264,8 @@ are implemented in Lua instead of C (see ``escape_lfuncs.c``).
 
 This means any strings of the same length are equivalent in terms of security. And there are no
 reasons to suspect some string lengths are different from others, for this plugin, in terms of security.
+This is mostly due to the fact that we don't use stack allocation for these things; instead, we use
+heap-allocated resizable strings.
 
 Just for laughs, we `fuzzed <https://en.wikipedia.org/wiki/Fuzzing>`_ the JSON escaping function (see FUZZING.md),
 and `AFL <https://lcamtuf.coredump.cx/afl/>`_ hasn't identified any issues.

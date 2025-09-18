@@ -571,7 +571,7 @@ static void do_wait(
 
 maybe_report:
     if (woken_up_by_self_pipe) {
-        report_something_without_details(pd, funcs, "fifo");
+        report_something_without_details(pd, funcs, "self_pipe");
     } else {
         if (p->tell_about_timeout) {
             report_something_without_details(pd, funcs, "timeout");
