@@ -42,10 +42,10 @@ widget = {
         fifo = fifo_path,
     },
     cb = function()
-        local is_ok, body = pcall(request_check_code, 'https://api.coindesk.com/v1/bpi/currentprice/USD.json')
+        local is_ok, body = pcall(request_check_code, 'https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT')
         local text
         if is_ok then
-            text = json.decode(body).bpi.USD.rate:match('[^.]+')
+            text = json.decode(body).price:match('[^.]+')
         else
             text = '......'
             luastatus.plugin.push_period(5) -- retry in 5 seconds
