@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2020  luastatus developers
+ * Copyright (C) 2025  luastatus developers
  *
  * This file is part of luastatus.
  *
@@ -17,33 +17,30 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "ls_string.h"
-
-#include <stdio.h>
-#include <errno.h>
+#include "ls_xallocf.h"
 #include <stdarg.h>
+#include <stddef.h>
+#include <stdio.h>
+#include "ls_alloc_utils.h"
 #include "ls_panic.h"
 
-void ls_string_append_vf(LS_String *x, const char *fmt, va_list vl)
+char *ls_xallocvf(const char *fmt, va_list vl)
 {
     va_list vl2;
     va_copy(vl2, vl);
 
-    size_t navail = x->capacity - x->size;
-    int r = vsnprintf(x->data + x->size, navail, fmt, vl);
-    if (r < 0) {
+    int n = vsnprintf(NULL, 0, fmt, vl);
+    if (n < 0) {
         goto fail;
     }
-    if (((size_t) r) >= navail) {
-        ls_string_ensure_avail(x, ((size_t) r) + 1);
-        if (vsnprintf(x->data + x->size, ((size_t) r) + 1, fmt, vl2) < 0) {
-            goto fail;
-        }
+    size_t nbuf = ((size_t) n) + 1;
+    char *r = LS_XNEW(char, nbuf);
+    if (vsnprintf(r, nbuf, fmt, vl2) < 0) {
+        goto fail;
     }
-    x->size += r;
     va_end(vl2);
-    return;
+    return r;
 
 fail:
-    LS_PANIC("ls_string_append_vf: vsnprintf() failed");
+    LS_PANIC("ls_xallocvf: vsnprintf() failed");
 }

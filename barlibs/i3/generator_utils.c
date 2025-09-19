@@ -48,7 +48,9 @@ void append_json_escaped_s(LS_String *s, const char *zts)
 
 bool append_json_number(LS_String *s, double value)
 {
-    if (!isfinite(value))
+    if (!isfinite(value)) {
         return false;
-    return ls_string_append_f(s, "%.20g", value);
+    }
+    ls_string_append_f(s, "%.20g", value);
+    return true;
 }

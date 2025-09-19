@@ -41,6 +41,7 @@
 #include "libls/ls_string.h"
 #include "libls/ls_algo.h"
 #include "libls/ls_panic.h"
+#include "libls/ls_xallocf.h"
 
 #include "config.generated.h"
 
@@ -363,9 +364,9 @@ static bool barlib_init_by_name(const char *name, const char *const *opts)
     if ((strchr(name, '/'))) {
         return barlib_init(name, opts);
     } else {
-        LS_String filename = ls_string_newz_from_f("%s/barlib-%s.so", LUASTATUS_BARLIBS_DIR, name);
-        bool r = barlib_init(filename.data, opts);
-        ls_string_free(filename);
+        char *filename = ls_xallocf("%s/barlib-%s.so", LUASTATUS_BARLIBS_DIR, name);
+        bool r = barlib_init(filename, opts);
+        free(filename);
         return r;
     }
 }
@@ -421,9 +422,9 @@ static bool plugin_load_by_name(Plugin *p, const char *name)
     if ((strchr(name, '/'))) {
         return plugin_load(p, name, name);
     } else {
-        LS_String filename = ls_string_newz_from_f("%s/plugin-%s.so", LUASTATUS_PLUGINS_DIR, name);
-        bool r = plugin_load(p, filename.data, name);
-        ls_string_free(filename);
+        char *filename = ls_xallocf("%s/plugin-%s.so", LUASTATUS_PLUGINS_DIR, name);
+        bool r = plugin_load(p, filename, name);
+        free(filename);
         return r;
     }
 }
@@ -553,9 +554,9 @@ static int l_require_plugin(lua_State *L)
     }
     lua_pop(L, 1); // L: ? table
 
-    LS_String filename = ls_string_newz_from_f("%s/%s.lua", LUASTATUS_LUA_PLUGINS_DIR, arg);
-    int r = luaL_loadfile(L, filename.data);
-    ls_string_free(filename);
+    char *filename = ls_xallocf("%s/%s.lua", LUASTATUS_LUA_PLUGINS_DIR, arg);
+    int r = luaL_loadfile(L, filename);
+    free(filename);
     if (r != 0) {
         return lua_error(L);
     }
@@ -671,10 +672,10 @@ static bool widget_init_inspect_event(Widget *w, const char *filename)
             size_t ncode;
             const char *code = lua_tolstring(w->L, -1, &ncode);
 
-            LS_String chunkname = ls_string_newz_from_f("widget.event of %s", filename);
+            char *chunkname = ls_xallocf("widget.event of %s", filename);
             bool r = check_lua_call(
-                sepstate.L, luaL_loadbuffer(sepstate.L, code, ncode, chunkname.data));
-            ls_string_free(chunkname);
+                sepstate.L, luaL_loadbuffer(sepstate.L, code, ncode, chunkname));
+            free(chunkname);
             if (!r) {
                 return false;
             }

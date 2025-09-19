@@ -24,7 +24,6 @@
 #include <stdarg.h>
 #include <string.h>
 #include <stdbool.h>
-#include <assert.h>
 
 #include "ls_compdep.h"
 #include "ls_alloc_utils.h"
@@ -106,38 +105,32 @@ LS_INHEADER void ls_string_append_c(LS_String *x, char c)
     x->data[x->size++] = c;
 }
 
-// Appends a formatted string to /x/. Returns /true/ on success or /false/ if an encoding error
-// occurs.
-bool ls_string_append_vf(LS_String *x, const char *fmt, va_list vl);
+// Appends a formatted string to /x/.
+void ls_string_append_vf(LS_String *x, const char *fmt, va_list vl);
 
-// Appends a formatted string to /x/. Returns /true/ on success or /false/ if an encoding error
-// occurs.
+// Appends a formatted string to /x/.
 LS_INHEADER LS_ATTR_PRINTF(2, 3)
-bool ls_string_append_f(LS_String *x, const char *fmt, ...)
+void ls_string_append_f(LS_String *x, const char *fmt, ...)
 {
     va_list vl;
     va_start(vl, fmt);
-    bool r = ls_string_append_vf(x, fmt, vl);
+    ls_string_append_vf(x, fmt, vl);
     va_end(vl);
-    return r;
 }
 
-// Returns /false/ if an encoding error occurs.
-LS_INHEADER bool ls_string_assign_vf(LS_String *x, const char *fmt, va_list vl)
+LS_INHEADER void ls_string_assign_vf(LS_String *x, const char *fmt, va_list vl)
 {
     ls_string_clear(x);
-    return ls_string_append_vf(x, fmt, vl);
+    ls_string_append_vf(x, fmt, vl);
 }
 
-// Returns /false/ if an encoding error occurs.
 LS_INHEADER LS_ATTR_PRINTF(2, 3)
-bool ls_string_assign_f(LS_String *s, const char *fmt, ...)
+void ls_string_assign_f(LS_String *s, const char *fmt, ...)
 {
     va_list vl;
     va_start(vl, fmt);
-    bool r = ls_string_assign_vf(s, fmt, vl);
+    ls_string_assign_vf(s, fmt, vl);
     va_end(vl);
-    return r;
 }
 
 LS_INHEADER LS_String ls_string_new_from_s(const char *s)
@@ -154,39 +147,19 @@ LS_INHEADER LS_String ls_string_new_from_b(const char *buf, size_t nbuf)
     return x;
 }
 
-// If an encoding error occurs:
-//   * if /NDEBUG/ is not defined, it aborts;
-//   * if /NDEBUG/ is defined, an empty string is returned.
 LS_INHEADER LS_String ls_string_new_from_vf(const char *fmt, va_list vl)
 {
     LS_String x = ls_string_new();
-    bool r = ls_string_append_vf(&x, fmt, vl);
-    (void) r;
-    assert(r);
+    ls_string_append_vf(&x, fmt, vl);
     return x;
 }
 
-// If an encoding error occurs:
-//   * if /NDEBUG/ is not defined, it aborts;
-//   * if /NDEBUG/ is defined, an empty string is returned.
 LS_INHEADER LS_ATTR_PRINTF(1, 2)
 LS_String ls_string_new_from_f(const char *fmt, ...)
 {
     va_list vl;
     va_start(vl, fmt);
     LS_String x = ls_string_new_from_vf(fmt, vl);
-    va_end(vl);
-    return x;
-}
-
-// Like /ls_string_new_from_f/, but appends the terminating NUL ('\0') byte to the resulting string.
-LS_INHEADER LS_ATTR_PRINTF(1, 2)
-LS_String ls_string_newz_from_f(const char *fmt, ...)
-{
-    va_list vl;
-    va_start(vl, fmt);
-    LS_String x = ls_string_new_from_vf(fmt, vl);
-    ls_string_append_c(&x, '\0');
     va_end(vl);
     return x;
 }
