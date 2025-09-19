@@ -20,7 +20,7 @@
 #ifndef escape_json_str_h_
 #define escape_json_str_h_
 
-#include "libls/string_.h"
+#include "libls/ls_string.h"
 
 // Append to /s/ JSON-escaped C string /zts/.
 void append_json_escaped_s(LS_String *s, const char *zts);

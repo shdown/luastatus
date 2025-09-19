@@ -32,11 +32,12 @@
 #include "include/plugin_data.h"
 #include "include/common.h"
 
-#include "libls/alloc_utils.h"
-#include "libls/compdep.h"
-#include "libls/getenv_r.h"
-#include "libls/string_.h"
-#include "libls/tls_ebuf.h"
+#include "libls/ls_alloc_utils.h"
+#include "libls/ls_compdep.h"
+#include "libls/ls_getenv_r.h"
+#include "libls/ls_string.h"
+#include "libls/ls_tls_ebuf.h"
+#include "libls/ls_xallocf.h"
 
 #include "config.generated.h"
 
@@ -287,9 +288,9 @@ static bool plugin_load_by_name(Myself *myself, Plugin *p, const char *name)
     if ((strchr(name, '/'))) {
         return plugin_load(myself, p, name);
     } else {
-        LS_String filename = ls_string_newz_from_f("%s/plugin-%s.so", LUASTATUS_PLUGINS_DIR, name);
-        bool r = plugin_load(myself, p, filename.data);
-        ls_string_free(filename);
+        char *filename = ls_xallocf("%s/plugin-%s.so", LUASTATUS_PLUGINS_DIR, name);
+        bool r = plugin_load(myself, p, filename);
+        free(filename);
         return r;
     }
 }

@@ -25,10 +25,10 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <assert.h>
-#include "libls/compdep.h"
-#include "libls/alloc_utils.h"
-#include "libls/string_.h"
-#include "libls/panic.h"
+#include "libls/ls_compdep.h"
+#include "libls/ls_alloc_utils.h"
+#include "libls/ls_string.h"
+#include "libls/ls_panic.h"
 
 // Concurrent queue.
 // Instead of single value, it maintains a list of LS_String,

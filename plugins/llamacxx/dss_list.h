@@ -24,8 +24,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include "libls/alloc_utils.h"
-#include "libls/compdep.h"
+#include "libls/ls_alloc_utils.h"
+#include "libls/ls_compdep.h"
 
 typedef struct {
     char *name_;

@@ -18,14 +18,20 @@
  */
 
 #include "requester.h"
+
 #include <stdlib.h>
 #include <stdbool.h>
+
 #include <curl/curl.h>
 #include <yajl/yajl_tree.h>
-#include "escape_json_str.h"
-#include "libls/string_.h"
-#include "libls/alloc_utils.h"
+
+#include "libls/ls_string.h"
+#include "libls/ls_alloc_utils.h"
+#include "libls/ls_xallocf.h"
+
 #include "include/sayf_macros.h"
+
+#include "escape_json_str.h"
 #include "external_context.h"
 #include "my_error.h"
 
@@ -38,7 +44,7 @@ struct Requester {
 //MLC_DECL("headers")
     struct curl_slist *headers;
 //MLC_DECL("url")
-    LS_String url;
+    char *url;
     uint32_t actual_max_response_bytes;
     RequesterSettings settings;
     ExternalContext ectx;
@@ -92,7 +98,7 @@ Requester *requester_new(
 //MLC_INIT("headers")
         .headers = headers,
 //MLC_INIT("url")
-        .url = ls_string_newz_from_f("%s://%s:%d/completion", proto, settings->hostname, settings->port),
+        .url = ls_xallocf("%s://%s:%d/completion", proto, settings->hostname, settings->port),
         .actual_max_response_bytes = actual_max_response_bytes,
         .settings = *settings,
         .ectx = ectx,
@@ -279,7 +285,7 @@ bool requester_make_request(
 
     curl_easy_reset(curl);
 
-    BAD_CURL_CHECK_SETOPT(CURLOPT_URL, R->url.data);
+    BAD_CURL_CHECK_SETOPT(CURLOPT_URL, R->url);
 
     BAD_CURL_CHECK_SETOPT(CURLOPT_HTTPHEADER, R->headers);
 
@@ -369,6 +375,6 @@ void requester_destroy(Requester *R)
 //MLC_DEINIT("headers")
     curl_slist_free_all(R->headers);
 //MLC_DEINIT("url")
-    ls_string_free(R->url);
+    free(R->url);
 }
 //MLC_POP_SCOPE()

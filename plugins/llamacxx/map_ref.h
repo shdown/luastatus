@@ -23,9 +23,9 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <pthread.h>
-#include "libls/panic.h"
-#include "libls/alloc_utils.h"
-#include "libls/compdep.h"
+#include "libls/ls_panic.h"
+#include "libls/ls_alloc_utils.h"
+#include "libls/ls_compdep.h"
 #include "external_context.h"
 
 typedef struct {

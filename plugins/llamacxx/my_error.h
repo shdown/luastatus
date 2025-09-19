@@ -22,26 +22,23 @@
 
 #include <stdbool.h>
 #include <stdarg.h>
-#include "libls/string_.h"
-#include "libls/compdep.h"
+#include "libls/ls_compdep.h"
+#include "libls/ls_xallocf.h"
 
 //MLC_PUSH_SCOPE("MyError:decl")
 typedef struct {
-    bool is_inited;
     char meta_domain;
     int meta_code;
 //MLC_DECL("descr")
-    LS_String descr;
+    char *descr;
 } MyError;
 //MLC_POP_SCOPE()
 
 //MLC_PUSH_SCOPE("MyError:deinit")
 LS_INHEADER void my_error_dispose(MyError *e)
 {
-    if (e->is_inited) {
 //MLC_DEINIT("descr")
-        ls_string_free(e->descr);
-    }
+    free(e->descr);
 }
 //MLC_POP_SCOPE()
 
@@ -53,17 +50,12 @@ LS_INHEADER void my_error_clear(MyError *e)
 
 LS_INHEADER void my_error_printf(MyError *e, const char *fmt, ...)
 {
-    if (e->is_inited) {
-        ls_string_free(e->descr);
-    }
-    e->is_inited = true;
+    free(e->descr);
 
     va_list vl;
     va_start(vl, fmt);
-    e->descr = ls_string_new_from_vf(fmt, vl);
+    e->descr = ls_xallocvf(fmt, vl);
     va_end(vl);
-
-    ls_string_append_c(&e->descr, '\0');
 }
 
 LS_INHEADER void my_error_set_meta(MyError *e, char domain, int code)
@@ -74,7 +66,7 @@ LS_INHEADER void my_error_set_meta(MyError *e, char domain, int code)
 
 LS_INHEADER const char *my_error_cstr(MyError *e)
 {
-    return e->descr.data;
+    return e->descr;
 }
 
 #endif

@@ -23,8 +23,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
+
+#include "libls/ls_string.h"
+
 #include "../escape_json_str.h"
-#include "libls/string_.h"
 
 static LS_String read_fully(int fd)
 {
@@ -66,6 +68,7 @@ int main(int argc, char **argv)
     LS_String input = read_fully(fd_in);
 
     LS_String res = ls_string_new_from_s("escape result = ");
+
     ls_string_append_c(&input, '\0');
     append_json_escaped_s(&res, input.data);
 

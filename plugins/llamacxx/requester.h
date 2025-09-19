@@ -22,7 +22,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "libls/string_.h"
+#include "libls/ls_string.h"
 #include "external_context.h"
 #include "my_error.h"
 

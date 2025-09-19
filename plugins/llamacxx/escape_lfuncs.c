@@ -20,7 +20,7 @@
 #include "escape_lfuncs.h"
 #include "my_error.h"
 #include "describe_lua_err.h"
-#include "libls/string_.h"
+#include "libls/ls_xallocf.h"
 #include <stddef.h>
 #include <stdbool.h>
 #include <lua.h>
@@ -52,7 +52,7 @@ static bool push_compiled_thunk_quote_esc(
     const char *repl_new,
     MyError *out_err)
 {
-    LS_String prog = ls_string_new_from_f(
+    char *prog = ls_xallocf(
         "local s = ...\n"
 
         "if type(s) ~= 'string' then\n"
@@ -64,11 +64,10 @@ static bool push_compiled_thunk_quote_esc(
         repl_old,
         repl_new
     );
-    ls_string_append_c(&prog, '\0');
 
-    bool ok = push_compiled_thunk(L, prog.data, out_err);
+    bool ok = push_compiled_thunk(L, prog, out_err);
 
-    ls_string_free(prog);
+    free(prog);
 
     return ok;
 }
@@ -115,7 +114,7 @@ bool register_all_escape_lfuncs(lua_State *L, MyError *out_err)
     //      test  0
     //
     //    So we simply ignore everything after the first NUL character; this
-    //    can be done "portable" across different versions/implementations.
+    //    can be done "portably" across different versions/implementations.
     //
     //  * We embed non-printables directly into strings within Lua code.
     //    This is because Lua doesn't support \xHH escapes, but does

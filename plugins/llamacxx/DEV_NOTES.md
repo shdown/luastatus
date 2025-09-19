@@ -1,4 +1,4 @@
-C is undeniably the best programming language out there, but there’s no limit to perfection.
+C is undeniably the best programming language out there, but there's no limit to perfection.
 Sometimes you start to wish there be the following features:
 1. Constructors and destructors for structs, automatically generated from the list of members;
 2. Defer-like chunks of code that get automatically run at the end of the scope (or at least at the end of the function).
@@ -6,19 +6,19 @@ Sometimes you start to wish there be the following features:
 Without these features, it is just too easy to overlook a struct member that needs to be destructed in the function that
 destroys a struct, or to destruct a variable at the end of a function.
 
-Point number 2, but not point number 1, can be done with GNU C’s `__attribute__(__cleanup__)` extension, but we limit
+Point number 2, but not point number 1, can be done with GNU C's `__attribute__(__cleanup__)` extension, but we limit
 ourselves to standard C99 in this project.
 
 This plugin is especially in the need to such checks, so, in order to deliver the best-possible software to our users,
 we implemented a linter for C. It serves two purposes, matching the two nice-to-haves aboves:
 
-1. Check that, in a struct, the sets of “heavy”✱ fields that are (1) declared, (2) initialized, and (3) freed, match each other.
-2. Check that, in a function, the sets of “heavy”✱ local variables that are (1) declared/initialized at the beginning, and (2) freed in the end, match each other.
+1. Check that, in a struct, the sets of "heavy"✱ fields that are (1) declared, (2) initialized, and (3) freed, match each other.
+2. Check that, in a function, the sets of "heavy"✱ local variables that are (1) declared/initialized at the beginning, and (2) freed in the end, match each other.
 
-✱ “heavy” means requiring initialization and free-ing
+✱ "heavy" means requiring initialization and free-ing
 
 The linter is implemented in Python and is contained in the `UTILS` subdirectory.
-We call it “MLC” (for Memory Leak Checker).
+We call it "MLC" (for Memory Leak Checker).
 
 Struct-scope checks look like this:
 

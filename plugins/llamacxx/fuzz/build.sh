@@ -14,5 +14,5 @@ $CC -Wall -Wextra -O3 -std=c99 -D_POSIX_C_SOURCE=200809L \
     -I"$luastatus_root" \
     ./harness.c \
     ../escape_json_str.c \
-    "$luastatus_root"/libls/string_.c \
+    "$luastatus_root"/libls/ls_string.c \
     -o harness
