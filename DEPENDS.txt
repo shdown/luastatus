@@ -9,6 +9,7 @@ For running tests, you will also need:
 * For 'i3' barlib tests: 'jq' binary
 * For 'dbus' plugin tests: a D-Bus daemon running in session mode; 'dbus-send' binary
 * For 'pulse' plugin tests: a running PulseAudio daemon; 'pactl' and 'pacmd' binaries
+* For 'llamacxx' plugin tests: 'libwebsockets' library (to build 'httpserv' program)
 
 Barlib 'dwm' has the following dependencies:
 * xcb >=1.10
@@ -44,6 +45,10 @@ Plugin 'is-program-running' has the following dependencies:
 
 Plugin 'inotify' has the following dependencies:
 * a Linux system with a libc that provides <sys/inotify.h> (preferably glibc)
+
+Plugin 'llamacxx' has the following dependencies:
+* yajl >=2.0.4
+* libcurl >=7.8
 
 Plugin 'mem-usage-linux' has the following dependencies:
 * plugin 'timer'

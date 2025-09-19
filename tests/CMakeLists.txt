@@ -24,3 +24,7 @@ if (BUILD_PLUGIN_INOTIFY)
     add_executable (listnets "listnets.c")
     target_compile_definitions (listnets PUBLIC -D_POSIX_C_SOURCE=200809L)
 endif ()
+
+if (BUILD_PLUGIN_LLAMACXX)
+    add_subdirectory ("httpserv")
+endif ()
