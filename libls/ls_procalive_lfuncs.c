@@ -101,7 +101,7 @@ int ls_procalive_lfunc_stat(lua_State *L)
     return 2;
 }
 
-bool push_glob_t(lua_State *L, glob_t *g)
+static bool push_glob_t(lua_State *L, glob_t *g)
 {
 #if defined(LUA_MAXINTEGER)
 # define CMP_AGAINST LUA_MAXINTEGER

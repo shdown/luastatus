@@ -17,6 +17,8 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "mini_luastatus.h"
+
 #include <assert.h>
 #include <lua.h>
 #include <lauxlib.h>
@@ -43,6 +45,7 @@
 
 #include "conc_queue.h"
 #include "describe_lua_err.h"
+#include "external_context.h"
 
 #define FATALF(Myself_, ...)    sayf(Myself_, LUASTATUS_LOG_FATAL,    __VA_ARGS__)
 #define ERRF(Myself_, ...)      sayf(Myself_, LUASTATUS_LOG_ERR,      __VA_ARGS__)
@@ -51,8 +54,6 @@
 #define VERBOSEF(Myself_, ...)  sayf(Myself_, LUASTATUS_LOG_VERBOSE,  __VA_ARGS__)
 #define DEBUGF(Myself_, ...)    sayf(Myself_, LUASTATUS_LOG_DEBUG,    __VA_ARGS__)
 #define TRACEF(Myself_, ...)    sayf(Myself_, LUASTATUS_LOG_TRACE,    __VA_ARGS__)
-
-typedef LuastatusPluginData_v1 *ExternalContext;
 
 //MLC_PUSH_SCOPE("Plugin:decl")
 typedef struct {
