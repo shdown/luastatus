@@ -17,9 +17,11 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <lua.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <inttypes.h>
+
+#include <lua.h>
 
 #include "include/barlib_v1.h"
 #include "include/sayf_macros.h"
@@ -27,6 +29,7 @@
 #include "libls/ls_alloc_utils.h"
 #include "libls/ls_cstring_utils.h"
 #include "libls/ls_parse_int.h"
+
 #include "minstd.h"
 
 typedef struct {
@@ -116,6 +119,7 @@ static int event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
     } else {
         static const uint32_t SALT = 41744457;
         seed = minstd_make_up_some_seed() ^ SALT;
+        LS_INFOF(bd, "Seed: %" PRIu32, seed);
     }
     MINSTD_Prng my_prng = minstd_prng_new(seed);
 
