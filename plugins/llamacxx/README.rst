@@ -16,6 +16,10 @@ A widget using this plugin can either generate the prompts by itself (e.g.
 fetch a random prompt from a list using Lua's ``math.random``) or use data
 from "nested widgets" (e.g. ``xtitle`` or ``mpd``) that this plugin can spawn.
 
+**NOTE**: this plugin is a toy; it is intended for amusement only.
+We oppose AI slop, "vibe-coding", anthropomorphization of LLMs, using LLMs to obtain
+information instead of authoritative sources, and similar things.
+
 Options
 =======
 The following options are supported:
