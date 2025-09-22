@@ -37,7 +37,6 @@
 #include "libls/ls_alloc_utils.h"
 #include "libls/ls_compdep.h"
 #include "libls/ls_getenv_r.h"
-#include "libls/ls_string.h"
 #include "libls/ls_tls_ebuf.h"
 #include "libls/ls_xallocf.h"
 
@@ -55,53 +54,37 @@
 #define DEBUGF(Myself_, ...)    sayf(Myself_, LUASTATUS_LOG_DEBUG,    __VA_ARGS__)
 #define TRACEF(Myself_, ...)    sayf(Myself_, LUASTATUS_LOG_TRACE,    __VA_ARGS__)
 
-//MLC_PUSH_SCOPE("Plugin:decl")
 typedef struct {
     LuastatusPluginIface_v1 iface;
-//MLC_DECL("dlhandle")
     void *dlhandle;
 } Plugin;
-//MLC_POP_SCOPE()
 
-//MLC_PUSH_SCOPE("Plugin:init")
 static inline Plugin plugin_new(void)
 {
     return (Plugin) {
         .iface = {0},
-//MLC_INIT("dlhandle")
         .dlhandle = NULL,
     };
 }
-//MLC_POP_SCOPE()
 
-//MLC_PUSH_SCOPE("DataSource:decl")
 typedef struct {
-//MLC_DECL("plugin")
     Plugin plugin;
-//MLC_DECL("plugin_init")
     bool plugin_iface_inited;
     LuastatusPluginData_v1 data;
-//MLC_DECL("L")
     lua_State *L;
     int lref_cb;
 } DataSource;
-//MLC_POP_SCOPE()
 
-//MLC_PUSH_SCOPE("DataSource:init")
 static inline DataSource data_source_new(void)
 {
     return (DataSource) {
-//MLC_INIT("plugin")
         .plugin = plugin_new(),
-//MLC_INIT("plugin_init")
         .plugin_iface_inited = false,
         .data = {0},
-//MLC_INIT("L")
         .L = NULL,
         .lref_cb = LUA_REFNIL,
     };
 }
-//MLC_POP_SCOPE()
 
 // forward declaration
 struct Myself;
@@ -112,21 +95,19 @@ typedef struct {
     Myself *myself;
 } MyUserData;
 
-//MLC_PUSH_SCOPE("Myself:decl")
 struct Myself {
-//MLC_DECL("[this]")
-
-//MLC_DECL("data_source")
     DataSource data_source;
+
     ExternalContext ectx;
     MyUserData ud_for_me;
     MyUserData ud_for_data_source;
+
     ConcQueue *q;
+
     size_t q_idx;
-//MLC_DECL("name")
+
     char *name;
 };
-//MLC_POP_SCOPE()
 
 static const char *loglevel_names[] = {
     [LUASTATUS_LOG_FATAL]   = "fatal",
@@ -186,18 +167,14 @@ static void external_sayf(void *userdata, int level, const char *fmt, ...)
     va_end(vl);
 }
 
-//MLC_PUSH_SCOPE("Myself:init")
 static Myself *myself_new(const char *name, ConcQueue *q, size_t q_idx, ExternalContext ectx)
 {
-//MLC_INIT("[this]")
     Myself *myself = LS_XNEW(Myself, 1);
     *myself = (Myself) {
-//MLC_INIT("data_source")
         .data_source = data_source_new(),
         .ectx = ectx,
         .q = q,
         .q_idx = q_idx,
-//MLC_INIT("name")
         .name = ls_xstrdup(name),
     };
     myself->ud_for_me = (MyUserData) {
@@ -210,7 +187,6 @@ static Myself *myself_new(const char *name, ConcQueue *q, size_t q_idx, External
     };
     return myself;
 }
-//MLC_POP_SCOPE()
 
 static void myself_done(Myself *myself)
 {
@@ -559,43 +535,30 @@ static bool myself_realize(Myself *myself, const char *lua_program)
     return true;
 }
 
-//MLC_PUSH_SCOPE("Plugin:deinit")
 static void plugin_destroy(Plugin *p)
 {
-//MLC_DEINIT("dlhandle")
     if (p->dlhandle) {
         dlclose(p->dlhandle);
     }
 }
-//MLC_POP_SCOPE()
 
-//MLC_PUSH_SCOPE("DataSource:deinit")
 static void data_source_destroy(DataSource *ds)
 {
-//MLC_DEINIT("plugin_init")
     if (ds->plugin_iface_inited) {
         ds->plugin.iface.destroy(&ds->data);
     }
-//MLC_DEINIT("L")
     if (ds->L) {
         lua_close(ds->L);
     }
-//MLC_DEINIT("plugin")
     plugin_destroy(&ds->plugin);
 }
-//MLC_POP_SCOPE()
 
-//MLC_PUSH_SCOPE("Myself:deinit")
 static void myself_destroy(Myself *myself)
 {
-//MLC_DEINIT("data_source")
     data_source_destroy(&myself->data_source);
-//MLC_DEINIT("name")
     free(myself->name);
-//MLC_DEINIT("[this]")
     free(myself);
 }
-//MLC_POP_SCOPE()
 
 static void *data_source_thread(void *arg)
 {

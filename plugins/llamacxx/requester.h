@@ -20,23 +20,11 @@
 #ifndef requester_h_
 #define requester_h_
 
-#include <stdint.h>
 #include <stdbool.h>
 #include "libls/ls_string.h"
 #include "external_context.h"
 #include "my_error.h"
-
-typedef struct {
-    const char *hostname;
-    int port;
-    const char *custom_iface;
-    bool use_ssl;
-    bool log_all_traffic;
-    bool log_response_on_error;
-    bool cache_prompt;
-    int req_timeout;
-    uint32_t max_response_bytes;
-} RequesterSettings;
+#include "priv.h"
 
 struct Requester;
 typedef struct Requester Requester;
@@ -44,7 +32,7 @@ typedef struct Requester Requester;
 bool requester_global_init(MyError *out_err);
 
 Requester *requester_new(
-    const RequesterSettings *settings,
+    const PrivCnxSettings *settings,
     ExternalContext ectx,
     MyError *out_err);
 

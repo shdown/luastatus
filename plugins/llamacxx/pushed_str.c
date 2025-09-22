@@ -20,20 +20,17 @@
 #include "pushed_str.h"
 #include <pthread.h>
 #include <stdlib.h>
+#include <string.h>
 #include <lua.h>
 #include <lauxlib.h>
 #include "libls/ls_alloc_utils.h"
 #include "libls/ls_panic.h"
 
-//MLC_PUSH_SCOPE("PushedStr:init")
 void pushed_str_new(PushedStr *x)
 {
-//MLC_INIT("val")
     x->val = NULL;
-//MLC_INIT("mtx")
     LS_PTH_CHECK(pthread_mutex_init(&x->mtx, NULL));
 }
-//MLC_POP_SCOPE()
 
 static inline char *xchg(PushedStr *x, char *new_val)
 {
@@ -74,12 +71,8 @@ char *pushed_str_fetch(PushedStr *x)
     return xchg(x, NULL);
 }
 
-//MLC_PUSH_SCOPE("PushedStr:deinit")
 void pushed_str_destroy(PushedStr *x)
 {
-//MLC_DEINIT("val")
     free(x->val);
-//MLC_DEINIT("mtx")
     LS_PTH_CHECK(pthread_mutex_destroy(&x->mtx));
 }
-//MLC_POP_SCOPE()

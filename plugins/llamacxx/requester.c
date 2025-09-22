@@ -20,6 +20,7 @@
 #include "requester.h"
 
 #include <stdlib.h>
+#include <stdint.h>
 #include <stdbool.h>
 
 #include <curl/curl.h>
@@ -34,22 +35,19 @@
 #include "escape_json_str.h"
 #include "external_context.h"
 #include "my_error.h"
+#include "priv.h"
 
 enum { PREVIEW_MAX = 1024 };
 
-//MLC_PUSH_SCOPE("Requester:decl")
 struct Requester {
-//MLC_DECL("curl")
     CURL *curl;
-//MLC_DECL("headers")
     struct curl_slist *headers;
-//MLC_DECL("url")
     char *url;
+
     uint32_t actual_max_response_bytes;
-    RequesterSettings settings;
+    const PrivCnxSettings *settings;
     ExternalContext ectx;
 };
-//MLC_POP_SCOPE()
 
 bool requester_global_init(MyError *out_err)
 {
@@ -63,9 +61,8 @@ bool requester_global_init(MyError *out_err)
     return true;
 }
 
-//MLC_PUSH_SCOPE("Requester:init")
 Requester *requester_new(
-    const RequesterSettings *settings,
+    const PrivCnxSettings *settings,
     ExternalContext ectx,
     MyError *out_err)
 {
@@ -93,14 +90,12 @@ Requester *requester_new(
     }
     Requester *R = LS_XNEW(Requester, 1);
     *R = (Requester) {
-//MLC_INIT("curl")
         .curl = curl,
-//MLC_INIT("headers")
         .headers = headers,
-//MLC_INIT("url")
         .url = ls_xallocf("%s://%s:%d/completion", proto, settings->hostname, settings->port),
+
         .actual_max_response_bytes = actual_max_response_bytes,
-        .settings = *settings,
+        .settings = settings,
         .ectx = ectx,
     };
     return R;
@@ -112,7 +107,6 @@ fail:
     }
     return NULL;
 }
-//MLC_POP_SCOPE()
 
 static inline bool valid_str(const char *s)
 {
@@ -129,7 +123,7 @@ static LS_String make_req_body(Requester *R, const char *extra_params_json, cons
     ls_string_append_s(&r, ",\"response_fields\":[\"content\"]");
 
     ls_string_append_s(&r, ",\"cache_prompt\":");
-    ls_string_append_s(&r, R->settings.cache_prompt ? "true" : "false");
+    ls_string_append_s(&r, R->settings->cache_prompt ? "true" : "false");
 
     if (valid_str(extra_params_json)) {
         ls_string_append_c(&r, ',');
@@ -151,11 +145,9 @@ static size_t callback_save_resp(char *buf, size_t char_sz, size_t nbuf, void *u
     return nbuf;
 }
 
-//MLC_PUSH_SCOPE("parse_response")
 static bool parse_response(const char *resp, LS_String *out, MyError *out_err)
 {
     bool ret = false;
-//MLC_INIT("Y_tree")
     yajl_val Y_tree = NULL;
 
     char err_descr[256];
@@ -185,13 +177,11 @@ static bool parse_response(const char *resp, LS_String *out, MyError *out_err)
     ret = true;
 
 done:
-//MLC_DEINIT("Y_tree")
     if (Y_tree) {
         yajl_tree_free(Y_tree);
     }
     return ret;
 }
-//MLC_POP_SCOPE()
 
 static const char *info_type_to_str(curl_infotype type)
 {
@@ -242,7 +232,6 @@ static void do_log_response_on_error(Requester *R, LS_String resp_body)
         (int) len, resp_body.data);
 }
 
-//MLC_PUSH_SCOPE("requester_make_request")
 bool requester_make_request(
     Requester *R,
     const char *extra_params_json,
@@ -253,10 +242,7 @@ bool requester_make_request(
     bool ret = false;
     const char *bad_curl_where = NULL;
     CURLcode bad_curl_rc;
-
-//MLC_INIT("resp_body")
     LS_String resp_body = ls_string_new_reserve(1024);
-//MLC_INIT("req_body")
     LS_String req_body = make_req_body(R, extra_params_json, prompt);
 
     enum { LIMIT = 8000000 };
@@ -292,22 +278,22 @@ bool requester_make_request(
     BAD_CURL_CHECK_SETOPT(CURLOPT_WRITEFUNCTION, callback_save_resp);
     BAD_CURL_CHECK_SETOPT(CURLOPT_WRITEDATA, (void *) &resp_body);
 
-    if (R->settings.log_all_traffic) {
+    if (R->settings->log_all_traffic) {
         BAD_CURL_CHECK_SETOPT(CURLOPT_VERBOSE, 1L);
         BAD_CURL_CHECK_SETOPT(CURLOPT_DEBUGFUNCTION, callback_debug);
         BAD_CURL_CHECK_SETOPT(CURLOPT_DEBUGDATA, (void *) R);
     }
 
-    if (R->settings.req_timeout > 0) {
-        BAD_CURL_CHECK_SETOPT(CURLOPT_TIMEOUT, (long) R->settings.req_timeout);
+    if (R->settings->req_timeout > 0) {
+        BAD_CURL_CHECK_SETOPT(CURLOPT_TIMEOUT, (long) R->settings->req_timeout);
     }
 
     BAD_CURL_CHECK_SETOPT(CURLOPT_POST, 1L);
     BAD_CURL_CHECK_SETOPT(CURLOPT_POSTFIELDS, (char *) req_body.data);
     BAD_CURL_CHECK_SETOPT(CURLOPT_POSTFIELDSIZE, (long) req_body.size);
 
-    if (valid_str(R->settings.custom_iface)) {
-        BAD_CURL_CHECK_SETOPT(CURLOPT_INTERFACE, (char *) R->settings.custom_iface);
+    if (valid_str(R->settings->custom_iface)) {
+        BAD_CURL_CHECK_SETOPT(CURLOPT_INTERFACE, (char *) R->settings->custom_iface);
     }
 
     BAD_CURL_CHECK_SETOPT(CURLOPT_MAXFILESIZE, (long) R->actual_max_response_bytes);
@@ -321,7 +307,7 @@ bool requester_make_request(
         my_error_set_meta(out_err, 'H', (int) resp_code);
         if (resp_code) {
             my_error_printf(out_err, "HTTP status %ld", resp_code);
-            if (R->settings.log_response_on_error) {
+            if (R->settings->log_response_on_error) {
                 do_log_response_on_error(R, resp_body);
             }
         } else {
@@ -355,9 +341,7 @@ done:
             bad_curl_where,
             descr);
     }
-//MLC_DEINIT("resp_body")
     ls_string_free(resp_body);
-//MLC_DEINIT("req_body")
     ls_string_free(req_body);
 
     return ret;
@@ -365,16 +349,10 @@ done:
 #undef BAD_CURL_CHECK
 #undef BAD_CURL_CHECK_SETOPT
 }
-//MLC_POP_SCOPE()
 
-//MLC_PUSH_SCOPE("Requester:deinit")
 void requester_destroy(Requester *R)
 {
-//MLC_DEINIT("curl")
     curl_easy_cleanup(R->curl);
-//MLC_DEINIT("headers")
     curl_slist_free_all(R->headers);
-//MLC_DEINIT("url")
     free(R->url);
 }
-//MLC_POP_SCOPE()

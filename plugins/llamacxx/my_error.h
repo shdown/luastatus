@@ -20,27 +20,21 @@
 #ifndef my_error_h_
 #define my_error_h_
 
-#include <stdbool.h>
+#include <stdlib.h>
 #include <stdarg.h>
 #include "libls/ls_compdep.h"
 #include "libls/ls_xallocf.h"
 
-//MLC_PUSH_SCOPE("MyError:decl")
 typedef struct {
     char meta_domain;
     int meta_code;
-//MLC_DECL("descr")
     char *descr;
 } MyError;
-//MLC_POP_SCOPE()
 
-//MLC_PUSH_SCOPE("MyError:deinit")
 LS_INHEADER void my_error_dispose(MyError *e)
 {
-//MLC_DEINIT("descr")
     free(e->descr);
 }
-//MLC_POP_SCOPE()
 
 LS_INHEADER void my_error_clear(MyError *e)
 {

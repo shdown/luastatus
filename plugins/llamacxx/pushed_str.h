@@ -23,14 +23,10 @@
 #include <pthread.h>
 #include <lua.h>
 
-//MLC_PUSH_SCOPE("PushedStr:decl")
 typedef struct {
-//MLC_DECL("val")
     char *val;
-//MLC_DECL("mtx")
     pthread_mutex_t mtx;
 } PushedStr;
-//MLC_POP_SCOPE()
 
 void pushed_str_new(PushedStr *x);
 

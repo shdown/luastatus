@@ -21,7 +21,7 @@
 #include "my_error.h"
 #include "describe_lua_err.h"
 #include "libls/ls_xallocf.h"
-#include <stddef.h>
+#include <stdlib.h>
 #include <stdbool.h>
 #include <lua.h>
 #include <lauxlib.h>
