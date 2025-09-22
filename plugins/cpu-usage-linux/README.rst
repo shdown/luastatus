@@ -38,7 +38,8 @@ The following functions are provided:
 
   - ``cb``: a function
 
-    The callback function that will be called with current CPU usage rate, or with ``nil``.
+    The callback function that will be called with current CPU usage rate, or with ``nil``
+    if the usage rate can not yet be calculated or if the given ``cpu`` is not plugged in.
 
   **(optional)**
 

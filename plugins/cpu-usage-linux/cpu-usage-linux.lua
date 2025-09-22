@@ -25,17 +25,28 @@ local function wrap0(x)
     return x < 0 and 0 or x
 end
 
+local function clear_table(t)
+    for k, _ in pairs(t) do
+        t[k] = nil
+    end
+end
+
 local function get_usage_impl(procpath, cur, prev, cpu)
     local f = assert(io.open(procpath .. '/stat', 'r'))
     for i = 1, (cpu or 0) do
-        assert(f:read('*line'))
+        f:read('*line')
     end
-    local line = assert(f:read('*line'))
+    local line = f:read('*line')
+    f:close()
+    if not line then
+        clear_table(cur)
+        clear_table(prev)
+        return nil
+    end
     cur.user, cur.nice, cur.system, cur.idle, cur.iowait, cur.irq, cur.softirq, cur.steal,
         cur.guest, cur.guest_nice = string.match(line,
             'cpu%d*%s+(%S+)%s+(%S+)%s+(%S+)%s+(%S+)%s+(%S+)%s+(%S+)%s+(%S+)%s+(%S+)%s+(%S+)%s+(%S+)')
     assert(cur.user ~= nil, 'Line has unexpected format')
-    f:close()
 
     cur.user = cur.user - cur.guest
     cur.nice = cur.nice - cur.guest_nice
