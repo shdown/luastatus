@@ -26,6 +26,9 @@ Plugin 'backlight-linux' has the following dependencies:
 Plugin 'battery-linux' has the following dependencies:
 * plugin 'udev'
 
+Plugin 'cpu-freq-linux' has the following dependencies:
+* plugin 'timer'
+
 Plugin 'cpu-usage-linux' has the following dependencies:
 * plugin 'timer'
 
