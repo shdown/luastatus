@@ -26,9 +26,9 @@ The following functions are provided:
 
   Each array entry corresponds to a subsequent CPU; it is a table with the following fields:
 
-    * ``min`` (number): minimal frequency of this CPU;
-    * ``max`` (number): maximal frequency of this CPU;
-    * ``cur`` (number): current frequency of this CPU.
+  * ``min`` (number): minimal frequency of this CPU;
+  * ``max`` (number): maximal frequency of this CPU;
+  * ``cur`` (number): current frequency of this CPU.
 
   All values are in KHz.
 
