@@ -43,8 +43,8 @@ The following functions are provided:
   Constructs a ``widget`` table required by luastatus.
 
   If ``data`` is specified, it must be an empty table; you can set ``please_reload`` field
-  in this table to force a full reload. After each reported event, this field is reset to
-  ``nil``.
+  in this table to force a full reload. On each reported event, before a call to ``tbl.cb``,
+  this field is reset to ``nil``.
 
   ``tbl`` is a table with the following fields:
 
