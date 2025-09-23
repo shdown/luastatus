@@ -49,8 +49,7 @@ local function data_fetch_paths(data)
         cpu_dir_escaped = cpu_dir
     end
     local f = assert(io.popen([[
-cd ]] .. cpu_dir_escaped .. [[
-;
+cd ]] .. cpu_dir_escaped .. [[ || exit $?
 for x in cpu[0-9]*/; do
     [ -d "$x" ] || break
     printf '%s\n' "$x"
@@ -75,13 +74,11 @@ local function data_read_from_all_paths(data, suffix)
     for _, path in ipairs(data.paths) do
         local f = io.open(path .. suffix, 'r')
         if not f then
-            print('ERROR [data_read_from_all_paths] (1)', path, suffix)
             return nil
         end
         local val = f:read('*number')
         f:close()
         if not val then
-            print('ERROR [data_read_from_all_paths] (2)')
             return nil
         end
         assert(val > 0, 'reported frequency is zero or negative')
@@ -109,12 +106,10 @@ local function data_reload_all(data)
     local my_max_freqs = data_read_from_all_paths(data, '/cpufreq/cpuinfo_max_freq')
     local my_min_freqs = data_read_from_all_paths(data, '/cpufreq/cpuinfo_min_freq')
     if (not my_max_freqs) or (not my_min_freqs) then
-        print('ERROR [data_reload_all] (1)')
         return false
     end
     for i = 1, #data.paths do
         if my_max_freqs[i] < my_min_freqs[i] then
-            print('ERROR [data_reload_all] (2)')
             return false
         end
     end
@@ -134,9 +129,7 @@ function P.get_freqs(data)
     end
     local cur_freqs = data_read_from_all_paths(data, '/cpufreq/scaling_cur_freq')
     if not cur_freqs then
-        print('RELOADING (2)')
         data_reload_all(data)
-        print('ERROR (2)')
         return nil
     end
     local r = {}
