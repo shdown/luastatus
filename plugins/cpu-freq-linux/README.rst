@@ -58,9 +58,9 @@ The following functions are provided:
 
   **(optional)**
 
-  - ``period``: a number
+  - ``timer_opts``: table
 
-    The period, in secods, to pass to the underlying ``timer`` plugin.
+    Options for the underlying ``timer`` plugin.
 
   - ``event``
 

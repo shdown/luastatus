@@ -146,9 +146,7 @@ function P.widget(tbl, data)
     data = data or {}
     return {
         plugin = 'timer',
-        opts = {
-            period = tbl.period,
-        },
+        opts = tbl.timer_opts,
         cb = function(t)
             return tbl.cb(P.get_freqs(data))
         end,

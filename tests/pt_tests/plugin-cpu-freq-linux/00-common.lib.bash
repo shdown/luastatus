@@ -66,7 +66,9 @@ end
 
 data = {_cpu_dir = '$cpu_dir'}
 widget = x.widget({
-    period = 0.1,
+    timer_opts = {
+        period = 0.1,
+    },
     cb = function(t)
         $reload_code
         if type(t) == 'table' then
