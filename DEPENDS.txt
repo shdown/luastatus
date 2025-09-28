@@ -36,6 +36,9 @@ Plugin 'dbus' has the following dependencies:
 * glib-2.0 >=2.40.2
 * gio-2.0 >=2.40.2
 
+Plugin 'disk-io-linux' has the following dependencies:
+* plugin 'timer'
+
 Plugin 'file-contents-linux' has the following dependencies:
 * plugin 'inotify'
 
@@ -69,6 +72,9 @@ Plugin 'pipe' has the following dependencies:
 
 Plugin 'pulse' has the following dependencies:
 * libpulse >=4.0
+
+Plugin 'temperature-linux' has the following dependencies:
+* plugin 'timer'
 
 Plugin 'udev' has the following dependencies:
 * libudev >=204
