@@ -29,7 +29,7 @@ end
 widget = {
     plugin = 'timer',
     opts = {
-        greet = true,
+        period = 2,
     },
     cb = function(t)
         local f = io.open('/proc/uptime', 'r')

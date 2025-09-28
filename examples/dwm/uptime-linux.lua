@@ -29,7 +29,7 @@ end
 widget = {
     plugin = 'timer',
     opts = {
-        greet = true,
+        period = 2,
     },
     cb = function(t)
         local f = io.open('/proc/uptime', 'r')
@@ -38,9 +38,6 @@ widget = {
 
         assert(sec)
 
-        return string.format(
-            '[uptime: %s]',
-            seconds_to_human_readable_time(sec)
-        )
+        return string.format('[uptime: %s]', seconds_to_human_readable_time(sec))
     end,
 }

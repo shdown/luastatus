@@ -1,24 +1,14 @@
-local function ncpus_try_cmdline(cmd)
-    local f = assert(io.popen(cmd .. ' 2>/dev/null', 'r'))
-    local n = f:read('*number')
+local function get_ncpus()
+    local f = assert(io.open('/proc/cpuinfo', 'r'))
+    local n = 0
+    for line in f:lines() do
+        if line:match('^processor\t') then
+            n = n + 1
+        end
+    end
     f:close()
     return n
 end
-
-ncpus = nil
-if not ncpus then
-    ncpus = ncpus_try_cmdline('getconf _NPROCESSORS_ONLN')
-end
-if not ncpus then
-    ncpus = ncpus_try_cmdline('getconf NPROCESSORS_ONLN')
-end
-if not ncpus then
-    ncpus = ncpus_try_cmdline('nproc --all')
-end
-if not ncpus then
-    ncpus = ncpus_try_cmdline('LC_ALL=C grep -c "^processor\\s" /proc/cpuinfo')
-end
-assert(ncpus, 'Cannot fetch number of CPUs')
 
 local function avg2str(x)
     assert(x >= 0)
@@ -31,12 +21,16 @@ end
 widget = {
     plugin = 'timer',
     opts = {
-        greet = true,
+        period = 2,
     },
     cb = function(t)
         local f = io.open('/proc/loadavg', 'r')
         local avg1, avg5, avg15 = f:read('*number', '*number', '*number')
         f:close()
+
+        assert(avg1 and avg5 and avg15)
+
+        local ncpus = get_ncpus()
 
         return string.format(
             '[%s%% %s%% %s%%]',
