@@ -66,7 +66,7 @@ Functions
 =========
 The following functions are provided:
 
-* ``wake_up()``
+* ``luastatus.plugin.wake_up()``
 
   Forces a call to ``cb``.
 

@@ -107,20 +107,20 @@ The following functions are provided as a part of "procalive" function set.
 These functions are available in plugins, including this one, that can be used
 to watch the state of some process(es):
 
-* ``access(path)``
+* ``is_ok, err_msg = luastatus.plugin.access(path)``
 
   Checks if a given path exists, as if with ``access(path, F_OK)``.
   If it does exist, returns ``true, nil``. If it does not, returns
   ``false, nil``. If an error occurs, returns ``false, err_msg``.
 
-* ``stat(path)``
+* ``file_type, err_msg = luastatus.plugin.stat(path)``
 
   Tries to get the type of the file at the given path. On success returns
   either of: ``"regular"``, ``"dir"`` (directory), ``"chardev"`` (character device),
   ``"blockdev"`` (block device), ``"fifo"``, ``"symlink"``, ``"socket"``, ``"other"``.
   On failure returns ``nil, err_msg``.
 
-* ``glob(pattern)``
+* ``arr, err_msg = luastatus.plugin.glob(pattern)``
 
   Performs glob expansion of ``pattern``.
   A glob is a wildcard pattern like ``/tmp/*.txt`` that can be applied as
@@ -135,7 +135,7 @@ to watch the state of some process(es):
   are existing file names that matched the given pattern. The order is arbitrary.
   On failure, returns ``nil, err_msg``.
 
-* ``is_process_alive(pid)``
+* ``is_alive = luastatus.plugin.is_process_alive(pid)``
 
   Checks if a process with PID ``pid`` is currently alive. ``pid`` must be a number.
   Returns a boolean that indicates whether the process is alive.

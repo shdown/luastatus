@@ -38,6 +38,8 @@ The following functions are provided:
   this function is called, the function will forcefully reload all information and reset
   ``please_reload`` field to ``nil``.
 
+  The array is sorted by CPU index.
+
 * ``widget(tbl[, data])``
 
   Constructs a ``widget`` table required by luastatus.
@@ -53,7 +55,7 @@ The following functions are provided:
   - ``cb``: a function
 
     The callback function that will be called with current CPU frequencies, or with ``nil``.
-    The arument is the same as the return value of ``get_freqs`` (see above for description
+    The argument is the same as the return value of ``get_freqs`` (see above for description
     of ``get_freqs`` function for more information).
 
   **(optional)**
