@@ -30,8 +30,7 @@ The following functions are provided:
     sensors) or ``"hwmon"`` (``/sys/class/hwmon/*`` sensors).
   * ``name`` (string): name of this temperature sensor; it is either:
     - for ``"thermal"`` kind: ``"thermal_zone${i}"``, where ``${i}`` is the index of the thermal zone, or;
-    - for ``"hwmon"`` kind: the contents of ``/sys/class/hwmon/hwmon${i}/name`` file, where ``${i}`` is
-      the index of hwmon sensor.
+    - for ``"hwmon"`` kind: the contents of ``/sys/class/hwmon/hwmon${i}/name`` file, where ``${i}`` is the index of hwmon sensor.
   * ``path`` (string): full path to the sensor readings file.
   * ``value`` (number): current temperature, in Celsius degrees.
 
@@ -40,9 +39,11 @@ The following functions are provided:
   In order to use this function, you are expected to maintain a table ``data``, initially empty,
   and pass it to ``get_temps`` each time.
   The only things the caller is allowed to do with this table (either before the first call or after a call) is:
+
     - set ``please_reload`` field to ``true``; if ``please_reload`` field is true when
       this function is called, the function will forcefully reload all information and reset
       ``please_reload`` field to ``nil``.
+
     - set ``filter_func`` field to a function that takes two string arguments (kind and name), and returns
       a boolean indicating whether this sensor should be monitored. If not set, all sensors will be monitored.
 

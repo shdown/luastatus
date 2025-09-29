@@ -43,7 +43,7 @@ The following functions are provided:
   - ``written_bytes`` (number): number of bytes written per second, averaged over the last ``divisor`` seconds.
 
   **NOTE:** ``read_bytes`` and ``written_bytes`` entries may be negative; this means an overflow happened in
-  kernel's statistics. If any of these number is negative, it is recommended simply not to include this disk
+  kernel's statistics. If any of these numbers is negative, it is recommended simply not to include this disk
   device in current output.
 
   In order to use this function, you are expected to maintain a table ``old``, initially empty,
