@@ -23,6 +23,10 @@
 #include <stdarg.h>
 #include "ls_compdep.h"
 
+// Functions below allocate a formatted C string (as with with 'malloc()').
+// They panic on failure (including out-of-memory condition, bad format
+// string, etc).
+
 char *ls_xallocvf(const char *fmt, va_list vl);
 
 LS_INHEADER LS_ATTR_PRINTF(1, 2)

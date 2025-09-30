@@ -25,6 +25,27 @@
 #include "ls_time_utils.h"
 #include "ls_io_utils.h"
 
+// A "FIFO device" is a device that emits an event whenever somebody does
+// touch(1) (that is, opens for writing and then closes) on a FIFO file with
+// a specified path.
+//
+// If specified path is NULL, no events are ever reported.
+//
+// The suggested usage is as follows:
+//
+//     LS_FifoDevice dev = ls_fifo_device_new();
+//     for (;;) {
+//         // ...
+//         if (ls_fifo_device_open(&dev, fifo_path) < 0) {
+//             // ... handle error ...
+//         }
+//         if (ls_fifo_device_wait(&dev, timeout)) {
+///           // ... somebody touched the FIFO, do something ...
+//         }
+//         // ...
+//     }
+//     ls_fifo_device_close(&dev);
+
 typedef struct {
     int fd;
 } LS_FifoDevice;

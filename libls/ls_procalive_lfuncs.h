@@ -22,14 +22,46 @@
 
 #include <lua.h>
 
+// Lua function access(path):
+//     Checks if a given path exists, as if with 'access(path, F_OK)'. If it does
+//     exist, returns 'true, nil'. If it does not, returns 'false, nil'. If an error
+//     occurs, returns 'false, err_msg'.
 int ls_procalive_lfunc_access(lua_State *L);
 
+// Lua function stat(path):
+//     Tries to get the type of the file at the given path. On success returns either of:
+//     * "regular",
+//     * "dir" (directory),
+//     * "chardev" (character device),
+//     * "blockdev" (block device),
+//     * "fifo",
+//     * "symlink",
+//     * "socket",
+//     * "other".
+// On failure returns '`'nil, err_msg'.
 int ls_procalive_lfunc_stat(lua_State *L);
 
+// Lua function glob(pattern):
+//     Performs glob expansion of pattern. A glob is a wildcard pattern like /tmp/*.txt
+//     that can be applied as a filter to a list of existing files names. Supported
+//     expansions are *, ? and [...]. Please refer to glob(7) for more information on
+//     wildcard patterns.
+//
+//     Note also that the globbing is performed with GLOB_MARK flag, so that in output,
+//     directories have trailing slash appended to their name.
+//
+//     Returns 'arr, nil' on success, where 'arr' is an array of strings; these are
+//     existing file names that matched the given pattern. The order is arbitrary.
+//
+//     On failure, returns 'nil, err_msg'.
 int ls_procalive_lfunc_glob(lua_State *L);
 
+// Lua function is_process_alive(pid):
+//     Checks if a process with PID 'pid' is currently alive. 'pid' must be a number.
+//     Returns a boolean that indicates whether the process is alive.
 int ls_procalive_lfunc_is_process_alive(lua_State *L);
 
+// Registers all functions described above into a table on the top of /L/'s stack.
 void ls_procalive_lfuncs_register_all(lua_State *L);
 
 #endif
