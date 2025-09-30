@@ -207,6 +207,7 @@ static int my_callback(
             break;
         default:
             assert(0);
+            abort();
         }
 
         int write_rc = lws_write(wsi, (uint8_t *) cur_resp, cur_resp_len, LWS_WRITE_HTTP_FINAL);
