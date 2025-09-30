@@ -43,6 +43,11 @@ The following options are supported:
   show the "volatile" properties of a wireless connection such as signal level, bitrate, and
   frequency.
 
+* ``make_self_pipe``: boolean
+
+  If true, the ``wake_up()`` (see the `Functions`_ section) function will be available. Defaults to
+  false.
+
 ``cb`` argument
 ===============
 If the list of network interfaces cannot be fetched, ``nil``.
@@ -82,3 +87,30 @@ are tables with the following entries (all are optional):
   - ``speed``: number
 
     Interface speed, in Mbits/s.
+
+Fetching the reason why ``cb`` was called
+=========================================
+If the argument is a table ``t``, the reason why the callback has been called can be fetched as follows::
+
+    getmetatable(t).what
+
+This value is either:
+
+* ``"update"`` network routing/link update;
+* ``"timeout"``: timeout;
+* ``"self_pipe"``: the ``luastatus.plugin.wake_up()`` function has been called.
+
+The reason this shamanistic ritual with a metatable is needed is that the support for any
+data other than the list of networks has not been planned for in advance, and ``what``
+is a valid network interface name.
+
+Functions
+=========
+The following functions are provided:
+
+* ``luastatus.plugin.wake_up()``
+
+  Forces a call to ``cb``.
+
+  Only available if the ``make_self_pipe`` option was set to ``true``; otherwise, it throws an
+  error.

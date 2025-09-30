@@ -20,18 +20,16 @@
 #include <lua.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/time.h>
 #include <sys/uio.h>
 #include <ifaddrs.h>
 #include <netdb.h>
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
-#include <time.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <string.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <poll.h>
 #include <netinet/in.h>
 
 #include "include/plugin_v1.h"
@@ -44,7 +42,7 @@
 #include "libls/ls_osdep.h"
 #include "libls/ls_tls_ebuf.h"
 #include "libls/ls_time_utils.h"
-#include "libls/ls_strarr.h"
+#include "libls/ls_evloop_lfuncs.h"
 
 #include "string_set.h"
 #include "wireless_info.h"
@@ -59,6 +57,7 @@ typedef struct {
     double tmo;
     StringSet wlan_ifaces;
     int eth_sockfd;
+    int pipefds[2];
 } Priv;
 
 static void destroy(LuastatusPluginData *pd)
@@ -66,6 +65,8 @@ static void destroy(LuastatusPluginData *pd)
     Priv *p = pd->priv;
     string_set_destroy(p->wlan_ifaces);
     ls_close(p->eth_sockfd);
+    ls_close(p->pipefds[0]);
+    ls_close(p->pipefds[1]);
     free(p);
 }
 
@@ -80,6 +81,7 @@ static int init(LuastatusPluginData *pd, lua_State *L)
         .tmo = -1,
         .wlan_ifaces = string_set_new(),
         .eth_sockfd = -1,
+        .pipefds = {-1, -1},
     };
     char errbuf[256];
     MoonVisit mv = {.L = L, .errbuf = errbuf, .nerrbuf = sizeof(errbuf)};
@@ -104,6 +106,19 @@ static int init(LuastatusPluginData *pd, lua_State *L)
     if (moon_visit_num(&mv, -1, "timeout", &p->tmo, true) < 0)
         goto mverror;
 
+    // Parse make_self_pipe
+    bool make_self_pipe = false;
+    if (moon_visit_bool(&mv, -1, "make_self_pipe", &make_self_pipe, true) < 0) {
+        goto mverror;
+    }
+    if (make_self_pipe) {
+        LS_INFOF(pd, "making self-pipe");
+        if (ls_self_pipe_open(p->pipefds) < 0) {
+            LS_FATALF(pd, "ls_self_pipe_open: %s", ls_tls_strerror(errno));
+            goto error;
+        }
+    }
+
     // Open eth_sockfd if needed.
     if (p->report_ethernet) {
         p->eth_sockfd = ls_cloexec_socket(AF_INET, SOCK_DGRAM, 0);
@@ -116,9 +131,17 @@ static int init(LuastatusPluginData *pd, lua_State *L)
 
 mverror:
     LS_FATALF(pd, "%s", errbuf);
-//error:
+error:
     destroy(pd);
     return LUASTATUS_ERR;
+}
+
+static void register_funcs(LuastatusPluginData *pd, lua_State *L)
+{
+    Priv *p = pd->priv;
+    // L: table
+    ls_self_pipe_push_luafunc(p->pipefds, L); // L: table func
+    lua_setfield(L, -2, "wake_up"); // L: table
 }
 
 static void report_error(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
@@ -225,7 +248,8 @@ static void inject_ethernet_info(lua_State *L, struct ifaddrs *addr, int sockfd)
 static void make_call(
         LuastatusPluginData *pd,
         LuastatusPluginRunFuncs funcs,
-        bool timeout)
+        bool refresh,
+        const char *what)
 {
     struct ifaddrs *ifaddr;
     if (getifaddrs(&ifaddr) < 0) {
@@ -238,7 +262,7 @@ static void make_call(
     lua_newtable(L); // L: ? table
 
     Priv *p = pd->priv;
-    if (!timeout) {
+    if (refresh) {
         string_set_reset(&p->wlan_ifaces);
     }
 
@@ -252,13 +276,13 @@ static void make_call(
 
             if (p->report_wireless) {
                 bool is_wlan;
-                if (timeout) {
-                    is_wlan = string_set_contains(p->wlan_ifaces, cur->ifa_name);
-                } else {
+                if (refresh) {
                     is_wlan = is_wlan_iface(cur->ifa_name);
                     if (is_wlan) {
                         string_set_add(&p->wlan_ifaces, cur->ifa_name);
                     }
+                } else {
+                    is_wlan = string_set_contains(p->wlan_ifaces, cur->ifa_name);
                 }
                 if (is_wlan) {
                     inject_wireless_info(L, cur); // L: ? table ifacetbl
@@ -277,7 +301,12 @@ static void make_call(
         lua_pop(L, 1); // L: ? table
     }
 
-    if (!timeout) {
+    lua_createtable(L, 0, 1); // L: ? table mt
+    lua_pushstring(L, what); // L: ? table mt what
+    lua_setfield(L, -2, "what"); // L: ? table mt
+    lua_setmetatable(L, -2); // L: ? table
+
+    if (refresh) {
         string_set_freeze(&p->wlan_ifaces);
     }
 
@@ -285,21 +314,40 @@ static void make_call(
     funcs.call_end(pd->userdata);
 }
 
-static void setup_sock_timeout(LuastatusPluginData *pd, int fd)
+static ssize_t my_recvmsg(int fd_netlink, struct msghdr *msg, LS_TimeDelta tmo, int fd_extra)
 {
-    Priv *p = pd->priv;
-    LS_TimeDelta TD = ls_double_to_TD(p->tmo, LS_TD_FOREVER);
-    if (ls_TD_is_forever(TD)) {
-        return;
+    struct pollfd pfds[2] = {
+        {.fd = fd_netlink, .events = POLLIN},
+        {.fd = fd_extra,   .events = POLLIN},
+    };
+    int poll_rc = ls_poll(pfds, 2, tmo);
+    if (poll_rc < 0) {
+        // 'poll()' failed somewhy.
+        return -1;
     }
-    struct timeval tmo_tv = ls_TD_to_timeval(TD);
-    if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tmo_tv, sizeof(tmo_tv)) < 0) {
-        LS_WARNF(pd, "setsockopt: %s", ls_tls_strerror(errno));
+    if (poll_rc == 0) {
+        // Timeout reached.
+        errno = EAGAIN;
+        return -1;
     }
+    if (pfds[1].revents & POLLIN) {
+        // We have some input on /fd_extra/.
+
+        char dummy;
+        (void) read(fd_extra, &dummy, 1);
+
+        errno = 0;
+        return -1;
+    }
+    // If 'recvmsg()' below fails with /EAGAIN/ or /EWOULDBLOCK/, we do exactly the right
+    // thing: return -1 and set errno to /EAGAIN/ or /EWOULDBLOCK/, which signals a timeout.
+    return recvmsg(fd_netlink, msg, 0);
 }
 
 static bool interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
+    Priv *p = pd->priv;
+
     // We allocate the buffer for netlink messages on the heap rather than on the stack, for two
     // reasons:
     //
@@ -321,6 +369,7 @@ static bool interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         LS_FATALF(pd, "socket: %s", ls_tls_strerror(errno));
         goto error;
     }
+    ls_make_nonblock(fd);
 
     struct sockaddr_nl sa = {
         .nl_family = AF_NETLINK,
@@ -331,26 +380,30 @@ static bool interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         goto error;
     }
 
-    setup_sock_timeout(pd, fd);
+    LS_TimeDelta TD = ls_double_to_TD(p->tmo, LS_TD_FOREVER);
+
+    make_call(pd, funcs, true, "update");
 
     while (1) {
-        make_call(pd, funcs, false);
-
         struct iovec iov = {.iov_base = buf, .iov_len = NBUF};
         struct msghdr msg = {.msg_iov = &iov, .msg_iovlen = 1};
-        ssize_t len = recvmsg(fd, &msg, 0);
+        ssize_t len = my_recvmsg(fd, &msg, TD, p->pipefds[0]);
         if (len < 0) {
-            if (errno == EINTR) {
+            if (errno == 0) {
+                make_call(pd, funcs, false, "self_pipe");
+                continue;
+            } else if (errno == EINTR) {
+                make_call(pd, funcs, true, "update");
                 continue;
             } else if (LS_IS_EAGAIN(errno)) {
-                make_call(pd, funcs, true);
+                make_call(pd, funcs, false, "timeout");
                 continue;
             } else if (errno == ENOBUFS) {
                 ret = true;
                 LS_WARNF(pd, "ENOBUFS - kernel's socket buffer is full");
                 goto error;
             } else {
-                LS_FATALF(pd, "recvmsg: %s", ls_tls_strerror(errno));
+                LS_FATALF(pd, "my_recvmsg: %s", ls_tls_strerror(errno));
                 goto error;
             }
         }
@@ -382,6 +435,8 @@ static bool interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
             }
             // we don't care about the message
         }
+
+        make_call(pd, funcs, true, "update");
     }
 
 error:
@@ -402,6 +457,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 
 LuastatusPluginIface_v1 luastatus_plugin_iface_v1 = {
     .init = init,
+    .register_funcs = register_funcs,
     .run = run,
     .destroy = destroy,
 };
