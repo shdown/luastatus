@@ -46,6 +46,9 @@ function P.widget(tbl)
 
             local b = read_num(s .. '/brightness')
             local mb = read_num(s .. '/max_brightness')
+            if (not b) or (not mb) then
+                return tbl.cb(nil)
+            end
             return tbl.cb(b / mb)
         end,
         event = tbl.event,

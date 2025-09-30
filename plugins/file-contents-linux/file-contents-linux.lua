@@ -34,9 +34,12 @@ function P.widget(tbl)
                 error('add_watch() failed')
             end
             local f = assert(io.open(tbl.filename, 'r'))
-            local r = tbl.cb(f)
+            local is_ok, res = pcall(tbl.cb, f)
             f:close()
-            return r
+            if not is_ok then
+                error(res)
+            end
+            return res
         end,
         event = tbl.event,
     }
