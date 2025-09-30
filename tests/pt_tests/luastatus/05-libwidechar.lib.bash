@@ -35,7 +35,7 @@ dump(WIDTH(STR))
 dump2(TRUNC(STR, 3))
 dump(MKVALID(STR, "?"))
 
-STR = "\\xff Test"
+STR = "$(printf \\xFF) Test"
 dump(WIDTH(STR))
 dump2(TRUNC(STR, 3))
 dump(MKVALID(STR, "?"))
@@ -45,7 +45,7 @@ dump(WIDTH(STR))
 dump2(TRUNC(STR, 3))
 dump(MKVALID(STR, "?"))
 
-STR = "t\\x01est"
+STR = "t$(printf \\x01)est"
 dump(WIDTH(STR))
 dump2(TRUNC(STR, 3))
 dump(MKVALID(STR, "?"))
