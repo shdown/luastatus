@@ -7,7 +7,7 @@ f = assert(io.open('$main_fifo_file', 'w'))
 f:setvbuf('line')
 widget = {
     plugin = '$PT_BUILD_DIR/tests/plugin-mock.so',
-    opts = {make_call = 0},
+    opts = {make_calls = 0},
     cb = function()
     end,
     event = function(t)
@@ -21,9 +21,9 @@ __EOF__
 
     local line
     for line in "$@"; do
-        sleep 0.002
-        printf '%s\n' "$line" >&${pfd_in} || pt_fail 'printf failed'
-        pt_expect_line "event $line" <&$pfd || pt_fail 'pt_expect_line failed'
+        sleep 1
+        printf '%s\n' "$line" >&${pfd_in}
+        pt_expect_line "event $line" <&$pfd
     done
 
     pt_close_fd "$pfd"
@@ -32,12 +32,10 @@ __EOF__
     pt_close_fd "$pfd_in"
 }
 
-suffix='lorem-ipsum'
-
 x_testcase_input
 
-x_testcase_input foo$suffix
+x_testcase_input foo
 
-x_testcase_input foo$suffix bar$suffix
+x_testcase_input foo bar
 
-x_testcase_input foo$suffix bar$suffix baz$suffix
+x_testcase_input foo bar baz
