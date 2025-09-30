@@ -52,6 +52,9 @@ void append_sanitized_b(LS_String *buf, size_t widget_idx, const char *s, size_t
     size_t prev = 0;
     bool a_tag = false;
     for (size_t i = 0; i < ns; ++i) {
+
+#define PEEK(Offset_) ((i + (Offset_)) < ns ? s[i + (Offset_)] : '\0')
+
         switch (s[i]) {
         case '\n':
             ls_string_append_b(buf, s + prev, i - prev);
@@ -59,12 +62,10 @@ void append_sanitized_b(LS_String *buf, size_t widget_idx, const char *s, size_t
             break;
 
         case '%':
-            if (i + 1 < ns) {
-                if (s[i + 1] == '{' && i + 2 < ns && s[i + 2] == 'A') {
-                    a_tag = true;
-                } else if (s[i + 1] == '%') {
-                    ++i;
-                }
+            if (PEEK(1) == '{' && PEEK(2) == 'A') {
+                a_tag = true;
+            } else if (PEEK(1) == '%') {
+                ++i;
             }
             break;
 
@@ -81,6 +82,9 @@ void append_sanitized_b(LS_String *buf, size_t widget_idx, const char *s, size_t
             a_tag = false;
             break;
         }
+
+#undef PEEK
+
     }
     ls_string_append_b(buf, s + prev, ns - prev);
 }
