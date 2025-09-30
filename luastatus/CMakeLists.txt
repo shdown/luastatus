@@ -2,8 +2,14 @@ execute_process (
     COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/version.sh" "${PROJECT_SOURCE_DIR}"
     OUTPUT_VARIABLE luastatus_VERSION
     OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+include (CheckSymbolExists)
+set (CMAKE_REQUIRED_DEFINITIONS "-D_XOPEN_SOURCE=500")
+check_symbol_exists (wcwidth "wchar.h" LUASTATUS_HAVE_WCWIDTH)
+
 configure_file ("config.in.h" "config.generated.h")
-add_executable (luastatus $<TARGET_OBJECTS:ls> "luastatus.c")
+
+add_executable (luastatus $<TARGET_OBJECTS:ls> "luastatus.c" "libwidechar.c")
 
 target_compile_definitions (luastatus PUBLIC -D_POSIX_C_SOURCE=200809L)
 luastatus_target_build_with (luastatus LUA)

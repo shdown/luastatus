@@ -44,6 +44,7 @@
 #include "libls/ls_xallocf.h"
 
 #include "config.generated.h"
+#include "libwidechar.h"
 
 // Logging macros.
 #define FATALF(...)    sayf(LUASTATUS_LOG_FATAL,    __VA_ARGS__)
@@ -586,11 +587,15 @@ static void inject_libs(lua_State *L)
 
     lua_pop(L, 1); // L: ?
 
-    lua_createtable(L, 0, 1); // L: ? table
+    lua_createtable(L, 0, 2); // L: ? table
 
     lua_newtable(L); // L: ? table table
     lua_pushcclosure(L, l_require_plugin, 1); // L: ? table l_require_plugin
     lua_setfield(L, -2, "require_plugin"); // L: ? table
+
+    lua_newtable(L); // L: ? table table
+    libwidechar_register_lua_funcs(L); // L: ? table table
+    lua_setfield(L, -2, "libwidechar"); // L: ? table
 
     lua_setglobal(L, "luastatus"); // L: ?
 }

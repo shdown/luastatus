@@ -6,4 +6,8 @@
 #define LUASTATUS_BARLIBS_DIR       "@BARLIBS_DIR@"
 #define LUASTATUS_VERSION           "@luastatus_VERSION@"
 
+#define LUASTATUS_VERSION           "@luastatus_VERSION@"
+
+#cmakedefine01 LUASTATUS_HAVE_WCWIDTH
+
 #endif

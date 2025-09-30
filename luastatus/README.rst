@@ -128,7 +128,8 @@ LUA LIBRARIES
 
 The ``luastatus`` module
 ------------------------
-luastatus provides the ``luastatus`` module, which currently contains only one function:
+luastatus provides the ``luastatus`` module, which currently contains one function and one
+submodule:
 
 * ``luastatus.require_plugin(name)`` acts like the Lua's built-in ``require`` function, except
   that it loads a file named ``<name>.lua`` from luastatus' derived plugins directory. This
@@ -138,6 +139,28 @@ luastatus provides the ``luastatus`` module, which currently contains only one f
   The file is read, compiled as a Lua code, and executed, and its return value is returned from
   ``luastatus.require_plugin``.
   If this derived plugin has already been loaded, the cached return value is returned.
+
+* ``luastatus.libwidechar``: module for width-aware wide char string manipulation. The width of
+  a character is the number of cells it occupies in a terminal. This module has the following
+  functions:
+
+  - ``luastatus.libwidechar.width(str)``: returns total width of string ``str``; if ``str``
+    contains an illegal sequence, returns ``nil``.
+
+  - ``luastatus.libwidechar.truncate_to_width(str, target_width)``: truncates string ``str``
+    to (at most) width ``target_width``. If ``str`` contains an illegal sequence, returns
+    ``nil, nil``; otherwise, returns ``result, result_width``, where ``result`` is the truncated
+    string, ``result_width`` is the width of ``result``.
+
+  - ``luastatus.libwidechar.make_valid_and_printable(str, replace_bad_with)``: replaces all
+    illegal sequences and non-printable characters with ``replace_bad_with``. Returns the
+    result of replacement. Note that is does not check if ``replace_bad_with`` itself contains
+    illegal sequences and/or non-printable characters.
+
+  - ``luastatus.libwidechar.is_dummy_implementation()``: returns boolean indicating whether
+    the implementation of this module is *dummy*; the implementation is *dummy* if your system
+    does not support ``wcwidth()`` function and so the width of any wide character is assumed
+    to be 1. Note that missing ``wcwidth()`` is very uncommon.
 
 Plugins' and barlib's Lua functions
 -----------------------------------
