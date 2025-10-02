@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2025  luastatus developers
+ * Copyright (C) 2025  luastatus developers
  *
  * This file is part of luastatus.
  *
@@ -17,24 +17,33 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef wrongly_h_
-#define wrongly_h_
+#ifndef luastatus_comm_h_
+#define luastatus_comm_h_
 
-#include <X11/Xlib.h>
-#include <stdbool.h>
+#include <stddef.h>
 
-#include "libls/ls_strarr.h"
+void comm_global_init(void);
 
 typedef struct {
-    // These all are either zero-terminated strings allocated as if with /malloc()/, or /NULL/.
-    char *rules;
-    char *model;
-    char *layout;
-    char *options;
-} WronglyResult;
+    char *data;
+    size_t data_len;
+} Comm;
 
-bool wrongly_fetch(Display *dpy, WronglyResult *out);
+#define COMM_INITIALIZER {0}
 
-void wrongly_parse_layout(const char *layout, LS_StringArray *out);
+void comm_lock(void);
+
+void comm_unlock(void);
+
+void comm_set(Comm *c, const char *new_data, size_t new_data_len);
+
+int comm_cas(
+    Comm *c,
+    const char *old_data, size_t old_data_len,
+    const char *new_data, size_t new_data_len);
+
+void comm_destroy(Comm *c);
+
+void comm_global_deinit(void);
 
 #endif

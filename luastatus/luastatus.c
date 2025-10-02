@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2020  luastatus developers
+ * Copyright (C) 2015-2025  luastatus developers
  *
  * This file is part of luastatus.
  *
@@ -38,13 +38,13 @@
 #include "libls/ls_alloc_utils.h"
 #include "libls/ls_compdep.h"
 #include "libls/ls_getenv_r.h"
-#include "libls/ls_string.h"
 #include "libls/ls_algo.h"
 #include "libls/ls_panic.h"
 #include "libls/ls_xallocf.h"
 
 #include "config.generated.h"
 #include "libwidechar.h"
+#include "comm.h"
 
 // Logging macros.
 #define FATALF(...)    sayf(LUASTATUS_LOG_FATAL,    __VA_ARGS__)
@@ -137,6 +137,10 @@ typedef struct {
     // Normal: an allocated zero-terminated string with widget's file name.
     // Stillborn: undefined.
     char *filename;
+
+    // Normal: a /Comm/ instance for /luastatus.communicate()/ function.
+    // Stillborn: undefined.
+    Comm comm;
 } Widget;
 
 static const char *loglevel_names[] = {
@@ -188,6 +192,8 @@ static struct {
 
     // A mutex guarding /L/.
     pthread_mutex_t L_mtx;
+
+    Widget *cur_w;
 } sepstate = {.L = NULL};
 
 // See DOCS/design/map_get.md
@@ -569,10 +575,58 @@ static int l_require_plugin(lua_State *L)
     return 1;
 }
 
-// 1. Replaces some of the functions in the standard library with our thread-safe counterparts.
-// 2. Registers the /luastatus/ module (just creates a global table actually) except for the
-//    /luastatus.plugin/ and /luastatus.barlib/ submodules (created later).
-static void inject_libs(lua_State *L)
+static int l_communicate(lua_State *L)
+{
+    Widget *w = lua_touserdata(L, lua_upvalueindex(1));
+    if (!w) {
+        w = sepstate.cur_w;
+    }
+    Comm *comm = &w->comm;
+
+    // L: ?
+
+    const char *action = luaL_checkstring(L, 1);
+    if (strcmp(action, "read") == 0) {
+        comm_lock();
+        lua_pushlstring(L, comm->data, comm->data_len); // L: ? data
+        comm_unlock();
+        return 1;
+
+    } else if (strcmp(action, "read_and_clear") == 0) {
+        comm_lock();
+        lua_pushlstring(L, comm->data, comm->data_len); // L: ? data
+        comm_set(comm, NULL, 0);
+        comm_unlock();
+        return 1;
+
+    } else if (strcmp(action, "write") == 0) {
+        size_t new_data_len;
+        const char *new_data = luaL_checklstring(L, 2, &new_data_len);
+        comm_lock();
+        comm_set(comm, new_data, new_data_len);
+        comm_unlock();
+        return 0;
+
+    } else if (strcmp(action, "cas") == 0) {
+        size_t old_data_len;
+        const char *old_data = luaL_checklstring(L, 2, &old_data_len);
+
+        size_t new_data_len;
+        const char *new_data = luaL_checklstring(L, 3, &new_data_len);
+
+        comm_lock();
+        int is_ok = comm_cas(comm, old_data, old_data_len, new_data, new_data_len);
+        comm_unlock();
+
+        lua_pushboolean(L, is_ok); // L: ? is_ok
+        return 1;
+
+    } else {
+        return luaL_error(L, "unknown action '%s'", action);
+    }
+}
+
+static void inject_libs_replacements(lua_State *L)
 {
     lua_getglobal(L, "os"); // L: ? os
 
@@ -586,18 +640,37 @@ static void inject_libs(lua_State *L)
     lua_setfield(L, -2, "setlocale"); // L: ? os
 
     lua_pop(L, 1); // L: ?
+}
 
-    lua_createtable(L, 0, 2); // L: ? table
+static void inject_luastatus_module(lua_State *L, Widget *w)
+{
+    lua_createtable(L, 0, 3); // L: ? table
 
+    // ========== require_plugin ==========
     lua_newtable(L); // L: ? table table
     lua_pushcclosure(L, l_require_plugin, 1); // L: ? table l_require_plugin
     lua_setfield(L, -2, "require_plugin"); // L: ? table
 
+    // ========== libwidechar ==========
     lua_newtable(L); // L: ? table table
     libwidechar_register_lua_funcs(L); // L: ? table table
     lua_setfield(L, -2, "libwidechar"); // L: ? table
 
+    // ========== communicate ==========
+    lua_pushlightuserdata(L, w); // L: ? table userdata
+    lua_pushcclosure(L, l_communicate, 1); // L: ? table userdata
+    lua_setfield(L, -2, "communicate"); // L: ? table
+
     lua_setglobal(L, "luastatus"); // L: ?
+}
+
+// 1. Replaces some of the functions in the standard library with our thread-safe counterparts.
+// 2. Registers the /luastatus/ module (just creates a global table actually) except for the
+//    /luastatus.plugin/ and /luastatus.barlib/ submodules (created later).
+static void inject_libs(lua_State *L, Widget *w)
+{
+    inject_libs_replacements(L);
+    inject_luastatus_module(L, w);
 }
 
 static void sepstate_maybe_init(void)
@@ -608,7 +681,7 @@ static void sepstate_maybe_init(void)
     }
     sepstate.L = xnew_lua_state();
     luaL_openlibs(sepstate.L);
-    inject_libs(sepstate.L);
+    inject_libs(sepstate.L, NULL);
     lua_pushcfunction(sepstate.L, l_error_handler); // sepstate.L: l_error_handler
     LS_PTH_CHECK(pthread_mutex_init(&sepstate.L_mtx, NULL));
 }
@@ -723,13 +796,14 @@ static bool widget_init(Widget *w, const char *filename)
     w->L = xnew_lua_state();
     LS_PTH_CHECK(pthread_mutex_init(&w->L_mtx, NULL));
     w->filename = ls_xstrdup(filename);
+    w->comm = (Comm) COMM_INITIALIZER;
     bool plugin_loaded = false;
 
     DEBUGF("initializing widget '%s'", filename);
 
     luaL_openlibs(w->L);
     // w->L: -
-    inject_libs(w->L); // w->L: -
+    inject_libs(w->L, w); // w->L: -
     lua_pushcfunction(w->L, l_error_handler); // w->L: l_error_handler
 
     DEBUGF("running file '%s'", filename);
@@ -783,6 +857,7 @@ error:
     if (plugin_loaded) {
         plugin_unload(&w->plugin);
     }
+    comm_destroy(&w->comm);
     return false;
 }
 
@@ -825,6 +900,7 @@ static void widget_destroy(Widget *w)
         lua_close(w->L);
         LS_PTH_CHECK(pthread_mutex_destroy(&w->L_mtx));
         free(w->filename);
+        comm_destroy(&w->comm);
     }
 }
 
@@ -969,6 +1045,20 @@ static void plugin_call_cancel(void *userdata)
     UNLOCK_L(w);
 }
 
+static inline void possibly_sepstate_call_begin(Widget *w)
+{
+    if (w->sepstate_event) {
+        sepstate.cur_w = w;
+    }
+}
+
+static inline void possibly_sepstate_call_end(Widget *w)
+{
+    if (w->sepstate_event) {
+        sepstate.cur_w = NULL;
+    }
+}
+
 static lua_State *ew_call_begin(void *userdata, size_t widget_idx)
 {
     TRACEF("ew_call_begin(userdata=%p, widget_idx=%zu)", userdata, widget_idx);
@@ -976,6 +1066,8 @@ static lua_State *ew_call_begin(void *userdata, size_t widget_idx)
     assert(widget_idx < nwidgets);
     Widget *w = &widgets[widget_idx];
     LOCK_E(w);
+
+    possibly_sepstate_call_begin(w);
 
     lua_State *L = widget_event_lua_state(w);
     assert(lua_gettop(L) == 1); // L: l_error_handler
@@ -1002,6 +1094,9 @@ static void ew_call_end(void *userdata, size_t widget_idx)
         }
         // L: l_error_handler
     }
+
+    possibly_sepstate_call_end(w);
+
     UNLOCK_E(w);
 }
 
@@ -1013,6 +1108,9 @@ static void ew_call_cancel(void *userdata, size_t widget_idx)
     Widget *w = &widgets[widget_idx];
     lua_State *L = widget_event_lua_state(w);
     lua_settop(L, 1); // L: l_error_handler
+
+    possibly_sepstate_call_end(w);
+
     UNLOCK_E(w);
 }
 
@@ -1124,6 +1222,10 @@ int main(int argc, char **argv)
         goto cleanup;
     }
 
+    // Init the "comm" modue
+
+    comm_global_init();
+
     // Prepare.
 
     prepare_signals();
@@ -1216,5 +1318,6 @@ cleanup:
     }
     sepstate_maybe_destroy();
     map_destroy();
+    comm_global_deinit();
     return ret;
 }

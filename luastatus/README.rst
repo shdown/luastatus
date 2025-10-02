@@ -128,8 +128,8 @@ LUA LIBRARIES
 
 The ``luastatus`` module
 ------------------------
-luastatus provides the ``luastatus`` module, which currently contains one function and one
-submodule:
+luastatus provides the ``luastatus`` module, which currently contains the following functions and
+one submodules:
 
 * ``luastatus.require_plugin(name)`` acts like the Lua's built-in ``require`` function, except
   that it loads a file named ``<name>.lua`` from luastatus' derived plugins directory. This
@@ -139,6 +139,25 @@ submodule:
   The file is read, compiled as a Lua code, and executed, and its return value is returned from
   ``luastatus.require_plugin``.
   If this derived plugin has already been loaded, the cached return value is returned.
+
+* ``luastatus.communicate(action, ...)``: function for communication between the widget's proper
+  and separate-state event handler. The communication facility consists of a shared string,
+  initially empty. This string can be manipulated with this function as follows:
+
+  - ``luastatus.communicate('read')``: reads and returns the current value of the shared string;
+
+  - ``luastatus.communicate('read_and_clear')``: reads the current value of the shared string,
+    resets it to an empty string, and returns the previous value;
+
+  - ``luastatus.communicate('write', new_value)``: sets the current value of the shared string
+    to ``new_value``, which must be a string;
+
+  - ``luastatus.communicate('cas', old_value, new_value)``: compare-and-swap operation: reads the
+    current value of the shared string; if it is equal to ``old_value``, sets it to ``new_value``
+    and returns true; otherwise, returns false. Both ``old_value`` and ``new_value`` must be
+    strings.
+
+  Any call to this function is guaranteed to be atomic.
 
 * ``luastatus.libwidechar``: module for width-aware wide char string manipulation. The width of
   a character is the number of cells it occupies in a terminal. This module has the following
