@@ -112,7 +112,7 @@ static int init(LuastatusPluginData *pd, lua_State *L)
         goto mverror;
     }
     if (make_self_pipe) {
-        LS_INFOF(pd, "making self-pipe");
+        LS_DEBUGF(pd, "making self-pipe");
         if (ls_self_pipe_open(p->pipefds) < 0) {
             LS_FATALF(pd, "ls_self_pipe_open: %s", ls_tls_strerror(errno));
             goto error;
