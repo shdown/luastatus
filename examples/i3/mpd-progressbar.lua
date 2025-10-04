@@ -1,9 +1,13 @@
--- you need to install 'utf8' module (e.g. with luarocks) if using Lua <=5.2.
-utf8 = require 'utf8'
-
 text, time, total, is_playing = nil, nil, nil, false
 timeout = 2
 titlewidth = 40
+
+local function W_split(text, boundary)
+    local head, _ = luastatus.libwidechar.truncate_to_width(text, boundary)
+    assert(head)
+    local tail = text:sub(1 + #before)
+    return head, tail
+end
 
 widget = {
     plugin = 'mpd',
@@ -22,9 +26,12 @@ widget = {
             else
                 title = t.song.file or ''
             end
-            title = (utf8.len(title) <= titlewidth)
-                and title
-                or utf8.sub(title, 1, titlewidth - 1) .. '…'
+
+            title = luastatus.libwidechar.make_valid(title, '?')
+
+            if assert(luastatus.libwidechar.width(title)) > titlewidth then
+                title = luastatus.libwidechar.truncate_to_width(title, titlewidth - 1) .. '…'
+            end
 
             -- build text
             text = string.format('%s %s',
@@ -52,14 +59,16 @@ widget = {
         end
 
         -- calc progress
-        local len = utf8.len(text)
+        local width = assert(luastatus.libwidechar.width(text))
         -- 'time' and 'total' can be nil here, we check for 'total' only
         local ulpos = (total and total ~= 0)
-                        and math.floor(len / total * time + 0.5)
+                        and math.floor(width / total * time + 0.5)
                         or 0
 
-        return {full_text = '<u>' .. luastatus.barlib.pango_escape(utf8.sub(text, 1, ulpos)) ..
-                            '</u>' .. luastatus.barlib.pango_escape(utf8.sub(text, ulpos + 1)),
+        local head, tail = W_split(text, ulpos)
+
+        return {full_text = '<u>' .. luastatus.barlib.pango_escape(head) ..
+                            '</u>' .. luastatus.barlib.pango_escape(tail),
                 markup = 'pango'}
     end
 }

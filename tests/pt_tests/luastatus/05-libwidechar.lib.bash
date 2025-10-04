@@ -50,6 +50,22 @@ dump(WIDTH(STR))
 dump2(TRUNC(STR, 3))
 dump(MKVALID(STR, "?"))
 
+STR = "ABCDEFGHI"
+
+dump(WIDTH(STR, 2))
+dump(WIDTH(STR, 2, 3))
+
+dump(TRUNC(STR, 1, 2))
+dump(TRUNC(STR, 1, 3, 4))
+dump(TRUNC(STR, 1, 3, 128))
+dump(TRUNC(STR, 100, 3, 8))
+dump(TRUNC(STR, 100, 3, 9))
+dump(TRUNC(STR, 100, 3, 10))
+dump(TRUNC(STR, 100, 3, 11))
+
+dump(MKVALID(STR, '?', 3))
+dump(MKVALID(STR, '?', 3, 5))
+
 dump(luastatus.libwidechar.is_dummy_implementation())
 
 __EOF__
@@ -73,6 +89,20 @@ pt_expect_line '<<ЮЩЛЫ>>' <&$pfd
 pt_expect_line 'nil' <&$pfd
 pt_expect_line 'nil nil' <&$pfd
 pt_expect_line '<<t?est>>' <&$pfd
+
+pt_expect_line '8' <&$pfd
+pt_expect_line '2' <&$pfd
+
+pt_expect_line '<<B>>' <&$pfd
+pt_expect_line '<<C>>' <&$pfd
+pt_expect_line '<<C>>' <&$pfd
+pt_expect_line '<<CDEFGH>>' <&$pfd
+pt_expect_line '<<CDEFGHI>>' <&$pfd
+pt_expect_line '<<CDEFGHI>>' <&$pfd
+pt_expect_line '<<CDEFGHI>>' <&$pfd
+
+pt_expect_line '<<CDEFGHI>>' <&$pfd
+pt_expect_line '<<CDE>>' <&$pfd
 
 pt_expect_line 'FALSE' <&$pfd
 

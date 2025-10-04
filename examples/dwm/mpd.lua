@@ -1,6 +1,3 @@
--- you need to install 'utf8' module (e.g. with luarocks) if using Lua <=5.2.
-utf8 = require 'utf8'
-
 titlewidth = 40
 
 widget = {
@@ -16,9 +13,12 @@ widget = {
             else
                 title = t.song.file or ''
             end
-            title = (utf8.len(title) <= titlewidth)
-                and title
-                or utf8.sub(title, 1, titlewidth - 1) .. '…'
+
+            title = luastatus.libwidechar.make_valid(title, '?')
+
+            if assert(luastatus.libwidechar.width(title)) > titlewidth then
+                title = luastatus.libwidechar.truncate_to_width(title, titlewidth - 1) .. '…'
+            end
 
             return string.format('%s %s',
                 ({play = '▶', pause = '‖', stop = '■'})[t.status.state],

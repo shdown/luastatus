@@ -190,24 +190,6 @@ static inline void end_locale(LocaleSavedData lsd, lua_State *L)
     freelocale(lsd.native);
 }
 
-static int lfunc_width(lua_State *L)
-{
-    size_t ns;
-    const char *s = luaL_checklstring(L, 1, &ns);
-
-    LocaleSavedData lsd = begin_locale(L);
-    size_t res = libwidechar_width(s, ns);
-    end_locale(lsd, L);
-
-    // L: ?
-    if (res == (size_t) -1) {
-        lua_pushnil(L); // L: ? nil
-    } else {
-        lua_pushnumber(L, res); // ? L: width
-    }
-    return 1;
-}
-
 static inline size_t nonneg_double_to_size_t(double d)
 {
     static const double LIMIT =
@@ -224,10 +206,66 @@ static inline size_t nonneg_double_to_size_t(double d)
     return d;
 }
 
+static size_t extract_ij(lua_State *L, int pos, size_t if_absent)
+{
+    double d = luaL_optnumber(L, pos, -1);
+    if (d >= 0) {
+        return nonneg_double_to_size_t(d);
+    }
+    return if_absent;
+}
+
+static const char *extract_string_with_ij(lua_State *L, int str_pos, int i_pos, size_t *out_len)
+{
+    size_t ns;
+    const char *s = luaL_checklstring(L, str_pos, &ns);
+
+    size_t i = extract_ij(L, i_pos,     1);
+    size_t j = extract_ij(L, i_pos + 1, SIZE_MAX);
+    if (!i) {
+        luaL_argerror(L, i_pos, "is zero (expected 1-based index)");
+        // unreachable
+        return NULL;
+    }
+    --i;
+
+    if (j > ns) {
+        j = ns;
+    }
+    if (i > ns) {
+        i = ns;
+    }
+    if (j < i) {
+        *out_len = 0;
+        return NULL;
+    }
+
+    *out_len = j - i;
+    return s + i;
+}
+
+static int lfunc_width(lua_State *L)
+{
+    size_t ns;
+    const char *s = extract_string_with_ij(L, 1, 2, &ns);
+
+    LocaleSavedData lsd = begin_locale(L);
+    size_t res = libwidechar_width(s, ns);
+    end_locale(lsd, L);
+
+    // L: ?
+    if (res == (size_t) -1) {
+        lua_pushnil(L); // L: ? nil
+    } else {
+        lua_pushnumber(L, res); // ? L: width
+    }
+    return 1;
+}
+
 static int lfunc_truncate_to_width(lua_State *L)
 {
     size_t ns;
-    const char *s = luaL_checklstring(L, 1, &ns);
+    const char *s = extract_string_with_ij(L, 1, 3, &ns);
 
     double d_max_width = luaL_checknumber(L, 2);
     if (!(d_max_width >= 0)) {
@@ -260,7 +298,7 @@ static void append_to_lua_buf_callback(void *ud, const char *ptr, size_t len)
 static int lfunc_make_valid_and_printable(lua_State *L)
 {
     size_t ns;
-    const char *s = luaL_checklstring(L, 1, &ns);
+    const char *s = extract_string_with_ij(L, 1, 3, &ns);
 
     size_t nbad;
     const char *bad = luaL_checklstring(L, 2, &nbad);

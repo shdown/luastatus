@@ -163,23 +163,31 @@ one submodules:
   a character is the number of cells it occupies in a terminal. This module has the following
   functions:
 
-  - ``luastatus.libwidechar.width(str)``: returns total width of string ``str``; if ``str``
-    contains an illegal sequence, returns ``nil``.
+  - ``luastatus.libwidechar.width(str[, i[, j]])``: returns total width of string ``str``; if
+    ``str`` contains an illegal sequence, returns ``nil``. See below for what ``i`` and ``j``
+    mean.
 
-  - ``luastatus.libwidechar.truncate_to_width(str, target_width)``: truncates string ``str``
+  - ``luastatus.libwidechar.truncate_to_width(str, target_width[, i[, j]])``: truncates string ``str``
     to (at most) width ``target_width``. If ``str`` contains an illegal sequence, returns
     ``nil, nil``; otherwise, returns ``result, result_width``, where ``result`` is the truncated
-    string, ``result_width`` is the width of ``result``.
+    string, ``result_width`` is the width of ``result``. See below for what ``i`` and ``j`` mean.
 
-  - ``luastatus.libwidechar.make_valid_and_printable(str, replace_bad_with)``: replaces all
+
+  - ``luastatus.libwidechar.make_valid_and_printable(str, replace_bad_with[, i[, j]])``: replaces all
     illegal sequences and non-printable characters with ``replace_bad_with``. Returns the
     result of replacement. Note that is does not check if ``replace_bad_with`` itself contains
-    illegal sequences and/or non-printable characters.
+    illegal sequences and/or non-printable characters. See below for what ``i`` and ``j`` mean.
 
   - ``luastatus.libwidechar.is_dummy_implementation()``: returns boolean indicating whether
     the implementation of this module is *dummy*; the implementation is *dummy* if your system
     does not support ``wcwidth()`` function and so the width of any wide character is assumed
     to be 1. Note that missing ``wcwidth()`` is very uncommon.
+
+  All functions above that take ``str`` argument also take optional ``i`` and ``j`` arguments (both
+  integers). If ``i`` is passed, they act not on the whole ``str``, but on a substring of ``str``
+  which starts at (1-based) index ``i``; if ``j`` is also passed, on a substring which starts at index
+  ``i`` and ends at index ``j``. If ``j < i``, the substring is taken to be empty. If passed, ``i``
+  must be positive, but ``j`` can be zero.
 
 Plugins' and barlib's Lua functions
 -----------------------------------
