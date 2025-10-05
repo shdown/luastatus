@@ -1,12 +1,11 @@
 -- Bitcoin price widget.
 -- Updates every 5 minutes.
--- Requires:
+-- Requires (luarocks packages):
 --     * luasec
---     * this JSON library (you can simply copy json.lua into your widgets directory):
---          https://github.com/rxi/json.lua
+--     * lua-cjson
 https = require 'ssl.https'
 ltn12 = require 'ltn12'
-json = require 'json'
+cjson = require 'cjson'
 
 -- All the arguments except for 'url' may be absent or nil; default method is GET.
 -- Returns: code (integer), body (string), headers (table), status (string).
@@ -45,7 +44,7 @@ widget = {
         local is_ok, body = pcall(request_check_code, 'https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT')
         local text
         if is_ok then
-            text = json.decode(body).price:match('[^.]+')
+            text = cjson.decode(body).price:match('[^.]+')
         else
             text = '......'
             luastatus.plugin.push_period(5) -- retry in 5 seconds
