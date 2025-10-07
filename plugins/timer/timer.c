@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <poll.h>
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
@@ -40,13 +41,20 @@ typedef struct {
     double period;
     char *fifo;
     LS_PushedTimeout pushed_tmo;
+    int self_pipe[2];
 } Priv;
 
 static void destroy(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
+
     free(p->fifo);
+
     ls_pushed_timeout_destroy(&p->pushed_tmo);
+
+    ls_close(p->self_pipe[0]);
+    ls_close(p->self_pipe[1]);
+
     free(p);
 }
 
@@ -56,6 +64,7 @@ static int init(LuastatusPluginData *pd, lua_State *L)
     *p = (Priv) {
         .period = 1.0,
         .fifo = NULL,
+        .self_pipe = {-1, -1},
     };
     ls_pushed_timeout_init(&p->pushed_tmo);
 
@@ -63,16 +72,30 @@ static int init(LuastatusPluginData *pd, lua_State *L)
     MoonVisit mv = {.L = L, .errbuf = errbuf, .nerrbuf = sizeof(errbuf)};
 
     // Parse period
-    if (moon_visit_num(&mv, -1, "period", &p->period, true) < 0)
+    if (moon_visit_num(&mv, -1, "period", &p->period, true) < 0) {
         goto mverror;
+    }
     if (!ls_double_is_good_time_delta(p->period)) {
         LS_FATALF(pd, "period is invalid");
         goto error;
     }
 
     // Parse fifo
-    if (moon_visit_str(&mv, -1, "fifo", &p->fifo, NULL, true) < 0)
+    if (moon_visit_str(&mv, -1, "fifo", &p->fifo, NULL, true) < 0) {
         goto mverror;
+    }
+
+    // Parse make_self_pipe
+    bool mkpipe = false;
+    if (moon_visit_bool(&mv, -1, "make_self_pipe", &mkpipe, true) < 0) {
+        goto mverror;
+    }
+    if (mkpipe) {
+        if (ls_self_pipe_open(p->self_pipe) < 0) {
+            LS_FATALF(pd, "ls_self_pipe_open: %s", ls_tls_strerror(errno));
+            goto error;
+        }
+    }
 
     return LUASTATUS_OK;
 
@@ -91,6 +114,19 @@ static void register_funcs(LuastatusPluginData *pd, lua_State *L)
     Priv *p = pd->priv;
     ls_pushed_timeout_push_luafunc(&p->pushed_tmo, L); // L: table func
     lua_setfield(L, -2, "push_period"); // L: table
+
+    ls_self_pipe_push_luafunc(p->self_pipe, L); // L: table func
+    lua_setfield(L, -2, "wake_up"); // L: table
+}
+
+static inline void make_call(
+    LuastatusPluginData *pd,
+    LuastatusPluginRunFuncs funcs,
+    const char *what)
+{
+    lua_State *L = funcs.call_begin(pd->userdata);
+    lua_pushstring(L, what);
+    funcs.call_end(pd->userdata);
 }
 
 static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
@@ -99,27 +135,37 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 
     LS_FifoDevice dev = ls_fifo_device_new();
 
-    const char *what = "hello";
-
     LS_TimeDelta default_tmo = ls_double_to_TD_or_die(p->period);
 
-    while (1) {
-        lua_State *L = funcs.call_begin(pd->userdata);
-        lua_pushstring(L, what);
-        funcs.call_end(pd->userdata);
+    make_call(pd, funcs, "hello");
 
+    for (;;) {
         if (ls_fifo_device_open(&dev, p->fifo) < 0) {
             LS_WARNF(pd, "ls_fifo_device_open: %s: %s", p->fifo, ls_tls_strerror(errno));
         }
         LS_TimeDelta TD = ls_pushed_timeout_fetch(&p->pushed_tmo, default_tmo);
-        int r = ls_fifo_device_wait(&dev, TD);
+
+        struct pollfd pfds[2] = {
+            {.fd = dev.fd,          .events = POLLIN},
+            {.fd = p->self_pipe[0], .events = POLLIN},
+        };
+        int r = ls_poll(pfds, 2, TD);
         if (r < 0) {
-            LS_FATALF(pd, "ls_fifo_device_wait: %s", ls_tls_strerror(errno));
+            LS_FATALF(pd, "ls_poll: %s", ls_tls_strerror(errno));
             goto error;
         } else if (r == 0) {
-            what = "timeout";
+            make_call(pd, funcs, "timeout");
         } else {
-            what = "fifo";
+            if (pfds[0].revents) {
+                make_call(pd, funcs, "fifo");
+                ls_fifo_device_reset(&dev);
+
+            } else if (pfds[1].revents) {
+                char dummy;
+                (void) read(p->self_pipe[0], &dummy, 1);
+
+                make_call(pd, funcs, "self_pipe");
+            }
         }
     }
 

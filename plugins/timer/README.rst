@@ -25,6 +25,11 @@ The following options are supported:
   Path to an existent FIFO. The plugin does not create FIFO itself. To force a wake-up,
   ``touch(1)`` the FIFO, that is, open it for writing and then close.
 
+* ``make_self_pipe``: boolean
+
+  If true, the ``wake_up()`` (see the `Functions`_ section) function will be available. Defaults to
+  false.
+
 ``cb`` argument
 ===============
 A string describing why the function is called:
@@ -33,7 +38,9 @@ A string describing why the function is called:
 
 * if it is ``"timeout"``, the function hasn't been called for ``period`` seconds;
 
-* if it is ``"fifo"``, the FIFO has been touched.
+* if it is ``"fifo"``, the FIFO has been touched;
+
+* if it is ``"self_pipe"``, the ``luastatus.plugin.wake_up()`` function has been called.
 
 Functions
 =========
@@ -42,6 +49,13 @@ The following functions are provided:
 * ``push_period(seconds)``
 
   Changes the timer period for one iteration.
+
+* ``luastatus.plugin.wake_up()``
+
+  Forces a call to ``cb``.
+
+  Only available if the ``make_self_pipe`` option was set to ``true``; otherwise, it throws an
+  error.
 
 The following functions are provided as a part of "procalive" function set.
 These functions are available in plugins, including this one, that can be used

@@ -85,4 +85,10 @@ LS_INHEADER void ls_fifo_device_close(LS_FifoDevice *dev)
     ls_close(dev->fd);
 }
 
+LS_INHEADER void ls_fifo_device_reset(LS_FifoDevice *dev)
+{
+    ls_fifo_device_close(dev);
+    *dev = ls_fifo_device_new();
+}
+
 #endif
