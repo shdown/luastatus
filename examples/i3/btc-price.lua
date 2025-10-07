@@ -34,14 +34,11 @@ function request_check_code(...)
     return body, headers
 end
 
-fifo_path = os.getenv('HOME') .. '/.luastatus-btc-pipe'
-assert(os.execute('f=' .. fifo_path .. '; set -e; rm -f $f; mkfifo -m600 $f'))
-
 widget = {
     plugin = 'timer',
     opts = {
         period = 5 * 60,
-        fifo = fifo_path,
+        make_self_pipe = true,
     },
     cb = function()
         local is_ok, body = pcall(request_check_code, 'https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT')
@@ -60,7 +57,7 @@ widget = {
     end,
     event = function(t)
         if t.button == 1 then
-            os.execute('touch ' .. fifo_path .. '&')
+            luastatus.plugin.wake_up()
         end
     end,
 }
