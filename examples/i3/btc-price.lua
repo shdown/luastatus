@@ -50,7 +50,10 @@ widget = {
             luastatus.plugin.push_period(5) -- retry in 5 seconds
         end
         return {
-            full_text = string.format('[<span color="#C0863F">$</span>%s]', text),
+            full_text = string.format(
+                '[<span color="#C0863F">$</span>%s]',
+                luastatus.barlib.pango_escape(text)
+            ),
             color = '#586A4B',
             markup = 'pango',
         }
