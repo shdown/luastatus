@@ -1,6 +1,10 @@
 -- A widget to display currently connected and paired bluetooth devices.
 -- To change output format modify reprint_devices function.
 
+if os.execute('command -v bluetoothctl >/dev/null') ~= 0 then
+    error('"bluetoothctl" command, which is required for this widget to work, was not found')
+end
+
 separator = " "
 
 -- Object paths look like /org/bluez/hci0/dev_XX_XX_XX_XX_XX_XX/somethingsomething
