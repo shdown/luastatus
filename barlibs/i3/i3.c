@@ -152,12 +152,12 @@ static bool redraw(LuastatusBarlibData *bd)
     size_t n = p->nwidgets;
     LS_String *bufs = p->bufs;
 
-    putc_unlocked('[', out);
+    putc('[', out);
     bool first = true;
     for (size_t i = 0; i < n; ++i) {
         if (bufs[i].size) {
             if (!first) {
-                putc_unlocked(',', out);
+                putc(',', out);
             }
             fwrite(bufs[i].data, 1, bufs[i].size, out);
             first = false;

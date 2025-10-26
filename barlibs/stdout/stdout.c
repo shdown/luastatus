@@ -157,7 +157,7 @@ static bool redraw(LuastatusBarlibData *bd)
             first = false;
         }
     }
-    putc_unlocked('\n', out);
+    putc('\n', out);
     fflush(out);
     if (ferror(out)) {
         LS_FATALF(bd, "write error: %s", ls_tls_strerror(errno));
