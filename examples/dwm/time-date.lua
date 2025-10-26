@@ -6,7 +6,7 @@ widget = {
         local d = os.date('*t')
         return {
             string.format('%d %s', d.day, months[d.month]),
-            string.format('%d:%02d', d.hour, d.min),
+            string.format('%02d:%02d', d.hour, d.min),
         }
     end,
 }
