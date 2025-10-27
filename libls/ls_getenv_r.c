@@ -26,6 +26,9 @@ extern char **environ;
 
 const char *ls_getenv_r(const char *name)
 {
+    if (!environ) {
+        return NULL;
+    }
     if ((strchr(name, '='))) {
         return NULL;
     }
