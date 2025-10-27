@@ -476,7 +476,7 @@ maybe_report:
     }
 }
 
-static int my_get_state_on_error(lua_State *L)
+static int lfunc_get_state_on_error(lua_State *L)
 {
     lua_pushvalue(L, lua_upvalueindex(1)); // L: upvalue
     return 1;
@@ -495,7 +495,7 @@ static void flash_call_push_error_result(lua_State *L, char state)
         lua_pushlstring(L, &state, 1); // L: str
         break;
     }
-    lua_pushcclosure(L, my_get_state_on_error, 1); // L: func
+    lua_pushcclosure(L, lfunc_get_state_on_error, 1); // L: func
 }
 
 static int get_prompt_via_flash_call(
