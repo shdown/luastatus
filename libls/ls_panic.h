@@ -22,28 +22,40 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include "ls_compdep.h"
 
 // Logs /Msg_/ and aborts.
 #define LS_PANIC(Msg_) \
     do { \
-        fprintf(stderr, "LS_PANIC() at %s:%d: %s\n", __FILE__, __LINE__, Msg_); \
+        ls_panic__log(Msg_, __FILE__, __LINE__); \
         abort(); \
     } while (0)
 
-// Logs /Msg_/ with errno value /Errnum__/ and aborts.
+// Logs /Msg_/ with errno value /Errnum_/ and aborts.
 #define LS_PANIC_WITH_ERRNUM(Msg_, Errnum_) \
     do { \
-        ls_panic_with_errnum_impl(Msg_, Errnum_, __FILE__, __LINE__); \
+        ls_panic_with_errnum__log(Msg_, Errnum_, __FILE__, __LINE__); \
         abort(); \
     } while (0)
 
 // Asserts that a /pthread_*/ call was successful.
-#define LS_PTH_CHECK(Expr_) ls_pth_check_impl(Expr_, #Expr_, __FILE__, __LINE__)
+#define LS_PTH_CHECK(Expr_) ls_pth_check__impl(Expr_, #Expr_, __FILE__, __LINE__)
 
-// Implementation part for /LS_PANIC_WITH_ERRNUM()/. Normally should not be called manually.
-void ls_panic_with_errnum_impl(const char *msg, int errnum, const char *file, int line);
+// Internal function. Normally should not be called manually.
+void ls_panic__log(const char *msg, const char *file, int line);
+
+// Internal function. Normally should not be called manually.
+void ls_panic_with_errnum__log(const char *msg, int errnum, const char *file, int line);
+
+// Internal function. Normally should not be called manually.
+void ls_pth_check__log_and_abort(int ret, const char *expr, const char *file, int line);
 
 // Implementation part for /LS_PTH_CHECK()/. Normally should not be called manually.
-void ls_pth_check_impl(int ret, const char *expr, const char *file, int line);
+LS_INHEADER void ls_pth_check__impl(int ret, const char *expr, const char *file, int line)
+{
+    if (ret != 0) {
+        ls_pth_check__log_and_abort(ret, expr, file, line);
+    }
+}
 
 #endif

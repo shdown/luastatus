@@ -22,7 +22,12 @@
 #include <stdio.h>
 #include "ls_cstring_utils.h"
 
-void ls_panic_with_errnum_impl(const char *msg, int errnum, const char *file, int line)
+void ls_panic__log(const char *msg, const char *file, int line)
+{
+    fprintf(stderr, "LS_PANIC() at %s:%d: %s\n", file, line, msg);
+}
+
+void ls_panic_with_errnum__log(const char *msg, int errnum, const char *file, int line)
 {
     char buf[512];
     fprintf(
@@ -30,12 +35,8 @@ void ls_panic_with_errnum_impl(const char *msg, int errnum, const char *file, in
         file, line, msg, ls_strerror_r(errnum, buf, sizeof(buf)));
 }
 
-void ls_pth_check_impl(int ret, const char *expr, const char *file, int line)
+void ls_pth_check__log_and_abort(int ret, const char *expr, const char *file, int line)
 {
-    if (ret == 0) {
-        return;
-    }
-
     char buf[512];
     fprintf(
         stderr, "LS_PTH_CHECK(%s) failed at %s:%d, reason: %s\nAborting.\n",
