@@ -112,8 +112,8 @@ An example that uses all possible features::
             for k, v in pairs(t) do
                 table.insert(r, k .. '=' .. tostring(v))
             end
-            assert(os.execute(string.format(
-               "notify-send 'Click event' '%s'", table.concat(r, ' '))))
+            os.execute(string.format(
+               "notify-send 'Click event' '%s'", table.concat(r, ' ')))
         end,
     }
 

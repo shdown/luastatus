@@ -41,10 +41,12 @@
 #include "libls/ls_algo.h"
 #include "libls/ls_panic.h"
 #include "libls/ls_xallocf.h"
+#include "libls/ls_lua_compat.h"
 
 #include "config.generated.h"
 #include "libwidechar.h"
 #include "comm.h"
+#include "runshell.h"
 
 // Logging macros.
 #define FATALF(...)    sayf(LUASTATUS_LOG_FATAL,    __VA_ARGS__)
@@ -522,7 +524,8 @@ static inline bool do_lua_call(lua_State *L, int nargs, int nresults)
 static int l_os_exit(lua_State *L)
 {
     int code = luaL_optinteger(L, 1, /*default value*/ EXIT_SUCCESS);
-    fflush(NULL);
+    fflush(stdout);
+    fflush(stderr);
     _exit(code);
 }
 
@@ -534,7 +537,7 @@ static int l_os_getenv(lua_State *L)
     if (r) {
         lua_pushstring(L, r);
     } else {
-        lua_pushnil(L);
+        ls_lua_pushfail(L);
     }
     return 1;
 }
@@ -542,7 +545,7 @@ static int l_os_getenv(lua_State *L)
 // Replacement for Lua's /os.setlocale()/: this thing is inherently thread-unsafe.
 static int l_os_setlocale(lua_State *L)
 {
-    lua_pushnil(L);
+    ls_lua_pushfail(L);
     return 1;
 }
 
@@ -639,17 +642,28 @@ static void inject_libs_replacements(lua_State *L)
     lua_pushcfunction(L, l_os_setlocale); // L: ? os l_os_setlocale
     lua_setfield(L, -2, "setlocale"); // L: ? os
 
+    bool is_lua51 = ls_lua_is_lua51(L);
+    lua_pushcfunction(
+        L,
+        is_lua51 ? l_os_execute_lua51ver : l_os_execute);
+    // L: ? os os_execute_func
+    lua_setfield(L, -2, "execute"); // L: ? os
+
     lua_pop(L, 1); // L: ?
 }
 
 static void inject_luastatus_module(lua_State *L, Widget *w)
 {
-    lua_createtable(L, 0, 3); // L: ? table
+    lua_createtable(L, 0, 4); // L: ? table
 
     // ========== require_plugin ==========
     lua_newtable(L); // L: ? table table
     lua_pushcclosure(L, l_require_plugin, 1); // L: ? table l_require_plugin
     lua_setfield(L, -2, "require_plugin"); // L: ? table
+
+    // ========== execute ==========
+    lua_pushcfunction(L, l_os_execute); // L: ? table cfunction
+    lua_setfield(L, -2, "execute"); // L: ? table
 
     // ========== libwidechar ==========
     lua_newtable(L); // L: ? table table
@@ -972,7 +986,8 @@ static void widgets_destroy(void)
 static LS_ATTR_NORETURN
 void fatal_error_reported(void)
 {
-    fflush(NULL);
+    fflush(stdout);
+    fflush(stderr);
     _exit(EXIT_FAILURE);
 }
 

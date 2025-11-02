@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2025  luastatus developers
+ * Copyright (C) 2025  luastatus developers
  *
  * This file is part of luastatus.
  *
@@ -17,33 +17,26 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "ls_string.h"
+#include "fatal.h"
+#include <unistd.h>
+#include <sys/types.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include <stdio.h>
-#include <errno.h>
-#include <stdarg.h>
-#include "ls_panic.h"
-
-void ls_string_append_vf(LS_String *x, const char *fmt, va_list vl)
+static void full_write(int fd, const char *buf, size_t nbuf)
 {
-    va_list vl2;
-    va_copy(vl2, vl);
-
-    size_t navail = x->capacity - x->size;
-    int r = vsnprintf(x->data + x->size, navail, fmt, vl);
-    if (r < 0) {
-        goto fail;
-    }
-    if (((size_t) r) >= navail) {
-        ls_string_ensure_avail(x, ((size_t) r) + 1);
-        if (vsnprintf(x->data + x->size, ((size_t) r) + 1, fmt, vl2) < 0) {
-            goto fail;
+    size_t nwritten = 0;
+    while (nwritten < nbuf) {
+        ssize_t w = write(fd, buf + nwritten, nbuf - nwritten);
+        if (w < 0) {
+            break;
         }
+        nwritten += w;
     }
-    x->size += r;
-    va_end(vl2);
-    return;
+}
 
-fail:
-    LS_PANIC_WITH_ERRNUM("ls_string_append_vf: vsnprintf() failed", errno);
+void fatal(const char *msg)
+{
+    full_write(2, msg, strlen(msg));
+    abort();
 }

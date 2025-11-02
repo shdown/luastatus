@@ -99,7 +99,7 @@ widget = {
                 local rawvol = round(
                     last_t.vol.min +
                     x / (t.width - sep_width) * (last_t.vol.max - last_t.vol.min))
-                assert(os.execute(
+                assert(luastatus.execute(
                     string.format('amixer -D "%s" set "%s" %s >/dev/null', CARD, CHANNEL, rawvol)))
 
             else
@@ -109,7 +109,7 @@ widget = {
             end
 
         elseif t.button == 3 then -- right mouse button
-            assert(os.execute(string.format(
+            assert(luastatus.execute(string.format(
                 'amixer -D "%s" set "%s" toggle >/dev/null', CARD, CHANNEL)))
         end
     end,

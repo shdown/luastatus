@@ -7,27 +7,13 @@ endif ()
 
 set (CMAKE_C_STANDARD 99)
 
-if ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
-    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pedantic -Wpedantic -Wall -Wextra")
-endif ()
-
-#------------------------------------------------------------------------------
-
-set (CLANG_PARANOID_WARNING_FLAGS "-Wbad-function-cast -Wcast-align -Wconditional-uninitialized -Wdisabled-macro-expansion -Wmissing-prototypes -Wmissing-variable-declarations -Wswitch-enum -Wunused-macros -Wtypedef-redefinition")
-option (PARANOID_WARNINGS "enable paranoid warnings (Clang only)" OFF)
-if ("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang" AND PARANOID_WARNINGS)
-    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CLANG_PARANOID_WARNING_FLAGS}")
-endif ()
+set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra")
 
 #------------------------------------------------------------------------------
 
 option (WITH_UBSAN "build with ubsan (undefined behavior sanitizer)" OFF)
 if (${WITH_UBSAN})
-    if ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
-        set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=undefined")
-    else ()
-        message (FATAL_ERROR "WITH_UBSAN is enabled, but compiler is neither GCC nor Clang.")
-    endif ()
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=undefined")
 endif ()
 
 #------------------------------------------------------------------------------
@@ -113,6 +99,7 @@ endfunction ()
 #------------------------------------------------------------------------------
 
 add_subdirectory (libls)
+add_subdirectory (libhackyfix)
 add_subdirectory (libmoonvisit)
 add_subdirectory (luastatus)
 

@@ -98,8 +98,8 @@ widget = {
                     return
                 end
                 local rawvol = round(x / (t.width - sep_width) * last_t.norm)
-                assert(os.execute(string.format(
-                    'pactl set-sink-volume "%s" %s', SINK, rawvol)))
+                os.execute(string.format(
+                    'pactl set-sink-volume "%s" %s', SINK, rawvol))
 
             else
                 gauge = not gauge
@@ -108,8 +108,8 @@ widget = {
             end
 
         elseif t.button == 3 then -- right mouse button
-            assert(os.execute(string.format(
-                'pactl set-sink-mute "%s" toggle', SINK)))
+            os.execute(string.format(
+                'pactl set-sink-mute "%s" toggle', SINK))
         end
     end,
 }

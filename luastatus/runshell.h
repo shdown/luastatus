@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2025  luastatus developers
+ * Copyright (C) 2025  luastatus developers
  *
  * This file is part of luastatus.
  *
@@ -17,11 +17,15 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "ls_tls_ebuf.h"
+#ifndef luastatus_runshell_h_
+#define luastatus_runshell_h_
 
-static __thread char ebuf[LS_TLS_EBUF_N];
+#include <lua.h>
 
-char *ls_tls_ebuf(void)
-{
-    return ebuf;
-}
+int runshell(const char *cmd);
+
+int l_os_execute(lua_State *L);
+
+int l_os_execute_lua51ver(lua_State *L);
+
+#endif

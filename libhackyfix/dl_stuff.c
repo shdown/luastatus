@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2025  luastatus developers
+ * Copyright (C) 2025  luastatus developers
  *
  * This file is part of luastatus.
  *
@@ -17,11 +17,13 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "ls_tls_ebuf.h"
+#ifndef _GNU_SOURCE
+#   define _GNU_SOURCE
+#endif
+#include "dl_stuff.h"
+#include <dlfcn.h>
 
-static __thread char ebuf[LS_TLS_EBUF_N];
-
-char *ls_tls_ebuf(void)
+void *dl_stuff_get_rtld_next_handle(void)
 {
-    return ebuf;
+    return RTLD_NEXT;
 }

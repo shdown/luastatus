@@ -21,6 +21,7 @@
 #define ls_panic_h_
 
 #include <stdio.h>
+#include <stdlib.h>
 
 // Logs /Msg_/ and aborts.
 #define LS_PANIC(Msg_) \
@@ -29,8 +30,18 @@
         abort(); \
     } while (0)
 
+// Logs /Msg_/ with errno value /Errnum__/ and aborts.
+#define LS_PANIC_WITH_ERRNUM(Msg_, Errnum_) \
+    do { \
+        ls_panic_with_errnum_impl(Msg_, Errnum_, __FILE__, __LINE__); \
+        abort(); \
+    } while (0)
+
 // Asserts that a /pthread_*/ call was successful.
 #define LS_PTH_CHECK(Expr_) ls_pth_check_impl(Expr_, #Expr_, __FILE__, __LINE__)
+
+// Implementation part for /LS_PANIC_WITH_ERRNUM()/. Normally should not be called manually.
+void ls_panic_with_errnum_impl(const char *msg, int errnum, const char *file, int line);
 
 // Implementation part for /LS_PTH_CHECK()/. Normally should not be called manually.
 void ls_pth_check_impl(int ret, const char *expr, const char *file, int line);

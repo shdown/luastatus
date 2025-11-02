@@ -43,6 +43,7 @@
 #include "libls/ls_tls_ebuf.h"
 #include "libls/ls_time_utils.h"
 #include "libls/ls_evloop_lfuncs.h"
+#include "libls/ls_lua_compat.h"
 
 #include "string_set.h"
 #include "wireless_info.h"
@@ -152,15 +153,6 @@ static void report_error(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     funcs.call_end(pd->userdata);
 }
 
-static inline size_t get_the_bloody_length(lua_State *L, int i)
-{
-#if LUA_VERSION_NUM <= 501
-    return lua_objlen(L, i);
-#else
-    return lua_rawlen(L, i);
-#endif
-}
-
 static void inject_ip_info(lua_State *L, struct ifaddrs *addr, bool new_ip_fmt)
 {
     // L: ? ifacetbl
@@ -191,7 +183,7 @@ static void inject_ip_info(lua_State *L, struct ifaddrs *addr, bool new_ip_fmt)
             lua_rawseti(L, -2, 1); // L: ? ifacetbl tbl
             lua_setfield(L, -2, k); // L: ? ifacetbl
         } else {
-            size_t n = get_the_bloody_length(L, -1); // L: ? ifacetbl tbl
+            size_t n = ls_lua_array_len(L, -1); // L: ? ifacetbl tbl
             lua_pushstring(L, host); // L: ? ifacetbl tbl str
             lua_rawseti(L, -2, n + 1); // L: ? ifacetbl tbl
             lua_pop(L, 1); // L: ? ifacetbl

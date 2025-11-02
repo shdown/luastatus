@@ -21,6 +21,7 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <errno.h>
 #include "ls_alloc_utils.h"
 #include "ls_panic.h"
 
@@ -42,5 +43,5 @@ char *ls_xallocvf(const char *fmt, va_list vl)
     return r;
 
 fail:
-    LS_PANIC("ls_xallocvf: vsnprintf() failed");
+    LS_PANIC_WITH_ERRNUM("ls_xallocvf: vsnprintf() failed", errno);
 }

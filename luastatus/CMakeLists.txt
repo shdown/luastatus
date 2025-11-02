@@ -10,7 +10,7 @@ check_symbol_exists (wcwidth "wchar.h" LUASTATUS_HAVE_WCWIDTH)
 configure_file ("config.in.h" "config.generated.h")
 
 file (GLOB sources "*.c")
-add_executable (luastatus $<TARGET_OBJECTS:ls> ${sources})
+add_executable (luastatus $<TARGET_OBJECTS:ls> $<TARGET_OBJECTS:hackyfix> ${sources})
 
 target_compile_definitions (luastatus PUBLIC -D_POSIX_C_SOURCE=200809L)
 luastatus_target_build_with (luastatus LUA)

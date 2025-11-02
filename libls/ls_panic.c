@@ -19,7 +19,16 @@
 
 #include "ls_panic.h"
 #include <stdlib.h>
+#include <stdio.h>
 #include "ls_cstring_utils.h"
+
+void ls_panic_with_errnum_impl(const char *msg, int errnum, const char *file, int line)
+{
+    char buf[512];
+    fprintf(
+        stderr, "LS_PANIC_WITH_ERRNUM() at %s:%d: %s: %s\n",
+        file, line, msg, ls_strerror_r(errnum, buf, sizeof(buf)));
+}
 
 void ls_pth_check_impl(int ret, const char *expr, const char *file, int line)
 {
@@ -28,7 +37,8 @@ void ls_pth_check_impl(int ret, const char *expr, const char *file, int line)
     }
 
     char buf[512];
-    fprintf(stderr, "LS_PTH_CHECK(%s) failed at %s:%d, reason: %s\nAborting.\n",
-            expr, file, line, ls_strerror_r(ret, buf, sizeof(buf)));
+    fprintf(
+        stderr, "LS_PTH_CHECK(%s) failed at %s:%d, reason: %s\nAborting.\n",
+        expr, file, line, ls_strerror_r(ret, buf, sizeof(buf)));
     abort();
 }
