@@ -20,9 +20,19 @@
 #ifndef ls_panic_h_
 #define ls_panic_h_
 
-#include <stdio.h>
 #include <stdlib.h>
 #include "ls_compdep.h"
+
+// Note: external /ls_panic_*/ functions do not abort because this way the
+// compiler wouldn't know they do not return (and thus the code after the macro
+// call is unreachable); this would result in warnings in, e.g., functions
+// returning non-void that call /LS_PANIC()/ or /LS_PANIC_WITH_ERRNUM()/ as the
+// last statement in a final block.
+//
+// We also don't want to introduce another macro in "ls_compdep.h" for
+// /__attribute__((noreturn))/.
+//
+// So, instead, the macros themselves call /abort()/.
 
 // Logs /Msg_/ and aborts.
 #define LS_PANIC(Msg_) \
