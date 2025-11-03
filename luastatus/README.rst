@@ -159,6 +159,9 @@ one submodules:
 
   Any call to this function is guaranteed to be atomic.
 
+* ``luastatus.execute([command])``: version of ``os.execute()`` that works as in Lua 5.2+,
+  independent of the actual version of Lua being used.
+
 * ``luastatus.libwidechar``: module for width-aware wide char string manipulation. The width of
   a character is the number of cells it occupies in a terminal. This module has the following
   functions:
