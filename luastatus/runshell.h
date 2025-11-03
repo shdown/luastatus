@@ -22,6 +22,19 @@
 
 #include <lua.h>
 
+// This function is like /system()/, but:
+//
+//   1. Does not support /cmd == NULL/: on a POSIX system, /system(NULL)/ must
+//      return non-zero anyway;
+//
+//   2. Assumes no thread cancellation takes place, and is not a cancellation
+//      point (nobody is going to cancel luastatus' widget threads);
+//
+//   3. Does not modify signal dispositions for SIGINT and/or SIGQUIT (we are
+//      not going to modify disposition for these signals anyway);
+//
+//   4. Is otherwise thread-safe (POSIX does not guarantee thread-safety of
+//      /system()/, and, on musl, it is not thread-safe.
 int runshell(const char *cmd);
 
 int l_os_execute(lua_State *L);
