@@ -21,7 +21,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "dl_stuff.h"
+#include "get_rtld_next_handle.h"
 #include "fatal.h"
 
 // dlerror() is not thread-safe at least on NetBSD and musl.
@@ -38,9 +38,10 @@ static int (*orig_fflush)(FILE *f);
 __attribute__((constructor))
 static void initialize(void)
 {
-    *(void **) &orig_fflush = dlsym(dl_stuff_get_rtld_next_handle(), "fflush");
+    void *rtld_next_handle = libhackyfix_get_rtld_next_handle();
+    *(void **) &orig_fflush = dlsym(rtld_next_handle, "fflush");
     if (!orig_fflush) {
-        fatal("FATAL: libhackyfix: dlsym(..., \"fflush\") failed\n");
+        libhackyfix_fatal("FATAL: libhackyfix: dlsym(..., \"fflush\") failed\n");
     }
 }
 

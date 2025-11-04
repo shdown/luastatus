@@ -35,7 +35,7 @@ static void full_write(int fd, const char *buf, size_t nbuf)
     }
 }
 
-void fatal(const char *msg)
+void libhackyfix_fatal(const char *msg)
 {
     full_write(2, msg, strlen(msg));
     abort();

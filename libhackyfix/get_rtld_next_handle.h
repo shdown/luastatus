@@ -17,13 +17,9 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef _GNU_SOURCE
-#   define _GNU_SOURCE
-#endif
-#include "dl_stuff.h"
-#include <dlfcn.h>
+#ifndef libhackyfix_get_rtld_next_handle_h_
+#define libhackyfix_get_rtld_next_handle_h_
 
-void *dl_stuff_get_rtld_next_handle(void)
-{
-    return RTLD_NEXT;
-}
+void *libhackyfix_get_rtld_next_handle(void);
+
+#endif

@@ -20,6 +20,6 @@
 #ifndef libhackyfix_fatal_h_
 #define libhackyfix_fatal_h_
 
-void fatal(const char *msg);
+void libhackyfix_fatal(const char *msg);
 
 #endif
