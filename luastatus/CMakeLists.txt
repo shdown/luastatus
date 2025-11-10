@@ -3,14 +3,16 @@ execute_process (
     OUTPUT_VARIABLE luastatus_VERSION
     OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-include (CheckSymbolExists)
-set (CMAKE_REQUIRED_DEFINITIONS "-D_XOPEN_SOURCE=500")
-check_symbol_exists (wcwidth "wchar.h" LUASTATUS_HAVE_WCWIDTH)
-
 configure_file ("config.in.h" "config.generated.h")
 
 file (GLOB sources "*.c")
-add_executable (luastatus $<TARGET_OBJECTS:ls> $<TARGET_OBJECTS:hackyfix> ${sources})
+add_executable (
+    luastatus
+    $<TARGET_OBJECTS:ls>
+    $<TARGET_OBJECTS:hackyfix>
+    $<TARGET_OBJECTS:runshell>
+    $<TARGET_OBJECTS:widechar>
+    ${sources})
 
 target_compile_definitions (luastatus PUBLIC -D_POSIX_C_SOURCE=200809L)
 luastatus_target_build_with (luastatus LUA)

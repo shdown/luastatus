@@ -43,10 +43,11 @@
 #include "libls/ls_xallocf.h"
 #include "libls/ls_lua_compat.h"
 
+#include "libwidechar/libwidechar.h"
+#include "librunshell/runshell.h"
+
 #include "config.generated.h"
-#include "libwidechar.h"
 #include "comm.h"
-#include "runshell.h"
 
 // Logging macros.
 #define FATALF(...)    sayf(LUASTATUS_LOG_FATAL,    __VA_ARGS__)
@@ -645,7 +646,7 @@ static void inject_libs_replacements(lua_State *L)
     bool is_lua51 = ls_lua_is_lua51(L);
     lua_pushcfunction(
         L,
-        is_lua51 ? l_os_execute_lua51ver : l_os_execute);
+        is_lua51 ? runshell_l_os_execute_lua51ver : runshell_l_os_execute);
     // L: ? os os_execute_func
     lua_setfield(L, -2, "execute"); // L: ? os
 
@@ -662,7 +663,7 @@ static void inject_luastatus_module(lua_State *L, Widget *w)
     lua_setfield(L, -2, "require_plugin"); // L: ? table
 
     // ========== execute ==========
-    lua_pushcfunction(L, l_os_execute); // L: ? table cfunction
+    lua_pushcfunction(L, runshell_l_os_execute); // L: ? table cfunction
     lua_setfield(L, -2, "execute"); // L: ? table
 
     // ========== libwidechar ==========

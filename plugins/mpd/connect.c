@@ -65,33 +65,34 @@ error:
     return -1;
 }
 
-static int do_bind_to_addr(int fd, const char *addr_str, int family)
+static int do_bind_to_addr(int fd, const char *addr_str, BindAddrFamily family)
 {
-    if (family == FAMILY_NONE) {
+    switch (family) {
+
+    case FAMILY_NONE:
         return 0;
-    }
-    assert(addr_str);
 
-    if (family == FAMILY_IPV4) {
-        struct sockaddr_in sa = {
-            .sin_family = AF_INET,
-        };
-        if (!inet_pton(AF_INET, addr_str, &sa.sin_addr)) {
-            goto bad_str;
+    case FAMILY_IPV4:
+        {
+            struct sockaddr_in sa = {
+                .sin_family = AF_INET,
+            };
+            if (!inet_pton(AF_INET, addr_str, &sa.sin_addr)) {
+                goto bad_str;
+            }
+            return bind(fd, (struct sockaddr *) &sa, sizeof(sa));
         }
-        return bind(fd, (struct sockaddr *) &sa, sizeof(sa));
 
-    } else if (family == FAMILY_IPV6) {
-        struct sockaddr_in6 sa = {
-            .sin6_family = AF_INET6,
-        };
-        if (!inet_pton(AF_INET6, addr_str, &sa.sin6_addr)) {
-            goto bad_str;
+    case FAMILY_IPV6:
+        {
+            struct sockaddr_in6 sa = {
+                .sin6_family = AF_INET6,
+            };
+            if (!inet_pton(AF_INET6, addr_str, &sa.sin6_addr)) {
+                goto bad_str;
+            }
+            return bind(fd, (struct sockaddr *) &sa, sizeof(sa));
         }
-        return bind(fd, (struct sockaddr *) &sa, sizeof(sa));
-
-    } else {
-        LS_UNREACHABLE();
     }
 
 bad_str:
@@ -99,31 +100,30 @@ bad_str:
     return -1;
 }
 
+static int bind_addr_family2af(BindAddrFamily family)
+{
+    switch (family) {
+    case FAMILY_NONE:
+        return AF_UNSPEC;
+    case FAMILY_IPV4:
+        return AF_INET;
+    case FAMILY_IPV6:
+        return AF_INET6;
+    }
+    LS_UNREACHABLE();
+}
+
 int inetdom_open(
         LuastatusPluginData *pd,
         const char *hostname,
         const char *service,
         const char *bind_addr,
-        int bind_addr_family)
+        BindAddrFamily bind_addr_family)
 {
     struct addrinfo *ai = NULL;
     int fd = -1;
 
-    int af;
-    switch (bind_addr_family) {
-    case FAMILY_NONE:
-        af = AF_UNSPEC;
-        break;
-    case FAMILY_IPV4:
-        af = AF_INET;
-        break;
-    case FAMILY_IPV6:
-        af = AF_INET6;
-        break;
-    default:
-        LS_UNREACHABLE();
-    }
-
+    int af = bind_addr_family2af(bind_addr_family);
     struct addrinfo hints = {
         .ai_family = af,
         .ai_socktype = SOCK_STREAM,

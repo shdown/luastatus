@@ -39,6 +39,10 @@
 #include "libls/ls_getenv_r.h"
 #include "libls/ls_tls_ebuf.h"
 #include "libls/ls_xallocf.h"
+#include "libls/ls_lua_compat.h"
+
+#include "librunshell/runshell.h"
+#include "libwidechar/libwidechar.h"
 
 #include "config.generated.h"
 
@@ -308,7 +312,7 @@ static int l_os_getenv(lua_State *L)
     if (r) {
         lua_pushstring(L, r);
     } else {
-        lua_pushnil(L);
+        ls_lua_pushfail(L);
     }
     return 1;
 }
@@ -316,14 +320,14 @@ static int l_os_getenv(lua_State *L)
 // Replacement for Lua's /os.setlocale()/: this thing is inherently thread-unsafe.
 static int l_os_setlocale(lua_State *L)
 {
-    lua_pushnil(L);
+    ls_lua_pushfail(L);
     return 1;
 }
 
 // 1. Replaces some of the functions in the standard library with our thread-safe counterparts.
 // 2. Registers the /luastatus/ module (just creates a global table actually) except for the
 //    /luastatus.plugin/ submodule (created later).
-static void inject_libs(lua_State *L)
+static void inject_libs_replacements(lua_State *L)
 {
     lua_getglobal(L, "os"); // L: ? os
 
@@ -336,9 +340,64 @@ static void inject_libs(lua_State *L)
     lua_pushcfunction(L, l_os_setlocale); // L: ? os l_os_setlocale
     lua_setfield(L, -2, "setlocale"); // L: ? os
 
-    lua_pop(L, 1); // L: ?
+    bool is_lua51 = ls_lua_is_lua51(L);
+    lua_pushcfunction(
+        L,
+        is_lua51 ? runshell_l_os_execute_lua51ver : runshell_l_os_execute);
+    // L: ? os os_execute_func
+    lua_setfield(L, -2, "execute"); // L: ? os
 
-    lua_newtable(L); // L: ? table
+    lua_pop(L, 1); // L: ?
+}
+
+// Implementation of /luastatus.require_plugin()/. Expects a single upvalue: an initially empty
+// table that will be used as a registry of loaded Lua plugins.
+static int l_require_plugin(lua_State *L)
+{
+    const char *arg = luaL_checkstring(L, 1);
+    if ((strchr(arg, '/'))) {
+        return luaL_error(L, "plugin name contains a slash");
+    }
+    lua_pushvalue(L, lua_upvalueindex(1)); // L: ? table
+    lua_getfield(L, -1, arg); // L: ? table value
+    if (!lua_isnil(L, -1)) {
+        return 1;
+    }
+    lua_pop(L, 1); // L: ? table
+
+    char *filename = ls_xallocf("%s/%s.lua", LUASTATUS_LUA_PLUGINS_DIR, arg);
+    int r = luaL_loadfile(L, filename);
+    free(filename);
+    if (r != 0) {
+        return lua_error(L);
+    }
+
+    // L: ? table chunk
+    lua_call(L, 0, 1); // L: ? table result
+    lua_pushvalue(L, -1); // L: ? table result result
+    lua_setfield(L, -3, arg); // L: ? table result
+    return 1;
+}
+
+
+static void inject_luastatus_module(lua_State *L)
+{
+    lua_createtable(L, 0, 3); // L: ? table
+
+    // ========== require_plugin ==========
+    lua_newtable(L); // L: ? table table
+    lua_pushcclosure(L, l_require_plugin, 1); // L: ? table l_require_plugin
+    lua_setfield(L, -2, "require_plugin"); // L: ? table
+
+    // ========== execute ==========
+    lua_pushcfunction(L, runshell_l_os_execute); // L: ? table cfunction
+    lua_setfield(L, -2, "execute"); // L: ? table
+
+    // ========== libwidechar ==========
+    lua_newtable(L); // L: ? table table
+    libwidechar_register_lua_funcs(L); // L: ? table table
+    lua_setfield(L, -2, "libwidechar"); // L: ? table
+
     lua_setglobal(L, "luastatus"); // L: ?
 }
 
@@ -410,7 +469,8 @@ static bool data_source_load(Myself *myself, DataSource *ds, const char *lua_pro
 
     luaL_openlibs(ds->L);
     // ds->L: -
-    inject_libs(ds->L); // ds->L: -
+    inject_libs_replacements(ds->L); // ds->L: -
+    inject_luastatus_module(ds->L); // ds->L: -
 
     DEBUGF(myself, "running data source");
     if (!check_lua_call(myself, ds->L, luaL_loadstring(ds->L, lua_program))) {

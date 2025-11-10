@@ -57,7 +57,7 @@ typedef struct {
 
     bool enable_tcp_keepalive;
     char *bind_addr;
-    int bind_addr_family;
+    BindAddrFamily bind_addr_family;
 } Priv;
 
 static void destroy(LuastatusPluginData *pd)

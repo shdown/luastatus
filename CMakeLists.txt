@@ -100,7 +100,9 @@ endfunction ()
 
 add_subdirectory (libls)
 add_subdirectory (libhackyfix)
+add_subdirectory (librunshell)
 add_subdirectory (libmoonvisit)
+add_subdirectory (libwidechar)
 add_subdirectory (luastatus)
 
 #------------------------------------------------------------------------------

@@ -1,5 +1,5 @@
-#ifndef probes_h_
-#define probes_h_
+#ifndef luastatus_plugin_unixsock_probes_h_
+#define luastatus_plugin_unixsock_probes_h_
 
 #cmakedefine01 HAVE_GNU_ACCEPT4
 

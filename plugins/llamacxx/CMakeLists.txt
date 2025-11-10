@@ -1,5 +1,12 @@
 file (GLOB sources "*.c")
-luastatus_add_plugin (plugin-llamacxx $<TARGET_OBJECTS:ls> $<TARGET_OBJECTS:moonvisit> ${sources})
+luastatus_add_plugin (
+    plugin-llamacxx
+    $<TARGET_OBJECTS:ls>
+    $<TARGET_OBJECTS:moonvisit>
+    $<TARGET_OBJECTS:runshell>
+    $<TARGET_OBJECTS:widechar>
+    ${sources}
+)
 
 configure_file ("config.in.h" "config.generated.h")
 

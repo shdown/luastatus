@@ -18,8 +18,10 @@
  */
 
 #include "runshell.h"
-#include <stddef.h>
+#include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
+#include <stdio.h>
 #include <signal.h>
 #include <spawn.h>
 #include <errno.h>
@@ -27,16 +29,44 @@
 #include <sys/types.h>
 #include <lua.h>
 #include <lauxlib.h>
-#include "libls/ls_panic.h"
-#include "libls/ls_lua_compat.h"
-#include "libls/ls_tls_ebuf.h"
+
+#if LUA_VERSION_NUM >= 504
+#   define my_pushfail(L_) luaL_pushfail(L_)
+#else
+#   define my_pushfail(L_) lua_pushnil(L_)
+#endif
 
 #define CANNOT_FAIL(Expr_) \
     do { \
         if ((Expr_) < 0) { \
-            LS_PANIC_WITH_ERRNUM("runshell: " #Expr_ " failed", errno); \
+            perror("librunshell: " #Expr_ " failed"); \
+            abort(); \
         } \
     } while (0)
+
+#define CANNOT_FAIL_PTH(Expr_) \
+    do { \
+        if ((errno = (Expr_)) != 0) { \
+            perror("librunshell: " #Expr_ " failed"); \
+            abort(); \
+        } \
+    } while (0)
+
+static __thread char errbuf[512];
+
+#if _POSIX_C_SOURCE < 200112L || defined(_GNU_SOURCE)
+#   error "Unsupported feature test macros."
+#endif
+
+static __thread char errbuf[512];
+
+static const char *my_strerror(int errnum)
+{
+    // We introduce an /int/ variable in order to get a compilation warning if /strerror_r()/ is
+    // still GNU-specific and returns a pointer to char.
+    int r = strerror_r(errnum, errbuf, sizeof(errbuf));
+    return r == 0 ? errbuf : "unknown error or truncated error message";
+}
 
 extern char **environ;
 
@@ -49,9 +79,9 @@ int runshell(const char *cmd)
     CANNOT_FAIL(sigprocmask(SIG_BLOCK, &ss_new, &ss_old));
 
     posix_spawnattr_t attr;
-    LS_PTH_CHECK(posix_spawnattr_init(&attr));
-    LS_PTH_CHECK(posix_spawnattr_setsigmask(&attr, &ss_old));
-    LS_PTH_CHECK(posix_spawnattr_setflags(&attr, POSIX_SPAWN_SETSIGMASK));
+    CANNOT_FAIL_PTH(posix_spawnattr_init(&attr));
+    CANNOT_FAIL_PTH(posix_spawnattr_setsigmask(&attr, &ss_old));
+    CANNOT_FAIL_PTH(posix_spawnattr_setflags(&attr, POSIX_SPAWN_SETSIGMASK));
 
     char *const argv[] = {
         (char *) "sh",
@@ -67,7 +97,7 @@ int runshell(const char *cmd)
         /*argv=*/ argv,
         /*envp=*/ environ);
 
-    LS_PTH_CHECK(posix_spawnattr_destroy(&attr));
+    CANNOT_FAIL_PTH(posix_spawnattr_destroy(&attr));
 
     int ret;
     int saved_errno;
@@ -91,7 +121,7 @@ int runshell(const char *cmd)
     return ret;
 }
 
-int l_os_execute_lua51ver(lua_State *L)
+int runshell_l_os_execute_lua51ver(lua_State *L)
 {
     const char *cmd = luaL_optstring(L, 1, NULL);
     // L: ?
@@ -103,7 +133,7 @@ int l_os_execute_lua51ver(lua_State *L)
     return 1;
 }
 
-int l_os_execute(lua_State *L)
+int runshell_l_os_execute(lua_State *L)
 {
     const char *cmd = luaL_optstring(L, 1, NULL);
     // L: ?
@@ -114,8 +144,8 @@ int l_os_execute(lua_State *L)
     int rc = runshell(cmd);
     if (rc < 0) {
         int saved_errno = errno;
-        ls_lua_pushfail(L); // L: ? fail
-        lua_pushstring(L, ls_tls_strerror(saved_errno)); // L: ? fail err_msg
+        my_pushfail(L); // L: ? fail
+        lua_pushstring(L, my_strerror(saved_errno)); // L: ? fail err_msg
         lua_pushinteger(L, saved_errno); // L: ? fail err_msg errno
         return 3;
     }
@@ -132,7 +162,7 @@ int l_os_execute(lua_State *L)
     if (normal_exit && code == 0) {
         lua_pushboolean(L, 1); // L: ? true
     } else {
-        ls_lua_pushfail(L); // L: ? fail
+        my_pushfail(L); // L: ? fail
     }
     lua_pushstring(L, normal_exit ? "exit" : "signal"); // L: ? is_ok what
     lua_pushinteger(L, code); // L: ? is_ok what code

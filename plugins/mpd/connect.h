@@ -22,11 +22,11 @@
 
 #include "include/plugin_data_v1.h"
 
-enum {
+typedef enum {
     FAMILY_NONE,
     FAMILY_IPV4,
     FAMILY_IPV6,
-};
+} BindAddrFamily;
 
 int unixdom_open(LuastatusPluginData *pd, const char *path);
 
@@ -35,6 +35,6 @@ int inetdom_open(
     const char *hostname,
     const char *service,
     const char *bind_addr,
-    int bind_addr_family);
+    BindAddrFamily bind_addr_family);
 
 #endif

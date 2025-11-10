@@ -17,8 +17,8 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef luastatus_libwidechar_h_
-#define luastatus_libwidechar_h_
+#ifndef libwidechar_h_
+#define libwidechar_h_
 
 #include <stddef.h>
 #include <lua.h>

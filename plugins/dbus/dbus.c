@@ -81,10 +81,10 @@ static inline void signal_list_destroy(SignalList *x)
     free(x->data);
 }
 
-enum {
-    BUS_SESSION = 0,
-    BUS_SYSTEM = 1,
-};
+typedef enum {
+    BUS_SESSION,
+    BUS_SYSTEM,
+} BusType;
 
 typedef struct {
     SignalList subs[2];
@@ -104,7 +104,7 @@ static void destroy(LuastatusPluginData *pd)
 static int parse_bus_str(MoonVisit *mv, void *ud, const char *s, size_t ns)
 {
     (void) ns;
-    int *out = ud;
+    BusType *out = ud;
     if (strcmp(s, "session") == 0) {
         *out = BUS_SESSION;
         return 1;
@@ -152,7 +152,7 @@ static int parse_signals_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
     if (moon_visit_checktype_at(mv, NULL, vpos, LUA_TTABLE) < 0)
         goto error;
 
-    int bus = BUS_SESSION;
+    BusType bus = BUS_SESSION;
     if (moon_visit_str_f(mv, vpos, "bus", parse_bus_str, &bus, true) < 0)
         goto error;
 

@@ -48,15 +48,15 @@
 // * https://tronche.com/gui/x/xlib/event-handling/protocol-errors/XSetIOErrorHandler.html
 // * https://tronche.com/gui/x/xlib/event-handling/protocol-errors/XSetErrorHandler.html
 
-enum {
-    HOW_WRONGLY = 1,
-    HOW_SOMEHOW = 2,
-};
+typedef enum {
+    HOW_WRONGLY,
+    HOW_SOMEHOW,
+} How;
 
 typedef struct {
     char *dpyname;
     uint64_t deviceid;
-    int how;
+    How how;
     char *somehow_bad;
     bool led;
 } Priv;
@@ -64,7 +64,7 @@ typedef struct {
 static int parse_how_str(MoonVisit *mv, void *ud, const char *s, size_t ns)
 {
     (void) ns;
-    int *out = ud;
+    How *out = ud;
     if (strcmp(s, "wrongly") == 0) {
         *out = HOW_WRONGLY;
         return 1;
@@ -237,9 +237,8 @@ static inline bool query(LuastatusPluginData *pd, Display *dpy, LS_StringArray *
         return query_wrongly(pd, dpy, groups);
     case HOW_SOMEHOW:
         return query_somehow(pd, dpy, groups);
-    default:
-        LS_UNREACHABLE();
     }
+    LS_UNREACHABLE();
 }
 
 static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
