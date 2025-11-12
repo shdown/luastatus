@@ -22,11 +22,9 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <time.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
-#include <unistd.h>
 #include <sys/socket.h>
 
 #include "include/plugin_v1.h"
@@ -36,7 +34,6 @@
 
 #include "libls/ls_string.h"
 #include "libls/ls_alloc_utils.h"
-#include "libls/ls_cstring_utils.h"
 #include "libls/ls_tls_ebuf.h"
 #include "libls/ls_time_utils.h"
 #include "libls/ls_fifo_device.h"
@@ -44,7 +41,7 @@
 #include "libls/ls_io_utils.h"
 
 #include "connect.h"
-#include "proto.h"
+#include "safe_haven.h"
 
 typedef struct {
     char *hostname;
@@ -216,25 +213,6 @@ error:
     return LUASTATUS_ERR;
 }
 
-static inline size_t rstrip_nl_strlen(const char *s)
-{
-    size_t n = strlen(s);
-    if (n && s[n - 1] == '\n')
-        --n;
-    return n;
-}
-
-// If /line/ is of form "key: value\n", appends /key/ and /value/ to /sa/.
-static void kv_strarr_line_append(LS_StringArray *sa, const char *line)
-{
-    const char *colon_pos = strchr(line, ':');
-    if (!colon_pos || colon_pos[1] != ' ')
-        return;
-    const char *value_pos = colon_pos + 2;
-    ls_strarr_append(sa, line, colon_pos - line);
-    ls_strarr_append(sa, value_pos, rstrip_nl_strlen(value_pos));
-}
-
 static void kv_strarr_table_push(LS_StringArray sa, lua_State *L)
 {
     size_t n = ls_strarr_size(sa);
@@ -265,8 +243,7 @@ static void report_status(
 
 typedef struct {
     FILE *f;
-    char *buf;
-    size_t nbuf;
+    SAFE_STRING line;
 } Context;
 
 static void log_io_error(LuastatusPluginData *pd, Context *ctx)
@@ -283,14 +260,10 @@ static void log_bad_response(
         Context *ctx,
         const char *where)
 {
-    enum { LIMIT = 1024 };
-
-    const char *s = ctx->buf;
-    size_t n = rstrip_nl_strlen(s);
-    if (n > LIMIT)
-        n = LIMIT;
-
-    LS_ERRF(pd, "server said (%s): %.*s", where, (int) n, s);
+    LS_ERRF(
+        pd, "server said (%s): %.*s",
+        where,
+        SAFE_STRING_FMT_ARG(ctx->line, 1024));
 }
 
 static int loop_until_ok(
@@ -299,19 +272,19 @@ static int loop_until_ok(
         LS_StringArray *kv)
 {
     for (;;) {
-        if (getline(&ctx->buf, &ctx->nbuf, ctx->f) < 0) {
+        if (safe_string_getline(ctx->f, &ctx->line) < 0) {
             log_io_error(pd, ctx);
             return -1;
         }
-        switch (response_type(ctx->buf)) {
+        switch (response_type(ctx->line)) {
         case RESP_OK:
             return 0;
         case RESP_ACK:
             log_bad_response(pd, ctx, "in loop");
             return -1;
-        default:
+        case RESP_OTHER:
             if (kv) {
-                kv_strarr_line_append(kv, ctx->buf);
+                append_line_to_kv_strarr(kv, ctx->line);
             }
         }
     }
@@ -324,7 +297,7 @@ static void interact(
 {
     Priv *p = pd->priv;
 
-    Context ctx = {.buf = NULL, .nbuf = 0};
+    Context ctx = {.line = safe_string_new()};
     LS_StringArray kv_song   = ls_strarr_new();
     LS_StringArray kv_status = ls_strarr_new();
     int fd_to_close = fd;
@@ -336,12 +309,12 @@ static void interact(
     fd_to_close = -1;
 
     // read and check the greeting
-    if (getline(&ctx.buf, &ctx.nbuf, ctx.f) < 0) {
+    if (safe_string_getline(ctx.f, &ctx.line) < 0) {
         log_io_error(pd, &ctx);
         goto done;
     }
 
-    if (!ls_strfollow(ctx.buf, "OK MPD ")) {
+    if (!is_good_greeting(ctx.line)) {
         log_bad_response(pd, &ctx, "to greeting");
         goto done;
     }
@@ -358,11 +331,11 @@ static void interact(
             goto done;
         }
 
-        if (getline(&ctx.buf, &ctx.nbuf, ctx.f) < 0) {
+        if (safe_string_getline(ctx.f, &ctx.line) < 0) {
             log_io_error(pd, &ctx);
             goto done;
         }
-        if (response_type(ctx.buf) != RESP_OK) {
+        if (response_type(ctx.line) != RESP_OK) {
             log_bad_response(pd, &ctx, "to password");
             goto done;
         }
@@ -447,7 +420,7 @@ done:
         fclose(ctx.f);
     }
     ls_close(fd_to_close);
-    free(ctx.buf);
+    safe_string_free(ctx.line);
     ls_strarr_destroy(kv_song);
     ls_strarr_destroy(kv_status);
 }
