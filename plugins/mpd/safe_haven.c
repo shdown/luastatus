@@ -6,6 +6,7 @@
 #include "libls/ls_alloc_utils.h"
 #include "libls/ls_strarr.h"
 #include "libls/ls_cstring_utils.h"
+#include "libls/ls_panic.h"
 
 SAFE_STRING safe_string_new(void)
 {
@@ -22,6 +23,10 @@ SAFE_STRING safe_string_new(void)
 
 int safe_string_bounded_len(SAFE_STRING s, int bound)
 {
+    if (bound < 0) {
+        LS_PANIC("bound is negative");
+    }
+
     size_t len = strlen(s.z_);
     if (len > (unsigned) bound) {
         len = bound;
