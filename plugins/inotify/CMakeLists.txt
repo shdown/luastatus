@@ -1,5 +1,11 @@
 file (GLOB sources "*.c")
-luastatus_add_plugin (plugin-inotify $<TARGET_OBJECTS:ls> $<TARGET_OBJECTS:moonvisit> ${sources})
+luastatus_add_plugin (
+    plugin-inotify
+    $<TARGET_OBJECTS:ls>
+    $<TARGET_OBJECTS:moonvisit>
+    $<TARGET_OBJECTS:procalive>
+    ${sources}
+)
 
 include (CheckSymbolExists)
 check_symbol_exists (inotify_init1 "sys/inotify.h" HAVE_INOTIFY_INIT1)

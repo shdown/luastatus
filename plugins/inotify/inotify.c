@@ -37,7 +37,7 @@
 #include "libls/ls_tls_ebuf.h"
 #include "libls/ls_evloop_lfuncs.h"
 #include "libls/ls_io_utils.h"
-#include "libls/ls_procalive_lfuncs.h"
+#include "libprocalive/procalive_lfuncs.h"
 
 #include "inotify_compat.h"
 
@@ -323,7 +323,7 @@ static void register_funcs(LuastatusPluginData *pd, lua_State *L)
     lua_pushcfunction(L, l_get_supported_events); // L: table func
     lua_setfield(L, -2, "get_supported_events"); // L: table
 
-    ls_procalive_lfuncs_register_all(L); // L: table
+    procalive_lfuncs_register_all(L); // L: table
 
     Priv *p = pd->priv;
     // L: table

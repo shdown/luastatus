@@ -326,7 +326,8 @@ static ssize_t my_recvmsg(int fd_netlink, struct msghdr *msg, LS_TimeDelta tmo, 
         // We have some input on /fd_extra/.
 
         char dummy;
-        (void) read(fd_extra, &dummy, 1);
+        ssize_t nread = read(fd_extra, &dummy, 1);
+        (void) nread;
 
         errno = 0;
         return -1;

@@ -7,7 +7,7 @@ endif ()
 
 set (CMAKE_C_STANDARD 99)
 
-set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra")
+set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3")
 
 #------------------------------------------------------------------------------
 
@@ -103,6 +103,7 @@ add_subdirectory (libhackyfix)
 add_subdirectory (librunshell)
 add_subdirectory (libmoonvisit)
 add_subdirectory (libwidechar)
+add_subdirectory (libprocalive)
 add_subdirectory (luastatus)
 
 #------------------------------------------------------------------------------

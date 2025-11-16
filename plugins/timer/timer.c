@@ -35,7 +35,7 @@
 #include "libls/ls_evloop_lfuncs.h"
 #include "libls/ls_io_utils.h"
 #include "libls/ls_time_utils.h"
-#include "libls/ls_procalive_lfuncs.h"
+#include "libprocalive/procalive_lfuncs.h"
 
 typedef struct {
     double period;
@@ -109,7 +109,7 @@ error:
 static void register_funcs(LuastatusPluginData *pd, lua_State *L)
 {
     // L: table
-    ls_procalive_lfuncs_register_all(L); // L: table
+    procalive_lfuncs_register_all(L); // L: table
 
     Priv *p = pd->priv;
     ls_pushed_timeout_push_luafunc(&p->pushed_tmo, L); // L: table func
@@ -162,7 +162,8 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 
             } else if (pfds[1].revents) {
                 char dummy;
-                (void) read(p->self_pipe[0], &dummy, 1);
+                ssize_t nread = read(p->self_pipe[0], &dummy, 1);
+                (void) nread;
 
                 make_call(pd, funcs, "self_pipe");
             }
