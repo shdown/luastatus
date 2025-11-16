@@ -87,6 +87,7 @@ int runshell(const char *cmd)
         (char *) "sh",
         (char *) "-c",
         (char *) cmd,
+        NULL,
     };
     pid_t pid;
     int rc = posix_spawn(
