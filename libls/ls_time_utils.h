@@ -20,16 +20,17 @@
 #ifndef ls_time_utils_h_
 #define ls_time_utils_h_
 
+#include <errno.h>
+#include <math.h>
 #include <time.h>
 #include <sys/time.h>
-#include <errno.h>
 #include <stdbool.h>
 #include <limits.h>
-#include <assert.h>
 #include <unistd.h>
 
 #include "ls_compdep.h"
 #include "ls_panic.h"
+#include "ls_assert.h"
 
 // Time deltas >= LS_TMO_MAX (in seconds) are treated as "forever".
 #define LS_TMO_MAX 2147483647.0
@@ -54,7 +55,7 @@ typedef struct {
 
 LS_INHEADER bool ls_double_is_good_time_delta(double x)
 {
-    return x >= 0;
+    return isgreaterequal(x, 0.0);
 }
 
 LS_INHEADER bool ls_TD_is_forever(LS_TimeDelta TD)
@@ -69,7 +70,7 @@ LS_INHEADER bool ls_TS_is_bad(LS_TimeStamp TS)
 
 LS_INHEADER bool ls_double_to_TD_checked(double delta, LS_TimeDelta *out)
 {
-    if (!(delta >= 0)) {
+    if (!ls_double_is_good_time_delta(delta)) {
         return false;
     }
     if (delta > LS_TMO_MAX) {
@@ -149,7 +150,7 @@ LS_INHEADER LS_TimeStamp ls_now(void)
 
 LS_INHEADER struct timespec ls_TD_to_timespec(LS_TimeDelta TD)
 {
-    assert(!ls_TD_is_forever(TD));
+    LS_ASSERT(!ls_TD_is_forever(TD));
 
     double delta = TD.delta;
     return (struct timespec) {
@@ -160,7 +161,7 @@ LS_INHEADER struct timespec ls_TD_to_timespec(LS_TimeDelta TD)
 
 LS_INHEADER struct timeval ls_TD_to_timeval(LS_TimeDelta TD)
 {
-    assert(!ls_TD_is_forever(TD));
+    LS_ASSERT(!ls_TD_is_forever(TD));
 
     double delta = TD.delta;
     return (struct timeval) {
@@ -180,8 +181,8 @@ LS_INHEADER int ls_TD_to_poll_ms_tmo(LS_TimeDelta TD)
 
 LS_INHEADER LS_TimeDelta ls_TS_minus_TS_nonneg(LS_TimeStamp a, LS_TimeStamp b)
 {
-    assert(!ls_TS_is_bad(a));
-    assert(!ls_TS_is_bad(b));
+    LS_ASSERT(!ls_TS_is_bad(a));
+    LS_ASSERT(!ls_TS_is_bad(b));
 
     double res = a.ts - b.ts;
     return (LS_TimeDelta) {res < 0 ? 0 : res};
@@ -189,8 +190,8 @@ LS_INHEADER LS_TimeDelta ls_TS_minus_TS_nonneg(LS_TimeStamp a, LS_TimeStamp b)
 
 LS_INHEADER LS_TimeStamp ls_TS_plus_TD(LS_TimeStamp a, LS_TimeDelta b)
 {
-    assert(!ls_TS_is_bad(a));
-    assert(!ls_TD_is_forever(b));
+    LS_ASSERT(!ls_TS_is_bad(a));
+    LS_ASSERT(!ls_TD_is_forever(b));
 
     return (LS_TimeStamp) {a.ts + b.delta};
 }

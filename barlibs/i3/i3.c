@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
+#include <math.h>
 #include <lua.h>
 #include <lauxlib.h>
 
@@ -34,10 +35,12 @@
 #include "libls/ls_cstring_utils.h"
 #include "libls/ls_tls_ebuf.h"
 #include "libls/ls_io_utils.h"
+#include "libsafe/safev.h"
 
 #include "priv.h"
-#include "generator_utils.h"
 #include "event_watcher.h"
+#include "escape_json_str.h"
+#include "pango_escape.h"
 
 static void destroy(LuastatusBarlibData *bd)
 {
@@ -172,6 +175,12 @@ static bool redraw(LuastatusBarlibData *bd)
     return true;
 }
 
+static void append_to_lua_buf(void *ud, SAFEV segment)
+{
+    luaL_Buffer *b = ud;
+    luaL_addlstring(b, SAFEV_ptr_UNSAFE(segment), SAFEV_len(segment));
+}
+
 static int l_pango_escape(lua_State *L)
 {
     size_t ns;
@@ -181,22 +190,8 @@ static int l_pango_escape(lua_State *L)
     luaL_Buffer b;
     luaL_buffinit(L, &b);
 
-    size_t prev = 0;
-    for (size_t i = 0; i < ns; ++i) {
-        const char *esc;
-        switch (s[i]) {
-        case '&':  esc = "&amp;";   break;
-        case '<':  esc = "&lt;";    break;
-        case '>':  esc = "&gt;";    break;
-        case '\'': esc = "&apos;";  break;
-        case '"':  esc = "&quot;";  break;
-        default: continue;
-        }
-        luaL_addlstring(&b, s + prev, i - prev);
-        luaL_addstring(&b, esc);
-        prev = i + 1;
-    }
-    luaL_addlstring(&b, s + prev, ns - prev);
+    SAFEV v = SAFEV_new_UNSAFE(s, ns);
+    pango_escape(v, append_to_lua_buf, &b);
 
     luaL_pushresult(&b);
     return 1;
@@ -210,18 +205,27 @@ static void register_funcs(LuastatusBarlibData *bd, lua_State *L)
     lua_setfield(L, -2, "pango_escape"); // L: table
 }
 
+static inline bool append_json_number(LS_String *s, double value)
+{
+    if (!isfinite(value)) {
+        return false;
+    }
+    ls_string_append_f(s, "%.20g", value);
+    return true;
+}
+
 // Appends a JSON segment generated from table at the top of /L/'s stack, to
 // /((Priv *) bd->priv)->tmpbuf/.
 static bool append_segment(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
 {
     Priv *p = bd->priv;
-    LS_String *s = &p->tmpbuf;
+    LS_String *dst = &p->tmpbuf;
 
     // add a "prologue"
-    if (s->size) {
-        ls_string_append_c(s, ',');
+    if (dst->size) {
+        ls_string_append_c(dst, ',');
     }
-    ls_string_append_f(s, "{\"name\":\"%zu\"", widget_idx);
+    ls_string_append_f(dst, "{\"name\":\"%zu\"", widget_idx);
 
     bool has_separator_key = false;
     // L: ? table
@@ -244,15 +248,15 @@ static bool append_segment(LuastatusBarlibData *bd, lua_State *L, size_t widget_
             has_separator_key = true;
         }
 
-        ls_string_append_c(s, ',');
-        append_json_escaped_s(s, key);
-        ls_string_append_c(s, ':');
+        ls_string_append_c(dst, ',');
+        append_json_escaped_str(dst, SAFEV_new_from_cstr_UNSAFE(key));
+        ls_string_append_c(dst, ':');
 
         switch (lua_type(L, -1)) {
         case LUA_TNUMBER:
             {
                 double val = lua_tonumber(L, -1);
-                if (!append_json_number(s, val)) {
+                if (!append_json_number(dst, val)) {
                     LS_ERRF(bd, "segment entry '%s': invalid number (NaN/Inf)", key);
                     return false;
                 }
@@ -260,18 +264,19 @@ static bool append_segment(LuastatusBarlibData *bd, lua_State *L, size_t widget_
             break;
         case LUA_TSTRING:
             {
-                const char *val = lua_tostring(L, -1);
-                append_json_escaped_s(s, val);
+                size_t ns;
+                const char *s = lua_tolstring(L, -1, &ns);
+                append_json_escaped_str(dst, SAFEV_new_UNSAFE(s, ns));
             }
             break;
         case LUA_TBOOLEAN:
             {
                 bool val = lua_toboolean(L, -1);
-                ls_string_append_s(s, val ? "true" : "false");
+                ls_string_append_s(dst, val ? "true" : "false");
             }
             break;
         case LUA_TNIL:
-            ls_string_append_s(s, "null");
+            ls_string_append_s(dst, "null");
             break;
         default:
             LS_ERRF(bd, "segment entry '%s': expected string, number, boolean or nil, found %s",
@@ -286,9 +291,9 @@ next_entry:
 
     // add an "epilogue"
     if (p->noseps && !has_separator_key) {
-        ls_string_append_s(s, ",\"separator\":false");
+        ls_string_append_s(dst, ",\"separator\":false");
     }
-    ls_string_append_c(s, '}');
+    ls_string_append_c(dst, '}');
 
     return true;
 }

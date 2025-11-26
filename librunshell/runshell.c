@@ -72,6 +72,11 @@ extern char **environ;
 
 int runshell(const char *cmd)
 {
+    if (!cmd) {
+        fputs("librunshell: passed cmd == NULL (this is not supported)\n", stderr);
+        abort();
+    }
+
     sigset_t ss_new;
     sigset_t ss_old;
     CANNOT_FAIL(sigemptyset(&ss_new));

@@ -27,16 +27,16 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
-#include <assert.h>
 
 #include "include/sayf_macros.h"
 
 #include "libls/ls_tls_ebuf.h"
 #include "libls/ls_parse_int.h"
 #include "libls/ls_strarr.h"
-#include "libls/ls_compdep.h"
+#include "libls/ls_panic.h"
 #include "libls/ls_alloc_utils.h"
 #include "libls/ls_freemem.h"
+#include "libls/ls_assert.h"
 
 #include "priv.h"
 
@@ -80,15 +80,14 @@ static inline TokenList token_list_new(void)
 static inline void token_list_push(TokenList *x, Token token)
 {
     if (x->size == x->capacity) {
-        x->data = ls_x2realloc(x->data, &x->capacity, sizeof(Token));
+        x->data = LS_M_X2REALLOC(x->data, &x->capacity);
     }
     x->data[x->size++] = token;
 }
 
 static inline void token_list_clear(TokenList *x)
 {
-    LS_FREEMEM(x->data, x->size, x->capacity);
-    x->size = 0;
+    LS_M_FREEMEM(x->data, x->size, x->capacity);
 }
 
 static inline void token_list_free(TokenList *x)
@@ -136,7 +135,7 @@ static void push_object(lua_State *L, Context *ctx, size_t *index)
         ++*index;
         while (ctx->tokens.data[*index].type != TYPE_MAP_END) {
             Token key = ctx->tokens.data[*index];
-            assert(key.type == TYPE_STRING_KEY);
+            LS_ASSERT(key.type == TYPE_STRING_KEY);
 
             // To limit the maximum number of slots pushed onto /L/'s stack to /N + O(1)/, where /N/
             // is the maximum /ctx->depth/ encountered, we have to push the value first.
@@ -171,7 +170,7 @@ static void push_object(lua_State *L, Context *ctx, size_t *index)
         lua_pushnil(L);
         break;
     default:
-        LS_UNREACHABLE();
+        LS_MUST_BE_UNREACHABLE();
     }
     // Now, /*index/ points to the last token of the object; increment it by one.
     ++*index;
@@ -185,7 +184,7 @@ static void flush(Context *ctx)
         lua_State *L = ctx->funcs.call_begin(ctx->bd->userdata, ctx->widget);
         size_t index = 0;
         push_object(L, ctx, &index);
-        assert(index == ctx->tokens.size);
+        LS_ASSERT(index == ctx->tokens.size);
         ctx->funcs.call_end(ctx->bd->userdata, ctx->widget);
     }
 

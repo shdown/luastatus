@@ -19,11 +19,12 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <lua.h>
 #include <lauxlib.h>
 #include <errno.h>
 #include <stdbool.h>
+#include <fcntl.h>
+#include <sys/types.h>
 
 #include "include/barlib_v1.h"
 #include "include/sayf_macros.h"
@@ -34,6 +35,9 @@
 #include "libls/ls_parse_int.h"
 #include "libls/ls_io_utils.h"
 #include "libls/ls_alloc_utils.h"
+#include "libsafe/safev.h"
+
+#include "sanitize.h"
 
 typedef struct {
     size_t nwidgets;
@@ -166,17 +170,6 @@ static bool redraw(LuastatusBarlibData *bd)
     return true;
 }
 
-static void append_sanitized_b(LS_String *buf, const char *s, size_t ns)
-{
-    for (const char *t; ns && (t = memchr(s, '\n', ns));) {
-        size_t nseg = t - s;
-        ls_string_append_b(buf, s, nseg);
-        s += nseg + 1;
-        ns -= nseg + 1;
-    }
-    ls_string_append_b(buf, s, ns);
-}
-
 static int set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
 {
     Priv *p = bd->priv;
@@ -192,7 +185,7 @@ static int set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
         {
             size_t ns;
             const char *s = lua_tolstring(L, -1, &ns);
-            append_sanitized_b(buf, s, ns);
+            append_sanitized(buf, SAFEV_new_UNSAFE(s, ns));
         }
         break;
     case LUA_TTABLE:
@@ -211,7 +204,7 @@ static int set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
                 if (buf->size && ns) {
                     ls_string_append_s(buf, sep);
                 }
-                append_sanitized_b(buf, s, ns);
+                append_sanitized(buf, SAFEV_new_UNSAFE(s, ns));
 
                 lua_pop(L, 1); // L: ? data key
             }

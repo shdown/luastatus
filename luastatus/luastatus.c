@@ -17,7 +17,6 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <assert.h>
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
@@ -42,6 +41,7 @@
 #include "libls/ls_panic.h"
 #include "libls/ls_xallocf.h"
 #include "libls/ls_lua_compat.h"
+#include "libls/ls_assert.h"
 
 #include "libwidechar/libwidechar.h"
 #include "librunshell/runshell.h"
@@ -223,7 +223,7 @@ static inline const char *safe_dlerror(void)
 static int loglevel_fromstr(const char *str)
 {
     for (size_t i = 0; i < LS_ARRAY_SIZE(loglevel_names); ++i) {
-        assert(loglevel_names[i]); // a hole in enumeration?
+        LS_ASSERT(loglevel_names[i] != NULL); // a hole in enumeration?
         if (strcmp(str, loglevel_names[i]) == 0) {
             return i;
         }
@@ -287,6 +287,8 @@ static void external_sayf(void *userdata, int level, const char *fmt, ...)
 // key and /NULL/ value, and returns a pointer to that value.
 static void **map_get(void *userdata, const char *key)
 {
+    LS_ASSERT(key != NULL);
+
     TRACEF("map_get(userdata=%p, key='%s')", userdata, key);
 
     for (MapEntry *e = map_top; e; e = e->next) {
@@ -556,7 +558,7 @@ static int l_require_plugin(lua_State *L)
 {
     const char *arg = luaL_checkstring(L, 1);
     if ((strchr(arg, '/'))) {
-        return luaL_error(L, "plugin name contains a slash");
+        return luaL_argerror(L, 1, "plugin name contains a slash");
     }
     lua_pushvalue(L, lua_upvalueindex(1)); // L: ? table
     lua_getfield(L, -1, arg); // L: ? table value
@@ -859,7 +861,7 @@ static bool widget_init(Widget *w, const char *filename)
         ERRF("plugin's init() failed");
         goto error;
     }
-    assert(lua_gettop(w->L) == 3); // w->L: l_error_handler widget opts
+    LS_ASSERT(lua_gettop(w->L) == 3); // w->L: l_error_handler widget opts
     lua_pop(w->L, 2); // w->L: l_error_handler
 
     DEBUGF("widget successfully initialized");
@@ -927,8 +929,8 @@ static void register_funcs(lua_State *L, Widget *w)
     lua_getglobal(L, "luastatus"); // L: ? luastatus
 
     if (!lua_istable(L, -1)) {
-        assert(w);
-        assert(!widget_is_stillborn(w));
+        LS_ASSERT(w);
+        LS_ASSERT(!widget_is_stillborn(w));
 
         WARNF("widget '%s': 'luastatus' is not a table anymore, will not register "
               "barlib/plugin functions",
@@ -941,7 +943,7 @@ static void register_funcs(lua_State *L, Widget *w)
         int old_top = lua_gettop(L);
         (void) old_top;
         barlib.iface.register_funcs(&barlib.data, L); // L: ? luastatus table
-        assert(lua_gettop(L) == old_top);
+        LS_ASSERT(lua_gettop(L) == old_top);
 
         lua_setfield(L, -2, "barlib"); // L: ? luastatus
     }
@@ -951,7 +953,7 @@ static void register_funcs(lua_State *L, Widget *w)
         int old_top = lua_gettop(L);
         (void) old_top;
         w->plugin.iface.register_funcs(&w->data, L); // L: ? luastatus table
-        assert(lua_gettop(L) == old_top);
+        LS_ASSERT(lua_gettop(L) == old_top);
 
         lua_setfield(L, -2, "plugin"); // L: ? luastatus
     }
@@ -1012,7 +1014,7 @@ static lua_State *plugin_call_begin(void *userdata)
     LOCK_L(w);
 
     lua_State *L = w->L;
-    assert(lua_gettop(L) == 1); // w->L: l_error_handler
+    LS_ASSERT(lua_gettop(L) == 1); // w->L: l_error_handler
     lua_rawgeti(L, LUA_REGISTRYINDEX, w->lref_cb); // w->L: l_error_handler cb
     return L;
 }
@@ -1023,7 +1025,7 @@ static void plugin_call_end(void *userdata)
 
     Widget *w = userdata;
     lua_State *L = w->L;
-    assert(lua_gettop(L) == 3); // L: l_error_handler cb data
+    LS_ASSERT(lua_gettop(L) == 3); // L: l_error_handler cb data
     bool r = do_lua_call(L, 1, 1);
     LOCK_B();
     size_t widget_idx = widget_index(w);
@@ -1079,14 +1081,15 @@ static lua_State *ew_call_begin(void *userdata, size_t widget_idx)
 {
     TRACEF("ew_call_begin(userdata=%p, widget_idx=%zu)", userdata, widget_idx);
 
-    assert(widget_idx < nwidgets);
+    LS_ASSERT(widget_idx < nwidgets);
+
     Widget *w = &widgets[widget_idx];
     LOCK_E(w);
 
     possibly_sepstate_call_begin(w);
 
     lua_State *L = widget_event_lua_state(w);
-    assert(lua_gettop(L) == 1); // L: l_error_handler
+    LS_ASSERT(lua_gettop(L) == 1); // L: l_error_handler
     lua_rawgeti(L, LUA_REGISTRYINDEX, w->lref_event); // L: l_error_handler event
     return L;
 }
@@ -1095,10 +1098,11 @@ static void ew_call_end(void *userdata, size_t widget_idx)
 {
     TRACEF("ew_call_end(userdata=%p, widget_idx=%zu)", userdata, widget_idx);
 
-    assert(widget_idx < nwidgets);
+    LS_ASSERT(widget_idx < nwidgets);
+
     Widget *w = &widgets[widget_idx];
     lua_State *L = widget_event_lua_state(w);
-    assert(lua_gettop(L) == 3); // L: l_error_handler event arg
+    LS_ASSERT(lua_gettop(L) == 3); // L: l_error_handler event arg
     if (w->lref_event == LUA_REFNIL) {
         lua_pop(L, 2); // L: l_error_handler
     } else {
@@ -1120,7 +1124,8 @@ static void ew_call_cancel(void *userdata, size_t widget_idx)
 {
     TRACEF("ew_call_cancel(userdata=%p, widget_idx=%zu)", userdata, widget_idx);
 
-    assert(widget_idx < nwidgets);
+    LS_ASSERT(widget_idx < nwidgets);
+
     Widget *w = &widgets[widget_idx];
     lua_State *L = widget_event_lua_state(w);
     lua_settop(L, 1); // L: l_error_handler
@@ -1154,7 +1159,7 @@ static void prepare_signals(void)
 {
     // We do not want to terminate on a write to a dead pipe.
     struct sigaction sa = {.sa_flags = SA_RESTART, .sa_handler = SIG_IGN};
-    sigemptyset(&sa.sa_mask);
+    LS_ASSERT(sigemptyset(&sa.sa_mask) >= 0);
     if (sigaction(SIGPIPE, &sa, NULL) < 0) {
         perror("luastatus: sigaction: SIGPIPE");
     }
@@ -1182,7 +1187,7 @@ static inline BarlibArgs barlib_args_new(void)
 static inline void barlib_args_push(BarlibArgs *a, const char *s)
 {
     if (a->size == a->capacity) {
-        a->data = ls_x2realloc(a->data, &a->capacity, sizeof(const char *));
+        a->data = LS_M_X2REALLOC(a->data, &a->capacity);
     }
     a->data[a->size++] = s;
 }
@@ -1228,7 +1233,7 @@ int main(int argc, char **argv)
             print_usage();
             goto cleanup;
         default:
-            LS_UNREACHABLE();
+            LS_MUST_BE_UNREACHABLE();
         }
     }
 

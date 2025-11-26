@@ -21,7 +21,6 @@
 #include <unistd.h>
 #include <errno.h>
 #include <math.h>
-#include <assert.h>
 #include <limits.h>
 #include <pthread.h>
 #include <stdbool.h>
@@ -116,7 +115,7 @@ static int visit_data_sources_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
 
 static bool req_timeout_double_to_int(double tmo, int *out)
 {
-    if (!(tmo >= 0)) {
+    if (!isgreaterequal(tmo, 0.0)) {
         return false;
     }
     if (tmo > INT_MAX) {
@@ -310,7 +309,7 @@ static int init(LuastatusPluginData *pd, lua_State *L)
             goto mverror;
         }
         p->lref_prompt_func = luaL_ref(L, LUA_REGISTRYINDEX); // L: table
-        assert(p->lref_prompt_func != LUA_REFNIL);
+        LS_ASSERT(p->lref_prompt_func != LUA_REFNIL);
     }
 
     if (!perform_initial_checks(pd, p)) {
@@ -511,7 +510,7 @@ static int get_prompt_via_flash_call(
     lua_State *L = funcs.call_begin(pd->userdata);
 
     // L: -
-    assert(p->lref_prompt_func != LUA_REFNIL);
+    LS_ASSERT(p->lref_prompt_func != LUA_REFNIL);
     lua_rawgeti(L, LUA_REGISTRYINDEX, p->lref_prompt_func);
     // L: func
     lua_createtable(L, 0, nslots); // L: func table
@@ -687,12 +686,11 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         LS_DEBUGF(pd, "making request");
 
         // make request
-        ls_string_append_c(&rd.prompt_str, '\0');
         char *pushed_EPJ = pushed_str_fetch(&p->pushed_extra_params_json);
         bool req_ok = requester_make_request(
             rd.R,
             pushed_EPJ ? pushed_EPJ : p->extra_params_json,
-            rd.prompt_str.data,
+            SAFEV_new_UNSAFE(rd.prompt_str.data, rd.prompt_str.size),
             &rd.answer_str,
             &rd.e);
         free(pushed_EPJ);

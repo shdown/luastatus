@@ -22,8 +22,6 @@
 #include <stdbool.h>
 #include <lua.h>
 #include <stdlib.h>
-#include <time.h>
-#include <unistd.h>
 #include <sys/statvfs.h>
 
 #include "include/plugin_v1.h"
@@ -35,7 +33,6 @@
 #include "libls/ls_strarr.h"
 #include "libls/ls_fifo_device.h"
 #include "libls/ls_tls_ebuf.h"
-#include "libls/ls_io_utils.h"
 #include "libls/ls_time_utils.h"
 
 typedef struct {

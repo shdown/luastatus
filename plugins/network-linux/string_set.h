@@ -26,6 +26,7 @@
 #include "libls/ls_alloc_utils.h"
 #include "libls/ls_compdep.h"
 #include "libls/ls_freemem.h"
+#include "libls/ls_assert.h"
 
 typedef struct {
     char **data;
@@ -44,14 +45,15 @@ LS_INHEADER void string_set_reset(StringSet *s)
     for (size_t i = 0; i < s->size; ++i) {
         free(s->data[i]);
     }
-    LS_FREEMEM(s->data, s->size, s->capacity);
-    s->size = 0;
+    LS_M_FREEMEM(s->data, s->size, s->capacity);
 }
 
 LS_INHEADER void string_set_add(StringSet *s, const char *val)
 {
+    LS_ASSERT(val != NULL);
+
     if (s->size == s->capacity) {
-        s->data = ls_x2realloc(s->data, &s->capacity, sizeof(char *));
+        s->data = LS_M_X2REALLOC(s->data, &s->capacity);
     }
     s->data[s->size++] = ls_xstrdup(val);
 }

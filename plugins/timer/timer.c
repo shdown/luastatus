@@ -23,6 +23,7 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <poll.h>
+#include <sys/types.h>
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"

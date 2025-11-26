@@ -23,9 +23,8 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 #include "libls/ls_alloc_utils.h"
-#include "libls/ls_compdep.h"
+#include "libls/ls_assert.h"
 
 typedef struct {
     char *name_;
@@ -34,6 +33,9 @@ typedef struct {
 
 LS_INHEADER DataSourceSpec DSS_new(const char *name, const char *lua_program)
 {
+    LS_ASSERT(name != NULL);
+    LS_ASSERT(lua_program != NULL);
+
     return (DataSourceSpec) {
         .name_ = ls_xstrdup(name),
         .lua_program_ = ls_xstrdup(lua_program),
@@ -65,25 +67,30 @@ LS_INHEADER size_t DSS_list_size(DSS_List *x)
 LS_INHEADER void DSS_list_push(DSS_List *x, DataSourceSpec dss)
 {
     if (x->size_ == x->capacity_) {
-        x->data_ = ls_x2realloc(x->data_, &x->capacity_, sizeof(DataSourceSpec));
+        x->data_ = LS_M_X2REALLOC(x->data_, &x->capacity_);
     }
     x->data_[x->size_++] = dss;
 }
 
 LS_INHEADER const char *DSS_list_get_name(DSS_List *x, size_t i)
 {
+    LS_ASSERT(i < x->size_);
     return x->data_[i].name_;
 }
 
 LS_INHEADER const char *DSS_list_get_lua_program(DSS_List *x, size_t i)
 {
+    LS_ASSERT(i < x->size_);
+
     const char *res = x->data_[i].lua_program_;
-    assert(res);
+    LS_ASSERT(res != NULL);
     return res;
 }
 
 LS_INHEADER void DSS_list_free_lua_program(DSS_List *x, size_t i)
 {
+    LS_ASSERT(i < x->size_);
+
     DataSourceSpec *dss = &x->data_[i];
     free(dss->lua_program_);
     dss->lua_program_ = NULL;

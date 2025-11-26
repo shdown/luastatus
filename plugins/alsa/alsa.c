@@ -229,7 +229,7 @@ static inline PollFdSet pollfd_set_new(struct pollfd prefix)
 {
     if (prefix.fd >= 0) {
         return (PollFdSet) {
-            .data = ls_xmemdup(&prefix, sizeof(struct pollfd)),
+            .data = LS_M_XMEMDUP(&prefix, 1),
             .size = 1,
             .nprefix = 1,
         };
@@ -245,7 +245,7 @@ static inline PollFdSet pollfd_set_new(struct pollfd prefix)
 static inline void pollfd_set_resize(PollFdSet *s, size_t n)
 {
     if (s->size != n) {
-        s->data = ls_xrealloc(s->data, n, sizeof(struct pollfd));
+        s->data = LS_M_XREALLOC(s->data, n);
         s->size = n;
     }
 }

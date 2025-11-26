@@ -22,7 +22,6 @@
 #include <errno.h>
 #include <stdint.h>
 #include <unistd.h>
-#include <assert.h>
 #include <sys/types.h>
 #include <stdbool.h>
 #include <pulse/pulseaudio.h>
@@ -38,6 +37,7 @@
 #include "libls/ls_evloop_lfuncs.h"
 #include "libls/ls_time_utils.h"
 #include "libls/ls_io_utils.h"
+#include "libls/ls_assert.h"
 
 #ifdef PA_CHECK_VERSION
 # define MY_CHECK_VERSION(A_, B_, C_) PA_CHECK_VERSION(A_, B_, C_)
@@ -369,7 +369,7 @@ static bool iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 
 error:
     if (pipe_ev) {
-        assert(api);
+        LS_ASSERT(api != NULL);
         api->io_free(pipe_ev);
     }
     if (ctx) {

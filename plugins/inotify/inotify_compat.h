@@ -38,24 +38,20 @@ LS_INHEADER int compat_inotify_init(bool nonblock, bool cloexec)
     return inotify_init1((nonblock ? IN_NONBLOCK : 0) |
                          (cloexec  ? IN_CLOEXEC  : 0));
 #else
-    int saved_errno;
     int fd = inotify_init();
     if (fd < 0) {
-        goto error;
+        int saved_errno = errno;
+        ls_close(fd);
+        errno = saved_errno;
+        return -1;
     }
-    if (nonblock && ls_make_nonblock(fd) < 0) {
-        goto error;
+    if (nonblock) {
+        ls_make_nonblock(fd);
     }
-    if (cloexec && ls_make_cloexec(fd) < 0) {
-        goto error;
+    if (cloexec) {
+        ls_make_cloexec(fd);
     }
     return fd;
-
-error:
-    saved_errno = errno;
-    ls_close(fd);
-    errno = saved_errno;
-    return -1;
 #endif
 }
 

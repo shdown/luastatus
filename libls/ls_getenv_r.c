@@ -21,11 +21,14 @@
 
 #include <stddef.h>
 #include <string.h>
+#include "ls_assert.h"
 
 extern char **environ;
 
 const char *ls_getenv_r(const char *name)
 {
+    LS_ASSERT(name != NULL);
+
     if (!environ) {
         return NULL;
     }

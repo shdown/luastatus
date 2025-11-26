@@ -22,13 +22,40 @@
 
 #include <stdlib.h> // for abort()
 
+// ------------------------------------------------------------
+// GCC version (set by clang to some very old version)
+// ------------------------------------------------------------
+
 #define LS_GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
+
+// ------------------------------------------------------------
+// Clang stuff
+// ------------------------------------------------------------
+
+#if defined(__has_attribute)
+#   define LS_CLANG_HAS_ATTRIBUTE(X_) __has_attribute(X_)
+#else
+#   define LS_CLANG_HAS_ATTRIBUTE(X_) 0
+#endif
 
 #if defined(__has_builtin)
 #   define LS_CLANG_HAS_BUILTIN(X_) __has_builtin(X_)
 #else
 #   define LS_CLANG_HAS_BUILTIN(X_) 0
 #endif
+
+// ------------------------------------------------------------
+// LS_TRAP()
+// ------------------------------------------------------------
+#if LS_GCC_VERSION >= 40204 || LS_CLANG_HAS_BUILTIN(__builtin_trap)
+#   define LS_TRAP() __builtin_trap()
+#else
+#   define LS_TRAP() abort()
+#endif
+
+// ------------------------------------------------------------
+// Attributes
+// ------------------------------------------------------------
 
 #if __GNUC__ >= 2
 #   define LS_ATTR_UNUSED           __attribute__((unused))
@@ -40,12 +67,15 @@
 #   define LS_ATTR_NORETURN         /*nothing*/
 #endif
 
-#if LS_GCC_VERSION >= 40500 || LS_CLANG_HAS_BUILTIN(__builtin_unreachable)
-#   define LS_UNREACHABLE() __builtin_unreachable()
+#if LS_GCC_VERSION >= 30406 || LS_CLANG_HAS_ATTRIBUTE(warn_unused_result)
+#   define LS_ATTR_WARN_UNUSED __attribute__((warn_unused_result))
 #else
-#   define LS_UNREACHABLE() abort()
+#   define LS_ATTR_WARN_UNUSED /*nothing*/
 #endif
 
+// ------------------------------------------------------------
+// LS_INHEADER
+// ------------------------------------------------------------
 #define LS_INHEADER static inline LS_ATTR_UNUSED
 
 #endif

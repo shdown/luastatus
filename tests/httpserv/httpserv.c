@@ -26,7 +26,6 @@
 #include <unistd.h>
 #include <time.h>
 #include <errno.h>
-#include <assert.h>
 #include <libwebsockets.h>
 #include "workmode.h"
 #include "fatal_error.h"
@@ -97,7 +96,7 @@ static void do_freeze(void)
         for (;;) {
             pause();
         }
-        // unreachable
+        MY_UNREACHABLE();
     }
     fprintf(stderr, "httpserv: freezing for %d ms.\n", ms);
     struct timespec ts = {
@@ -162,7 +161,7 @@ static int my_callback(
         if (rc == 0) {
             if (ctx->code == 200) {
                 ctx->wm = workmode_new();
-                assert(ctx->wm != NULL);
+                MY_ASSERT(ctx->wm != NULL);
             } else {
                 lws_callback_on_writable(wsi);
             }
@@ -206,8 +205,7 @@ static int my_callback(
             cur_resp_len = strlen(RESP_BODY_405);
             break;
         default:
-            assert(0);
-            abort();
+            MY_UNREACHABLE();
         }
 
         int write_rc = lws_write(wsi, (uint8_t *) cur_resp, cur_resp_len, LWS_WRITE_HTTP_FINAL);
@@ -314,8 +312,7 @@ static int parse_single_arg(const ArgSpec *AS, const char *v)
         return 1;
 
     default:
-        assert(0);
-        return -1;
+        MY_UNREACHABLE();
     }
 }
 

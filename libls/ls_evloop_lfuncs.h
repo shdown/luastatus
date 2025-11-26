@@ -21,6 +21,7 @@
 #define ls_evloop_lfuncs_h_
 
 #include <stddef.h>
+#include <math.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -79,8 +80,8 @@ LS_INHEADER LS_TimeDelta ls_pushed_timeout_fetch(LS_PushedTimeout *p, LS_TimeDel
 LS_INHEADER int ls_pushed_timeout_lfunc(lua_State *L)
 {
     double arg = luaL_checknumber(L, 1);
-    if (!(arg >= 0)) {
-        return luaL_error(L, "invalid timeout");
+    if (!isgreaterequal(arg, 0.0)) {
+        return luaL_argerror(L, 1, "invalid timeout");
     }
 
     LS_PushedTimeout *p = lua_touserdata(L, lua_upvalueindex(1));

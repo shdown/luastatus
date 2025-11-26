@@ -19,14 +19,16 @@
 
 #include "marshal.h"
 
-#include "libls/ls_compdep.h"
-
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include <string.h>
+#include <stdbool.h>
 #include <glib/gtypes.h>
 #include <lua.h>
+#include "libls/ls_compdep.h"
+#include "libls/ls_assert.h"
 
 static int l_special_object(lua_State *L)
 {
@@ -40,14 +42,27 @@ static int l_special_object(lua_State *L)
     }
 }
 
+static void push_special_object(lua_State *L, const char *s, size_t ns, bool is_error)
+{
+    if (ns == (size_t) -1) {
+        ns = strlen(s);
+    }
+
+    int num_upvalues = 1;
+    if (is_error) {
+        lua_pushnil(L);
+        num_upvalues = 2;
+    }
+    lua_pushlstring(L, s, ns);
+    lua_pushcclosure(L, l_special_object, num_upvalues);
+}
+
 // forward declaration
 static void push_gvariant(lua_State *L, GVariant *var, unsigned recurlim);
 
 static void on_recur_lim(lua_State *L)
 {
-    lua_pushnil(L); // L: nil
-    lua_pushstring(L, "depth limit exceeded"); // L: nil str
-    lua_pushcclosure(L, l_special_object, 2); // L: closure
+    push_special_object(L, "depth limit exceeded", -1, true);
 }
 
 static inline void push_gvariant_strlike(lua_State *L, GVariant *var)
@@ -89,6 +104,8 @@ void push_small_fstr(lua_State *L, const char *fmt, ...)
 
 static void push_gvariant(lua_State *L, GVariant *var, unsigned recurlim)
 {
+    LS_ASSERT(var != NULL);
+
     if (!recurlim--) {
         on_recur_lim(L);
         return;
@@ -152,8 +169,7 @@ static void push_gvariant(lua_State *L, GVariant *var, unsigned recurlim)
                 push_gvariant(L, maybe, recurlim);
                 g_variant_unref(maybe);
             } else {
-                lua_pushstring(L, "nothing"); // L: str
-                lua_pushcclosure(L, l_special_object, 1); // L: closure
+                push_special_object(L, "nothing", -1, false);
             }
         }
         break;
@@ -170,8 +186,7 @@ static void push_gvariant(lua_State *L, GVariant *var, unsigned recurlim)
             const GVariantType *type = g_variant_get_type(var);
             const gchar *s = g_variant_type_peek_string(type);
             gsize ns = g_variant_type_get_string_length(type);
-            lua_pushlstring(L, s, ns); // L: str
-            lua_pushcclosure(L, l_special_object, 1); // L: closure
+            push_special_object(L, s, ns, false);
         }
         break;
     }
@@ -187,8 +202,6 @@ void marshal(lua_State *L, GVariant *var)
     if (lua_checkstack(L, 210)) {
         push_gvariant(L, var, 200);
     } else {
-        lua_pushnil(L); // L: nil
-        lua_pushstring(L, "out of memory"); // L: nil str
-        lua_pushcclosure(L, l_special_object, 2); // L: closure
+        push_special_object(L, "out of memory", -1, true);
     }
 }

@@ -35,6 +35,7 @@
 #include "libls/ls_parse_int.h"
 #include "libls/ls_io_utils.h"
 #include "libls/ls_alloc_utils.h"
+#include "libsafe/safev.h"
 
 #include "markup_utils.h"
 
@@ -147,13 +148,25 @@ error:
     return LUASTATUS_ERR;
 }
 
+static void append_to_lua_buf_callback(void *ud, SAFEV v)
+{
+    luaL_Buffer *b = ud;
+    luaL_addlstring(b, SAFEV_ptr_UNSAFE(v), SAFEV_len(v));
+}
+
 static int l_escape(lua_State *L)
 {
     size_t ns;
     // WARNING: /luaL_check*()/ functions do a long jump on error!
     const char *s = luaL_checklstring(L, 1, &ns);
 
-    push_escaped(L, s, ns);
+    luaL_Buffer b;
+    luaL_buffinit(L, &b);
+
+    escape(append_to_lua_buf_callback, &b, SAFEV_new_UNSAFE(s, ns));
+
+    luaL_pushresult(&b); // L: result
+
     return 1;
 }
 
@@ -208,7 +221,7 @@ static int set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
         {
             size_t ns;
             const char *s = lua_tolstring(L, -1, &ns);
-            append_sanitized_b(buf, widget_idx, s, ns);
+            append_sanitized(buf, widget_idx, SAFEV_new_UNSAFE(s, ns));
         }
         break;
 
@@ -228,7 +241,7 @@ static int set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
                 if (buf->size && ns) {
                     ls_string_append_s(buf, sep);
                 }
-                append_sanitized_b(buf, widget_idx, s, ns);
+                append_sanitized(buf, widget_idx, SAFEV_new_UNSAFE(s, ns));
 
                 lua_pop(L, 1); // L: ? data key
             }

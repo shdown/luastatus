@@ -19,9 +19,7 @@
 
 #include "connect.h"
 
-#include <assert.h>
 #include <stddef.h>
-#include <stdio.h>
 #include <unistd.h>
 #include <string.h>
 #include <sys/un.h>
@@ -37,10 +35,13 @@
 #include "libls/ls_tls_ebuf.h"
 #include "libls/ls_osdep.h"
 #include "libls/ls_io_utils.h"
-#include "libls/ls_compdep.h"
+#include "libls/ls_panic.h"
+#include "libls/ls_assert.h"
 
 int unixdom_open(LuastatusPluginData *pd, const char *path)
 {
+    LS_ASSERT(path != NULL);
+
     int fd = -1;
 
     struct sockaddr_un saun = {.sun_family = AF_UNIX};
@@ -74,6 +75,7 @@ static int do_bind_to_addr(int fd, const char *addr_str, BindAddrFamily family)
 
     case FAMILY_IPV4:
         {
+            LS_ASSERT(addr_str != NULL);
             struct sockaddr_in sa = {
                 .sin_family = AF_INET,
             };
@@ -85,6 +87,7 @@ static int do_bind_to_addr(int fd, const char *addr_str, BindAddrFamily family)
 
     case FAMILY_IPV6:
         {
+            LS_ASSERT(addr_str != NULL);
             struct sockaddr_in6 sa = {
                 .sin6_family = AF_INET6,
             };
@@ -94,6 +97,7 @@ static int do_bind_to_addr(int fd, const char *addr_str, BindAddrFamily family)
             return bind(fd, (struct sockaddr *) &sa, sizeof(sa));
         }
     }
+    LS_MUST_BE_UNREACHABLE();
 
 bad_str:
     errno = EINVAL;
@@ -110,7 +114,7 @@ static int bind_addr_family2af(BindAddrFamily family)
     case FAMILY_IPV6:
         return AF_INET6;
     }
-    LS_UNREACHABLE();
+    LS_MUST_BE_UNREACHABLE();
 }
 
 int inetdom_open(
@@ -120,6 +124,8 @@ int inetdom_open(
         const char *bind_addr,
         BindAddrFamily bind_addr_family)
 {
+    LS_ASSERT(service != NULL);
+
     struct addrinfo *ai = NULL;
     int fd = -1;
 

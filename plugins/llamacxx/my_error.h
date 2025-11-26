@@ -24,6 +24,7 @@
 #include <stdarg.h>
 #include "libls/ls_compdep.h"
 #include "libls/ls_xallocf.h"
+#include "libls/ls_assert.h"
 
 typedef struct {
     char meta_domain;
@@ -60,6 +61,7 @@ LS_INHEADER void my_error_set_meta(MyError *e, char domain, int code)
 
 LS_INHEADER const char *my_error_cstr(MyError *e)
 {
+    LS_ASSERT(e->descr != NULL);
     return e->descr;
 }
 

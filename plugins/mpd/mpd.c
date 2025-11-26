@@ -18,7 +18,6 @@
  */
 
 #include <lua.h>
-#include <assert.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -39,9 +38,12 @@
 #include "libls/ls_fifo_device.h"
 #include "libls/ls_strarr.h"
 #include "libls/ls_io_utils.h"
+#include "libls/ls_assert.h"
+#include "libsafe/safev.h"
 
 #include "connect.h"
 #include "safe_haven.h"
+#include "line_reader.h"
 
 typedef struct {
     char *hostname;
@@ -216,7 +218,7 @@ error:
 static void kv_strarr_table_push(LS_StringArray sa, lua_State *L)
 {
     size_t n = ls_strarr_size(sa);
-    assert(n % 2 == 0);
+    LS_ASSERT(n % 2 == 0);
     lua_newtable(L); // L: table
     for (size_t i = 0; i < n; i += 2) {
         size_t nkey;
@@ -243,8 +245,14 @@ static void report_status(
 
 typedef struct {
     FILE *f;
-    SAFE_STRING line;
+    LineReader LR;
+    SAFEV line_v;
 } Context;
+
+static inline int read_line(Context *ctx)
+{
+    return line_reader_read_line(&ctx->LR, ctx->f, &ctx->line_v);
+}
 
 static void log_io_error(LuastatusPluginData *pd, Context *ctx)
 {
@@ -263,7 +271,7 @@ static void log_bad_response(
     LS_ERRF(
         pd, "server said (%s): %.*s",
         where,
-        SAFE_STRING_FMT_ARG(ctx->line, 1024));
+        SAFEV_FMT_ARG(ctx->line_v, 1024));
 }
 
 static int loop_until_ok(
@@ -272,11 +280,11 @@ static int loop_until_ok(
         LS_StringArray *kv)
 {
     for (;;) {
-        if (safe_string_getline(ctx->f, &ctx->line) < 0) {
+        if (read_line(ctx) < 0) {
             log_io_error(pd, ctx);
             return -1;
         }
-        switch (response_type(ctx->line)) {
+        switch (response_type(ctx->line_v)) {
         case RESP_OK:
             return 0;
         case RESP_ACK:
@@ -284,7 +292,7 @@ static int loop_until_ok(
             return -1;
         case RESP_OTHER:
             if (kv) {
-                append_line_to_kv_strarr(kv, ctx->line);
+                append_line_to_kv_strarr(kv, ctx->line_v);
             }
         }
     }
@@ -297,7 +305,11 @@ static void interact(
 {
     Priv *p = pd->priv;
 
-    Context ctx = {.line = safe_string_new()};
+    Context ctx = {
+        .f = NULL,
+        .LR = line_reader_new(1024),
+        .line_v = SAFEV_new_empty(),
+    };
     LS_StringArray kv_song   = ls_strarr_new();
     LS_StringArray kv_status = ls_strarr_new();
     int fd_to_close = fd;
@@ -309,12 +321,12 @@ static void interact(
     fd_to_close = -1;
 
     // read and check the greeting
-    if (safe_string_getline(ctx.f, &ctx.line) < 0) {
+    if (read_line(&ctx) < 0) {
         log_io_error(pd, &ctx);
         goto done;
     }
 
-    if (!is_good_greeting(ctx.line)) {
+    if (!is_good_greeting(ctx.line_v)) {
         log_bad_response(pd, &ctx, "to greeting");
         goto done;
     }
@@ -322,7 +334,7 @@ static void interact(
     // send the password, if specified
     if (p->password) {
         fputs("password ", ctx.f);
-        write_quoted(ctx.f, p->password);
+        write_quoted(ctx.f, SAFEV_new_from_cstr_UNSAFE(p->password));
         putc('\n', ctx.f);
 
         fflush(ctx.f);
@@ -331,11 +343,11 @@ static void interact(
             goto done;
         }
 
-        if (safe_string_getline(ctx.f, &ctx.line) < 0) {
+        if (read_line(&ctx) < 0) {
             log_io_error(pd, &ctx);
             goto done;
         }
-        if (response_type(ctx.line) != RESP_OK) {
+        if (response_type(ctx.line_v) != RESP_OK) {
             log_bad_response(pd, &ctx, "to password");
             goto done;
         }
@@ -420,7 +432,7 @@ done:
         fclose(ctx.f);
     }
     ls_close(fd_to_close);
-    safe_string_free(ctx.line);
+    line_reader_destroy(&ctx.LR);
     ls_strarr_destroy(kv_song);
     ls_strarr_destroy(kv_status);
 }

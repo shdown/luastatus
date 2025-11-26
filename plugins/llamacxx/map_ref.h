@@ -21,11 +21,11 @@
 #define map_ref_h_
 
 #include <stdlib.h>
-#include <assert.h>
 #include <pthread.h>
 #include "libls/ls_panic.h"
 #include "libls/ls_alloc_utils.h"
 #include "libls/ls_compdep.h"
+#include "libls/ls_assert.h"
 #include "external_context.h"
 
 typedef struct {
@@ -44,7 +44,7 @@ LS_INHEADER MapRef map_ref_new_empty(void)
 
 LS_INHEADER MapValue_PI *map_ref_load(MapRef ref)
 {
-    assert(ref.pptr != NULL);
+    LS_ASSERT(ref.pptr != NULL);
     return *ref.pptr;
 }
 
@@ -58,7 +58,7 @@ LS_INHEADER MapValue_PI *map_ref_load_or_NULL(MapRef ref)
 
 LS_INHEADER void map_ref_store(MapRef ref, MapValue_PI *val)
 {
-    assert(ref.pptr != NULL);
+    LS_ASSERT(ref.pptr != NULL);
     *ref.pptr = val;
 }
 

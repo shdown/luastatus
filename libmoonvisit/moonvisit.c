@@ -20,7 +20,7 @@
 #include "moonvisit.h"
 
 #include <lua.h>
-#include <stddef.h>
+#include <math.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -286,6 +286,10 @@ int moon_visit_sint(
     double d;
     int r = moon_visit_num(mv, table_pos, key, &d, skip_nil);
     if (r > 0) {
+        if (isnan(d)) {
+            moon_visit_err(mv, "%s: is NaN", key);
+            return -1;
+        }
         if (!(d >= -9223372036854775808.0 && d < 9223372036854775808.0)) {
             moon_visit_err(mv, "%s: value out of range INT64_MIN...INT64_MAX", key);
             return -1;
@@ -305,6 +309,10 @@ int moon_visit_uint(
     double d;
     int r = moon_visit_num(mv, table_pos, key, &d, skip_nil);
     if (r > 0) {
+        if (isnan(d)) {
+            moon_visit_err(mv, "%s: is NaN", key);
+            return -1;
+        }
         if (!(d >= 0.0 && d < 18446744073709551616.0)) {
             moon_visit_err(mv, "%s: value out of range 0...UINT64_MAX", key);
             return -1;

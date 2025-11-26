@@ -1,6 +1,6 @@
 main_fifo_file=./tmp-main-fifo
 
-hang_timeout=${PT_HANG_TIMEOUT:-7}
+hang_timeout=${PT_HANG_TIMEOUT:-3}
 
 mock_barlib="$PT_BUILD_DIR"/tests/barlib-mock.so
 mock_plugin="$PT_BUILD_DIR"/tests/plugin-mock.so

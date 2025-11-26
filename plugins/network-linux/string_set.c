@@ -21,6 +21,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include "libls/ls_assert.h"
 
 static int elem_cmp(const void *a, const void *b)
 {
@@ -30,13 +31,17 @@ static int elem_cmp(const void *a, const void *b)
 
 void string_set_freeze(StringSet *s)
 {
-    if (s->size)
+    if (s->size) {
         qsort(s->data, s->size, sizeof(char *), elem_cmp);
+    }
 }
 
 bool string_set_contains(StringSet s, const char *val)
 {
-    if (!s.size)
+    LS_ASSERT(val != NULL);
+
+    if (!s.size) {
         return false;
+    }
     return bsearch(&val, s.data, s.size, sizeof(char *), elem_cmp) != NULL;
 }

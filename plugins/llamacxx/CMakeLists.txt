@@ -5,6 +5,7 @@ luastatus_add_plugin (
     $<TARGET_OBJECTS:moonvisit>
     $<TARGET_OBJECTS:runshell>
     $<TARGET_OBJECTS:widechar>
+    $<TARGET_OBJECTS:safe>
     ${sources}
 )
 

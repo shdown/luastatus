@@ -26,6 +26,7 @@
 #include <limits.h>
 #include <stdint.h>
 #include <errno.h>
+#include <sys/types.h>
 #include <sys/inotify.h>
 
 #include "include/plugin_v1.h"
@@ -37,6 +38,7 @@
 #include "libls/ls_tls_ebuf.h"
 #include "libls/ls_evloop_lfuncs.h"
 #include "libls/ls_io_utils.h"
+#include "libls/ls_time_utils.h"
 #include "libprocalive/procalive_lfuncs.h"
 
 #include "inotify_compat.h"
@@ -60,7 +62,7 @@ static inline WatchList watch_list_new(void)
 static inline void watch_list_add(WatchList *x, const char *path, int wd)
 {
     if (x->size == x->capacity) {
-        x->data = ls_x2realloc(x->data, &x->capacity, sizeof(Watch));
+        x->data = LS_M_X2REALLOC(x->data, &x->capacity);
     }
     x->data[x->size++] = (Watch) {ls_xstrdup(path), wd};
 }
@@ -91,7 +93,8 @@ static void destroy(LuastatusPluginData *pd)
 
 typedef struct {
     uint32_t mask;
-    bool in, out;
+    bool in;
+    bool out;
     const char *name;
 } EventType;
 

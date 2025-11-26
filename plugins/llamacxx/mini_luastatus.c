@@ -19,7 +19,6 @@
 
 #include "mini_luastatus.h"
 
-#include <assert.h>
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
@@ -40,6 +39,7 @@
 #include "libls/ls_tls_ebuf.h"
 #include "libls/ls_xallocf.h"
 #include "libls/ls_lua_compat.h"
+#include "libls/ls_assert.h"
 
 #include "librunshell/runshell.h"
 #include "libwidechar/libwidechar.h"
@@ -219,6 +219,8 @@ static void myself_do_report_result(Myself *myself, lua_State *L)
 
 static void **map_get(void *userdata, const char *key)
 {
+    LS_ASSERT(key != NULL);
+
     MyUserData *my_ud = userdata;
     Myself *myself = my_ud->myself;
 
@@ -356,7 +358,7 @@ static int l_require_plugin(lua_State *L)
 {
     const char *arg = luaL_checkstring(L, 1);
     if ((strchr(arg, '/'))) {
-        return luaL_error(L, "plugin name contains a slash");
+        return luaL_argerror(L, 1, "plugin name contains a slash");
     }
     lua_pushvalue(L, lua_upvalueindex(1)); // L: ? table
     lua_getfield(L, -1, arg); // L: ? table value
@@ -378,7 +380,6 @@ static int l_require_plugin(lua_State *L)
     lua_setfield(L, -3, arg); // L: ? table result
     return 1;
 }
-
 
 static void inject_luastatus_module(lua_State *L)
 {
@@ -506,7 +507,7 @@ static bool data_source_load(Myself *myself, DataSource *ds, const char *lua_pro
         goto error;
     }
     ds->plugin_iface_inited = true;
-    assert(lua_gettop(ds->L) == 2); // ds->L: data_source opts
+    LS_ASSERT(lua_gettop(ds->L) == 2); // ds->L: data_source opts
     lua_pop(ds->L, 2); // ds->L: -
 
     DEBUGF(myself, "data_source successfully created");
@@ -535,7 +536,7 @@ static void register_funcs(Myself *myself, lua_State *L, DataSource *ds)
         int old_top = lua_gettop(L);
         (void) old_top;
         ds->plugin.iface.register_funcs(&ds->data, L); // L: ? luastatus table
-        assert(lua_gettop(L) == old_top);
+        LS_ASSERT(lua_gettop(L) == old_top);
 
         lua_setfield(L, -2, "plugin"); // L: ? luastatus
     }
@@ -551,7 +552,7 @@ static lua_State *plugin_call_begin(void *userdata)
     DataSource *ds = &myself->data_source;
 
     lua_State *L = ds->L;
-    assert(lua_gettop(L) == 0); // ds->L: 0
+    LS_ASSERT(lua_gettop(L) == 0); // ds->L: 0
     lua_rawgeti(L, LUA_REGISTRYINDEX, ds->lref_cb); // ds->L: cb
     return L;
 }
@@ -563,7 +564,7 @@ static void plugin_call_end(void *userdata)
     DataSource *ds = &myself->data_source;
 
     lua_State *L = ds->L;
-    assert(lua_gettop(L) == 2); // L: cb data
+    LS_ASSERT(lua_gettop(L) == 2); // L: cb data
     bool r = do_lua_call(myself, L, 1, 1);
 
     if (r) {
@@ -648,6 +649,9 @@ bool mini_luastatus_run(
     ExternalContext ectx,
     pthread_t *out_pid)
 {
+    LS_ASSERT(lua_program != NULL);
+    LS_ASSERT(name != NULL);
+
     Myself *myself = myself_new(name, q, q_idx, ectx);
 
     if (!myself_realize(myself, lua_program)) {

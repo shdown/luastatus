@@ -21,44 +21,54 @@
 
 #include "libls/ls_string.h"
 #include "libls/ls_parse_int.h"
+#include "libsafe/safev.h"
 
 #include <stddef.h>
-#include <string.h>
 #include <stdbool.h>
-#include <lua.h>
-#include <lauxlib.h>
 
-void push_escaped(lua_State *L, const char *s, size_t ns)
+void escape(
+    void (*append)(void *ud, SAFEV segment),
+    void *ud,
+    SAFEV v)
 {
     // just replace all "%"s with "%%"
-
-    luaL_Buffer b;
-    luaL_buffinit(L, &b);
-    // we have to check /ns/ before calling /memchr/, see DOCS/c_notes/empty-ranges-and-c-stdlib.md
-    for (const char *t; ns && (t = memchr(s, '%', ns));) {
-        size_t nseg = t - s + 1;
-        luaL_addlstring(&b, s, nseg);
-        luaL_addchar(&b, '%');
-        ns -= nseg;
-        s += nseg;
+    for (;;) {
+        size_t i = SAFEV_index_of(v, '%');
+        if (i == (size_t) -1) {
+            break;
+        }
+        append(ud, SAFEV_subspan(v, 0, i));
+        append(ud, SAFEV_new_from_literal("%%"));
+        v = SAFEV_suffix(v, i + 1);
     }
-    luaL_addlstring(&b, s, ns);
-
-    luaL_pushresult(&b);
+    append(ud, v);
 }
 
-void append_sanitized_b(LS_String *buf, size_t widget_idx, const char *s, size_t ns)
+static inline void append_sv(LS_String *dst, SAFEV v)
 {
+    ls_string_append_b(dst, SAFEV_ptr_UNSAFE(v), SAFEV_len(v));
+}
+
+void append_sanitized(LS_String *buf, size_t widget_idx, SAFEV v)
+{
+    size_t n = SAFEV_len(v);
+
     size_t prev = 0;
     bool a_tag = false;
-    for (size_t i = 0; i < ns; ++i) {
+    for (size_t i = 0; i < n; ++i) {
 
-#define PEEK(Offset_) ((i + (Offset_)) < ns ? s[i + (Offset_)] : '\0')
+#define DO_PREV(WhetherToIncludeThis_) \
+    do { \
+        size_t j__ = i + ((WhetherToIncludeThis_) ? 1 : 0); \
+        append_sv(buf, SAFEV_subspan(v, prev, j__)); \
+        prev = i + 1; \
+    } while (0)
 
-        switch (s[i]) {
+#define PEEK(Offset_) SAFEV_at_or(v, i + (Offset_), '\0')
+
+        switch (SAFEV_at(v, i)) {
         case '\n':
-            ls_string_append_b(buf, s + prev, i - prev);
-            prev = i + 1;
+            DO_PREV(false);
             break;
 
         case '%':
@@ -71,9 +81,8 @@ void append_sanitized_b(LS_String *buf, size_t widget_idx, const char *s, size_t
 
         case ':':
             if (a_tag) {
-                ls_string_append_b(buf, s + prev, i + 1 - prev);
+                DO_PREV(true);
                 ls_string_append_f(buf, "%zu_", widget_idx);
-                prev = i + 1;
                 a_tag = false;
             }
             break;
@@ -83,10 +92,12 @@ void append_sanitized_b(LS_String *buf, size_t widget_idx, const char *s, size_t
             break;
         }
 
+#undef DO_PREV
 #undef PEEK
 
     }
-    ls_string_append_b(buf, s + prev, ns - prev);
+
+    append_sv(buf, SAFEV_suffix(v, prev));
 }
 
 const char *parse_command(const char *line, size_t nline, size_t *ncommand, size_t *widget_idx)

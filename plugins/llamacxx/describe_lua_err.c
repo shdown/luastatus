@@ -18,9 +18,9 @@
  */
 
 #include "describe_lua_err.h"
-#include <assert.h>
 #include <lua.h>
 #include <lauxlib.h>
+#include "libls/ls_assert.h"
 
 void describe_lua_err(
     lua_State *L,
@@ -28,7 +28,7 @@ void describe_lua_err(
     const char **out_err_kind,
     const char **out_err_msg)
 {
-    assert(lretval != 0);
+    LS_ASSERT(lretval != 0);
 
     const char *kind;
     switch (lretval) {

@@ -17,15 +17,35 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef generator_utils_h_
-#define generator_utils_h_
+#include "parse_symbols.h"
+#include <stddef.h>
+#include "libsafe/safev.h"
 
-#include <stdbool.h>
+void parse_symbols(
+    SAFEV symbols,
+    void (*append)(void *ud, SAFEV segment),
+    void *ud)
+{
+    size_t n = SAFEV_len(symbols);
 
-#include "libls/ls_string.h"
-
-void append_json_escaped_s(LS_String *s, const char *zts);
-
-bool append_json_number(LS_String *s, double value);
-
-#endif
+    size_t prev = 0;
+    size_t balance = 0;
+    for (size_t i = 0; i < n; ++i) {
+        char c = SAFEV_at(symbols, i);
+        switch (c) {
+        case '(':
+            ++balance;
+            break;
+        case ')':
+            --balance;
+            break;
+        case '+':
+            if (balance == 0) {
+                append(ud, SAFEV_subspan(symbols, prev, i));
+                prev = i + 1;
+            }
+            break;
+        }
+    }
+    append(ud, SAFEV_suffix(symbols, prev));
+}

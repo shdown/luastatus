@@ -22,6 +22,7 @@
 
 #include <stdbool.h>
 #include "libls/ls_string.h"
+#include "libsafe/safev.h"
 #include "external_context.h"
 #include "my_error.h"
 #include "priv.h"
@@ -39,7 +40,7 @@ Requester *requester_new(
 bool requester_make_request(
     Requester *R,
     const char *extra_params_json,
-    const char *prompt,
+    SAFEV prompt,
     LS_String *out,
     MyError *out_err);
 

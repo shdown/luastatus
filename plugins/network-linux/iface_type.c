@@ -22,12 +22,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <fcntl.h>
 #include "libls/ls_io_utils.h"
+#include "libls/ls_assert.h"
 
 bool is_wlan_iface(const char *iface)
 {
+    LS_ASSERT(iface != NULL);
+
     FILE *f = NULL;
     int fd = -1;
     char *line = NULL;

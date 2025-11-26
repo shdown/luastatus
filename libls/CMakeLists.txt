@@ -11,4 +11,9 @@ target_compile_definitions (ls PUBLIC -D_POSIX_C_SOURCE=200809L)
 luastatus_target_compile_with (ls LUA)
 target_include_directories (ls PUBLIC "${PROJECT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}")
 
+find_library (MATH_LIBRARY m)
+if (MATH_LIBRARY)
+    target_link_libraries (ls PUBLIC ${MATH_LIBRARY})
+endif ()
+
 set_target_properties (ls PROPERTIES POSITION_INDEPENDENT_CODE ON)

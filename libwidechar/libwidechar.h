@@ -21,19 +21,21 @@
 #define libwidechar_h_
 
 #include <stddef.h>
+#include <stdint.h>
 #include <lua.h>
+#include "libsafe/safev.h"
 
-size_t libwidechar_width(const char *s, size_t ns);
+int libwidechar_width(SAFEV v, uint64_t *out_width);
 
 size_t libwidechar_truncate_to_width(
-        const char *s, size_t ns,
-        size_t max_width,
-        size_t *out_resut_width);
+        SAFEV v,
+        uint64_t max_width,
+        uint64_t *out_resut_width);
 
 void libwidechar_make_valid_and_printable(
-        const char *s, size_t ns,
-        const char *bad, size_t bad_len,
-        void (*append)(void *ud, const char *ptr, size_t len),
+        SAFEV v,
+        SAFEV bad,
+        void (*append)(void *ud, SAFEV segment),
         void *append_ud);
 
 void libwidechar_register_lua_funcs(lua_State *L);

@@ -30,10 +30,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
-#include <unistd.h>
+#include "libls/ls_assert.h"
 
 int get_ethernet_speed(int sockfd, const char *iface)
 {
+    LS_ASSERT(iface != NULL);
+
     struct ethtool_cmd ecmd = {.cmd = ETHTOOL_GSET};
     struct ifreq ifr = {.ifr_data = (caddr_t) &ecmd};
 

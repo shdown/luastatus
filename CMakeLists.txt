@@ -7,19 +7,35 @@ endif ()
 
 set (CMAKE_C_STANDARD 99)
 
-set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3")
+set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra")
 
 #------------------------------------------------------------------------------
 
-option (WITH_UBSAN "build with ubsan (undefined behavior sanitizer)" OFF)
+option (WITH_UBSAN "build with UBSAN (undefined behavior sanitizer)" OFF)
 if (${WITH_UBSAN})
-    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=undefined")
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=undefined -fsanitize=local-bounds -fsanitize-trap=all -fno-sanitize-recover=all")
+endif ()
+
+option (WITH_ASAN "build with ASAN (address sanitizer)" OFF)
+if (${WITH_ASAN})
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -fsanitize-address-use-after-scope -fsanitize-trap=all -fno-sanitize-recover=all")
+endif ()
+
+option (WITH_TSAN "build with TSAN (thread sanitizer)" OFF)
+if (${WITH_TSAN})
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=thread -fsanitize-trap=all -fno-sanitize-recover=all")
+endif ()
+
+option (WITH_LSAN "build with LSAN (memory leak sanitizer)" OFF)
+if (${WITH_LSAN})
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=leak -fsanitize-trap=all -fno-sanitize-recover=all")
 endif ()
 
 #------------------------------------------------------------------------------
 
 find_package (PkgConfig REQUIRED)
-if (WITH_LUA_LIBRARY)
+option (WITH_LUA_LIBRARY "Lua library name" "-")
+if (NOT "${WITH_LUA_LIBRARY}" EQUAL "-")
     pkg_search_module (LUA REQUIRED "${WITH_LUA_LIBRARY}")
 else ()
     pkg_search_module (LUA REQUIRED
@@ -99,6 +115,7 @@ endfunction ()
 #------------------------------------------------------------------------------
 
 add_subdirectory (libls)
+add_subdirectory (libsafe)
 add_subdirectory (libhackyfix)
 add_subdirectory (librunshell)
 add_subdirectory (libmoonvisit)

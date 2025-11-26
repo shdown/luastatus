@@ -39,4 +39,18 @@
 
 #define OUT_OF_MEMORY() FATAL("out of memory.\n")
 
+#define MY_ASSERT(Expr_) \
+    do { \
+        if (!(Expr_)) { \
+            FATAL( \
+                "MY_ASSERT(%s) failed in %s at %s:%d\n", \
+                #Expr_, __func__, __FILE__, __LINE__); \
+        } \
+    } while (0)
+
+#define MY_UNREACHABLE() \
+    FATAL( \
+        "MY_UNREACHABLE() in %s at %s:%d\n", \
+        __func__, __FILE__, __LINE__)
+
 #endif

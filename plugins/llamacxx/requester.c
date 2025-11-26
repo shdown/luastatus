@@ -29,6 +29,7 @@
 #include "libls/ls_string.h"
 #include "libls/ls_alloc_utils.h"
 #include "libls/ls_xallocf.h"
+#include "libsafe/safev.h"
 
 #include "include/sayf_macros.h"
 
@@ -113,12 +114,12 @@ static inline bool valid_str(const char *s)
     return s && s[0] != '\0';
 }
 
-static LS_String make_req_body(Requester *R, const char *extra_params_json, const char *prompt)
+static LS_String make_req_body(Requester *R, const char *extra_params_json, SAFEV prompt)
 {
     LS_String r = ls_string_new_reserve(1024);
 
     ls_string_append_s(&r, "{\"prompt\":");
-    append_json_escaped_s(&r, prompt);
+    append_json_escaped_str(&r, prompt);
 
     ls_string_append_s(&r, ",\"response_fields\":[\"content\"]");
 
@@ -235,7 +236,7 @@ static void do_log_response_on_error(Requester *R, LS_String resp_body)
 bool requester_make_request(
     Requester *R,
     const char *extra_params_json,
-    const char *prompt,
+    SAFEV prompt,
     LS_String *out,
     MyError *out_err)
 {

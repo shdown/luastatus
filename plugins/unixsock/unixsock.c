@@ -170,8 +170,8 @@ static inline void server_state_set_nclients(ServerState *s, size_t n)
 {
     if (s->nclients != n) {
         s->nclients = n;
-        s->clients = ls_xrealloc(s->clients, n, sizeof(Client));
-        s->pfds = ls_xrealloc(s->pfds, n + 1, sizeof(struct pollfd));
+        s->clients = LS_M_XREALLOC(s->clients, n);
+        s->pfds = LS_M_XREALLOC(s->pfds, n + 1);
     }
 }
 

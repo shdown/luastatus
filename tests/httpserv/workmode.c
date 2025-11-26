@@ -25,7 +25,6 @@
 #include <limits.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <assert.h>
 #include <stdbool.h>
 #include <sys/types.h>
 #include "fatal_error.h"
@@ -134,7 +133,7 @@ static inline char *strdup_or_die(const char *s)
 
 void workmode_global_init_fxd(const char *req_file_, const char *resp_str)
 {
-    assert(mode == -1);
+    MY_ASSERT(mode == -1);
 
     mode = MODE_FXD;
     fxd_resp_str = strdup_or_die(resp_str);
@@ -146,7 +145,11 @@ void workmode_global_init_fxd(const char *req_file_, const char *resp_str)
 
 void workmode_global_init_dyn(const char *req_file_, const char *resp_pattern)
 {
-    assert(mode == -1);
+    MY_ASSERT(mode == -1);
+
+    if (!strchr(resp_pattern, '@')) {
+        FATAL("resp_pattrn does not contain a '@'.\n");
+    }
 
     mode = MODE_DYN;
     dyn_resp_pattern = strdup_or_die(resp_pattern);
@@ -158,7 +161,7 @@ void workmode_global_init_dyn(const char *req_file_, const char *resp_pattern)
 
 WorkMode *workmode_new(void)
 {
-    assert(mode != -1);
+    MY_ASSERT(mode != -1);
 
     WorkMode *wm = malloc(sizeof(WorkMode));
     if (!wm) {
@@ -170,14 +173,14 @@ WorkMode *workmode_new(void)
 
 void workmode_request_chunk(WorkMode *wm, const char *chunk, size_t nchunk)
 {
-    assert(mode != -1);
+    MY_ASSERT(mode != -1);
 
     buf_append(&wm->buf, chunk, nchunk);
 }
 
 void workmode_request_finish(WorkMode *wm)
 {
-    assert(mode != -1);
+    MY_ASSERT(mode != -1);
 
     char *p = wm->buf.data;
     size_t n = wm->buf.size;
@@ -218,7 +221,7 @@ static const char *first_group_of_digits(const char *src, size_t len, size_t *ou
 
 const char *workmode_get_response(WorkMode *wm, int *out_len)
 {
-    assert(mode != -1);
+    MY_ASSERT(mode != -1);
 
     if (mode == MODE_FXD) {
         *out_len = strlen(fxd_resp_str);
@@ -237,7 +240,7 @@ const char *workmode_get_response(WorkMode *wm, int *out_len)
         }
 
         const char *at = strchr(dyn_resp_pattern, '@');
-        assert(at);
+        MY_ASSERT(at != NULL);
 
         Buf buf2 = buf_new();
         buf_append(&buf2, dyn_resp_pattern, at - dyn_resp_pattern);
@@ -251,14 +254,13 @@ const char *workmode_get_response(WorkMode *wm, int *out_len)
         return buf2.data;
 
     } else {
-        assert(0);
-        return NULL;
+        MY_UNREACHABLE();
     }
 }
 
 void workmode_destroy(WorkMode *wm)
 {
-    assert(mode != -1);
+    MY_ASSERT(mode != -1);
 
     buf_free(&wm->buf);
     free(wm);
@@ -266,7 +268,7 @@ void workmode_destroy(WorkMode *wm)
 
 void workmode_write_to_req_file(const char *s)
 {
-    assert(mode != -1);
+    MY_ASSERT(mode != -1);
 
     if (!full_write_bool(req_file_fd, s, strlen(s))) {
         PERROR2_AND_DIE("write", req_file);
@@ -275,7 +277,7 @@ void workmode_write_to_req_file(const char *s)
 
 void workmode_global_uninit(void)
 {
-    assert(mode != -1);
+    MY_ASSERT(mode != -1);
 
     free(fxd_resp_str);
     free(dyn_resp_pattern);

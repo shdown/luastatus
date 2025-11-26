@@ -23,11 +23,11 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <pthread.h>
-#include <assert.h>
 #include "libls/ls_compdep.h"
 #include "libls/ls_alloc_utils.h"
 #include "libls/ls_string.h"
 #include "libls/ls_panic.h"
+#include "libls/ls_assert.h"
 
 // Concurrent queue.
 // Instead of single value, it maintains a list of LS_String,
@@ -52,7 +52,7 @@ typedef struct {
 
 LS_INHEADER void conc_queue_create(ConcQueue *q, size_t nslots)
 {
-    assert(nslots <= CONC_QUEUE_MAX_SLOTS);
+    LS_ASSERT(nslots <= CONC_QUEUE_MAX_SLOTS);
 
     LS_PTH_CHECK(pthread_mutex_init(&q->mtx, NULL));
     LS_PTH_CHECK(pthread_cond_init(&q->condvar, NULL));
@@ -73,6 +73,8 @@ LS_INHEADER void conc_queue_update_slot(
     const char *buf, size_t nbuf,
     char state)
 {
+    LS_ASSERT(slot_idx < q->nslots);
+
     LS_PTH_CHECK(pthread_mutex_lock(&q->mtx));
 
     LS_String *old = &q->slots[slot_idx];

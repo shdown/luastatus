@@ -12,6 +12,10 @@ add_executable (
     $<TARGET_OBJECTS:hackyfix>
     $<TARGET_OBJECTS:runshell>
     $<TARGET_OBJECTS:widechar>
+
+    # Required by libwidechar
+    $<TARGET_OBJECTS:safe>
+
     ${sources})
 
 target_compile_definitions (luastatus PUBLIC -D_POSIX_C_SOURCE=200809L)

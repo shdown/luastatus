@@ -22,12 +22,14 @@
 #include <gio/gio.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include <assert.h>
 #include <string.h>
+#include <pthread.h>
 #include <glib-object.h>
 
 #include "libls/ls_alloc_utils.h"
 #include "libls/ls_time_utils.h"
+#include "libls/ls_panic.h"
+#include "libls/ls_assert.h"
 
 #include "libmoonvisit/moonvisit.h"
 
@@ -68,7 +70,7 @@ static inline SignalList signal_list_new(void)
 static inline void signal_list_add(SignalList *x, Signal s)
 {
     if (x->size == x->capacity) {
-        x->data = ls_x2realloc(x->data, &x->capacity, sizeof(Signal));
+        x->data = LS_M_X2REALLOC(x->data, &x->capacity);
     }
     x->data[x->size++] = s;
 }
@@ -219,7 +221,16 @@ typedef struct {
     LuastatusPluginRunFuncs funcs;
     GDBusConnection *cnx_session;
     GDBusConnection *cnx_system;
+    pthread_mutex_t mtx;
 } PluginRunArgs;
+
+static inline void set_str(lua_State *L, const char *s, const char *key)
+{
+    if (s) {
+        lua_pushstring(L, s);
+        lua_setfield(L, -2, key);
+    }
+}
 
 static void callback_signal(
     GDBusConnection *cnx,
@@ -242,18 +253,14 @@ static void callback_signal(
     lua_State *L = args->funcs.call_begin(args->pd->userdata);
 
     lua_createtable(L, 0, 7); // L: table
-    lua_pushstring(L, bus_name); // L: table string
-    lua_setfield(L, -2, "bus"); // L: table
-    lua_pushstring(L, "signal"); // L: table string
-    lua_setfield(L, -2, "what"); // L: table
-    lua_pushstring(L, sender_name); // L: table string
-    lua_setfield(L, -2, "sender"); // L: table
-    lua_pushstring(L, object_path); // L: table string
-    lua_setfield(L, -2, "object_path"); // L: table
-    lua_pushstring(L, interface_name); // L: table string
-    lua_setfield(L, -2, "interface"); // L: table
-    lua_pushstring(L, signal_name); // L: table string
-    lua_setfield(L, -2, "signal"); // L: table
+
+    set_str(L, "signal", "what");
+    set_str(L, bus_name, "bus");
+    set_str(L, sender_name, "sender");
+    set_str(L, object_path, "object_path");
+    set_str(L, interface_name, "interface");
+    set_str(L, signal_name, "signal");
+
     marshal(L, parameters); // L: table value
     lua_setfield(L, -2, "parameters"); // L: table
 
@@ -264,27 +271,37 @@ static gboolean callback_timeout(gpointer user_data)
 {
     PluginRunArgs *args = (PluginRunArgs *) user_data;
     lua_State *L = args->funcs.call_begin(args->pd->userdata);
+
+    LS_PTH_CHECK(pthread_mutex_lock(&args->mtx));
+
     lua_createtable(L, 0, 1); // L: table
     lua_pushstring(L, "timeout"); // L: table string
     lua_setfield(L, -2, "what"); // L: table
+
     args->funcs.call_end(args->pd->userdata);
+
+    LS_PTH_CHECK(pthread_mutex_unlock(&args->mtx));
+
     return G_SOURCE_CONTINUE;
 }
 
-static GDBusConnection * maybe_connect_and_subscribe(
+static GDBusConnection *maybe_connect_and_subscribe(
         GBusType bus_type,
         SignalList x,
         gpointer userdata,
         GError **err)
 {
-    if (!x.size)
+    if (!x.size) {
         return NULL;
+    }
 
     GDBusConnection *cnx = g_bus_get_sync(bus_type, NULL, err);
-    if (*err)
+    if (*err) {
         return NULL;
+    }
 
-    assert(cnx);
+    LS_ASSERT(cnx != NULL);
+
     for (size_t i = 0; i < x.size; ++i) {
         Signal s = x.data[i];
         g_dbus_connection_signal_subscribe(
@@ -313,10 +330,14 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     GMainContext *context = g_main_context_get_thread_default();
     GSource *source = NULL;
 
-    PluginRunArgs userdata = {.pd = pd, .funcs = funcs};
+    PluginRunArgs args = {.pd = pd, .funcs = funcs};
+    LS_PTH_CHECK(pthread_mutex_init(&args.mtx, NULL));
 
     session_bus = maybe_connect_and_subscribe(
-        G_BUS_TYPE_SESSION, p->subs[BUS_SESSION], &userdata, &err);
+        G_BUS_TYPE_SESSION,
+        p->subs[BUS_SESSION],
+        &args,
+        &err);
 
     if (err) {
         LS_FATALF(pd, "cannot connect to the session bus: %s", err->message);
@@ -324,28 +345,29 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     }
 
     system_bus = maybe_connect_and_subscribe(
-        G_BUS_TYPE_SYSTEM, p->subs[BUS_SYSTEM], &userdata, &err);
+        G_BUS_TYPE_SYSTEM,
+        p->subs[BUS_SYSTEM],
+        &args,
+        &err);
 
     if (err) {
         LS_FATALF(pd, "cannot connect to the system bus: %s", err->message);
         goto error;
     }
 
-    userdata.cnx_session = session_bus;
-    userdata.cnx_system = system_bus;
+    args.cnx_session = session_bus;
+    args.cnx_system = system_bus;
 
     LS_TimeDelta TD = ls_double_to_TD(p->tmo, LS_TD_FOREVER);
     if (!ls_TD_is_forever(TD)) {
         int tmo_ms = ls_TD_to_poll_ms_tmo(TD);
         source = g_timeout_source_new(tmo_ms);
-        g_source_set_callback(source, callback_timeout, &userdata, NULL);
+        g_source_set_callback(source, callback_timeout, &args, NULL);
         if (g_source_attach(source, context) == 0) {
             LS_FATALF(pd, "g_source_attach() failed");
             goto error;
         }
     }
-    mainloop = g_main_loop_new(context, FALSE);
-
     if (p->greet) {
         lua_State *L = funcs.call_begin(pd->userdata);
         lua_createtable(L, 0, 1); // L: table
@@ -353,6 +375,8 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         lua_setfield(L, -2, "what"); // L: table
         funcs.call_end(pd->userdata);
     }
+
+    mainloop = g_main_loop_new(context, FALSE);
     g_main_loop_run(mainloop);
 
 error:
@@ -376,6 +400,8 @@ error:
     if (err) {
         g_error_free(err);
     }
+
+    LS_PTH_CHECK(pthread_mutex_destroy(&args.mtx));
 }
 
 LuastatusPluginIface luastatus_plugin_iface_v1 = {

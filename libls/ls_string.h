@@ -29,6 +29,7 @@
 #include "ls_alloc_utils.h"
 #include "ls_algo.h"
 #include "ls_freemem.h"
+#include "ls_assert.h"
 
 typedef struct {
     char *data;
@@ -51,20 +52,20 @@ LS_INHEADER void ls_string_reserve(LS_String *x, size_t n)
 {
     if (x->capacity < n) {
         x->capacity = n;
-        x->data = ls_xrealloc(x->data, x->capacity, sizeof(char));
+        x->data = LS_M_XREALLOC(x->data, n);
     }
 }
 
 LS_INHEADER void ls_string_ensure_avail(LS_String *x, size_t n)
 {
     while (x->capacity - x->size < n) {
-        x->data = ls_x2realloc(x->data, &x->capacity, sizeof(char));
+        x->data = LS_M_X2REALLOC(x->data, &x->capacity);
     }
 }
 
 LS_INHEADER void ls_string_clear(LS_String *x)
 {
-    LS_FREEMEM(x->data, x->size, x->capacity);
+    LS_M_FREEMEM(x->data, x->size, x->capacity);
 }
 
 LS_INHEADER void ls_string_assign_b(LS_String *x, const char *buf, size_t nbuf)
@@ -79,6 +80,8 @@ LS_INHEADER void ls_string_assign_b(LS_String *x, const char *buf, size_t nbuf)
 
 LS_INHEADER void ls_string_assign_s(LS_String *x, const char *s)
 {
+    LS_ASSERT(s != NULL);
+
     ls_string_assign_b(x, s, strlen(s));
 }
 
@@ -94,13 +97,15 @@ LS_INHEADER void ls_string_append_b(LS_String *x, const char *buf, size_t nbuf)
 
 LS_INHEADER void ls_string_append_s(LS_String *x, const char *s)
 {
+    LS_ASSERT(s != NULL);
+
     ls_string_append_b(x, s, strlen(s));
 }
 
 LS_INHEADER void ls_string_append_c(LS_String *x, char c)
 {
     if (x->size == x->capacity) {
-        x->data = ls_x2realloc(x->data, &x->capacity, sizeof(char));
+        x->data = LS_M_X2REALLOC(x->data, &x->capacity);
     }
     x->data[x->size++] = c;
 }

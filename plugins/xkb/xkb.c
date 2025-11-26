@@ -36,7 +36,7 @@
 
 #include "libls/ls_alloc_utils.h"
 #include "libls/ls_strarr.h"
-#include "libls/ls_compdep.h"
+#include "libls/ls_panic.h"
 
 #include "wrongly.h"
 #include "somehow.h"
@@ -238,7 +238,7 @@ static inline bool query(LuastatusPluginData *pd, Display *dpy, LS_StringArray *
     case HOW_SOMEHOW:
         return query_somehow(pd, dpy, groups);
     }
-    LS_UNREACHABLE();
+    LS_MUST_BE_UNREACHABLE();
 }
 
 static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)

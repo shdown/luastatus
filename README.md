@@ -191,7 +191,27 @@ Migrating from older versions
 ===
 See the [Migration Guide](https://github.com/shdown/luastatus/blob/master/DOCS/MIGRATION_GUIDE.md).
 
-Acknowledgements
+Testing
 ===
-* I would like to thank [wm4](https://github.com/wm4) for developing [mpv](https://mpv.io), which,
-  also being a “platform” for running Lua scripts, served as an inspiration for this project.
+
+Here, at luastatus, we take code correctness and safety very seriously.
+We do the following things:
+  1. Use best practices for C programming:
+    * All non-trivial string processing goes through libsafe
+    * We mark printf-like functions with appropriate attributes in order to get warnings on illegal format string or wrong argument types
+    * We handle every error possible (except for cases where we can't, and don't want to, do anything about an error)
+    * We pay attention to integer overflows/underflows, conversion of integers to/from floating-point types, and other possible cases of undefined behavior
+    * We use typedef'd enum types instead of "untyped" integers to represent enum's values so that we can get warnings when a switch does not account for some value
+    * W use macros for (re)allocations that make it impossible to get types wrong
+  2. Compile with `-Wall -Wextra`
+  3. Have a comprehensive test suite; it contains tests for luastatus, barlibs and plugins, and also includes "torture"-style tests (a.k.a. stress tests)
+which bombard luastatus with a lot of events from a plugin and a barlib simultaneously:
+    * It passes under valgrind [memcheck tool]
+    * It passes under valgrind [helgrind tool]
+    * It passes under UBSAN (Undefined Behaviour Sanitizer)
+    * It passes under ASAN (Address Sanitizer)
+    * It passes under LSAN (Leak Sanitizer)
+    * It passes under TSAN (Thread Sanitizer)
+
+We tried to use additional compiler warnings, `-fanalyzer`, and external linters/static analyzers, but
+these tools only gave false positives. So we don't use any of these on a regular basis.

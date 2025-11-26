@@ -21,16 +21,26 @@
 #define ls_alloc_utils_h_
 
 #include <stddef.h>
-#include <stdint.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "ls_panic.h"
 #include "ls_compdep.h"
+#include "ls_assert.h"
 
-#define LS_XNEW(Type_, NElems_)  ((Type_ *) ls_xmalloc(NElems_, sizeof(Type_)))
+#define LS_XNEW(Type_, NElems_) \
+    ((Type_ *) ls_xmalloc(NElems_, sizeof(Type_)))
 
-#define LS_XNEW0(Type_, NElems_) ((Type_ *) ls_xcalloc(NElems_, sizeof(Type_)))
+#define LS_XNEW0(Type_, NElems_) \
+    ((Type_ *) ls_xcalloc(NElems_, sizeof(Type_)))
+
+#define LS_M_X2REALLOC(Ptr_, NElemsPtr_) \
+    ((__typeof__(Ptr_)) ls_x2realloc((Ptr_), (NElemsPtr_), sizeof((Ptr_)[0])))
+
+#define LS_M_XMEMDUP(Ptr_, N_) \
+    ((__typeof__(Ptr_)) ls_xmemdup((Ptr_), ((size_t) (N_)) * sizeof((Ptr_)[0])))
+
+#define LS_M_XREALLOC(Ptr_, N_) \
+    ((__typeof__(Ptr_)) ls_xrealloc((Ptr_), (N_), sizeof((Ptr_)[0])))
 
 // Out-of-memory handler; should be called when an allocation fails.
 //
@@ -41,32 +51,14 @@
 //     /malloc(nelems * elemsz)/,
 // except when the multiplication overflows, or the allocation fails. In these cases, this function
 // panics.
-LS_INHEADER void *ls_xmalloc(size_t nelems, size_t elemsz)
-{
-    if (elemsz && nelems > SIZE_MAX / elemsz) {
-        goto oom;
-    }
-    void *r = malloc(nelems * elemsz);
-    if (nelems && elemsz && !r) {
-        goto oom;
-    }
-    return r;
-
-oom:
-    ls_oom();
-}
+LS_ATTR_WARN_UNUSED
+void *ls_xmalloc(size_t nelems, size_t elemsz);
 
 // The behaviour is same as calling
 //     /calloc(nelems, elemsz)/,
 // except when the allocation fails. In that case, this function panics.
-LS_INHEADER void *ls_xcalloc(size_t nelems, size_t elemsz)
-{
-    void *r = calloc(nelems, elemsz);
-    if (nelems && elemsz && !r) {
-        ls_oom();
-    }
-    return r;
-}
+LS_ATTR_WARN_UNUSED
+void *ls_xcalloc(size_t nelems, size_t elemsz);
 
 // The behaviour is same as calling
 //     /realloc(p, nelems * elemsz)/,
@@ -76,25 +68,8 @@ LS_INHEADER void *ls_xcalloc(size_t nelems, size_t elemsz)
 // Zero /nelems/ and/or /elemsz/ are supported (even though C23 declared /realloc/ to zero size
 // undefined behavior): if the total size requested is zero, this function /free/s the pointer
 // and returns NULL.
-LS_INHEADER void *ls_xrealloc(void *p, size_t nelems, size_t elemsz)
-{
-    if (elemsz && nelems > SIZE_MAX / elemsz) {
-        goto oom;
-    }
-    size_t new_nbytes = nelems * elemsz;
-    if (!new_nbytes) {
-        free(p);
-        return NULL;
-    }
-    void *r = realloc(p, new_nbytes);
-    if (!r) {
-        goto oom;
-    }
-    return r;
-
-oom:
-    ls_oom();
-}
+LS_ATTR_WARN_UNUSED
+void *ls_xrealloc(void *p, size_t nelems, size_t elemsz);
 
 // The behaviour is same as calling
 //     /realloc(p, (*pnelems = F(*pnelems)) * elemsz)/,
@@ -107,51 +82,21 @@ oom:
 // size, but /*pnelems/ is limited to /SIZE_MAX/ (should we alter /*pnelems/ at all? If yes, what
 // should we do in case of an overflow?). Also, C99 says there can't be any zero-sized types: empty
 // structs or unions, and arrays of size 0, are prohibited.
-LS_INHEADER void *ls_x2realloc(void *p, size_t *pnelems, size_t elemsz)
-{
-    if (!elemsz) {
-        LS_PANIC("ls_x2realloc: got elemsz=0");
-    }
-
-    size_t new_nelems;
-    if (*pnelems) {
-        if (*pnelems > SIZE_MAX / 2 / elemsz) {
-            goto oom;
-        }
-        new_nelems = *pnelems * 2;
-    } else {
-        new_nelems = 1;
-    }
-
-    void *r = realloc(p, new_nelems * elemsz);
-    if (!r) {
-        goto oom;
-    }
-    *pnelems = new_nelems;
-    return r;
-
-oom:
-    ls_oom();
-}
+LS_ATTR_WARN_UNUSED
+void *ls_x2realloc(void *p, size_t *pnelems, size_t elemsz);
 
 // Duplicates (as if with /malloc/) /n/ bytes of memory at address /p/. Panics on failure.
-LS_INHEADER void *ls_xmemdup(const void *p, size_t n)
-{
-    void *r = malloc(n);
-    if (n) {
-        if (!r) {
-            ls_oom();
-        }
-        memcpy(r, p, n);
-    }
-    return r;
-}
+LS_ATTR_WARN_UNUSED
+void *ls_xmemdup(const void *p, size_t n);
 
 // The behaviour is same as calling
 //     /strdup(s)/,
 // except when the allocation fails. In that case, this function panics.
-LS_INHEADER char *ls_xstrdup(const char *s)
+LS_INHEADER LS_ATTR_WARN_UNUSED
+char *ls_xstrdup(const char *s)
 {
+    LS_ASSERT(s != NULL);
+
     return ls_xmemdup(s, strlen(s) + 1);
 }
 

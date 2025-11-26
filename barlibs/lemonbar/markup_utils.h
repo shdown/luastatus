@@ -20,14 +20,17 @@
 #ifndef markup_utils_h_
 #define markup_utils_h_
 
-#include <lua.h>
 #include <stddef.h>
 
 #include "libls/ls_string.h"
+#include "libsafe/safev.h"
 
-void push_escaped(lua_State *L, const char *s, size_t ns);
+void escape(
+    void (*append)(void *ud, SAFEV segment),
+    void *ud,
+    SAFEV v);
 
-void append_sanitized_b(LS_String *buf, size_t widget_idx, const char *s, size_t ns);
+void append_sanitized(LS_String *buf, size_t widget_idx, SAFEV v);
 
 const char *parse_command(const char *line, size_t nline, size_t *ncommand, size_t *widget_idx);
 

@@ -22,10 +22,8 @@
 
 #include <fcntl.h>
 #include <unistd.h>
-#include <errno.h>
 #include <sys/socket.h>
 
-#include "ls_io_utils.h"
 #include "ls_probes.generated.h"
 
 int ls_cloexec_pipe(int pipefd[2])
@@ -36,15 +34,8 @@ int ls_cloexec_pipe(int pipefd[2])
     if (pipe(pipefd) < 0) {
         return -1;
     }
-    for (int i = 0; i < 2; ++i) {
-        if (ls_make_cloexec(pipefd[i]) < 0) {
-            int saved_errno = errno;
-            close(pipefd[0]);
-            close(pipefd[1]);
-            errno = saved_errno;
-            return -1;
-        }
-    }
+    ls_make_cloexec(pipefd[0]);
+    ls_make_cloexec(pipefd[1]);
     return 0;
 #endif
 }
@@ -58,12 +49,7 @@ int ls_cloexec_socket(int domain, int type, int protocol)
     if (fd < 0) {
         return -1;
     }
-    if (ls_make_cloexec(fd) < 0) {
-        int saved_errno = errno;
-        close(fd);
-        errno = saved_errno;
-        return -1;
-    }
+    ls_make_cloexec(fd);
     return fd;
 #endif
 }

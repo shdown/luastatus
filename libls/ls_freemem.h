@@ -20,19 +20,31 @@
 #ifndef ls_freemem_h_
 #define ls_freemem_h_
 
+#include <stddef.h>
 #include "ls_alloc_utils.h"
+#include "ls_compdep.h"
+#include "ls_assert.h"
+
+LS_INHEADER LS_ATTR_WARN_UNUSED
+void *ls_freemem(void *data, size_t *psize, size_t *pcapacity, size_t elemsz)
+{
+    LS_ASSERT(elemsz != 0);
+    size_t new_capacity = 1024 / elemsz;
+    if (*pcapacity > new_capacity) {
+        data = ls_xrealloc(data, new_capacity, elemsz);
+        *pcapacity = new_capacity;
+    }
+    *psize = 0;
+    return data;
+}
 
 // This function is called whenever a dynamic array is cleared.
 // We want to "preserve" at most 1 Kb of the previous capacity.
-#define LS_FREEMEM(Data_, Size_, Capacity_) \
-    do { \
-        enum { SZ_  = sizeof(*(Data_))       }; \
-        enum { CAP_ = 1024 / (SZ_ ? SZ_ : 1) }; \
-        if ((Capacity_) > CAP_) { \
-            (Data_) = ls_xrealloc((Data_), CAP_, SZ_); \
-            (Capacity_) = CAP_; \
-        } \
-        (Size_) = 0; \
-    } while (0)
+#define LS_M_FREEMEM(Data_, Size_, Capacity_) \
+    ((void) ((Data_) = ls_freemem( \
+        (Data_), \
+        &(Size_), \
+        &(Capacity_), \
+        sizeof(*(Data_)))))
 
 #endif

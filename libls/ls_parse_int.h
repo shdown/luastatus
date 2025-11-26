@@ -24,6 +24,7 @@
 #include <string.h>
 
 #include "ls_compdep.h"
+#include "ls_assert.h"
 
 // Parses (locale-independently) a decimal unsigned integer, inspecting no more than first /ns/
 // characters of /s/. Once this limit is reached, or a non-digit character is found, this function
@@ -45,6 +46,8 @@ int ls_full_strtou_b(const char *s, size_t ns);
 // If an overflow happens, /-ERANGE/ is returned.
 LS_INHEADER int ls_full_strtou(const char *s)
 {
+    LS_ASSERT(s != NULL);
+
     return ls_full_strtou_b(s, strlen(s));
 }
 

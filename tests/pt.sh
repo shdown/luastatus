@@ -30,6 +30,9 @@ case "$PT_TOOL" in
 valgrind)
     PT_PREFIX=( valgrind -q --exit-on-first-error=yes --error-exitcode=42 )
     ;;
+helgrind)
+    PT_PREFIX=( valgrind --tool=helgrind -q --exit-on-first-error=yes --error-exitcode=42 )
+    ;;
 *)
     echo >&2 "$0: Unknown PT_TOOL: $PT_TOOL."
     exit 2
@@ -310,17 +313,49 @@ pt_run_test_suite() {
     if ! [[ -d $1 ]]; then
         pt_fail_internal_error "'$1' is not a directory."
     fi
+
+    if [[ -f "$1/skip-me-if.lib.bash" ]]; then
+        if source "$1/skip-me-if.lib.bash"; then
+            echo >&2 "==> Skipping test suite '$1' (skip-me-if.lib.bash said so)."
+            return
+        fi
+    fi
+
     echo >&2 "==> Listing files in '$1'..."
     local f
     for f in "$1"/*; do
         if [[ $f != *.lib.bash ]]; then
             pt_fail_internal_error "File '$f' does not have suffix '.lib.bash'."
         fi
+        if [[ $f == */skip-me-if.lib.bash ]]; then
+            continue
+        fi
         if [[ ${f##*/} != [0-9][0-9]-* ]]; then
             pt_fail_internal_error "File '$f' does not have prefix of two digits and a dash (e.g. '99-testcase.lib.bash')."
         fi
         pt_run_test_case "$f"
     done
+}
+
+pt_cmake_opt_enabled() {
+    cmake -LA "$PT_SOURCE_DIR" | grep -E -q "^$1:BOOL=ON$"
+}
+PT_SKIP_ME_YES=0
+PT_SKIP_ME_NO=1
+
+pt_setup_sanitizers() {
+    if pt_cmake_opt_enabled WITH_TSAN; then
+        export TSAN_OPTIONS=halt_on_error=1,atexit_sleep_ms=1
+    fi
+    if pt_cmake_opt_enabled WITH_ASAN; then
+        export ASAN_OPTIONS=halt_on_error=1,detect_leaks=1,detect_stack_use_after_return=1,strict_string_checks=1,detect_invalid_pointer_pairs=3
+    fi
+    if pt_cmake_opt_enabled WITH_LSAN; then
+        export LSAN_OPTIONS=halt_on_error=true
+    fi
+    if pt_cmake_opt_enabled WITH_UBSAN; then
+        export UBSAN_OPTIONS=halt_on_error=1
+    fi
 }
 
 pt_main() {
@@ -378,6 +413,8 @@ pt_main() {
         done
     fi
 }
+
+pt_setup_sanitizers
 
 pt_main "$@"
 

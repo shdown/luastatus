@@ -24,11 +24,15 @@
 #include <string.h>
 
 #include "ls_compdep.h"
+#include "ls_assert.h"
 
 // If zero-terminated string /str/ starts with zero-terminated string /prefix/, returns
 // /str + strlen(prefix)/; otherwise, returns /NULL/.
 LS_INHEADER const char *ls_strfollow(const char *str, const char *prefix)
 {
+    LS_ASSERT(str != NULL);
+    LS_ASSERT(prefix != NULL);
+
     size_t nprefix = strlen(prefix);
     return strncmp(str, prefix, nprefix) == 0 ? str + nprefix : NULL;
 }

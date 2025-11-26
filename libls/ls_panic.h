@@ -24,37 +24,44 @@
 
 // Logs /Msg_/ and aborts.
 #define LS_PANIC(Msg_) \
-    do { \
-        ls_panic__log_and_abort(Msg_, __FILE__, __LINE__); \
-        LS_UNREACHABLE(); \
-    } while (0)
+    ls_panic__log_and_abort(Msg_, __func__, __FILE__, __LINE__)
 
 // Logs /Msg_/ with errno value /Errnum_/ and aborts.
 #define LS_PANIC_WITH_ERRNUM(Msg_, Errnum_) \
-    do { \
-        ls_panic_with_errnum__log_and_abort(Msg_, Errnum_, __FILE__, __LINE__); \
-        LS_UNREACHABLE(); \
-    } while (0)
+    ls_panic_with_errnum__log_and_abort(Msg_, Errnum_, __func__, __FILE__, __LINE__)
 
 // Asserts that a /pthread_*/ call was successful.
-#define LS_PTH_CHECK(Expr_) ls_pth_check__impl(Expr_, #Expr_, __FILE__, __LINE__)
+#define LS_PTH_CHECK(Expr_) \
+    ls_pth_check__impl(Expr_, #Expr_, __func__, __FILE__, __LINE__)
 
 // Internal function. Normally should not be called manually.
-void ls_panic__log_and_abort(const char *msg, const char *file, int line);
+LS_ATTR_NORETURN
+void ls_panic__log_and_abort(
+    const char *msg,
+    const char *func, const char *file, int line);
 
 // Internal function. Normally should not be called manually.
-void ls_panic_with_errnum__log_and_abort(const char *msg, int errnum, const char *file, int line);
+LS_ATTR_NORETURN
+void ls_panic_with_errnum__log_and_abort(
+    const char *msg, int errnum,
+    const char *func, const char *file, int line);
 
 // Internal function. Normally should not be called manually.
-void ls_pth_check__log_and_abort(int ret, const char *expr, const char *file, int line);
+LS_ATTR_NORETURN
+void ls_pth_check__log_and_abort(
+    int ret, const char *expr,
+    const char *func, const char *file, int line);
 
 // Implementation part for /LS_PTH_CHECK()/. Normally should not be called manually.
-LS_INHEADER void ls_pth_check__impl(int ret, const char *expr, const char *file, int line)
+LS_INHEADER void ls_pth_check__impl(
+    int ret, const char *expr,
+    const char *func, const char *file, int line)
 {
     if (ret != 0) {
-        ls_pth_check__log_and_abort(ret, expr, file, line);
-        LS_UNREACHABLE();
+        ls_pth_check__log_and_abort(ret, expr, func, file, line);
     }
 }
+
+#define LS_MUST_BE_UNREACHABLE() LS_PANIC("LS_MUST_BE_UNREACHABLE()")
 
 #endif
