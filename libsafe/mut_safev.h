@@ -49,14 +49,11 @@ LIBSAFE_INHEADER MUT_SAFEV MUT_SAFEV_new_UNSAFE(char *buf, size_t nbuf)
         .mut_n__ = (Len_), \
     }
 
-#define MUT_SAFEV_set_at(MutV_, I_, Ch_) \
-    do { \
-        MUT_SAFEV MVmv__ = (MutV_); \
-        size_t MVi__ = (I_); \
-        char MVch__ = (Ch_); \
-        LIBSAFE_ASSERT(MVi__ < MVmv__.mut_n__); \
-        MVmv__.mut_s__[MVi__] = MVch__; \
-    } while (0)
+LIBSAFE_INHEADER void MUT_SAFEV_set_at(MUT_SAFEV Mv, size_t i, char c)
+{
+    LIBSAFE_ASSERT(i < Mv.mut_n__);
+    Mv.mut_s__[i] = c;
+}
 
 LIBSAFE_INHEADER SAFEV MUT_SAFEV_TO_SAFEV(MUT_SAFEV Mv)
 {

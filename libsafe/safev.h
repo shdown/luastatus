@@ -46,12 +46,14 @@ LIBSAFE_INHEADER SAFEV SAFEV_new_UNSAFE(const char *ptr, size_t n)
 }
 
 // Constructs a view of a C string.
-#define SAFEV_new_from_cstr_UNSAFE(CStr_) \
-    ({ \
-        const char *Vcstr__ = (CStr_); \
-        LIBSAFE_ASSERT(Vcstr__ != NULL); \
-        (SAFEV) {.s__ = Vcstr__, .n__ = strlen(Vcstr__)}; \
-    })
+LIBSAFE_INHEADER SAFEV SAFEV_new_from_cstr_UNSAFE(const char *cstr)
+{
+    LIBSAFE_ASSERT(cstr != NULL);
+    return (SAFEV) {
+        .s__ = cstr,
+        .n__ = strlen(cstr),
+    };
+}
 
 #define SAFEV_new_from_literal(StrLit_) SAFEV_new_from_cstr_UNSAFE("" StrLit_)
 
@@ -66,13 +68,11 @@ LIBSAFE_INHEADER SAFEV SAFEV_new_UNSAFE(const char *ptr, size_t n)
     }
 
 // Peeks at a byte of a view.
-#define SAFEV_at(V_, Idx_) \
-    ({ \
-        SAFEV Vv__ = (V_); \
-        size_t Vi__ = (Idx_); \
-        LIBSAFE_ASSERT(Vi__ < Vv__.n__); \
-        Vv__.s__[Vi__]; \
-    })
+LIBSAFE_INHEADER char SAFEV_at(SAFEV v, size_t i)
+{
+    LIBSAFE_ASSERT(i < v.n__);
+    return v.s__[i];
+}
 
 // Peeks at a byte of a view, or, if index is invalid, return 'alt'.
 LIBSAFE_INHEADER char SAFEV_at_or(SAFEV v, size_t i, char alt)
@@ -89,7 +89,7 @@ LIBSAFE_INHEADER char SAFEV_at_or(SAFEV v, size_t i, char alt)
 LIBSAFE_INHEADER size_t SAFEV_index_of(SAFEV v, unsigned char c)
 {
     const char *pos = v.n__ ? memchr(v.s__, c, v.n__) : NULL;
-    return pos ? pos - v.s__ : (size_t) -1;
+    return pos ? (size_t) (pos - v.s__) : (size_t) -1;
 }
 
 // Checks if a view 'v' starts with a view 'prefix'.
@@ -118,30 +118,25 @@ LIBSAFE_INHEADER bool SAFEV_equals(SAFEV v, SAFEV v1)
 
 // Constructs a subview of a view; 'i' is the starting index (inclusive), 'j' is the
 // ending index (exclusive).
-#define SAFEV_subspan(V_, I_, J_) \
-    ({ \
-        size_t Vi__ = (I_); \
-        size_t Vj__ = (J_); \
-        SAFEV Vv__ = (V_); \
-        LIBSAFE_ASSERT(Vi__ <= Vj__); \
-        LIBSAFE_ASSERT(Vj__ <= Vv__.n__); \
-        (SAFEV) { \
-            .s__ = Vv__.s__ + Vi__, \
-            .n__ = Vj__ - Vi__, \
-        }; \
-    })
+LIBSAFE_INHEADER SAFEV SAFEV_subspan(SAFEV v, size_t i, size_t j)
+{
+    LIBSAFE_ASSERT(i <= j);
+    LIBSAFE_ASSERT(j <= v.n__);
+    return (SAFEV) {
+        .s__ = v.s__ + i,
+        .n__ = j - i,
+    };
+}
 
 // Equivalent to 'SAFEV_subspan(v, from_idx, SAFEV_len(v))'.
-#define SAFEV_suffix(V_, FromIdx_) \
-    ({ \
-        SAFEV Vv__ = (V_); \
-        size_t Vi__ = (FromIdx_); \
-        LIBSAFE_ASSERT(Vi__ <= Vv__.n__); \
-        (SAFEV) { \
-            .s__ = Vv__.s__ + Vi__, \
-            .n__ = Vv__.n__ - Vi__, \
-        }; \
-    })
+LIBSAFE_INHEADER SAFEV SAFEV_suffix(SAFEV v, size_t from_idx)
+{
+    LIBSAFE_ASSERT(from_idx <= v.n__);
+    return (SAFEV) {
+        .s__ = v.s__ + from_idx,
+        .n__ = v.n__ - from_idx,
+    };
+}
 
 // Returns the pointer of a view.
 LIBSAFE_INHEADER const char *SAFEV_ptr_UNSAFE(SAFEV v)

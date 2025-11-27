@@ -196,15 +196,15 @@ Testing
 
 Here, at luastatus, we take code correctness and safety very seriously.
 We do the following things:
-  1. Use best practices for C programming:
-    * All non-trivial string processing goes through libsafe
-    * We mark printf-like functions with appropriate attributes in order to get warnings on illegal format string or wrong argument types
-    * We handle every error possible (except for cases where we can't, and don't want to, do anything about an error)
-    * We pay attention to integer overflows/underflows, conversion of integers to/from floating-point types, and other possible cases of undefined behavior
-    * We use typedef'd enum types instead of "untyped" integers to represent enum's values so that we can get warnings when a switch does not account for some value
-    * W use macros for (re)allocations that make it impossible to get types wrong
-  2. Compile with `-Wall -Wextra`
-  3. Have a comprehensive test suite; it contains tests for luastatus, barlibs and plugins, and also includes "torture"-style tests (a.k.a. stress tests)
+  * Use best practices for C programming:
+    - All non-trivial string processing goes through libsafe
+    - We mark printf-like functions with appropriate attributes in order to get warnings on illegal format string or wrong argument types
+    - We handle every error possible (except for cases where we can't, and don't want to, do anything about an error)
+    - We pay attention to integer overflows/underflows, conversion of integers to/from floating-point types, and other possible cases of undefined behavior
+    - We use typedef'd enum types instead of "untyped" integers to represent enum's values so that we can get warnings when a switch does not account for some value
+    - W use macros for (re)allocations that make it impossible to get types wrong
+  * Compile with `-Wall -Wextra`
+  * Have a comprehensive test suite; it contains tests for luastatus, barlibs and plugins, and also includes "torture"-style tests (a.k.a. stress tests)
 which bombard luastatus with a lot of events from a plugin and a barlib simultaneously:
     * It passes under valgrind [memcheck tool]
     * It passes under valgrind [helgrind tool]

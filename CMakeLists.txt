@@ -34,8 +34,8 @@ endif ()
 #------------------------------------------------------------------------------
 
 find_package (PkgConfig REQUIRED)
-option (WITH_LUA_LIBRARY "Lua library name" "-")
-if (NOT "${WITH_LUA_LIBRARY}" EQUAL "-")
+set (WITH_LUA_LIBRARY "-" CACHE STRING "Lua library name")
+if (NOT "${WITH_LUA_LIBRARY}" STREQUAL "-")
     pkg_search_module (LUA REQUIRED "${WITH_LUA_LIBRARY}")
 else ()
     pkg_search_module (LUA REQUIRED
