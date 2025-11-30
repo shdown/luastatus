@@ -275,8 +275,19 @@ Just for laughs, we `fuzzed <https://en.wikipedia.org/wiki/Fuzzing>`_ the JSON e
 and `AFL <https://lcamtuf.coredump.cx/afl/>`_ hasn't identified any issues.
 
 Also, luastatus has a comprehensive test suite, which includes many tests for this plugin; it
-passes both under **valgrind** and when compiled with **ubsan** (undefined behavior sanitizer,
-``-fsanitize=undefined``), under both GCC and Clang.
+passes under:
+
+* valgrind [memcheck tool];
+
+* valgrind [helgrind tool];
+
+* UBSAN (Undefined Behaviour Sanitizer);
+
+* ASAN (Address Sanitizer);
+
+* LSAN (Leak Sanitizer);
+
+* TSAN (Thread Sanitizer).
 
 Users concerned about security of such a setup might also want to verify the security of the underlying
 status bar program and intermediate libraries (e.g. YAJL in case of i3bar).
