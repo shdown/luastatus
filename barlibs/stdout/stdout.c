@@ -264,7 +264,7 @@ static int event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
 
     size_t line_buf_n = 1024;
     ssize_t line_n;
-    while ((line_n = getline(&line, &line_buf_n, f)) > 0) {
+    while ((line_n = getline(&line, &line_buf_n, f)) >= 0) {
 
         if (line_n && line[line_n - 1] == '\n') {
             --line_n;
