@@ -39,7 +39,7 @@ TESTCASES_JSON = {
     '\\0 NUL stuff',
     '\\0',
 }
-TESTCASE_JSON_BLOW_UP = 0
+TESTCASE_JSON_BLOW_UP = {}
 
 widget = {
     plugin = '$PT_BUILD_DIR/plugins/llamacxx/plugin-llamacxx.so',
@@ -103,12 +103,12 @@ pt_expect_line "2q:''2420''340214243130103031''1''35''" <&$pfd
 pt_expect_line 'json:' <&$pfd
 pt_expect_line 'json:normal stuff' <&$pfd
 pt_expect_line 'json:\u0022double-quoted stuff\u0022' <&$pfd
-pt_expect_line 'json:stuff with \u005cbackslash' <&$pfd
-pt_expect_line 'json:\u002f?\u002fstuff\u005cwith\u0022all_kinds\u0001of\u001fsymbols^' <&$pfd
+pt_expect_line 'json:stuff with \u005Cbackslash' <&$pfd
+pt_expect_line 'json:\u002F?\u002Fstuff\u005Cwith\u0022all_kinds\u0001of\u001Fsymbols^' <&$pfd
 
-pt_expect_line 'json:stuff with' <&$pfd
-pt_expect_line 'json:' <&$pfd
-pt_expect_line 'json:' <&$pfd
+pt_expect_line 'json:stuff with\u0000 NUL' <&$pfd
+pt_expect_line 'json:\u0000 NUL stuff' <&$pfd
+pt_expect_line 'json:\u0000' <&$pfd
 
 pt_expect_line 'json error ok' <&$pfd
 

@@ -263,8 +263,8 @@ the network, but this is not the default. This is the same as with our **mpd** p
 
 The longer answer to the second question is, "no, it's not possible".
 Aside from escaping JSON, we don't mess with the strings in any way.
-It's all libcurl and YAJL. Even functions provided to Lua (``escape_double_quoted``, ``escape_single_quoted`` and ``json_escape``)
-are implemented in Lua instead of C (see ``escape_lfuncs.c``).
+It's all libcurl and YAJL. Even ``escape_{double,single}_quoted`` functions provided to Lua
+are implemented in Lua instead of C (see ``escape_q.c``).
 
 This means any strings of the same length are equivalent in terms of security. And there are no
 reasons to suspect some string lengths are different from others, for this plugin, in terms of security.

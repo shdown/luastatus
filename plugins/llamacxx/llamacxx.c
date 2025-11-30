@@ -44,13 +44,17 @@
 #include "libls/ls_io_utils.h"
 #include "libls/ls_alloc_utils.h"
 #include "libls/ls_panic.h"
+#include "libls/ls_assert.h"
+
+#include "libsafe/safev.h"
 
 #include "conc_queue.h"
 #include "requester.h"
 #include "my_error.h"
 #include "dss_list.h"
 #include "pushed_str.h"
-#include "escape_lfuncs.h"
+#include "escape_q.h"
+#include "escape_json_str.h"
 #include "mini_luastatus.h"
 #include "describe_lua_err.h"
 #include "map_ref.h"
@@ -152,8 +156,7 @@ static bool perform_initial_checks(LuastatusPluginData *pd, Priv *p)
 static inline int connection_settings_begin(MoonVisit *mv)
 {
     // mv->L: ? opts
-    int rc = moon_visit_scrutinize_table(mv, -1, "connection", true) < 0;
-    if (rc < 0) {
+    if (moon_visit_scrutinize_table(mv, -1, "connection", true) < 0) {
         return -1;
     }
     if (lua_isnil(mv->L, -1)) {
@@ -327,6 +330,45 @@ error:
     return LUASTATUS_ERR;
 }
 
+static void append_to_lua_buf(void *ud, SAFEV segment)
+{
+    luaL_Buffer *b = ud;
+    luaL_addlstring(b, SAFEV_ptr_UNSAFE(segment), SAFEV_len(segment));
+}
+
+static int lfunc_json_escape(lua_State *L)
+{
+    size_t ns;
+    const char *s = luaL_checklstring(L, 1, &ns);
+
+    SAFEV v = SAFEV_new_UNSAFE(s, ns);
+
+    luaL_Buffer b;
+    luaL_buffinit(L, &b);
+
+    // L: ?
+
+    escape_json_generic(append_to_lua_buf, &b, v);
+
+    luaL_pushresult(&b); // L: ? result
+
+    return 1;
+}
+
+static void maybe_push_escape_q_lfunc(
+        LuastatusPluginData *pd,
+        lua_State *L,
+        const char *repl_old,
+        const char *repl_new)
+{
+    MyError e = {0};
+    if (!escape_q_make_lfunc(L, repl_old, repl_new, &e)) {
+        LS_ERRF(pd, "cannot make escape-quoted Lua func: %s", my_error_cstr(&e));
+        my_error_dispose(&e);
+        lua_pushnil(L);
+    }
+}
+
 static void register_funcs(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv;
@@ -343,12 +385,16 @@ static void register_funcs(LuastatusPluginData *pd, lua_State *L)
     lua_setfield(L, -2, "push_extra_params_json"); // L: table
 
     // L: table
-    MyError e = {0};
-    bool ok = register_all_escape_lfuncs(L, &e); // L: table
-    if (!ok) {
-        LS_WARNF(pd, "cannot register escape Lua functions: %s", my_error_cstr(&e));
-        my_error_dispose(&e);
-    }
+    lua_pushcfunction(L, lfunc_json_escape); // L: table func
+    lua_setfield(L, -2, "json_escape"); // L: table
+
+    // L: table
+    maybe_push_escape_q_lfunc(pd, L, "\"", "''"); // L: table func_or_nil
+    lua_setfield(L, -2, "escape_double_quoted"); // L: table
+
+    // L: table
+    maybe_push_escape_q_lfunc(pd, L, "'", "`"); // L: table func_or_nil
+    lua_setfield(L, -2, "escape_single_quoted"); // L: table
 }
 
 typedef struct {

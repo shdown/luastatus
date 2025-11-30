@@ -114,14 +114,20 @@ static inline bool valid_str(const char *s)
     return s && s[0] != '\0';
 }
 
+static void append_to_ls_string(void *ud, SAFEV segment)
+{
+    LS_String *dst = ud;
+    ls_string_append_b(dst, SAFEV_ptr_UNSAFE(segment), SAFEV_len(segment));
+}
+
 static LS_String make_req_body(Requester *R, const char *extra_params_json, SAFEV prompt)
 {
     LS_String r = ls_string_new_reserve(1024);
 
-    ls_string_append_s(&r, "{\"prompt\":");
-    append_json_escaped_str(&r, prompt);
+    ls_string_append_s(&r, "{\"prompt\":\"");
+    escape_json_generic(append_to_ls_string, &r, prompt);
 
-    ls_string_append_s(&r, ",\"response_fields\":[\"content\"]");
+    ls_string_append_s(&r, "\",\"response_fields\":[\"content\"]");
 
     ls_string_append_s(&r, ",\"cache_prompt\":");
     ls_string_append_s(&r, R->settings->cache_prompt ? "true" : "false");

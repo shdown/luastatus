@@ -17,13 +17,17 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef escape_quoted_h_
-#define escape_quoted_h_
+#ifndef escape_q_h_
+#define escape_q_h_
 
-#include <lua.h>
 #include <stdbool.h>
+#include <lua.h>
 #include "my_error.h"
 
-bool register_all_escape_lfuncs(lua_State *L, MyError *out_err);
+bool escape_q_make_lfunc(
+    lua_State *L,
+    const char *repl_old,
+    const char *repl_new,
+    MyError *out_err);
 
 #endif

@@ -17,7 +17,6 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -25,31 +24,26 @@
 #include <fcntl.h>
 
 #include "libls/ls_string.h"
+#include "libsafe/safev.h"
+#include "fuzz_utils/fuzz_utils.h"
 
 #include "../escape_json_str.h"
 
-static LS_String read_fully(int fd)
+static void append_to_ls_string(void *ud, SAFEV segment)
 {
-    LS_String res = ls_string_new();
-    for (;;) {
-        ls_string_ensure_avail(&res, 1);
-        ssize_t r = read(fd, res.data + res.size, res.capacity - res.size);
-        if (r < 0) {
-            perror("read");
-            abort();
-        } else if (r == 0) {
-            break;
-        } else {
-            res.size += r;
-        }
-    }
-    return res;
+    LS_String *dst = ud;
+    ls_string_append_b(dst, SAFEV_ptr_UNSAFE(segment), SAFEV_len(segment));
+}
+
+static inline void escape_json_append_to_ls_string(LS_String *dst, SAFEV v)
+{
+    escape_json_generic(append_to_ls_string, dst, v);
 }
 
 int main(int argc, char **argv)
 {
-    if (argc != 3) {
-        fprintf(stderr, "USAGE: harness INPUT_FILE OUTPUT_FILE\n");
+    if (argc != 2) {
+        fprintf(stderr, "USAGE: harness INPUT_FILE\n");
         return 2;
     }
 
@@ -59,34 +53,20 @@ int main(int argc, char **argv)
         abort();
     }
 
-    int fd_out = open(argv[2], O_WRONLY | O_CLOEXEC | O_APPEND);
-    if (fd_out < 0) {
-        perror(argv[2]);
+    FuzzInput input = fuzz_input_new_prealloc(1024);
+    if (fuzz_input_read(fd_in, &input) < 0) {
+        perror("read");
         abort();
     }
-
-    LS_String input = read_fully(fd_in);
 
     LS_String res = ls_string_new_from_s("escape result = ");
+    escape_json_append_to_ls_string(&res, SAFEV_new_UNSAFE(input.data, input.size));
 
-    ls_string_append_c(&input, '\0');
-    append_json_escaped_s(&res, input.data);
+    fuzz_utils_used(res.data, res.size);
 
-    uint8_t total_sum = 0;
-    for (size_t i = 0; i < res.size; ++i) {
-        total_sum += (uint8_t) res.data[i];
-    }
-
-    if (write(fd_out, &total_sum, 1) < 0) {
-        perror("write");
-        abort();
-    }
-
-    ls_string_free(input);
+    fuzz_input_free(input);
     ls_string_free(res);
-
     close(fd_in);
-    close(fd_out);
 
     return 0;
 }
