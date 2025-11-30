@@ -80,7 +80,7 @@ void append_line_to_kv_strarr(LS_StringArray *sa, SAFEV line)
     if (i == (size_t) -1) {
         return;
     }
-    if (SAFEV_at(line, i + 1) != ' ') {
+    if (SAFEV_at_or(line, i + 1, '\0') != ' ') {
         return;
     }
 
