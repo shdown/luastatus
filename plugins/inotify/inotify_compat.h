@@ -22,12 +22,9 @@
 
 #include <stdbool.h>
 #include <sys/inotify.h>
-#include <fcntl.h>
-#include <unistd.h>
 #include <errno.h>
 
 #include "libls/ls_io_utils.h"
-#include "libls/ls_osdep.h"
 #include "libls/ls_compdep.h"
 
 #include "probes.generated.h"

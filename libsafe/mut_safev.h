@@ -22,7 +22,6 @@
 
 #include "safe_common.h"
 #include <stddef.h>
-#include <string.h>
 #include "safev.h"
 
 typedef struct {
