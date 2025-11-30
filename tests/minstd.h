@@ -24,6 +24,7 @@
 #include <time.h>
 #include <unistd.h>
 #include "libls/ls_compdep.h"
+#include "libls/ls_assert.h"
 
 // MINSTD pseudo-random number generator, year 1990 version.
 
@@ -73,9 +74,10 @@ LS_INHEADER uint64_t minstd_prng_next_u64(MINSTD_Prng *P)
 }
 
 // Returns random integer x such that 0 <= x < limit.
-// If limit == 0, the behavior is undefined.
 LS_INHEADER uint32_t minstd_prng_next_limit_u32(MINSTD_Prng *P, uint32_t limit)
 {
+    LS_ASSERT(limit != 0);
+
     // /reject_thres/ is the largest value that fits into /uint64_t/ and
     // is divisible by /limit/.
     uint64_t reject_thres = UINT64_MAX - UINT64_MAX % limit;
