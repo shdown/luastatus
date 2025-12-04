@@ -362,4 +362,5 @@ void requester_destroy(Requester *R)
     curl_easy_cleanup(R->curl);
     curl_slist_free_all(R->headers);
     free(R->url);
+    free(R);
 }
