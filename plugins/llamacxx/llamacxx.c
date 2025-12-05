@@ -20,11 +20,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
-#include <math.h>
-#include <limits.h>
 #include <pthread.h>
 #include <stdbool.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
@@ -59,6 +56,7 @@
 #include "describe_lua_err.h"
 #include "map_ref.h"
 #include "priv.h"
+#include "parse_opts.h"
 
 static void destroy(LuastatusPluginData *pd)
 {
@@ -117,18 +115,6 @@ static int visit_data_sources_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
     return 1;
 }
 
-static bool req_timeout_double_to_int(double tmo, int *out)
-{
-    if (!isgreaterequal(tmo, 0.0)) {
-        return false;
-    }
-    if (tmo > INT_MAX) {
-        return INT_MAX;
-    }
-    *out = ceil(tmo);
-    return true;
-}
-
 static bool perform_initial_checks(LuastatusPluginData *pd, Priv *p)
 {
     size_t n = DSS_list_size(&p->dss_list);
@@ -153,29 +139,6 @@ static bool perform_initial_checks(LuastatusPluginData *pd, Priv *p)
     return true;
 }
 
-static inline int connection_settings_begin(MoonVisit *mv)
-{
-    // mv->L: ? opts
-    if (moon_visit_scrutinize_table(mv, -1, "connection", true) < 0) {
-        return -1;
-    }
-    if (lua_isnil(mv->L, -1)) {
-        // mv->L: ? opts nil
-        lua_pop(mv->L, 1); // mv->L: ? opts
-        lua_newtable(mv->L); // mv->L: ? opts empty_table
-        return 1;
-    } else {
-        // mv->L: ? opts connection
-        return 1;
-    }
-}
-
-static inline void connection_settings_end(MoonVisit *mv)
-{
-    // mv->L: ? opts connection
-    lua_pop(mv->L, 1); // mv->L: opts
-}
-
 static int init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
@@ -186,104 +149,7 @@ static int init(LuastatusPluginData *pd, lua_State *L)
     char errbuf[256];
     MoonVisit mv = {.L = L, .errbuf = errbuf, .nerrbuf = sizeof(errbuf)};
 
-    // Parse greet
-    if (moon_visit_bool(&mv, -1, "greet", &p->greet, true) < 0) {
-        goto mverror;
-    }
-
-    // <connection_settings>
-    if (connection_settings_begin(&mv) < 0) {
-        goto mverror;
-    }
-
-    // Parse hostname
-    if (moon_visit_str(&mv, -1, "hostname", &p->cnx_settings.hostname, NULL, true) < 0) {
-        goto mverror;
-    }
-    if (!p->cnx_settings.hostname) {
-        p->cnx_settings.hostname = ls_xstrdup("127.0.0.1");
-    }
-
-    // Parse port
-    uint64_t port = p->cnx_settings.port;
-    if (moon_visit_uint(&mv, -1, "port", &port, true) < 0) {
-        goto mverror;
-    }
-    if (port > 65535) {
-        LS_FATALF(pd, "'port' has invalid value");
-        goto error;
-    }
-    p->cnx_settings.port = port;
-
-    // Parse custom_iface
-    if (moon_visit_str(&mv, -1, "custom_iface", &p->cnx_settings.custom_iface, NULL, true) < 0) {
-        goto mverror;
-    }
-
-    // Parse use_ssl
-    if (moon_visit_bool(&mv, -1, "use_ssl", &p->cnx_settings.use_ssl, true) < 0) {
-        goto mverror;
-    }
-
-    // Parse req_timeout
-    double req_timeout = p->cnx_settings.req_timeout;
-    if (moon_visit_num(&mv, -1, "req_timeout", &req_timeout, true) < 0) {
-        goto mverror;
-    }
-    if (!req_timeout_double_to_int(req_timeout, &p->cnx_settings.req_timeout)) {
-        LS_FATALF(pd, "invalid req_timeout");
-        goto error;
-    }
-
-    // Parse log_all_traffic
-    if (moon_visit_bool(&mv, -1, "log_all_traffic", &p->cnx_settings.log_all_traffic, true) < 0) {
-        goto mverror;
-    }
-
-    // Parse log_response_on_error
-    if (moon_visit_bool(&mv, -1, "log_response_on_error", &p->cnx_settings.log_response_on_error, true) < 0) {
-        goto mverror;
-    }
-
-    // Parse max_response_bytes
-    uint64_t max_response_bytes = UINT64_MAX;
-    if (moon_visit_uint(&mv, -1, "max_response_bytes", &max_response_bytes, true) < 0) {
-        goto mverror;
-    }
-    if (max_response_bytes > UINT32_MAX) {
-        max_response_bytes = UINT32_MAX;
-    }
-    p->cnx_settings.max_response_bytes = max_response_bytes;
-
-    // </connection_settings>
-    connection_settings_end(&mv);
-
-    // Parse cache_prompt
-    if (moon_visit_bool(&mv, -1, "cache_prompt", &p->cnx_settings.cache_prompt, true) < 0) {
-        goto mverror;
-    }
-
-    // Parse extra_params_json
-    if (moon_visit_str(&mv, -1, "extra_params_json", &p->extra_params_json, NULL, true) < 0) {
-        goto mverror;
-    }
-
-    // Parse upd_timeout
-    if (moon_visit_num(&mv, -1, "upd_timeout", &p->upd_timeout, true) < 0) {
-        goto mverror;
-    }
-    if (!ls_double_is_good_time_delta(p->upd_timeout)) {
-        LS_FATALF(pd, "upd_timeout is invalid");
-        goto error;
-    }
-
-    // Parse tell_about_timeout
-    if (moon_visit_bool(&mv, -1, "tell_about_timeout", &p->tell_about_timeout, true) < 0) {
-        goto mverror;
-    }
-
-    // Parse report_mu
-    if (moon_visit_bool(&mv, -1, "report_mu", &p->report_mu, true) < 0) {
+    if (parse_opts(p, &mv) < 0) {
         goto mverror;
     }
 
@@ -302,17 +168,6 @@ static int init(LuastatusPluginData *pd, lua_State *L)
     // Parse data_sources
     if (moon_visit_table_f(&mv, -1, "data_sources", visit_data_sources_elem, p, true) < 0) {
         goto mverror;
-    }
-
-    // Parse prompt
-    {
-        // L: table
-        lua_getfield(L, -1, "prompt"); // L: table prompt
-        if (moon_visit_checktype_at(&mv, "prompt", -1, LUA_TFUNCTION) < 0) {
-            goto mverror;
-        }
-        p->lref_prompt_func = luaL_ref(L, LUA_REGISTRYINDEX); // L: table
-        LS_ASSERT(p->lref_prompt_func != LUA_REFNIL);
     }
 
     if (!perform_initial_checks(pd, p)) {
