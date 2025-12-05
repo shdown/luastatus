@@ -33,9 +33,9 @@ typedef enum {
 
 bool is_good_greeting(SAFEV v);
 
-ResponseType response_type(SAFEV s);
+ResponseType response_type(SAFEV v);
 
-void write_quoted(FILE *f, SAFEV s);
+void write_quoted(FILE *f, SAFEV v);
 
 // If /line/ is of form "key: value", appends /key/ and /value/ to /sa/.
 void append_line_to_kv_strarr(LS_StringArray *sa, SAFEV line);
