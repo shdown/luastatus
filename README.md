@@ -182,7 +182,7 @@ Supported Lua versions
 * 5.2
 * 5.3
 * 5.4
-* 5.5 (rc1, not released yet)
+* 5.5
 
 Reporting bugs, requesting features, suggesting patches
 ===
