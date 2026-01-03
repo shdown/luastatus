@@ -3,14 +3,14 @@ import os
 import sys
 
 
-def say(*args):
-    print(*args, file=sys.stderr)
+def say(s: str) -> None:
+    print(s, file=sys.stderr)
 
 
-def main():
+def main() -> None:
     args = sys.argv[1:]
     if not args:
-        say(f'USAGE: check_final_newline.py FILE [FILE ...]')
+        say('USAGE: check_final_newline.py FILE [FILE ...]')
         sys.exit(2)
 
     everything_ok = True
