@@ -59,7 +59,7 @@ LS_INHEADER MINSTD_Prng minstd_prng_new(uint32_t seed)
     return (MINSTD_Prng) {res};
 }
 
-LS_INHEADER uint32_t minstd_prng_next_u32(MINSTD_Prng *P)
+LS_INHEADER uint32_t minstd_prng_next_raw(MINSTD_Prng *P)
 {
     uint64_t prod = ((uint64_t) P->x) * MINSTD_A;
     P->x = prod % MINSTD_M;
@@ -68,9 +68,12 @@ LS_INHEADER uint32_t minstd_prng_next_u32(MINSTD_Prng *P)
 
 LS_INHEADER uint64_t minstd_prng_next_u64(MINSTD_Prng *P)
 {
-    uint32_t lo = minstd_prng_next_u32(P);
-    uint32_t hi = minstd_prng_next_u32(P);
-    return lo | (((uint64_t) hi) << 32);
+    uint64_t res = 0;
+    for (int i = 0; i < 5; ++i) {
+        res *= MINSTD_M;
+        res += minstd_prng_next_raw(P);
+    }
+    return res;
 }
 
 // Returns random integer x such that 0 <= x < limit.
