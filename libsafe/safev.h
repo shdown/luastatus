@@ -57,10 +57,10 @@ LIBSAFE_INHEADER SAFEV SAFEV_new_from_cstr_UNSAFE(const char *cstr)
 
 #define SAFEV_new_from_literal(StrLit_) SAFEV_new_from_cstr_UNSAFE("" StrLit_)
 
-// The static initializer for SAFEV.
+// A static initializer for SAFEV (from a pointer and length).
 #define SAFEV_STATIC_INIT_UNSAFE(Ptr_, Len_) {.s__ = (Ptr_), .n__ = (Len_)}
 
-// The static initializer for SAFEV.
+// A static initializer for SAFEV (from a string literal).
 #define SAFEV_STATIC_INIT_FROM_LITERAL(StrLit_) \
     { \
         .s__ = "" StrLit_, \
