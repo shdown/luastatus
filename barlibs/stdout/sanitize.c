@@ -35,7 +35,7 @@ void append_sanitized(LS_String *buf, SAFEV v)
             break;
         }
         append_sv(buf, SAFEV_subspan(v, 0, i));
-        v = SAFEV_suffix(v, i);
+        v = SAFEV_suffix(v, i + 1);
     }
     append_sv(buf, v);
 }

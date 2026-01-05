@@ -40,6 +40,7 @@ O_ERROR=
 x_testcase_output 'nil' ''
 x_testcase_output '""' ''
 x_testcase_output '"foo bar"' 'foo bar'
+x_testcase_output '"foo\nbar"' 'foobar'
 x_testcase_output '"?%%"' '?%%'
 x_testcase_output '{"foo", "bar", "baz", "quiz"}' 'foo | bar | baz | quiz'
 O_SEPARATOR='tum' \
