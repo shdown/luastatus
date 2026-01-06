@@ -24,7 +24,7 @@
 #include <stdbool.h>
 #include <linux/if_ether.h>
 
-#define ESSID_MAX 32
+enum { ESSID_MAX = 32 };
 
 enum {
     HAS_ESSID         = 1 << 0,
