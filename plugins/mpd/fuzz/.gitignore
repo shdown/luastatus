@@ -1,0 +1,8 @@
+harness_check_greeting
+harness_get_resp_type
+harness_write_quoted
+harness_append_kv
+findings_check_greeting
+findings_get_resp_type
+findings_write_quoted
+findings_append_kv

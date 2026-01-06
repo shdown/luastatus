@@ -1,7 +1,5 @@
 #!/bin/sh
 
-set -e
-
 if [ -z "$CC" ]; then
     echo >&2 "You must set the 'CC' environment variable."
     echo >&2 "Hint: you probably want to set 'CC' to 'some-directory/afl-gcc'."
@@ -15,11 +13,12 @@ luastatus_root=../../..
 $CC -Wall -Wextra -O3 -fsanitize=undefined -std=c99 -D_POSIX_C_SOURCE=200809L \
     -I"$luastatus_root" \
     ./harness.c \
-    ../escape_json_str.c \
+    ../markup_utils.c \
     "$luastatus_root"/libls/ls_string.c \
     "$luastatus_root"/libls/ls_alloc_utils.c \
     "$luastatus_root"/libls/ls_panic.c \
     "$luastatus_root"/libls/ls_assert.c \
     "$luastatus_root"/libls/ls_cstring_utils.c \
+    "$luastatus_root"/libls/ls_parse_int.c \
     "$luastatus_root"/libsafe/*.c \
     -o harness

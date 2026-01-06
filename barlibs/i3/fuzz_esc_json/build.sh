@@ -1,7 +1,5 @@
 #!/bin/sh
 
-set -e
-
 if [ -z "$CC" ]; then
     echo >&2 "You must set the 'CC' environment variable."
     echo >&2 "Hint: you probably want to set 'CC' to 'some-directory/afl-gcc'."
