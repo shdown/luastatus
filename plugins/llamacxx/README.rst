@@ -271,8 +271,8 @@ reasons to suspect some string lengths are different from others, for this plugi
 This is mostly due to the fact that we don't use stack allocation for these things; instead, we use
 heap-allocated resizable strings.
 
-Just for laughs, we `fuzzed <https://en.wikipedia.org/wiki/Fuzzing>`_ the JSON escaping function (see FUZZING.md),
-and `AFL <https://lcamtuf.coredump.cx/afl/>`_ hasn't identified any issues.
+Just for laughs, we `fuzzed <https://en.wikipedia.org/wiki/Fuzzing>`_ the JSON escaping function (see `fuzz` directory),
+and both AFL and AFL++ haven't identified any issues.
 
 Also, luastatus has a comprehensive test suite, which includes many tests for this plugin; it
 passes under:
