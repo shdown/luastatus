@@ -235,8 +235,9 @@ static int l_add_watch(lua_State *L)
     char errbuf[256];
     MoonVisit mv = {.L = L, .errbuf = errbuf, .nerrbuf = sizeof(errbuf)};
 
-    // Coerce to exactly 2 arguments
-    lua_settop(L, 2);
+    // Check we have at least two arguments
+    luaL_checkany(L, 1);
+    luaL_checkany(L, 2);
 
     // Parse first arg
     if (moon_visit_checktype_at(&mv, "argument #1", 1, LUA_TSTRING) < 0)
