@@ -189,19 +189,62 @@ fail:
     return 2;
 }
 
+static pid_t parse_pid(const char *s)
+{
+    if (!*s) {
+        goto fail;
+    }
+    intmax_t mres = 0;
+    for (; *s; ++s) {
+        int digit = ((int) *s) - '0';
+        if (digit < 0 || digit > 9) {
+            goto fail;
+        }
+        if (mres > INTMAX_MAX / 10) {
+            goto fail;
+        }
+        mres *= 10;
+        if (mres > INTMAX_MAX - digit) {
+            goto fail;
+        }
+        mres += digit;
+    }
+    pid_t res = mres;
+    if (res <= 0 || res != mres) {
+        goto fail;
+    }
+    return res;
+
+fail:
+    return -1;
+}
+
 int procalive_lfunc_is_process_alive(lua_State *L)
 {
-    double pid_d = luaL_checknumber(L, 1);
-    if (!isgreaterequal(pid_d, 1.0)) {
-        return luaL_argerror(L, 1, "must be >= 1");
-    }
-    if (pid_d >= UINT_MAX) {
-        return luaL_argerror(L, 1, "too large");
-    }
+    luaL_checkany(L, 1);
 
-    pid_t pid = (pid_t) (unsigned) pid_d;
-    if (pid <= 0) {
-        return luaL_argerror(L, 1, "somehow out of range of pid_t");
+    pid_t pid;
+
+    if (lua_isstring(L, 1)) {
+        pid = parse_pid(lua_tostring(L, 1));
+        if (pid <= 0) {
+            return luaL_argerror(L, 1, "cannot parse string as PID");
+        }
+    } else if (lua_isnumber(L, 1)) {
+        double d = lua_tonumber(L, 1);
+        if (!isgreaterequal(d, 1.0)) {
+            return luaL_argerror(L, 1, "must be >= 1");
+        }
+        if (d > INT_MAX) {
+            return luaL_argerror(L, 1, "too large");
+        }
+        int i = (int) d;
+        pid = (pid_t) i;
+        if (pid <= 0 || pid != i) {
+            return luaL_argerror(L, 1, "somehow out of range of pid_t");
+        }
+    } else {
+        return luaL_argerror(L, 1, "neither number nor string");
     }
 
     bool res = (kill(pid, 0) >= 0 || errno == EPERM);

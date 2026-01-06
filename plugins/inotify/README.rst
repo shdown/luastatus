@@ -137,7 +137,8 @@ to watch the state of some process(es):
 
 * ``is_alive = luastatus.plugin.is_process_alive(pid)``
 
-  Checks if a process with PID ``pid`` is currently alive. ``pid`` must be a number.
+  Checks if a process with PID ``pid`` is currently alive. ``pid`` must be either
+  a number or a string.
   Returns a boolean that indicates whether the process is alive.
 
 Events and flag names

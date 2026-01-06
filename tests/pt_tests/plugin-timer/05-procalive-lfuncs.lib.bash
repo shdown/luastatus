@@ -48,7 +48,10 @@ widget = {
         assert(array_contains(S(luastatus.plugin.glob('./*')), './pt.sh'))
 
         assert(luastatus.plugin.is_process_alive($$))
+        assert(luastatus.plugin.is_process_alive("$$"))
+
         assert(luastatus.plugin.is_process_alive(1))
+        assert(luastatus.plugin.is_process_alive("1"))
 
         while true do
             local random_pid = math.random(2, 1073741823)
