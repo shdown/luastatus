@@ -34,6 +34,7 @@
 
 #include "libmoonvisit/moonvisit.h"
 
+#include "libls/ls_algo.h"
 #include "libls/ls_alloc_utils.h"
 #include "libls/ls_tls_ebuf.h"
 #include "libls/ls_evloop_lfuncs.h"
@@ -134,9 +135,10 @@ static const EventType EVENT_TYPES[] = {
     {IN_ISDIR,         false, true,  "isdir"},
     {IN_Q_OVERFLOW,    false, true,  "q_overflow"},
     {IN_UNMOUNT,       false, true,  "unmount"},
-
-    {.name = NULL},
 };
+enum { EVENT_TYPES_NUM = LS_ARRAY_SIZE(EVENT_TYPES) };
+
+#define EVENT_TYPES_END (EVENT_TYPES + EVENT_TYPES_NUM)
 
 static int parse_evlist_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
 {
@@ -150,7 +152,7 @@ static int parse_evlist_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
 
     const char *s = lua_tostring(mv->L, vpos);
 
-    for (const EventType *et = EVENT_TYPES; et->name; ++et) {
+    for (const EventType *et = EVENT_TYPES; et != EVENT_TYPES_END; ++et) {
         if (et->in && strcmp(et->name, s) == 0) {
             *mask |= et->mask;
             return 1;
@@ -297,8 +299,8 @@ static int l_get_initial_wds(lua_State *L)
 
 static int l_get_supported_events(lua_State *L)
 {
-    lua_newtable(L); // L: table
-    for (const EventType *et = EVENT_TYPES; et->name; ++et) {
+    lua_createtable(L, 0, EVENT_TYPES_NUM); // L: table
+    for (const EventType *et = EVENT_TYPES; et != EVENT_TYPES_END; ++et) {
         const char *v = et->in ? (et->out ? "io" : "i") : "o";
         lua_pushstring(L, v); // L: table v
         lua_setfield(L, -2, et->name); // L: table
@@ -347,7 +349,7 @@ static void push_event(lua_State *L, const struct inotify_event *event)
     lua_setfield(L, -2, "wd"); // L: table
 
     lua_newtable(L); // L: table table
-    for (const EventType *et = EVENT_TYPES; et->name; ++et) {
+    for (const EventType *et = EVENT_TYPES; et != EVENT_TYPES_END; ++et) {
         if (et->out && (event->mask & et->mask)) {
             lua_pushboolean(L, true); // L: table table true
             lua_setfield(L, -2, et->name); // L: table table
