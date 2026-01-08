@@ -48,6 +48,13 @@ static const char *my_strerror(int errnum)
     return r == 0 ? errbuf : "unknown error or truncated error message";
 }
 
+#ifdef LUA_MAXINTEGER
+# define MAXI \
+    (LUA_MAXINTEGER > (SIZE_MAX - 1) ? (SIZE_MAX - 1) : LUA_MAXINTEGER)
+#else
+# define MAXI INT_MAX
+#endif
+
 int procalive_lfunc_access(lua_State *L)
 {
     const char *path = luaL_checkstring(L, 1);
@@ -119,22 +126,10 @@ int procalive_lfunc_stat(lua_State *L)
 
 static bool push_glob_t(lua_State *L, glob_t *g)
 {
-#if defined(LUA_MAXINTEGER)
-# define CMP_AGAINST LUA_MAXINTEGER
-#else
-# define CMP_AGAINST INT32_MAX
-#endif
-
-#if CMP_AGAINST < SIZE_MAX
-    if (g->gl_pathc > (size_t) CMP_AGAINST) {
+    if (g->gl_pathc > (size_t) MAXI) {
         return false;
     }
-#endif
-
-#undef CMP_AGAINST
-
-    lua_createtable(L, g->gl_pathc, 0);
-    // L: array
+    lua_createtable(L, g->gl_pathc, 0); // L: array
     for (size_t i = 0; i < g->gl_pathc; ++i) {
         lua_pushstring(L, g->gl_pathv[i]); // L: array str
         lua_rawseti(L, -2, i + 1); // L: array

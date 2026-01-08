@@ -34,6 +34,8 @@
 #include "libls/ls_parse_int.h"
 #include "libls/ls_strarr.h"
 #include "libls/ls_panic.h"
+#include "libls/ls_assert.h"
+#include "libls/ls_lua_compat.h"
 #include "libls/ls_alloc_utils.h"
 #include "libls/ls_freemem.h"
 #include "libls/ls_assert.h"
@@ -125,8 +127,9 @@ static void push_object(lua_State *L, Context *ctx, size_t *index)
     case TYPE_ARRAY_START:
         lua_newtable(L); // L: table
         ++*index;
-        for (unsigned n = 1; ctx->tokens.data[*index].type != TYPE_ARRAY_END; ++n) {
+        for (size_t n = 1; ctx->tokens.data[*index].type != TYPE_ARRAY_END; ++n) {
             push_object(L, ctx, index); // L: table elem
+            LS_ASSERT(n <= (size_t) LS_LUA_MAXI);
             lua_rawseti(L, -2, n); // L: table
         }
         break;

@@ -23,12 +23,14 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include <limits.h>
 #include <string.h>
 #include <stdbool.h>
 #include <glib/gtypes.h>
 #include <lua.h>
 #include "libls/ls_compdep.h"
 #include "libls/ls_assert.h"
+#include "libls/ls_lua_compat.h"
 
 static int l_special_object(lua_State *L)
 {
@@ -72,6 +74,14 @@ static inline void push_gvariant_strlike(lua_State *L, GVariant *var)
     lua_pushlstring(L, s, ns);
 }
 
+static inline int get_lua_table_num_prealloc(size_t n)
+{
+    if (n > (size_t) INT_MAX) {
+        return INT_MAX;
+    }
+    return n;
+}
+
 static void push_gvariant_iterable(lua_State *L, GVariant *var, unsigned recurlim)
 {
     if (!recurlim--) {
@@ -79,15 +89,22 @@ static void push_gvariant_iterable(lua_State *L, GVariant *var, unsigned recurli
         return;
     }
 
-    lua_newtable(L); // L: table
-
     GVariantIter iter;
     g_variant_iter_init(&iter, var);
+
+    size_t n = g_variant_iter_n_children(&iter);
+    if (n > (size_t) LS_LUA_MAXI) {
+        push_special_object(L, "array would be too big", -1, true);
+        return;
+    }
+
+    lua_createtable(L, get_lua_table_num_prealloc(n), 0); // L: table
+
     GVariant *elem;
-    for (unsigned i = 1; (elem = g_variant_iter_next_value(&iter)); ++i) {
+    for (size_t i = 1; (elem = g_variant_iter_next_value(&iter)); ++i) {
         push_gvariant(L, elem, recurlim); // L: table value
-        lua_rawseti(L, -2, i); // L: table
         g_variant_unref(elem);
+        lua_rawseti(L, -2, i); // L: table
     }
 }
 

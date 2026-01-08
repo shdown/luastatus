@@ -24,6 +24,16 @@
 #include <lauxlib.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
+#include <limits.h>
+#include "ls_compdep.h"
+
+#if LUA_VERSION_NUM >= 504
+#   define ls_lua_pushfail(L_) luaL_pushfail(L_)
+#else
+#   define ls_lua_pushfail(L_) lua_pushnil(L_)
+#endif
+
 #include "ls_compdep.h"
 
 #if LUA_VERSION_NUM >= 504
@@ -58,5 +68,12 @@ LS_INHEADER size_t ls_lua_array_len(lua_State *L, int pos)
     return lua_rawlen(L, pos);
 #endif
 }
+
+#ifdef LUA_MAXINTEGER
+# define LS_LUA_MAXI \
+    (LUA_MAXINTEGER > (SIZE_MAX - 1) ? (SIZE_MAX - 1) : LUA_MAXINTEGER)
+#else
+# define LS_LUA_MAXI INT_MAX
+#endif
 
 #endif
