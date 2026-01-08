@@ -7,6 +7,11 @@ if [ -z "$XXX_AFL_DIR" ]; then
     exit 1
 fi
 
+# We add '-d' argument for original AFL because otherwise it
+# does not terminate within 24 hours.
+#
+# '-d' means "quick & dirty mode (skips deterministic steps)".
+
 case "$XXX_AFL_IS_PP" in
 0)
     extra_opts='-d'
@@ -21,6 +26,10 @@ case "$XXX_AFL_IS_PP" in
     exit 1
 esac
 
+# We also set AFL_NO_ARITH=1 because it's a text-based format.
+# This potentially speeds up fuzzing.
+export AFL_NO_ARITH=1
+
 cd -- "$(dirname "$(readlink "$0" || printf '%s\n' "$0")")"
 
 mkdir -p ./findings
@@ -28,6 +37,5 @@ mkdir -p ./findings
 export UBSAN_OPTIONS=halt_on_error=1
 
 export AFL_EXIT_WHEN_DONE=1
-export AFL_NO_ARITH=1
 
 "$XXX_AFL_DIR"/afl-fuzz $extra_opts -i testcases -o findings -t 5 ./harness @@
