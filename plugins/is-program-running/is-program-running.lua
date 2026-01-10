@@ -47,18 +47,13 @@ function P.make_watcher(kind, path)
             if not f then
                 return false
             end
-            local pid = f:read('*number')
+            local pid = f:read('*line')
             f:close()
             if not pid then
                 return false
             end
-            if not (pid >= 1) then
-                return false
-            end
-            if pid > 0x7fffffff then
-                return false
-            end
-            return luastatus.plugin.is_process_alive(pid)
+            local is_ok, is_alive = pcall(luastatus.plugin.is_process_alive, pid)
+            return is_ok and is_alive
         end
 
     elseif kind == 'file_exists' then
