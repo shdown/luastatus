@@ -381,32 +381,6 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         XEvent event = {0};
         XNextEvent(dpy, &event);
 
-        //
-        // So, the authors of the X11 event handling thing surely wanted X11 clients to perform
-        // casts that break the strict aliasing rule, as defined in the C standard: there are X
-        // server "extensions" that define their own event structures (e.g. XKB), but 'XEvent' is
-        // defined as union of everything that the X server may send *without* extensions.
-        //
-        // So, technically, '(XkbAnyEvent *) &event', where 'event' has type of 'XEvent', is
-        // undefined behaviour. One known trick to mitigate that is to perform a memcpy:
-        //     XkbAnyEvent anyev;
-        //     memcpy(&anyev, &event, sizeof(anyev));
-        // The overhead of copying is acceptable in our case, but not in general.
-        //
-        // Curiously, the Berkeley sockets API has the same problem; if 'sa' has type of, e.g.,
-        // 'struct sockaddr_in', then both
-        //     connect(fd, (struct sockaddr *) &sa, sizeof(sa))
-        // and
-        //     bind(fd, (struct sockaddr *) &sa, sizeof(sa))
-        // are undefined behaviour, unless some compiler-dependent hacks are used. For compilers
-        // that are GNU C-compatible, such a hack is transparent unions, and they are in fact used
-        // in glibc's <sys/socket.h>:
-        //
-        //     typedef union { __SOCKADDR_ALLTYPES
-        //                   } __SOCKADDR_ARG __attribute__ ((__transparent_union__));
-        //
-        // Ugh.
-
         // interpret the event
         requery_everything = false;
         if (event.type == ext_base_ev_code) {
