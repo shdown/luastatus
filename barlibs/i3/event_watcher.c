@@ -117,27 +117,27 @@ typedef struct {
     LuastatusBarlibEWFuncs funcs;
 } Context;
 
-// Converts a JSON object that starts at the token with index /*index/ in /ctx->tokens/, to a Lua
+// Converts a JSON object that starts at the token with index /*idx/ in /ctx->tokens/, to a Lua
 // object, and pushes it onto /L/'s stack.
-// Advances /*index/ so that it points to one token past the last token of the object.
-static void push_object(lua_State *L, Context *ctx, size_t *index)
+// Advances /*idx/ so that it points to one token past the last token of the object.
+static void push_object(lua_State *L, Context *ctx, size_t *idx)
 {
-    Token t = ctx->tokens.data[*index];
+    Token t = ctx->tokens.data[*idx];
     switch (t.type) {
     case TYPE_ARRAY_START:
         lua_newtable(L); // L: table
-        ++*index;
-        for (size_t n = 1; ctx->tokens.data[*index].type != TYPE_ARRAY_END; ++n) {
-            push_object(L, ctx, index); // L: table elem
+        ++*idx;
+        for (size_t n = 1; ctx->tokens.data[*idx].type != TYPE_ARRAY_END; ++n) {
+            push_object(L, ctx, idx); // L: table elem
             LS_ASSERT(n <= (size_t) LS_LUA_MAXI);
             lua_rawseti(L, -2, n); // L: table
         }
         break;
     case TYPE_MAP_START:
         lua_newtable(L); // L: table
-        ++*index;
-        while (ctx->tokens.data[*index].type != TYPE_MAP_END) {
-            Token key = ctx->tokens.data[*index];
+        ++*idx;
+        while (ctx->tokens.data[*idx].type != TYPE_MAP_END) {
+            Token key = ctx->tokens.data[*idx];
             LS_ASSERT(key.type == TYPE_STRING_KEY);
 
             // To limit the maximum number of slots pushed onto /L/'s stack to /N + O(1)/, where /N/
@@ -145,8 +145,8 @@ static void push_object(lua_State *L, Context *ctx, size_t *index)
             // Unfortunately, /lua_settable()/ expects the key to be pushed first. So we simply swap
             // them with /lua_insert()/.
 
-            ++*index;
-            push_object(L, ctx, index); // L: table value
+            ++*idx;
+            push_object(L, ctx, idx); // L: table value
 
             size_t ns;
             const char *s = ls_strarr_at(ctx->strarr, key.as.str_idx, &ns);
@@ -175,8 +175,8 @@ static void push_object(lua_State *L, Context *ctx, size_t *index)
     default:
         LS_MUST_BE_UNREACHABLE();
     }
-    // Now, /*index/ points to the last token of the object; increment it by one.
-    ++*index;
+    // Now, /*idx/ points to the last token of the object; increment it by one.
+    ++*idx;
 }
 
 static void flush(Context *ctx)
@@ -185,9 +185,9 @@ static void flush(Context *ctx)
 
     if (ctx->widget >= 0 && (size_t) ctx->widget < p->nwidgets) {
         lua_State *L = ctx->funcs.call_begin(ctx->bd->userdata, ctx->widget);
-        size_t index = 0;
-        push_object(L, ctx, &index);
-        LS_ASSERT(index == ctx->tokens.size);
+        size_t idx = 0;
+        push_object(L, ctx, &idx);
+        LS_ASSERT(idx == ctx->tokens.size);
         ctx->funcs.call_end(ctx->bd->userdata, ctx->widget);
     }
 

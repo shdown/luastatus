@@ -79,14 +79,14 @@ LS_INHEADER size_t ls_strarr_size(LS_StringArray sa)
     return sa.offsets.size;
 }
 
-LS_INHEADER const char *ls_strarr_at(LS_StringArray sa, size_t index, size_t *n)
+LS_INHEADER const char *ls_strarr_at(LS_StringArray sa, size_t i, size_t *n)
 {
-    LS_ASSERT(index < sa.offsets.size);
+    LS_ASSERT(i < sa.offsets.size);
 
-    size_t begin = sa.offsets.data[index];
-    size_t end = index + 1 == sa.offsets.size
+    size_t begin = sa.offsets.data[i];
+    size_t end = i + 1 == sa.offsets.size
         ? sa.buf.size
-        : sa.offsets.data[index + 1];
+        : sa.offsets.data[i + 1];
     if (n) {
         *n = end - begin;
     }
