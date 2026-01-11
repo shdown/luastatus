@@ -35,6 +35,7 @@
 #include "libmoonvisit/moonvisit.h"
 
 #include "libls/ls_alloc_utils.h"
+#include "libls/ls_assert.h"
 #include "libls/ls_evloop_lfuncs.h"
 #include "libls/ls_string.h"
 #include "libls/ls_tls_ebuf.h"
@@ -240,14 +241,14 @@ static void report_status(
 static void report_line(
         LuastatusPluginData *pd,
         LuastatusPluginRunFuncs funcs,
-        const char *line_begin,
-        const char *line_end)
+        const char *line,
+        size_t nline)
 {
     lua_State *L = funcs.call_begin(pd->userdata);
     lua_createtable(L, 0, 2); // L: table
     lua_pushstring(L, "line"); // L: table str
     lua_setfield(L, -2, "what"); // L: table
-    lua_pushlstring(L, line_begin, line_end - line_begin); // L: table str
+    lua_pushlstring(L, line, nline); // L: table str
     lua_setfield(L, -2, "line"); // L: table
     funcs.call_end(pd->userdata);
 }
@@ -291,6 +292,22 @@ static int mk_server(LuastatusPluginData *pd)
 error:
     ls_close(sockfd);
     return -1;
+}
+
+static size_t find_NL(LS_String buf, size_t last_read_n)
+{
+    LS_ASSERT(last_read_n != 0);
+    LS_ASSERT(last_read_n >= buf.size);
+
+    const char *pos = memchr(
+        buf.data + buf.size - last_read_n,
+        '\n',
+        last_read_n);
+
+    if (!pos) {
+        return -1;
+    }
+    return pos - buf.data;
 }
 
 enum { NCHUNK = 1024 };
@@ -367,16 +384,16 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
                 continue;
             }
 
-            char *ptr = memchr(c->buf.data + c->buf.size, '\n', r);
-            if (ptr) {
-                report_line(pd, funcs, c->buf.data, ptr);
-                deadline = new_deadline(p);
+            c->buf.size += r;
 
+            size_t NL_pos = find_NL(c->buf, r);
+            if (NL_pos != (size_t) -1) {
+                report_line(pd, funcs, c->buf.data, NL_pos);
+
+                deadline = new_deadline(p);
                 client_drop(c);
-                continue;
             }
 
-            c->buf.size += r;
         }
 
         server_state_compact(&st);
