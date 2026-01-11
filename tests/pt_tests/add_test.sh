@@ -10,7 +10,7 @@ new_name=${3?}
 
 cd -- "$dest_dir"
 
-prev_testcases_raw=$(printf '%s\n' [0-9][0-9]-*.lib.bash | sort -r)
+prev_testcases_raw=$(printf '%s\n' [0-9][0-9]-*.lib.bash | LC_ALL=C sort -r)
 prev_testcases=( $prev_testcases_raw )
 
 echo >&2 "Current number of testcases: ${#prev_testcases[@]}"

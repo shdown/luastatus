@@ -37,7 +37,7 @@ listnets_binary=$PT_BUILD_DIR/tests/listnets
 c=0; nets=$("$listnets_binary") || c=$?
 case "$c" in
 0)
-    nets=$(printf '%s\n' "$nets" | sort | tr '\n' ';')
+    nets=$(printf '%s\n' "$nets" | LC_ALL=C sort | tr '\n' ';')
     expect_str="cb table $nets"
     ;;
 1)
