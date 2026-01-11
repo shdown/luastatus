@@ -28,7 +28,7 @@
 #include <errno.h>
 #include <libwebsockets.h>
 #include "workmode.h"
-#include "fatal_error.h"
+#include "panic.h"
 
 typedef struct {
     WorkMode *wm;
@@ -268,22 +268,28 @@ static const struct lws_http_mount mount = {
 enum {
     AS_TYPE_STR,
     AS_TYPE_INT,
-    AS_TYPE_FLAG,
+    AS_TYPE_BOOL,
+};
 
-    AS_TYPE_FLAG_WRITTEN_TO = 1 << 10,
-    AS_TYPE_FLAG_NEG_OK     = 1 << 11,
+// First bit of "flags" part of ArgSpec::bits
+enum {
+    AS_FLAGS_FIRST_BIT = 1 << 10,
+};
+enum {
+    AS_FLAG_WRITTEN_TO = AS_FLAGS_FIRST_BIT << 0,
+    AS_FLAG_NEG_OK     = AS_FLAGS_FIRST_BIT << 1,
 };
 
 typedef struct {
     int is_required;
     const char *spelling;
-    int type;
+    int bits;
     void *dst;
 } ArgSpec;
 
 static int parse_single_arg(const ArgSpec *AS, const char *v)
 {
-    int type = AS->type & ~(AS_TYPE_FLAG_WRITTEN_TO | AS_TYPE_FLAG_NEG_OK);
+    int type = AS->bits & (AS_FLAGS_FIRST_BIT - 1);
     switch (type) {
 
     case AS_TYPE_STR:
@@ -297,14 +303,14 @@ static int parse_single_arg(const ArgSpec *AS, const char *v)
                 fprintf(stderr, "Cannot parse value '%s', passed as option '%s', into int.\n", v, AS->spelling);
                 return -1;
             }
-            if (!(AS->type & AS_TYPE_FLAG_NEG_OK) && *dst < 0) {
+            if (!(AS->bits & AS_FLAG_NEG_OK) && *dst < 0) {
                 fprintf(stderr, "Value '%s', passed as option '%s', is negative.\n", v, AS->spelling);
                 return -1;
             }
         }
         return 1;
 
-    case AS_TYPE_FLAG:
+    case AS_TYPE_BOOL:
         if (v[0] != '\0') {
             return 0;
         }
@@ -338,7 +344,7 @@ static bool parse_args(ArgSpec *AS, int argc, char **argv)
             } else if (rc == 0) {
                 continue;
             }
-            p->type |= AS_TYPE_FLAG_WRITTEN_TO;
+            p->bits |= AS_FLAG_WRITTEN_TO;
             found = true;
             break;
         }
@@ -348,7 +354,7 @@ static bool parse_args(ArgSpec *AS, int argc, char **argv)
         }
     }
     for (ArgSpec *p = AS; p->spelling; ++p) {
-        if (p->is_required && !(p->type & AS_TYPE_FLAG_WRITTEN_TO)) {
+        if (p->is_required && !(p->bits & AS_FLAG_WRITTEN_TO)) {
             fprintf(stderr, "Required argument '%s' was not specified.\n", p->spelling);
             return false;
         }
@@ -393,9 +399,9 @@ int main(int argc, char **argv)
         {0, "--resp-string=",      AS_TYPE_STR,  &options.resp_string},
         {0, "--resp-pattern=",     AS_TYPE_STR,  &options.resp_pattern},
         {0, "--max-requests=",     AS_TYPE_INT,  &options.max_requests},
-        {0, "--notify-ready",      AS_TYPE_FLAG, &options.notify_ready},
+        {0, "--notify-ready",      AS_TYPE_BOOL, &options.notify_ready},
 
-        {0, "--freeze-for=",       AS_TYPE_INT | AS_TYPE_FLAG_NEG_OK, &options.freeze_for},
+        {0, "--freeze-for=",       AS_TYPE_INT | AS_FLAG_NEG_OK, &options.freeze_for},
 
         {0},
     };

@@ -23,11 +23,12 @@
 #include <string.h>
 #include <stdint.h>
 #include <limits.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdbool.h>
 #include <sys/types.h>
-#include "fatal_error.h"
+#include "panic.h"
 
 enum { DIGITS_MAX = 256 };
 
@@ -107,7 +108,7 @@ static inline void open_req_file_fd_or_die(const char *path)
 
     req_file_fd = open(path, O_WRONLY | O_CLOEXEC);
     if (req_file_fd < 0) {
-        PERROR2_AND_DIE("open", path);
+        FATAL("open: %s: %s\n", path, my_strerror(errno));
     }
 
     fprintf(stderr, "httpserv: done opening req-file\n");
@@ -190,14 +191,16 @@ void workmode_request_finish(WorkMode *wm)
         }
     }
 
-    bool ok = full_write_bool(req_file_fd, p, n);
-    if (ok) {
-        ok = full_write_bool(req_file_fd, "\n", 1);
+    if (!full_write_bool(req_file_fd, p, n)) {
+        goto write_error;
     }
+    if (!full_write_bool(req_file_fd, "\n", 1)) {
+        goto write_error;
+    }
+    return;
 
-    if (!ok) {
-        PERROR2_AND_DIE("write", req_file);
-    }
+write_error:
+    FATAL("write: %s: %s\n", req_file, my_strerror(errno));
 }
 
 static inline bool is_ascii_digit(char c)
@@ -271,7 +274,7 @@ void workmode_write_to_req_file(const char *s)
     MY_ASSERT(mode != -1);
 
     if (!full_write_bool(req_file_fd, s, strlen(s))) {
-        PERROR2_AND_DIE("write", req_file);
+        FATAL("write: %s: %s\n", req_file, my_strerror(errno));
     }
 }
 

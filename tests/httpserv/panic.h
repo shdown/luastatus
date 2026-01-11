@@ -17,25 +17,21 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef httpserv_fatal_error_h_
-#define httpserv_fatal_error_h_
+#ifndef httpserv_panic_h_
+#define httpserv_panic_h_
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
 #include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+// We are single-threaded, so a simple strerror() is OK.
+#define my_strerror strerror
 
 #define FATAL(...) \
     do { \
-        fprintf(stderr, "FATAL: httpserv: " __VA_ARGS__); \
+        fprintf(stderr, "httpserv: " __VA_ARGS__); \
         abort(); \
     } while (0)
-
-#define PERROR_AND_DIE(S_) \
-    FATAL("%s: %s\n", (S_), strerror(errno))
-
-#define PERROR2_AND_DIE(S1_, S2_) \
-    FATAL("%s: %s: %s\n", (S1_), (S2_), strerror(errno))
 
 #define OUT_OF_MEMORY() FATAL("out of memory.\n")
 
