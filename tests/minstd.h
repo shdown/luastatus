@@ -80,21 +80,7 @@ LS_INHEADER uint64_t minstd_prng_next_u64(MINSTD_Prng *P)
 LS_INHEADER uint32_t minstd_prng_next_limit_u32(MINSTD_Prng *P, uint32_t limit)
 {
     LS_ASSERT(limit != 0);
-
-    // /reject_thres/ is the largest value that fits into /uint64_t/ and
-    // is divisible by /limit/.
-    uint64_t reject_thres = UINT64_MAX - UINT64_MAX % limit;
-
-    uint64_t v;
-    // We limit ourselves to 10 iterations: slight bias is better than
-    // looping for a long time.
-    for (int i = 0; i < 10; ++i) {
-        v = minstd_prng_next_u64(P);
-        if (v < reject_thres) {
-            break;
-        }
-    }
-    return v % limit;
+    return minstd_prng_next_u64(P) % limit;
 }
 
 #endif
