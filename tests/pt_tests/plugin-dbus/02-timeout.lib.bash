@@ -38,9 +38,6 @@ exec {pfd}<"$main_fifo_file"
 pt_expect_line 'init' <&$pfd
 pt_expect_line 'cb {["what"]="hello"}' <&$pfd
 
-# Try to avoid race condition...
-pt_expect_line 'cb {["what"]="timeout"}' <&$pfd
-
 for (( i = 0; i < 3; ++i )); do
     pt_check dbus-send \
         --session \

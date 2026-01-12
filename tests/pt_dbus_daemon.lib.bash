@@ -6,6 +6,29 @@ pt_dbus_daemon__wrapper() {
     exec dbus-daemon "$@" --print-address=3 3>"$PT_DBUS_DAEMON_FIFO"
 }
 
+pt_dbus_daemon__wait_until_works() {
+    local bus_arg=$1
+
+    local other_args=(
+        /org/luastatus/just/testing/whether/dbus/works
+        org.luastatus.ExampleInterface.ExampleMethod
+        int32:42
+        objpath:/org/luastatus/sample/object/name
+    )
+
+    pt_require_tools dbus-send
+
+    local i
+    for (( i = 0; i < 10; ++i )); do
+        if dbus-send "$bus_arg" "${other_args[@]}"; then
+            break
+        fi
+        sleep 1
+    done
+
+    pt_fail "dbus ($bus_arg) does not work (waited for 10 seconds)"
+}
+
 pt_dbus_daemon_spawn() {
     local bus_arg=$1
     if [[ "$bus_arg" != --system && "$bus_arg" != --session ]]; then
@@ -42,6 +65,8 @@ pt_dbus_daemon_spawn() {
     export DBUS_SESSION_BUS_ADDRESS=$response
 
     echo >&2 "Read DBUS_SESSION_BUS_ADDRESS: $DBUS_SESSION_BUS_ADDRESS"
+
+    pt_dbus_daemon__wait_until_works "$bus_arg"
 }
 
 pt_dbus_daemon_kill() {

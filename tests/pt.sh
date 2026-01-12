@@ -138,6 +138,7 @@ pt_find_free_tcp_port() {
     echo >&2 "[pt_find_free_tcp_port] Chosen port $port."
     PT_FOUND_FREE_PORT=$port
 }
+
 pt_require_tools() {
     local tool
     for tool in "$@"; do
