@@ -45,7 +45,7 @@ LS_INHEADER void string_set_reset(StringSet *s)
     for (size_t i = 0; i < s->size; ++i) {
         free(s->data[i]);
     }
-    LS_M_FREEMEM(s->data, s->size, s->capacity);
+    s->data = LS_M_FREEMEM(s->data, &s->size, &s->capacity);
 }
 
 LS_INHEADER void string_set_add(StringSet *s, const char *val)

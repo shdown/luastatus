@@ -65,7 +65,7 @@ LS_INHEADER void ls_string_ensure_avail(LS_String *x, size_t n)
 
 LS_INHEADER void ls_string_clear(LS_String *x)
 {
-    LS_M_FREEMEM(x->data, x->size, x->capacity);
+    x->data = LS_M_FREEMEM(x->data, &x->size, &x->capacity);
 }
 
 LS_INHEADER void ls_string_assign_b(LS_String *x, const char *buf, size_t nbuf)

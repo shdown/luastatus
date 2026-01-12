@@ -25,6 +25,8 @@
 #include "ls_compdep.h"
 #include "ls_assert.h"
 
+// This function is called whenever a dynamic array is cleared.
+// We want to "preserve" at most 1 Kb of the previous capacity.
 LS_INHEADER LS_ATTR_WARN_UNUSED
 void *ls_freemem(void *data, size_t *psize, size_t *pcapacity, size_t elemsz)
 {
@@ -38,13 +40,11 @@ void *ls_freemem(void *data, size_t *psize, size_t *pcapacity, size_t elemsz)
     return data;
 }
 
-// This function is called whenever a dynamic array is cleared.
-// We want to "preserve" at most 1 Kb of the previous capacity.
-#define LS_M_FREEMEM(Data_, Size_, Capacity_) \
-    ((void) ((Data_) = ls_freemem( \
-        (Data_), \
-        &(Size_), \
-        &(Capacity_), \
-        sizeof(*(Data_)))))
+#define LS_M_FREEMEM(Data_, SizePtr_, CapacityPtr_) \
+    ((__typeof__(Data_)) ls_freemem( \
+        (Data_),        \
+        (SizePtr_),     \
+        (CapacityPtr_), \
+        sizeof(*(Data_))))
 
 #endif

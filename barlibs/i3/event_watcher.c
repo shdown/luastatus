@@ -89,7 +89,7 @@ static inline void token_list_push(TokenList *x, Token token)
 
 static inline void token_list_clear(TokenList *x)
 {
-    LS_M_FREEMEM(x->data, x->size, x->capacity);
+    x->data = LS_M_FREEMEM(x->data, &x->size, &x->capacity);
 }
 
 static inline void token_list_free(TokenList *x)

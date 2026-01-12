@@ -32,12 +32,14 @@
 // An array of constant strings on a single buffer. Panics on allocation failure.
 
 typedef struct {
+    size_t *data;
+    size_t size;
+    size_t capacity;
+} LS_StringArray_Offsets;
+
+typedef struct {
     LS_String buf;
-    struct {
-        size_t *data;
-        size_t size;
-        size_t capacity;
-    } offsets;
+    LS_StringArray_Offsets offsets;
 } LS_StringArray;
 
 LS_INHEADER LS_StringArray ls_strarr_new(void)
@@ -59,10 +61,11 @@ LS_INHEADER LS_StringArray ls_strarr_new_reserve(size_t totlen, size_t nelems)
 
 LS_INHEADER void ls_strarr_append(LS_StringArray *sa, const char *buf, size_t nbuf)
 {
-    if (sa->offsets.size == sa->offsets.capacity) {
-        sa->offsets.data = LS_M_X2REALLOC(sa->offsets.data, &sa->offsets.capacity);
+    LS_StringArray_Offsets *o = &sa->offsets;
+    if (o->size == o->capacity) {
+        o->data = LS_M_X2REALLOC(o->data, &o->capacity);
     }
-    sa->offsets.data[sa->offsets.size++] = sa->buf.size;
+    o->data[o->size++] = sa->buf.size;
 
     ls_string_append_b(&sa->buf, buf, nbuf);
 }
@@ -81,12 +84,12 @@ LS_INHEADER size_t ls_strarr_size(LS_StringArray sa)
 
 LS_INHEADER const char *ls_strarr_at(LS_StringArray sa, size_t i, size_t *n)
 {
-    LS_ASSERT(i < sa.offsets.size);
+    LS_StringArray_Offsets o = sa.offsets;
 
-    size_t begin = sa.offsets.data[i];
-    size_t end = i + 1 == sa.offsets.size
-        ? sa.buf.size
-        : sa.offsets.data[i + 1];
+    LS_ASSERT(i < o.size);
+
+    size_t begin = o.data[i];
+    size_t end = (i + 1 == o.size) ? sa.buf.size : o.data[i + 1];
     if (n) {
         *n = end - begin;
     }
@@ -96,7 +99,9 @@ LS_INHEADER const char *ls_strarr_at(LS_StringArray sa, size_t i, size_t *n)
 LS_INHEADER void ls_strarr_clear(LS_StringArray *sa)
 {
     ls_string_clear(&sa->buf);
-    LS_M_FREEMEM(sa->offsets.data, sa->offsets.size, sa->offsets.capacity);
+
+    LS_StringArray_Offsets *o = &sa->offsets;
+    o->data = LS_M_FREEMEM(o->data, &o->size, &o->capacity);
 }
 
 LS_INHEADER void ls_strarr_destroy(LS_StringArray sa)
