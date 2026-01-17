@@ -35,6 +35,7 @@
 #include "libls/ls_parse_int.h"
 #include "libls/ls_io_utils.h"
 #include "libls/ls_alloc_utils.h"
+#include "libls/ls_lua_compat.h"
 #include "libsafe/safev.h"
 
 #include "markup_utils.h"
@@ -229,9 +230,9 @@ static int set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
         {
             const char *sep = p->sep;
 
-            lua_pushnil(L); // L: ? data nil
-            while (lua_next(L, -2)) {
-                // L: ? data key value
+            size_t len = ls_lua_array_len(L, -1);
+            for (size_t i = 1; i <= len; ++i) {
+                lua_geti(L, -1, i); // L: ? data value
                 if (!lua_isstring(L, -1)) {
                     LS_ERRF(bd, "table value: expected string, found %s", luaL_typename(L, -1));
                     goto invalid_data;
@@ -243,7 +244,7 @@ static int set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
                 }
                 append_sanitized(buf, widget_idx, SAFEV_new_UNSAFE(s, ns));
 
-                lua_pop(L, 1); // L: ? data key
+                lua_pop(L, 1); // L: ? data
             }
             // L: ? data
         }

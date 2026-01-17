@@ -35,6 +35,7 @@
 #include "libls/ls_cstring_utils.h"
 #include "libls/ls_tls_ebuf.h"
 #include "libls/ls_io_utils.h"
+#include "libls/ls_lua_compat.h"
 #include "libsafe/safev.h"
 
 #include "priv.h"
@@ -298,6 +299,26 @@ next_entry:
     return true;
 }
 
+typedef enum {
+    TC_EMPTY,
+    TC_ARRAY,
+    TC_DICT,
+} TableClass;
+
+static inline TableClass classify_table(lua_State *L)
+{
+    // L: ? table
+    lua_pushnil(L); // L: ? table nil
+    if (!lua_next(L, -2)) {
+        // L: ? table
+        return TC_EMPTY;
+    }
+    // L: ? table key value
+    bool is_array = lua_isnumber(L, -2);
+    lua_pop(L, 2); // L: ? table
+    return is_array ? TC_ARRAY : TC_DICT;
+}
+
 static int set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
 {
     Priv *p = bd->priv;
@@ -310,14 +331,19 @@ static int set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
         break;
 
     case LUA_TTABLE:
-        lua_pushnil(L); // L: ? data nil
-        if (lua_next(L, -2)) {
-            // The table is not empty.
-            // L: ? data key value
-            bool is_array = lua_isnumber(L, -2);
-            if (is_array) {
-                do {
-                    // L: ? data key value
+        switch (classify_table(L)) {
+        case TC_EMPTY:
+            break;
+        case TC_DICT:
+            if (!append_segment(bd, L, widget_idx)) {
+                goto invalid_data;
+            }
+            break;
+        case TC_ARRAY:
+            {
+                size_t len = ls_lua_array_len(L, -1);
+                for (size_t i = 1; i <= len; ++i) {
+                    lua_geti(L, -1, i); // L: ? data value
                     switch (lua_type(L, -1)) {
                     case LUA_TTABLE:
                         if (!append_segment(bd, L, widget_idx)) {
@@ -331,16 +357,9 @@ static int set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
                                 luaL_typename(L, -1));
                         goto invalid_data;
                     }
-                    lua_pop(L, 1); // L: ? data key
-                } while (lua_next(L, -2));
-                // L: ? data
-            } else {
-                lua_pop(L, 2); // L: ? data
-                if (!append_segment(bd, L, widget_idx)) {
-                    goto invalid_data;
+                    lua_pop(L, 1); // L: ? data
                 }
             }
-            // L: ? data
         }
         // L: ? data
         break;
