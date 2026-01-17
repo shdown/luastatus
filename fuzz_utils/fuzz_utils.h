@@ -107,6 +107,13 @@ FUZZ_UTILS_INHEADER void fuzz_input_free(FuzzInput x)
 
 FUZZ_UTILS_INHEADER void fuzz_utils_used(const char *ptr, size_t len)
 {
+    // This is a compiler barrier: there's a contract between the compiler and
+    // the user that the compiler doesn't try to guess what inline assembly does,
+    // even if its body is empty.
+    //
+    // So after this, the compiler conservately thinks the span is used, because
+    // the inline assembly might have dereferenced it and done something that has
+    // side effects (e.g. made a system call "write(1, ptr, len)").
     __asm__ __volatile__ (
         ""
         :
