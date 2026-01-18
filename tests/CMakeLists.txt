@@ -20,6 +20,9 @@ target_link_libraries (parrot PUBLIC Threads::Threads)
 add_executable (stopwatch "stopwatch.c")
 target_compile_definitions (stopwatch PUBLIC -D_POSIX_C_SOURCE=200809L)
 
+add_executable (kcov_wrapper "kcov_wrapper.c")
+target_compile_definitions (kcov_wrapper PUBLIC -D_POSIX_C_SOURCE=200809L)
+
 if (BUILD_PLUGIN_INOTIFY)
     add_executable (listnets "listnets.c")
     target_compile_definitions (listnets PUBLIC -D_POSIX_C_SOURCE=200809L)

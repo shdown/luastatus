@@ -33,6 +33,9 @@ valgrind)
 helgrind)
     PT_PREFIX=( valgrind --tool=helgrind -q --exit-on-first-error=yes --error-exitcode=42 )
     ;;
+kcov)
+    PT_PREFIX=( ./kcov_wrapper kcov "${PT_KCOV_DIR?}" )
+    ;;
 *)
     echo >&2 "$0: Unknown PT_TOOL: $PT_TOOL."
     exit 2
