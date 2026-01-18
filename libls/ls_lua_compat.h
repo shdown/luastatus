@@ -69,6 +69,17 @@ LS_INHEADER size_t ls_lua_array_len(lua_State *L, int pos)
 #endif
 }
 
+LS_INHEADER void ls_lua_geti(lua_State *L, int pos, size_t i)
+{
+#if LUA_VERSION_NUM <= 502
+    // L: ?
+    lua_pushinteger(L, i); // L: ? idx
+    lua_gettable(L, pos < 0 ? pos - 1 : pos); // L: ? value
+#else
+    lua_geti(L, pos, i);
+#endif
+}
+
 #ifdef LUA_MAXINTEGER
 # define LS_LUA_MAXI \
     (LUA_MAXINTEGER > (SIZE_MAX - 1) ? (SIZE_MAX - 1) : LUA_MAXINTEGER)

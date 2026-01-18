@@ -195,7 +195,7 @@ static int set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
 
             size_t len = ls_lua_array_len(L, -1);
             for (size_t i = 1; i <= len; ++i) {
-                lua_geti(L, -1, i); // L: ? data value
+                ls_lua_geti(L, -1, i); // L: ? data value
                 if (lua_isnil(L, -1)) {
                     goto next;
                 }
