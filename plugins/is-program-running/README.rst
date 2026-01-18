@@ -43,7 +43,8 @@ The following functions are provided:
 
     - ``cb``: a function
 
-      The callback function that will be called with current CPU usage rate, or with ``nil``.
+      The callback function that will be called either with a boolean (if ``many`` is not specified)
+      or a table (if ``many`` is specified).
 
     **(exactly one of the following is required)**
 

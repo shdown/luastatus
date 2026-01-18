@@ -48,7 +48,7 @@ Array of tables with the following entries (all are optional):
 
   - ``arg0``: string
 
-    Contents of first string argument to match on.
+    Contents of the first string argument to match on.
 
   - ``flags``: array of strings
 

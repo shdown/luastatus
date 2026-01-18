@@ -47,20 +47,20 @@
 // Should not return.
 #define ls_oom() LS_PANIC("out of memory")
 
-// The behaviour is same as calling
+// The behavior is same as calling
 //     /malloc(nelems * elemsz)/,
 // except when the multiplication overflows, or the allocation fails. In these cases, this function
 // panics.
 LS_ATTR_WARN_UNUSED
 void *ls_xmalloc(size_t nelems, size_t elemsz);
 
-// The behaviour is same as calling
+// The behavior is same as calling
 //     /calloc(nelems, elemsz)/,
 // except when the allocation fails. In that case, this function panics.
 LS_ATTR_WARN_UNUSED
 void *ls_xcalloc(size_t nelems, size_t elemsz);
 
-// The behaviour is same as calling
+// The behavior is same as calling
 //     /realloc(p, nelems * elemsz)/,
 // except when the multiplication overflows, or the reallocation fails. In these cases, this
 // function panics.
@@ -71,7 +71,7 @@ void *ls_xcalloc(size_t nelems, size_t elemsz);
 LS_ATTR_WARN_UNUSED
 void *ls_xrealloc(void *p, size_t nelems, size_t elemsz);
 
-// The behaviour is same as calling
+// The behavior is same as calling
 //     /realloc(p, (*pnelems = F(*pnelems)) * elemsz)/,
 // where F(n) = max(1, 2 * n),
 // except when a multiplication overflows, or the reallocation fails. In these cases, this function
@@ -89,7 +89,7 @@ void *ls_x2realloc(void *p, size_t *pnelems, size_t elemsz);
 LS_ATTR_WARN_UNUSED
 void *ls_xmemdup(const void *p, size_t n);
 
-// The behaviour is same as calling
+// The behavior is same as calling
 //     /strdup(s)/,
 // except when the allocation fails. In that case, this function panics.
 LS_INHEADER LS_ATTR_WARN_UNUSED

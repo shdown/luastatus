@@ -42,7 +42,7 @@ The following functions are provided:
 
   If ``in_array_form`` is ``true``, the result will be an array (a table with numeric keys) of
   ``{iface_name, datum}`` entries, in the same order as reported by the kernel. Otherwise (if
-  ``in_array_form`` is not specified or ``false``), the result we be a dictionary (a table
+  ``in_array_form`` is not specified or ``false``), the result will be a dictionary (a table
   with string keys) with interface names as keys and datums as values.
 
 * ``widget(tbl)``

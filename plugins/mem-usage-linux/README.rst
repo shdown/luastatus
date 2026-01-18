@@ -29,7 +29,7 @@ Functions
 
   - ``cb``: function
 
-    The callback that will be called with the table same as that returned by ``get_usage()``.
+    The callback that will be called with a table, which the same as one returned by ``get_usage()``.
 
   **(optional)**
 

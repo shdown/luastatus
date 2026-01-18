@@ -43,7 +43,7 @@ int procalive_lfunc_stat(lua_State *L);
 
 // Lua function glob(pattern):
 //     Performs glob expansion of pattern. A glob is a wildcard pattern like /tmp/*.txt
-//     that can be applied as a filter to a list of existing files names. Supported
+//     that can be applied as a filter to a list of existing file names. Supported
 //     expansions are *, ? and [...]. Please refer to glob(7) for more information on
 //     wildcard patterns.
 //

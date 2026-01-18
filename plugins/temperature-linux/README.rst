@@ -20,7 +20,7 @@ The following functions are provided:
 * ``get_temps(data)``
 
   Returns either an array or nil.
-  If the result is nil, no data is currently available (most likely reason for this is
+  If the result is nil, no data is currently available (the most likely reason for this is
   that the set of temperature sensors has changed; if so, the subsequent calls will
   return non-nil).
 
@@ -66,7 +66,7 @@ The following functions are provided:
   - ``cb``: a function
 
     The callback function that will be called with current readings of temperature sensors, or with ``nil``.
-    The arument is the same as the return value of ``get_temps`` (see above for description
+    The argument is the same as the return value of ``get_temps`` (see above for description
     of ``get_temps`` function for more information).
 
   **(optional)**

@@ -196,6 +196,9 @@ static int set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
             size_t len = ls_lua_array_len(L, -1);
             for (size_t i = 1; i <= len; ++i) {
                 lua_geti(L, -1, i); // L: ? data value
+                if (lua_isnil(L, -1)) {
+                    goto next;
+                }
                 if (!lua_isstring(L, -1)) {
                     LS_ERRF(bd, "table value: expected string, found %s", luaL_typename(L, -1));
                     goto invalid_data;
@@ -206,7 +209,7 @@ static int set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
                     ls_string_append_s(buf, sep);
                 }
                 append_sanitized(buf, SAFEV_new_UNSAFE(s, ns));
-
+next:
                 lua_pop(L, 1); // L: ? data value
             }
             // L: ? data

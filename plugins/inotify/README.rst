@@ -16,7 +16,7 @@ Options
 =======
 * ``watch``: table
 
-  A table in which keys are the paths to watch and values are the tables with event names,
+  A table in which keys are the paths to watch and values are the tables with even names,
   for example, ``{["/home/user"] = {"create", "delete", "move"}}`` (see the
   `Events and flag names`_ section).
 
@@ -124,7 +124,7 @@ to watch the state of some process(es):
 
   Performs glob expansion of ``pattern``.
   A glob is a wildcard pattern like ``/tmp/*.txt`` that can be applied as
-  a filter to a list of existing files names. Supported expansions are
+  a filter to a list of existing file names. Supported expansions are
   ``*``, ``?`` and ``[...]``. Please refer to ``glob(7)`` for more information
   on wildcard patterns.
 

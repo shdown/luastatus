@@ -209,7 +209,7 @@ We do the following things:
 which bombard luastatus with a lot of events from a plugin and a barlib simultaneously:
     * It passes under valgrind [memcheck tool]
     * It passes under valgrind [helgrind tool]
-    * It passes under UBSAN (Undefined Behaviour Sanitizer)
+    * It passes under UBSAN (Undefined Behavior Sanitizer)
     * It passes under ASAN (Address Sanitizer)
     * It passes under LSAN (Leak Sanitizer)
     * It passes under TSAN (Thread Sanitizer)

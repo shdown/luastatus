@@ -38,7 +38,7 @@ The following options are supported:
 
   - ``nil`` (if the data source's ``cb`` returned ``nil``);
   - a string (if the data source's ``cb`` returned a string), or;
-  - an *error obect*, which is a function that, when called, returns *data source error specification string*.
+  - an *error object*, which is a function that, when called, returns *data source error specification string*.
 
     Currently, the following *data source error specification strings* are defined:
 
@@ -52,7 +52,7 @@ The following options are supported:
   A *data source specification* is a string with a Lua program which defines ``LL_data_source`` global variable.
   This specification is used to initialize a new **nested widget**.
   Just like with normal luastatus widgets, ``plugin`` and ``cb`` entries are required, ``opts`` entry is optional.
-  There entries have the same meaning as with normal luastatus widgets.
+  These entries have the same meaning as with normal luastatus widgets.
   Unlike normal luastatus widgets, however, ``event`` entry is ignored for nested widgets.
 
   Here is an example of a *data source specification*::
@@ -94,7 +94,7 @@ The following options are supported:
   The interval between two successive requests can not be less than this parameter,
   even in the presence of updates.
 
-  If there are no data source, this is the period with which to call the function
+  If there are no data sources, this is the period with which to call the function
   given as the ``prompt`` parameter.
 
   Defaults to 3.
@@ -114,7 +114,7 @@ The following options are supported:
   set ``mu`` field (of the table argument to ``cb``) to a boolean accordingly.
 
   This can be handy if you want to clear the widget's content if the
-  data that has been used used to generate the prompt is already stale/outdated
+  data that has been used to generate the prompt is already stale/outdated
   after the request is done.
 
   Defaults to false.
@@ -126,7 +126,7 @@ The following options are supported:
 
 Connection settings
 -------------------
-The ``connection`` table specifies connections setting to connect to *llama.cpp* REST API.
+The ``connection`` table specifies connection setting to connect to *llama.cpp* REST API.
 The following entries are supported:
 
 * ``hostname``: string
@@ -199,8 +199,8 @@ The argument is always a table with a ``what`` entry.
 Error meta-information
 ----------------------
 
-If the ``cb`` argument has ``what = "error"``, the ``meta`` entry is a string that is indended to be a
-comuter-readable descrition of the problem. It has character-and-number format, where the character
+If the ``cb`` argument has ``what = "error"``, the ``meta`` entry is a string that is intended to be a
+computer-readable description of the problem. It has character-and-number format, where the character
 signifies the "domain" of the error and number signifies the error code. The error code is an integer,
 possibly negative.
 
@@ -256,7 +256,7 @@ Some users might be rightfully concerned about the security of using such a plug
 The short answer to the questions above is, "no".
 
 The longer answer to the first question is, "no, unless you explicitly configure it to do so".
-*llama.cpp* is a tool for running LLMs locally; by default, it only serves for local host, and
+*llama.cpp* is a tool for running LLMs locally; by default, it only serves for localhost, and
 this plugin's ``hostname`` defaults to ``"127.0.0.1"``. You *can* run *llama.cpp* on a remote host,
 configure it to serve over the network and configure this plugin to perform requests over
 the network, but this is not the default. This is the same as with our **mpd** plugin.
@@ -281,7 +281,7 @@ passes under:
 
 * valgrind [helgrind tool];
 
-* UBSAN (Undefined Behaviour Sanitizer);
+* UBSAN (Undefined Behavior Sanitizer);
 
 * ASAN (Address Sanitizer);
 

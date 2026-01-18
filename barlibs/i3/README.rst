@@ -131,7 +131,7 @@ The following options are supported:
 
 * ``no_click_events``
 
-  Tell ``i3bar`` we don't want to receive click events. This changes ``i3bar`` behaviour in that
+  Tell ``i3bar`` we don't want to receive click events. This changes ``i3bar`` behavior in that
   it will interpret "clicks" on segments as if an empty space on the bar was clicked,
   particularly, will switch workspaces if you scroll on a segment.
 

@@ -37,7 +37,7 @@ OPTIONS
 
 -e
    Do not hang, but exit normally when *barlib*'s event watcher and all plugins' ``run()`` have
-   returned. Default behaviour is to hang, because there are status bars that require their
+   returned. Default behavior is to hang, because there are status bars that require their
    generator process not to terminate (namely i3bar).
 
    Useful for testing.
@@ -85,7 +85,7 @@ what to pass to it.
 
 Plugins are shared libraries.
 
-These plugins are also referred to as *proper plugins*, as opposed to *dervied plugins*.
+These plugins are also referred to as *proper plugins*, as opposed to *derived plugins*.
 
 DERIVED PLUGINS
 ===============
@@ -178,7 +178,7 @@ one submodules:
 
   - ``luastatus.libwidechar.make_valid_and_printable(str, replace_bad_with[, i[, j]])``: replaces all
     illegal sequences and non-printable characters with ``replace_bad_with``. Returns the
-    result of replacement. Note that is does not check if ``replace_bad_with`` itself contains
+    result of replacement. Note that it does not check if ``replace_bad_with`` itself contains
     illegal sequences and/or non-printable characters. See below for what ``i`` and ``j`` mean.
 
   - ``luastatus.libwidechar.is_dummy_implementation()``: returns boolean indicating whether
