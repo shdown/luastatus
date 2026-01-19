@@ -12,7 +12,7 @@ Overview
 ========
 This plugin monitors network routing and link updates.
 It can report IP addresses used for outgoing connections by various network interfaces, information
-about a wireless connection, and the speed of an ethernet connection.
+about a wireless connection, and the speed of an Ethernet connection.
 
 Options
 =======
@@ -28,7 +28,12 @@ The following options are supported:
 
 * ``ethernet``: boolean
 
-  Whether to report ethernet connection info. Defaults to false.
+  Whether to report Ethernet connection info. Defaults to false.
+
+* ``new_overall_fmt``: boolean
+
+  Whether to use *new overall format* (see documentation below).
+  Defaults to false.
 
 * ``new_ip_fmt``: boolean
 
@@ -50,15 +55,26 @@ The following options are supported:
 
 ``cb`` argument
 ===============
-If the list of network interfaces cannot be fetched, ``nil``.
+If the list of network interfaces cannot be fetched:
+* if new overall format is used, a table ``{what = "error"}``;
+* if old overall format is used, ``nil``.
 
-Otherwise, a table where keys are network interface names (e.g. ``wlan0`` or ``wlp1s0``) and values
+Otherwise (if there is no error):
+* if new overall format is used, a table ``{what = reason, data = tbl}``, where ``reason`` is a
+string (see `Fetching the "what"`_) and ``tbl`` is the main table;
+* if old overall format is used, the main table itself (but, in this case, this table also has a metatable;
+see `Fetching the "what"`_ section).
+
+The main table is a table where keys are network interface names (e.g. ``wlan0`` or ``wlp1s0``) and values
 are tables with the following entries (all are optional):
 
 * ``ipv4``, ``ipv6`` (only if the ``ip`` option is enabled)
 
   - If ``new_ip_fmt`` option was set to true, arrays (tables with numeric keys) of strings;
     each element corresponds to a local IPv4/IPv6 address of the interface.
+
+    (In an extremely unlikely and probably logically impossible event that the number of addresses
+    exceeds maximum Lua array length, the last array element will be ``false``, not a string.)
 
   - Otherwise, the value behind ``ipv4``/``ipv6`` key is a string corresponding to *some* local
     IPv4/IPv6 address of the interface.
@@ -88,9 +104,14 @@ are tables with the following entries (all are optional):
 
     Interface speed, in Mbits/s.
 
-Fetching the reason why ``cb`` was called
-=========================================
-If the argument is a table ``t``, the reason why the callback has been called can be fetched as follows::
+Fetching the "what"
+================================
+
+If new overall format is used, and the argument is a table ``t``,
+then the reason why the callback has been called is simply stored in ``t.what``.
+
+If old overall format is used, and the argument (the main table) is a table ``t``,
+then the reason why the callback has been called can be fetched as follows::
 
     getmetatable(t).what
 
@@ -100,9 +121,9 @@ This value is either:
 * ``"timeout"``: timeout;
 * ``"self_pipe"``: the ``luastatus.plugin.wake_up()`` function has been called.
 
-The reason this shamanistic ritual with a metatable is needed is that the support for any
-data other than the list of networks has not been planned for in advance, and ``what``
-is a valid network interface name.
+For old overall format, the reason this shamanistic ritual with a metatable is
+needed is that the support for any data other than the list of networks has not
+been planned for in advance, and ``what`` is a valid network interface name.
 
 Functions
 =========

@@ -55,7 +55,7 @@ typedef struct {
     bool report_wireless;
     bool report_ethernet;
     bool new_ip_fmt;
-    bool new_arg_fmt;
+    bool new_overall_fmt;
     double tmo;
     StringSet wlan_ifaces;
     int eth_sockfd;
@@ -80,7 +80,7 @@ static int init(LuastatusPluginData *pd, lua_State *L)
         .report_wireless = false,
         .report_ethernet = false,
         .new_ip_fmt = false,
-        .new_arg_fmt = false,
+        .new_overall_fmt = false,
         .tmo = -1,
         .wlan_ifaces = string_set_new(),
         .eth_sockfd = -1,
@@ -105,8 +105,8 @@ static int init(LuastatusPluginData *pd, lua_State *L)
     if (moon_visit_bool(&mv, -1, "new_ip_fmt", &p->new_ip_fmt, true) < 0)
         goto mverror;
 
-    // Parse new_arg_fmt
-    if (moon_visit_bool(&mv, -1, "new_arg_fmt", &p->new_arg_fmt, true) < 0)
+    // Parse new_overall_fmt
+    if (moon_visit_bool(&mv, -1, "new_overall_fmt", &p->new_overall_fmt, true) < 0)
         goto mverror;
 
     // Parse timeout
@@ -158,7 +158,7 @@ static void report_error(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     lua_State *L = funcs.call_begin(pd->userdata);
     // L: ?
 
-    if (p->new_arg_fmt) {
+    if (p->new_overall_fmt) {
         lua_createtable(L, 0, 1); // L: ? table
         lua_pushstring(L, "error"); // L: ? table str
         lua_setfield(L, -2, "what"); // L: ? table
@@ -261,14 +261,14 @@ static void inject_ethernet_info(lua_State *L, struct ifaddrs *addr, int sockfd)
 static void begin_call(Priv *p, lua_State *L)
 {
     // L: ?
-    if (p->new_arg_fmt) {
+    if (p->new_overall_fmt) {
         lua_createtable(L, 0, 2); // L: ? outer_table
     }
 }
 
 static void end_call(Priv *p, lua_State *L, const char *what)
 {
-    if (p->new_arg_fmt) {
+    if (p->new_overall_fmt) {
         // L: ? outer_table table
         lua_setfield(L, -2, "data"); // L: ? outer_table
 
