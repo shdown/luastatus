@@ -25,7 +25,7 @@ local SECTOR_SIZE = 512
 local P = {}
 
 local function do_with_file(f, callback)
-    local is_ok, err = callback()
+    local is_ok, err = pcall(callback)
     f:close()
     if not is_ok then
         error(err)
