@@ -21,7 +21,7 @@ local P = {}
 
 local DEFAULT_PROCPATH = '/proc'
 
-local ACCEPT_ANY_IFACE_FILTER = function(iface)
+local ACCEPT_ANY_IFACE_FILTER = function(_)
     return true
 end
 
@@ -55,8 +55,8 @@ local function parse_line(line, reader, divisor)
         return nil, nil
     end
 
-    local recv = assert(tonumber(recv))
-    local sent = assert(tonumber(sent))
+    local recv = assert(tonumber(recv_str))
+    local sent = assert(tonumber(sent_str))
 
     local prev_recv, prev_sent = reader.last_recv[iface], reader.last_sent[iface]
     local datum = nil
@@ -156,7 +156,7 @@ function P.widget(tbl)
         opts = {
             period = period,
         },
-        cb = function(t)
+        cb = function(_)
             return tbl.cb(P.reader_read(reader, period, tbl.in_array_form))
         end,
         event = tbl.event,

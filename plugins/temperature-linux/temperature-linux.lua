@@ -54,7 +54,7 @@ local function sensor_list_fetch_data(SL, into)
         if not f then
             return false
         end
-        local value = return f:read('*number')
+        local value = f:read('*number')
         f:close()
         if not value then
             return false

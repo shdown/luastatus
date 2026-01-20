@@ -79,7 +79,7 @@ function P.widget(tbl)
         opts = {
             period = period,
         },
-        cb = function(t)
+        cb = function(_)
             local new, deltas = P.read_diskstats(old, period, tbl._proc_path)
             old = new
             return tbl.cb(deltas)

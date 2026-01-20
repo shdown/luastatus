@@ -43,7 +43,7 @@ function P.make_watcher(kind, path)
 
     if kind == 'pidfile' then
         return function()
-            local f, err = io.open(path, 'r')
+            local f = io.open(path, 'r')
             if not f then
                 return false
             end

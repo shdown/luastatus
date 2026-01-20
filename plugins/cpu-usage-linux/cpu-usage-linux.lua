@@ -33,7 +33,7 @@ end
 
 local function get_usage_impl(procpath, cur, prev, cpu)
     local f = assert(io.open(procpath .. '/stat', 'r'))
-    for i = 1, (cpu or 0) do
+    for _ = 1, (cpu or 0) do
         f:read('*line')
     end
     local line = f:read('*line')

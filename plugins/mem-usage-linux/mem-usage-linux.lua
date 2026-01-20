@@ -33,7 +33,6 @@ local function get_usage_impl(procpath)
     local f = assert(io.open(procpath .. '/meminfo', 'r'))
     local r = {}
     do_with_file(f, function()
-        local r = {}
         for line in f:lines() do
             local key, value, unit = line:match('(%w+):%s+(%w+)%s+(%w+)')
             if key == 'MemTotal' then
