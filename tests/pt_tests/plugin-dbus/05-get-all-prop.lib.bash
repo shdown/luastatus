@@ -19,7 +19,7 @@ widget = {
         assert(t.what == 'hello', 't.what is not "hello"')
 
         local is_ok, res = luastatus.plugin.get_all_properties({
-            bus = "system",
+            bus = "session",
             object_path = "/org/freedesktop/DBus",
             prop_owner = "org.freedesktop.DBus",
         })

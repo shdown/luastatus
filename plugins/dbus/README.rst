@@ -30,43 +30,43 @@ The following options are supported:
 
 Array of tables with the following entries (all are optional):
 
-  - ``sender``: string
+- ``sender``: string
 
-    Sender name to match on (unique or well-known name).
+  Sender name to match on (unique or well-known name).
 
-  - ``interface``: string
+- ``interface``: string
 
-    D-Bus interface name to match on.
+  D-Bus interface name to match on.
 
-  - ``signal``: string
+- ``signal``: string
 
-    D-Bus signal name to match on.
+  D-Bus signal name to match on.
 
-  -  ``object_path``: string
+-  ``object_path``: string
 
-    Object path to match on.
+  Object path to match on.
 
-  - ``arg0``: string
+- ``arg0``: string
 
-    Contents of the first string argument to match on.
+  Contents of the first string argument to match on.
 
-  - ``flags``: array of strings
+- ``flags``: array of strings
 
-    The following flags are recognized:
+  The following flags are recognized:
 
-    + ``"match_arg0_namespace"``
+  + ``"match_arg0_namespace"``
 
-      Match first arguments that contain a bus or interface name with the given namespace.
+    Match first arguments that contain a bus or interface name with the given namespace.
 
-      + ``"match_arg0_path"``
+    + ``"match_arg0_path"``
 
-      Match first arguments that contain an object path that is either equivalent to the
-      given path, or one of the paths is a subpath of the other.
+    Match first arguments that contain an object path that is either equivalent to the
+    given path, or one of the paths is a subpath of the other.
 
-      - ``bus``: string
+    - ``bus``: string
 
-        Specify the bus to subscribe to the signal on: either ``"system"`` or ``"session"``;
-        default is ``"session"``.
+      Specify the bus to subscribe to the signal on: either ``"system"`` or ``"session"``;
+      default is ``"session"``.
 
 ``cb`` argument
 ===============
@@ -164,7 +164,7 @@ The following functions are provided:
     - ``prop_name`` (string): the name of the property.
 
     - ``flag_no_autostart`` (boolean, optional): whether to pass
-      ``G_DBUS_CALL_FLAGS_NO_AUTO_START`` flag (which means don't launch an
+        ``G_DBUS_CALL_FLAGS_NO_AUTO_START`` flag (which means don't launch an
         owner for the destination name in response to this method invocation).
 
         Defaults to false.
