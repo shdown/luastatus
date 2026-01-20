@@ -1,5 +1,5 @@
 [![CircleCI build status](https://circleci.com/gh/shdown/luastatus.svg?style=shield)](https://circleci.com/gh/shdown/luastatus)
-[![Gitter](https://badges.gitter.im/luastatus/community.svg)](https://gitter.im/luastatus/community)
+![Since 2016](https://img.shields.io/badge/Since-2016-lightblue)
 
 **luastatus** is a universal status bar content generator. It allows you to configure the way the
 data from event sources is processed and shown, with Lua.
@@ -186,7 +186,7 @@ Supported Lua versions
 
 Reporting bugs, requesting features, suggesting patches
 ===
-Feel free to open an issue or a pull request. You can also chat on [our Gitter chat room](https://gitter.im/luastatus/community).
+Feel free to open an issue or a pull request.
 
 Migrating from older versions
 ===
