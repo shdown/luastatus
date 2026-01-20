@@ -42,7 +42,7 @@ Array of tables with the following entries (all are optional):
 
   D-Bus signal name to match on.
 
--  ``object_path``: string
+- ``object_path``: string
 
   Object path to match on.
 
@@ -83,27 +83,27 @@ A table with a ``what`` entry.
 
   - ``bus``: string
 
-      Either ``"session"`` or ``"system"``.
+    Either ``"session"`` or ``"system"``.
 
   - ``sender``: string
 
-      Unique sender name.
+    Unique sender name.
 
   - ``object_path``: string
 
-      Object path.
+    Object path.
 
   - ``interface``: string
 
-      D-Bus interface name.
+    D-Bus interface name.
 
   - ``signal``: string
 
-      Signal name.
+    Signal name.
 
   - ``parameters``: *D-Bus object*
 
-      Signal arguments.
+    Signal arguments.
 
 D-Bus objects
 =============
@@ -155,23 +155,23 @@ The following functions are provided:
 
   Get D-Bus property. ``params`` must be a table with the following values:
 
-    - ``bus`` (string): the bus to use: either ``"system"`` or ``"session"``.
+  - ``bus`` (string): the bus to use: either ``"system"`` or ``"session"``.
 
-    - ``object_path`` (string): the path to the object to get a property of.
+  - ``object_path`` (string): the path to the object to get a property of.
 
-    - ``prop_owner`` (string): the name of the interface.
+  - ``prop_owner`` (string): the name of the interface.
 
-    - ``prop_name`` (string): the name of the property.
+  - ``prop_name`` (string): the name of the property.
 
-    - ``flag_no_autostart`` (boolean, optional): whether to pass
-        ``G_DBUS_CALL_FLAGS_NO_AUTO_START`` flag (which means don't launch an
-        owner for the destination name in response to this method invocation).
+  - ``flag_no_autostart`` (boolean, optional): whether to pass
+    ``G_DBUS_CALL_FLAGS_NO_AUTO_START`` flag (which means don't launch an
+    owner for the destination name in response to this method invocation).
 
-        Defaults to false.
+    Defaults to false.
 
-    - ``timeout`` (number, optional): timeout to wait for the reply for.
-      Default is to use the proxy default timeout.
-      Pass ``math.huge`` to wait forever.
+  - ``timeout`` (number, optional): timeout to wait for the reply for.
+    Default is to use the proxy default timeout.
+    Pass ``math.huge`` to wait forever.
 
   On success, returns ``true, result``, where ``result`` is unmarshalled
   as described in section `D-Bus objects`_.
