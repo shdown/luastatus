@@ -153,7 +153,8 @@ The following functions are provided:
 
 * ``luastatus.plugin.get_property(params)``
 
-  Get D-Bus property. ``params`` must be a table with the following values:
+  Get D-Bus property associated with an interface. ``params`` must be a table
+  with the following values:
 
   - ``bus`` (string): the bus to use: either ``"system"`` or ``"session"``.
 
@@ -169,7 +170,7 @@ The following functions are provided:
 
     Defaults to false.
 
-  - ``timeout`` (number, optional): timeout to wait for the reply for.
+  - ``timeout`` (number, optional): timeout to wait for the reply for, in seconds.
     Default is to use the proxy default timeout.
     Pass ``math.huge`` to wait forever.
 
@@ -180,8 +181,8 @@ The following functions are provided:
 
 * ``luastatus.plugin.get_all_propertes(params)``
 
-  Get D-Bus property. ``params`` must be the same as to ``get_property``,
-  except that ``prop_name`` should not be set.
+  Get all D-Bus properties associated with an inteface. ``params`` must be the
+  same as to ``get_property``, except that ``prop_name`` should not be set.
 
   On success, returns ``true, result``, where ``result`` is the result of
   the ``GetAll`` call, unmarshalled as described in section `D-Bus objects`_.
