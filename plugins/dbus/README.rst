@@ -146,3 +146,47 @@ A special object is a function that, when called, returns either of:
 
 * value;
 * ``nil``, error.
+
+Functions
+=========
+The following functions are provided:
+
+* ``luastatus.plugin.get_property(params)``
+
+  Get D-Bus property. ``params`` must be a table with the following values:
+
+    - ``bus`` (string): the bus to use: either ``"system"`` or ``"session"``.
+
+    - ``object_path`` (string): the path to the object to get a property of.
+
+    - ``prop_owner`` (string): the name of the interface.
+
+    - ``prop_name`` (string): the name of the property.
+
+    - ``flag_no_autostart`` (boolean, optional): whether to pass
+      ``G_DBUS_CALL_FLAGS_NO_AUTO_START`` flag (which means don't launch an
+        owner for the destination name in response to this method invocation).
+
+        Defaults to false.
+
+    - ``timeout`` (number, optional): timeout to wait for the reply for.
+      Default is to use the proxy default timeout.
+      Pass ``math.huge`` to wait forever.
+
+  On success, returns ``true, result``, where ``result`` is unmarshalled
+  as described in section `D-Bus objects`_.
+
+  On failure, returns ``false, err_msg, err_code``.
+
+* ``luastatus.plugin.get_all_propertes(params)``
+
+  Get D-Bus property. ``params`` must be the same as to ``get_property``,
+  except that ``prop_name`` should not be set.
+
+  On success, returns ``true, result``, where ``result`` is the result of
+  the ``GetAll`` call, unmarshalled as described in section `D-Bus objects`_.
+  It looks like this::
+
+    {{{"Property1", "Value1"}, {"Property2", "Value2"}}}
+
+  On failure, returns ``false, err_msg, err_code``.

@@ -37,6 +37,7 @@
 #include "include/sayf_macros.h"
 
 #include "marshal.h"
+#include "prop.h"
 
 typedef struct {
     char *sender;
@@ -92,6 +93,7 @@ typedef struct {
     SignalList subs[2];
     double tmo;
     bool greet;
+    PUserdata *p_ud;
 } Priv;
 
 static void destroy(LuastatusPluginData *pd)
@@ -99,6 +101,9 @@ static void destroy(LuastatusPluginData *pd)
     Priv *p = pd->priv;
     for (int i = 0; i < 2; ++i) {
         signal_list_destroy(&p->subs[i]);
+    }
+    if (p->p_ud) {
+        p_destroy(p->p_ud);
     }
     free(p);
 }
@@ -191,6 +196,7 @@ static int init(LuastatusPluginData *pd, lua_State *L)
         .subs = {signal_list_new(), signal_list_new()},
         .tmo = -1,
         .greet = false,
+        .p_ud = p_new(),
     };
     char errbuf[256];
     MoonVisit mv = {.L = L, .errbuf = errbuf, .nerrbuf = sizeof(errbuf)};
@@ -214,6 +220,13 @@ mverror:
 //error:
     destroy(pd);
     return LUASTATUS_ERR;
+}
+
+static void register_funcs(LuastatusPluginData *pd, lua_State *L)
+{
+    Priv *p = pd->priv;
+
+    p_register_funcs(p->p_ud, L);
 }
 
 typedef struct {
@@ -406,6 +419,7 @@ error:
 
 LuastatusPluginIface luastatus_plugin_iface_v1 = {
     .init = init,
+    .register_funcs = register_funcs,
     .run = run,
     .destroy = destroy,
 };

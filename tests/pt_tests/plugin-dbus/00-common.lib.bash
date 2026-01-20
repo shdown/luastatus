@@ -58,4 +58,16 @@ local function _fmt_x(x)
         return tostring(x)
     end
 end
+
+local function unpack1(t)
+    assert(type(t) == "table")
+    assert(#t == 1)
+    return t[1]
+end
+
+local function unpack2(t)
+    assert(type(t) == "table")
+    assert(#t == 2)
+    return t[1], t[2]
+end
 '
