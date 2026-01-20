@@ -84,8 +84,9 @@ int pctx_realize_error_and_destroy(PCtx *ctx)
 void pctx_destroy(PCtx *ctx)
 {
     free(ctx->which_bus);
+    free(ctx->dest);
     free(ctx->object_path);
-    free(ctx->prop_owner);
+    free(ctx->prop_iface);
     free(ctx->prop_name);
     free(ctx->error_msg);
 }

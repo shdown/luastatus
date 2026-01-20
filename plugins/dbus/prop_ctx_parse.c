@@ -98,8 +98,9 @@ static void maybe_do_timeout(PCtx *ctx, int *dst, const char *key)
 void pctx_parse(PCtx *ctx, bool with_prop_name)
 {
     do_str(ctx, &ctx->which_bus, "bus");
+    do_str(ctx, &ctx->dest, "dest");
     do_str(ctx, &ctx->object_path, "object_path");
-    do_str(ctx, &ctx->prop_owner, "prop_owner");
+    do_str(ctx, &ctx->prop_iface, "prop_iface");
     if (with_prop_name) {
         do_str(ctx, &ctx->prop_name, "prop_name");
     }

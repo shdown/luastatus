@@ -158,9 +158,11 @@ The following functions are provided:
 
   - ``bus`` (string): the bus to use: either ``"system"`` or ``"session"``.
 
+  - ``dest`` (string): a unique or well-known name of the owner of the property.
+
   - ``object_path`` (string): the path to the object to get a property of.
 
-  - ``prop_owner`` (string): the name of the interface.
+  - ``prop_iface`` (string): the name of the interface.
 
   - ``prop_name`` (string): the name of the property.
 

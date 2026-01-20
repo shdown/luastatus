@@ -20,8 +20,9 @@ widget = {
 
         local is_ok, res = luastatus.plugin.get_all_properties({
             bus = "session",
+            dest = "org.freedesktop.DBus",
             object_path = "/org/freedesktop/DBus",
-            prop_owner = "org.freedesktop.DBus",
+            prop_iface = "org.freedesktop.DBus",
         })
         assert(is_ok, res)
 

@@ -45,7 +45,7 @@ static int do_perform_call(
     GError *err = NULL;
     GVariant *res = g_dbus_connection_call_sync(
         conn,
-        /*bus_name=*/ "org.freedesktop.DBus",
+        /*bus_name=*/ ctx->dest,
         /*object_path=*/ ctx->object_path,
         /*interface_name=*/ "org.freedesktop.DBus.Properties",
         /*method_name=*/ method_name,
@@ -81,7 +81,7 @@ static int do_get_prop(
         conn,
         ctx,
         /*method_name=*/ "Get",
-        /*params=*/ g_variant_new("(ss)", ctx->prop_owner, ctx->prop_name)
+        /*params=*/ g_variant_new("(ss)", ctx->prop_iface, ctx->prop_name)
     );
 }
 
@@ -96,7 +96,7 @@ static int do_get_all_props(
         conn,
         ctx,
         /*method_name=*/ "GetAll",
-        /*params=*/ g_variant_new("(s)", ctx->prop_owner)
+        /*params=*/ g_variant_new("(s)", ctx->prop_iface)
     );
 }
 

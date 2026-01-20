@@ -29,8 +29,9 @@
 
 typedef struct {
     char *which_bus;
+    char *dest;
     char *object_path;
-    char *prop_owner;
+    char *prop_iface;
     char *prop_name;
     GDBusCallFlags flags;
     int tmo_ms;
