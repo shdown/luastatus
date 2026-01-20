@@ -162,7 +162,7 @@ The following functions are provided:
 
   - ``object_path`` (string): the path to the object to get a property of.
 
-  - ``prop_iface`` (string): the name of the interface.
+  - ``iface`` (string): the name of the interface.
 
   - ``prop_name`` (string): the name of the property.
 
