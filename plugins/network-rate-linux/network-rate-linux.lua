@@ -46,16 +46,18 @@ function P.reader_new(iface_filter)
 end
 
 local function parse_line(line, reader, divisor)
-    local iface, recv, sent = line:match(LINE_PATTERN)
-    if not (iface and recv and sent) then
+    local iface, recv_str, sent_str = line:match(LINE_PATTERN)
+    if not (iface and recv_str and sent_str) then
         return nil, nil
     end
 
     if not reader.iface_filter(iface) then
-        return nil, iface
+        return nil, nil
     end
 
-    recv, sent = tonumber(recv), tonumber(sent)
+    local recv = assert(tonumber(recv))
+    local sent = assert(tonumber(sent))
+
     local prev_recv, prev_sent = reader.last_recv[iface], reader.last_sent[iface]
     local datum = nil
     if prev_recv and prev_sent then
@@ -70,22 +72,31 @@ local function parse_line(line, reader, divisor)
     return datum, iface
 end
 
+local function do_with_file(f, callback)
+    local is_ok, err = pcall(callback)
+    f:close()
+    if not is_ok then
+        error(err)
+    end
+end
+
 function P.reader_read(reader, divisor, in_array_form)
-    local res = {}
     local f = assert(io.open(reader._procpath .. '/net/dev', 'r'))
-    for line in f:lines() do
-        if not line:find('|') then -- skip the "header" lines
-            local datum, iface = parse_line(line, reader, divisor)
-            if datum then
-                if in_array_form then
-                    res[#res + 1] = {iface, datum}
-                else
-                    res[iface] = datum
+    local res = {}
+    do_with_file(f, function()
+        for line in f:lines() do
+            if not line:find('|') then -- skip the "header" lines
+                local datum, iface = parse_line(line, reader, divisor)
+                if datum then
+                    if in_array_form then
+                        res[#res + 1] = {iface, datum}
+                    else
+                        res[iface] = datum
+                    end
                 end
             end
         end
-    end
-    f:close()
+    end)
     return res
 end
 

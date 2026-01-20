@@ -14,25 +14,27 @@ local function sensor_list_nullify(SL)
     SL.entries = nil
 end
 
+local function do_with_file(f, callback)
+    local is_ok, err = pcall(callback)
+    f:close()
+    if not is_ok then
+        error(err)
+    end
+end
+
 local function sensor_list_realize(SL, filter_func, cmd)
     local f = assert(io.popen(cmd))
-
-    local lines = {}
-    for line in f:lines() do
-        lines[#lines + 1] = line
-    end
-
-    f:close()
-
     local entries = {}
-    for _, line in ipairs(lines) do
-        local name, sort_by, path = line:match('^(%S+)\t(%S+)\t(%S+)$')
-        if name then
-            if (not filter_func) or filter_func(SL.kind, name) then
-                entries[#entries + 1] = {name = name, sort_by = sort_by, path = path}
+    do_with_file(f, function()
+        for line in f:lines() do
+            local name, sort_by, path = line:match('^(%S+)\t(%S+)\t(%S+)$')
+            if name then
+                if (not filter_func) or filter_func(SL.kind, name) then
+                    entries[#entries + 1] = {name = name, sort_by = sort_by, path = path}
+                end
             end
         end
-    end
+    end)
 
     -- numeric sort
     local function extract_first_number(s)
@@ -52,7 +54,7 @@ local function sensor_list_fetch_data(SL, into)
         if not f then
             return false
         end
-        local value = f:read('*number')
+        local value = return f:read('*number')
         f:close()
         if not value then
             return false

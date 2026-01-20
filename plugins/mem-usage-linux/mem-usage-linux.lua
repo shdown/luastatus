@@ -21,18 +21,28 @@ local P = {}
 
 local DEFAULT_PROCPATH = '/proc'
 
+local function do_with_file(f, callback)
+    local is_ok, err = callback()
+    f:close()
+    if not is_ok then
+        error(err)
+    end
+end
+
 local function get_usage_impl(procpath)
     local f = assert(io.open(procpath .. '/meminfo', 'r'))
     local r = {}
-    for line in f:lines() do
-        local key, value, unit = line:match('(%w+):%s+(%w+)%s+(%w+)')
-        if key == 'MemTotal' then
-            r.total = {value = tonumber(value), unit = unit}
-        elseif key == 'MemAvailable' then
-            r.avail = {value = tonumber(value), unit = unit}
+    do_with_file(f, function()
+        local r = {}
+        for line in f:lines() do
+            local key, value, unit = line:match('(%w+):%s+(%w+)%s+(%w+)')
+            if key == 'MemTotal' then
+                r.total = {value = assert(tonumber(value)), unit = unit}
+            elseif key == 'MemAvailable' then
+                r.avail = {value = assert(tonumber(value)), unit = unit}
+            end
         end
-    end
-    f:close()
+    end)
     return r
 end
 

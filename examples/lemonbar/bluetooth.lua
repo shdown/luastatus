@@ -21,7 +21,10 @@ function get_devices()
     local devices = {}
     local handle = io.popen(string.format("bluetoothctl devices"))
     for line in handle:lines() do
-        table.insert(devices, string.match(line, "Device ([%x:]+)"))
+        local match = string.match(line, "Device ([%x:]+)")
+        if match then
+            table.insert(devices, match)
+        end
     end
     handle:close()
     return devices
