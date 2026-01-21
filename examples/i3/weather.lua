@@ -6,7 +6,7 @@ local ltn12 = require('ltn12')
 
 -- All the arguments except for 'url' may be absent or nil; default method is GET.
 -- Returns: code (integer), body (string), headers (table), status (string).
-function request(url, headers, method, body)
+local function request(url, headers, method, body)
     local out_body = {}
     local is_ok, code_or_errmsg, out_headers, status = https.request(
         {
@@ -25,13 +25,13 @@ end
 
 -- Arguments are the same to those of 'request'.
 -- Returns: body (string), headers (table).
-function request_check_code(...)
+local function request_check_code(...)
     local code, body, headers, status = request(...)
     assert(code == 200, string.format('HTTP %s %s', code, status))
     return body, headers
 end
 
-function urlencode(s)
+local function urlencode(s)
     return string.gsub(s, '[^-_.~a-zA-Z0-9]', function(c)
         return string.format('%%%02X', string.byte(c))
     end)
@@ -41,7 +41,7 @@ local BASE_URL = 'wttr.in'
 local LANG = 'en'
 local LOCATION = ''
 
-function get_weather(format)
+local function get_weather(format)
     -- encoding is needed to allow usage of special use characters
     format = urlencode(format)
     local url = string.format('https://%s.%s/%s?format=%s', LANG, BASE_URL, LOCATION, format)

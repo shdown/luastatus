@@ -1,6 +1,5 @@
 local MIN_DBM, MAX_DBM = -90, -20
 local NGAUGE = 5
-local COLOR_DIM = '#709080'
 
 local function round(x)
     return math.floor(x + 0.5)

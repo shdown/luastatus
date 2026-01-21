@@ -1,11 +1,11 @@
-text, time, total, is_playing = nil, nil, nil, false
-timeout = 2
-titlewidth = 40
+local text, time, total, is_playing = nil, nil, nil, false
+local timeout = 2
+local titlewidth = 40
 
-local function W_split(text, boundary)
-    local head, _ = luastatus.libwidechar.truncate_to_width(text, boundary)
+local function W_split(str, boundary)
+    local head, _ = luastatus.libwidechar.truncate_to_width(str, boundary)
     assert(head)
-    local tail = text:sub(1 + #before)
+    local tail = str:sub(1 + #head)
     return head, tail
 end
 

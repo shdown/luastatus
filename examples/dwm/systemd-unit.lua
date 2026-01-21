@@ -35,7 +35,7 @@ local function requery_unit_file()
     unit_file = assert(string.match(answer, '%S+'))
 end
 
-local function make_output(text, color_name)
+local function make_output(text)
     return string.format('[%s: %s]', HUMAN_NAME, text)
 end
 
@@ -60,23 +60,23 @@ widget = {
         if not is_ok then
             print('WARNING: get_property failed:', res)
             unit_file = nil
-            return make_output('no unit file', 'pink')
+            return make_output('no unit file')
         end
 
         assert(type(res) == 'table' and #res == 1)
         local state = res[1]
 
         if state == 'active' then
-            return make_output('✓', 'green')
+            return make_output('✓')
         elseif state == 'reloading' or state == 'activating' then
-            return make_output('•', 'yellow')
+            return make_output('•')
         elseif state == 'inactive' or state == 'deactivating' then
-            return make_output('-', 'dim')
+            return make_output('-')
         elseif state == 'failed' then
-            return make_output('x', 'red')
+            return make_output('x')
         else
             print('WARNING: unknown state:', state)
-            return make_output('?', 'dim')
+            return make_output('?')
         end
     end,
 }

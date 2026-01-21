@@ -1,6 +1,6 @@
-HIDE_IF_HAVE_MORE_UPDATES = false
+local HIDE_IF_HAVE_MORE_UPDATES = false
 
-PROMPT_TEMPLATE = [[<start_of_turn>user
+local PROMPT_TEMPLATE = [[<start_of_turn>user
 You are a helpful assistant
 
 Hello<end_of_turn>
@@ -32,7 +32,7 @@ widget = {
                 return nil
             end
             -- string.gsub returns two values: result and number of replacements done
-            local res, n = PROMPT_TEMPLATE:gsub(
+            local res, _ = PROMPT_TEMPLATE:gsub(
                 '@@@',
                 string.format('How do I use program "%s"?', luastatus.plugin.escape_double_quoted(data.xtitle))
             )

@@ -1,5 +1,5 @@
-COOL_TEMP = 50
-HEAT_TEMP = 75
+local COOL_TEMP = 50
+local HEAT_TEMP = 75
 local function getcolor(temp)
     local t = (temp - COOL_TEMP) / (HEAT_TEMP - COOL_TEMP)
     if t < 0 then t = 0 end

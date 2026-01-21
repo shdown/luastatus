@@ -11,7 +11,7 @@ widget = {
             return {full_text = 'Click me'}
         end
     end,
-    event = function(t)
+    event = function(_)
         luastatus.plugin.wake_up()
     end,
 }

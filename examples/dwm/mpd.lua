@@ -1,4 +1,4 @@
-titlewidth = 40
+local titlewidth = 40
 
 widget = {
     plugin = 'mpd',

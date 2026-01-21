@@ -7,7 +7,7 @@
 --         }
 --     }
 --]]
-credentials = require 'credentials'
+local credentials = require 'credentials'
 
 widget = luastatus.require_plugin('imap').widget{
     verbose = false,

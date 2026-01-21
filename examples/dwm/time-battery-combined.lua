@@ -1,4 +1,4 @@
-function get_bat_seg(t)
+local function get_bat_seg(t)
     if not t then
         return '[--×--]'
     end

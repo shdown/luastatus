@@ -31,7 +31,7 @@ widget = {
     opts = {
         period = 2,
     },
-    cb = function(t)
+    cb = function(_)
         local f = io.open('/proc/uptime', 'r')
         local sec, _ = f:read('*number', '*number')
         f:close()

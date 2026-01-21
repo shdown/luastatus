@@ -23,7 +23,7 @@ widget = {
     opts = {
         period = 2,
     },
-    cb = function(t)
+    cb = function(_)
         local f = io.open('/proc/loadavg', 'r')
         local avg1, avg5, avg15 = f:read('*number', '*number', '*number')
         f:close()

@@ -10,9 +10,9 @@ local function load_fortunes()
     f:close()
     return res
 end
-FORTUNES = load_fortunes()
+local FORTUNES = load_fortunes()
 
-PROMPT_TEMPLATE = [[<start_of_turn>user
+local PROMPT_TEMPLATE = [[<start_of_turn>user
 You are a helpful assistant
 
 Hello<end_of_turn>
@@ -23,7 +23,7 @@ Hi there<end_of_turn>
 <start_of_turn>model
 ]]
 
-T_MIN, T_MAX = 0.8, 2.0
+local T_MIN, T_MAX = 0.8, 2.0
 
 local function get_divisor(tn)
     if tn == 1 then
@@ -49,7 +49,7 @@ local is_timeout_because_clicked = false
 
 local last_fortune = ''
 
-SEGMENT_DOTS = {full_text = '•••••', color = '#e19f00'}
+local SEGMENT_DOTS = {full_text = '•••••', color = '#e19f00'}
 
 widget = {
     plugin = 'llamacxx',
@@ -59,7 +59,7 @@ widget = {
             last_fortune = fortune
             -- string.gsub returns two values: result and number of replacements done.
             -- But we need to return only one value (the result).
-            local res, n = PROMPT_TEMPLATE:gsub(
+            local res, _ = PROMPT_TEMPLATE:gsub(
                 '@@@',
                 string.format('What does "%s" mean?', luastatus.plugin.escape_double_quoted(fortune))
             )

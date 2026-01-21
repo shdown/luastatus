@@ -1,4 +1,4 @@
-VBLOCKS = {'▂', '▃', '▄', '▅', '▆', '▇', '█'}
+local VBLOCKS = {'▂', '▃', '▄', '▅', '▆', '▇', '█'}
 
 local function make_color(ratio)
     local red = math.floor(0.5 + 255 * ratio)

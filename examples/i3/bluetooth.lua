@@ -5,10 +5,10 @@ if not luastatus.execute('command -v bluetoothctl >/dev/null') then
     error('"bluetoothctl" command, which is required for this widget to work, was not found')
 end
 
-separator = " "
+local separator = " "
 
 -- Object paths look like /org/bluez/hci0/dev_XX_XX_XX_XX_XX_XX/somethingsomething
-function get_device_mac_address(device_object_path)
+local function get_device_mac_address(device_object_path)
     return device_object_path:gsub("/.*/dev_", ""):gsub("/.*", ""):gsub("_", ":")
 end
 
@@ -17,12 +17,12 @@ end
 -- Device YY:YY:YY:YY:YY:YY Redmi 8
 --
 -- Function returns mac addresses of all devices.
-function get_devices()
+local function get_devices()
     local devices = {}
     local handle = io.popen(string.format("bluetoothctl devices"))
     for line in handle:lines() do
         local match = string.match(line, "Device ([%x:]+)")
-        if math then
+        if match then
             table.insert(devices, match)
         end
     end
@@ -55,7 +55,7 @@ end
 -- [name]          string  JBL T450BT
 -- [paired]        boolean true
 -- [trusted]       boolean true
-function get_device_info(mac_address)
+local function get_device_info(mac_address)
     if mac_address == nil then
         mac_address = ""
     end
@@ -81,9 +81,9 @@ function get_device_info(mac_address)
     return device_info
 end
 
-devices = {}
+local devices = {}
 
-function reprint_devices()
+local function reprint_devices()
     local t = {}
     for mac_address, device in pairs(devices) do
         table.insert(t, string.format("%s(%s)", device["name"], mac_address))
@@ -109,7 +109,7 @@ widget = {
     cb = function(t)
         if t.what == "hello" then
             local mac_addresses = get_devices()
-            for i, mac_address in pairs(mac_addresses) do
+            for _, mac_address in ipairs(mac_addresses) do
                 local device = get_device_info(mac_address)
                 if device["connected"] and device["paired"] then
                     devices[mac_address] = device
@@ -128,7 +128,7 @@ widget = {
             -- [2]     [2]     [2]     boolean true
             -- [3]     table
             if t.signal == "PropertiesChanged" then
-                for i, message in pairs(t.parameters[2]) do
+                for _, message in pairs(t.parameters[2]) do
                     if message[1] == "Connected" or message[1] == "Paired" then
                         local mac_address = get_device_mac_address(t.object_path)
                         if message[2] then

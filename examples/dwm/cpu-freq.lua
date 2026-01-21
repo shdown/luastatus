@@ -1,4 +1,4 @@
-VBLOCKS = {'▂', '▃', '▄', '▅', '▆', '▇', '█'}
+local VBLOCKS = {'▂', '▃', '▄', '▅', '▆', '▇', '█'}
 
 local function make_chunk(entry)
     local num = entry.cur - entry.min

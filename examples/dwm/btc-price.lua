@@ -3,13 +3,13 @@
 -- Requires (luarocks packages):
 --     * luasec
 --     * lua-cjson
-https = require 'ssl.https'
-ltn12 = require 'ltn12'
-cjson = require 'cjson'
+local https = require 'ssl.https'
+local ltn12 = require 'ltn12'
+local cjson = require 'cjson'
 
 -- All the arguments except for 'url' may be absent or nil; default method is GET.
 -- Returns: code (integer), body (string), headers (table), status (string).
-function request(url, headers, method, body)
+local function request(url, headers, method, body)
     local out_body = {}
     local is_ok, code_or_errmsg, out_headers, status = https.request(
         {
@@ -28,7 +28,7 @@ end
 
 -- Arguments are the same to those of 'request'.
 -- Returns: body (string), headers (table).
-function request_check_code(...)
+local function request_check_code(...)
     local code, body, headers, status = request(...)
     assert(code == 200, string.format('HTTP %s %s', code, status))
     return body, headers
@@ -38,7 +38,6 @@ widget = {
     plugin = 'timer',
     opts = {
         period = 5 * 60,
-        fifo = fifo_path,
     },
     cb = function()
         local is_ok, body = pcall(request_check_code, 'https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT')

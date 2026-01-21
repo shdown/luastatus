@@ -10,9 +10,10 @@ local function load_fortunes()
     f:close()
     return res
 end
-FORTUNES = load_fortunes()
+local FORTUNES = load_fortunes()
+assert(#FORTUNES ~= 0)
 
-PROMPT_TEMPLATE = [[<start_of_turn>user
+local PROMPT_TEMPLATE = [[<start_of_turn>user
 You are a helpful assistant
 
 Hello<end_of_turn>
@@ -33,7 +34,7 @@ widget = {
             last_fortune = fortune
             -- string.gsub returns two values: result and number of replacements done.
             -- But we need to return only one value (the result).
-            local res, n = PROMPT_TEMPLATE:gsub(
+            local res, _ = PROMPT_TEMPLATE:gsub(
                 '@@@',
                 string.format('What does "%s" mean?', luastatus.plugin.escape_double_quoted(fortune))
             )
