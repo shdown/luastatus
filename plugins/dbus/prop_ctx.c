@@ -86,7 +86,7 @@ void pctx_destroy(PCtx *ctx)
     free(ctx->which_bus);
     free(ctx->dest);
     free(ctx->object_path);
-    free(ctx->iface);
-    free(ctx->prop_name);
+    free(ctx->interface);
+    free(ctx->property_name);
     free(ctx->error_msg);
 }

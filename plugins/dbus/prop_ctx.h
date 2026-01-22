@@ -31,8 +31,8 @@ typedef struct {
     char *which_bus;
     char *dest;
     char *object_path;
-    char *iface;
-    char *prop_name;
+    char *interface;
+    char *property_name;
     GDBusCallFlags flags;
     int tmo_ms;
 

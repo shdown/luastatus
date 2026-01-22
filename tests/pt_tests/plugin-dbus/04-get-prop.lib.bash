@@ -22,8 +22,8 @@ widget = {
             bus = "session",
             dest = "org.freedesktop.DBus",
             object_path = "/org/freedesktop/DBus",
-            iface = "org.freedesktop.DBus",
-            prop_name = "Features",
+            interface = "org.freedesktop.DBus",
+            property_name = "Features",
         })
         assert(is_ok, res)
 

@@ -22,7 +22,7 @@ widget = {
             bus = "session",
             dest = "org.freedesktop.DBus",
             object_path = "/org/freedesktop/DBus",
-            iface = "org.freedesktop.DBus",
+            interface = "org.freedesktop.DBus",
         })
         assert(is_ok, res)
 

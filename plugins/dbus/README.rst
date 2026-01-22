@@ -162,9 +162,9 @@ The following functions are provided:
 
   - ``object_path`` (string): the path to the object to get a property of.
 
-  - ``iface`` (string): the name of the interface.
+  - ``interface`` (string): the name of the interface.
 
-  - ``prop_name`` (string): the name of the property.
+  - ``property_name`` (string): the name of the property.
 
   - ``flag_no_autostart`` (boolean, optional): whether to pass
     ``G_DBUS_CALL_FLAGS_NO_AUTO_START`` flag (which means don't launch an
@@ -184,7 +184,7 @@ The following functions are provided:
 * ``luastatus.plugin.get_all_propertes(params)``
 
   Get all D-Bus properties associated with an inteface. ``params`` must be the
-  same as to ``get_property``, except that ``prop_name`` should not be set.
+  same as to ``get_property``, except that ``property_name`` should not be set.
 
   On success, returns ``true, result``, where ``result`` is the result of
   the ``GetAll`` call, unmarshalled as described in section `D-Bus objects`_.

@@ -95,14 +95,14 @@ static void maybe_do_timeout(PCtx *ctx, int *dst, const char *key)
     }
 }
 
-void pctx_parse(PCtx *ctx, bool with_prop_name)
+void pctx_parse(PCtx *ctx, bool with_property_name)
 {
     do_str(ctx, &ctx->which_bus, "bus");
     do_str(ctx, &ctx->dest, "dest");
     do_str(ctx, &ctx->object_path, "object_path");
-    do_str(ctx, &ctx->iface, "iface");
-    if (with_prop_name) {
-        do_str(ctx, &ctx->prop_name, "prop_name");
+    do_str(ctx, &ctx->interface, "interface");
+    if (with_property_name) {
+        do_str(ctx, &ctx->property_name, "property_name");
     }
 
     bool no_autostart = false;

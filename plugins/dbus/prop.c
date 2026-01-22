@@ -81,7 +81,7 @@ static int do_get_prop(
         conn,
         ctx,
         /*method_name=*/ "Get",
-        /*params=*/ g_variant_new("(ss)", ctx->iface, ctx->prop_name)
+        /*params=*/ g_variant_new("(ss)", ctx->interface, ctx->property_name)
     );
 }
 
@@ -96,7 +96,7 @@ static int do_get_all_props(
         conn,
         ctx,
         /*method_name=*/ "GetAll",
-        /*params=*/ g_variant_new("(s)", ctx->iface)
+        /*params=*/ g_variant_new("(s)", ctx->interface)
     );
 }
 

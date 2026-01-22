@@ -72,8 +72,8 @@ widget = {
             bus = 'system',
             dest = 'org.freedesktop.systemd1',
             object_path = assert(unit_file),
-            iface = 'org.freedesktop.systemd1.Unit',
-            prop_name = 'ActiveState',
+            interface = 'org.freedesktop.systemd1.Unit',
+            property_name = 'ActiveState',
         })
         if not is_ok then
             print('WARNING: get_property failed:', res)
