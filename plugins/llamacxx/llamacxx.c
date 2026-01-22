@@ -57,6 +57,7 @@
 #include "map_ref.h"
 #include "priv.h"
 #include "parse_opts.h"
+#include "report.h"
 
 static void destroy(LuastatusPluginData *pd)
 {
@@ -76,16 +77,6 @@ static bool init_requester(LuastatusPluginData *pd)
     return true;
 }
 
-static inline const char *NUL_checked_lua_tostring(lua_State *L, int pos)
-{
-    size_t ns;
-    const char *s = lua_tolstring(L, pos, &ns);
-    if (ns != strlen(s)) {
-        return NULL;
-    }
-    return s;
-}
-
 static int visit_data_sources_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
 {
     mv->where = "'data_sources' elem";
@@ -100,14 +91,12 @@ static int visit_data_sources_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
 
     Priv *p = ud;
 
-    const char *name = NUL_checked_lua_tostring(mv->L, kpos);
-    if (!name) {
-        moon_visit_err(mv, "data source name (table key) contains NUL character");
-        return -1;
-    }
-    const char *lua_program = NUL_checked_lua_tostring(mv->L, vpos);
-    if (!lua_program) {
-        moon_visit_err(mv, "lua program (table value) contains NUL character");
+    const char *name = lua_tostring(mv->L, kpos);
+
+    size_t lua_program_len;
+    const char *lua_program = lua_tolstring(mv->L, vpos, &lua_program_len);
+    if (lua_program_len != strlen(lua_program)) {
+        moon_visit_err(mv, "lua program contains NUL character");
         return -1;
     }
     DSS_list_push(&p->dss_list, DSS_new(name, lua_program));
@@ -252,42 +241,6 @@ static void register_funcs(LuastatusPluginData *pd, lua_State *L)
     lua_setfield(L, -2, "escape_single_quoted"); // L: table
 }
 
-typedef struct {
-    const char *k;
-    const char *v;
-    size_t nv;
-} ReportField;
-
-#define NV_CSTR       ((size_t) -1)
-#define NV_BOOL_TRUE  ((size_t) -2)
-#define NV_BOOL_FALSE ((size_t) -3)
-
-static void report_generic(
-    LuastatusPluginData *pd,
-    LuastatusPluginRunFuncs funcs,
-    const ReportField *fields,
-    size_t nfields)
-{
-    lua_State *L = funcs.call_begin(pd->userdata);
-
-    lua_createtable(L, 0, nfields); // L: table
-
-    for (size_t i = 0; i < nfields; ++i) {
-        ReportField f = fields[i];
-        if (f.nv == NV_CSTR) {
-            lua_pushstring(L, f.v);
-        } else if (f.nv == NV_BOOL_TRUE || f.nv == NV_BOOL_FALSE) {
-            lua_pushboolean(L, f.nv == NV_BOOL_TRUE);
-        } else {
-            lua_pushlstring(L, f.v, f.nv);
-        }
-        // L: table value
-        lua_setfield(L, -2, f.k); // L: table
-    }
-
-    funcs.call_end(pd->userdata);
-}
-
 static void report_answer(
     LuastatusPluginData *pd,
     LuastatusPluginRunFuncs funcs,
@@ -296,13 +249,13 @@ static void report_answer(
     int mu)
 {
     ReportField fields[] = {
-        /*0*/ {"what", "answer", NV_CSTR},
-        /*1*/ {"answer", ans, ans_len},
+        /*0*/ report_field_cstr("what", "answer"),
+        /*1*/ report_field_lstr("answer", ans, ans_len),
         /*2*/ {0},
     };
     size_t nfields = 2;
     if (mu >= 0) {
-        fields[nfields++] = (ReportField) {"mu", "", mu ? NV_BOOL_TRUE : NV_BOOL_FALSE};
+        fields[nfields++] = report_field_bool("mu", mu != 0);
     }
     report_generic(pd, funcs, fields, nfields);
 }
@@ -320,9 +273,9 @@ static void report_error(
     }
 
     ReportField fields[] = {
-        {"what", "error", NV_CSTR},
-        {"error", my_error_cstr(e), NV_CSTR},
-        {"meta", meta_buf, NV_CSTR},
+        report_field_cstr("what", "error"),
+        report_field_cstr("error", my_error_cstr(e)),
+        report_field_cstr("meta", meta_buf),
     };
     report_generic(pd, funcs, fields, LS_ARRAY_SIZE(fields));
 }
@@ -333,7 +286,7 @@ static void report_something_without_details(
     const char *what)
 {
     ReportField fields[] = {
-        {"what", what, NV_CSTR},
+        report_field_cstr("what", what),
     };
     report_generic(pd, funcs, fields, LS_ARRAY_SIZE(fields));
 }
@@ -382,17 +335,18 @@ static int lfunc_get_state_on_error(lua_State *L)
     return 1;
 }
 
-static void flash_call_push_error_result(lua_State *L, char state)
+static void flash_call_push_error_result(lua_State *L, SlotState state)
 {
     switch (state) {
-    case 'E':
+    case SLOT_STATE_ERROR_LUA_ERR:
         lua_pushstring(L, "cb_lua_error"); // L: str
         break;
-    case 'D':
+    case SLOT_STATE_ERROR_PLUGIN_DONE:
         lua_pushstring(L, "plugin_exited"); // L: str
         break;
     default:
-        lua_pushlstring(L, &state, 1); // L: str
+        // should not happen
+        lua_pushstring(L, "?"); // L: str
         break;
     }
     lua_pushcclosure(L, lfunc_get_state_on_error, 1); // L: func
@@ -416,16 +370,18 @@ static int get_prompt_via_flash_call(
     // L: func
     lua_createtable(L, 0, nslots); // L: func table
     for (size_t i = 0; i < nslots; ++i) {
-        switch (slot_states[i]) {
-        case 'z':
-        case 'n':
+        SlotState state = slot_states[i];
+        switch (state) {
+        case SLOT_STATE_EMPTY:
+        case SLOT_STATE_NIL:
             lua_pushnil(L);
             break;
-        case 'y':
+        case SLOT_STATE_HAS_VALUE:
             lua_pushlstring(L, slots[i].data, slots[i].size);
             break;
-        default:
-            flash_call_push_error_result(L, slot_states[i]);
+        case SLOT_STATE_ERROR_LUA_ERR:
+        case SLOT_STATE_ERROR_PLUGIN_DONE:
+            flash_call_push_error_result(L, state);
             break;
         }
         // L: func table value

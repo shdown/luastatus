@@ -194,12 +194,12 @@ static Myself *myself_new(const char *name, ConcQueue *q, size_t q_idx, External
 
 static void myself_done(Myself *myself)
 {
-    conc_queue_update_slot(myself->q, myself->q_idx, NULL, 0, 'D');
+    conc_queue_update_slot(myself->q, myself->q_idx, NULL, 0, SLOT_STATE_ERROR_PLUGIN_DONE);
 }
 
 static void myself_do_report_error(Myself *myself)
 {
-    conc_queue_update_slot(myself->q, myself->q_idx, NULL, 0, 'E');
+    conc_queue_update_slot(myself->q, myself->q_idx, NULL, 0, SLOT_STATE_ERROR_LUA_ERR);
 }
 
 static void myself_do_report_result(Myself *myself, lua_State *L)
@@ -208,9 +208,9 @@ static void myself_do_report_result(Myself *myself, lua_State *L)
     if (t == LUA_TSTRING) {
         size_t res_n;
         const char *res = lua_tolstring(L, -1, &res_n);
-        conc_queue_update_slot(myself->q, myself->q_idx, res, res_n, 'y');
+        conc_queue_update_slot(myself->q, myself->q_idx, res, res_n, SLOT_STATE_HAS_VALUE);
     } else if (t == LUA_TNIL) {
-        conc_queue_update_slot(myself->q, myself->q_idx, NULL, 0, 'n');
+        conc_queue_update_slot(myself->q, myself->q_idx, NULL, 0, SLOT_STATE_NIL);
     } else {
         ERRF(myself, "cb returned %s value (expected string or nil)", lua_typename(L, t));
         myself_do_report_error(myself);

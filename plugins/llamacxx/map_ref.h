@@ -48,14 +48,6 @@ LS_INHEADER MapValue_PI *map_ref_load(MapRef ref)
     return *ref.pptr;
 }
 
-LS_INHEADER MapValue_PI *map_ref_load_or_NULL(MapRef ref)
-{
-    if (ref.pptr == NULL) {
-        return NULL;
-    }
-    return *ref.pptr;
-}
-
 LS_INHEADER void map_ref_store(MapRef ref, MapValue_PI *val)
 {
     LS_ASSERT(ref.pptr != NULL);
@@ -79,13 +71,21 @@ LS_INHEADER void map_ref_init(MapRef *ref, ExternalContext ectx)
 
 LS_INHEADER void map_ref_destroy(MapRef ref)
 {
-    MapValue_PI *val = map_ref_load_or_NULL(ref);
-    if (val) {
-        if (!--val->nrefs) {
-            LS_PTH_CHECK(pthread_mutex_destroy(&val->mtx));
-            free(val);
-            map_ref_store(ref, NULL);
-        }
+    if (!ref.pptr) {
+        // Wasn't even initialized (with /map_ref_init()/).
+        return;
+    }
+
+    MapValue_PI *val = map_ref_load(ref);
+
+    // Since we currently own a reference, /val/ must be non-NULL and have a positive refcount.
+    LS_ASSERT(val != NULL);
+    LS_ASSERT(val->nrefs != 0);
+
+    if (!--val->nrefs) {
+        LS_PTH_CHECK(pthread_mutex_destroy(&val->mtx));
+        free(val);
+        map_ref_store(ref, NULL);
     }
 }
 

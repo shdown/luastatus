@@ -38,6 +38,14 @@ typedef uint64_t CONC_QUEUE_MASK;
 
 enum { CONC_QUEUE_MAX_SLOTS = sizeof(CONC_QUEUE_MASK) * 8 };
 
+typedef enum {
+    SLOT_STATE_EMPTY,
+    SLOT_STATE_NIL,
+    SLOT_STATE_HAS_VALUE,
+    SLOT_STATE_ERROR_PLUGIN_DONE,
+    SLOT_STATE_ERROR_LUA_ERR,
+} SlotState;
+
 typedef struct {
     pthread_mutex_t mtx;
     pthread_cond_t condvar;
@@ -60,7 +68,7 @@ LS_INHEADER void conc_queue_create(ConcQueue *q, size_t nslots)
     q->slots = LS_XNEW(LS_String, nslots);
     for (size_t i = 0; i < nslots; ++i) {
         q->slots[i] = ls_string_new_reserve(1024);
-        q->slot_states[i] = 'z';
+        q->slot_states[i] = SLOT_STATE_EMPTY;
     }
     q->nslots = nslots;
 
@@ -71,14 +79,14 @@ LS_INHEADER void conc_queue_update_slot(
     ConcQueue *q,
     size_t slot_idx,
     const char *buf, size_t nbuf,
-    char state)
+    SlotState state)
 {
     LS_ASSERT(slot_idx < q->nslots);
 
     LS_PTH_CHECK(pthread_mutex_lock(&q->mtx));
 
     LS_String *old = &q->slots[slot_idx];
-    char old_state = q->slot_states[slot_idx];
+    SlotState old_state = q->slot_states[slot_idx];
     if (ls_string_eq_b(*old, buf, nbuf) && old_state == state) {
         goto unlock;
     }

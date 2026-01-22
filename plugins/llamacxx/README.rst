@@ -69,6 +69,8 @@ The following options are supported:
         }
     ]]
 
+  Currently, there is a limit on the number of data sources: there can be at most 64 different data sources.
+
 * ``greet``: boolean
 
   Whether to call ``cb`` with ``{what = "hello"}`` in the beginning.
