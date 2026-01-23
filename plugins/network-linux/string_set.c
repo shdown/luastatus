@@ -21,7 +21,33 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include "libls/ls_alloc_utils.h"
+#include "libls/ls_compdep.h"
+#include "libls/ls_freemem.h"
 #include "libls/ls_assert.h"
+
+StringSet string_set_new(void)
+{
+    return (StringSet) {NULL, 0, 0};
+}
+
+void string_set_reset(StringSet *s)
+{
+    for (size_t i = 0; i < s->size; ++i) {
+        free(s->data[i]);
+    }
+    s->data = LS_M_FREEMEM(s->data, &s->size, &s->capacity);
+}
+
+void string_set_add(StringSet *s, const char *val)
+{
+    LS_ASSERT(val != NULL);
+
+    if (s->size == s->capacity) {
+        s->data = LS_M_X2REALLOC(s->data, &s->capacity);
+    }
+    s->data[s->size++] = ls_xstrdup(val);
+}
 
 static int elem_cmp(const void *a, const void *b)
 {
@@ -44,4 +70,12 @@ bool string_set_contains(StringSet s, const char *val)
         return false;
     }
     return bsearch(&val, s.data, s.size, sizeof(char *), elem_cmp) != NULL;
+}
+
+void string_set_destroy(StringSet s)
+{
+    for (size_t i = 0; i < s.size; ++i) {
+        free(s.data[i]);
+    }
+    free(s.data);
 }

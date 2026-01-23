@@ -74,7 +74,8 @@ are tables with the following entries (all are optional):
     each element corresponds to a local IPv4/IPv6 address of the interface.
 
     (In an extremely unlikely and probably logically impossible event that the number of addresses
-    exceeds maximum Lua array length, the last array element will be ``false``, not a string.)
+    exceeds maximum Lua array length, the array will be truncated and the last element will be ``false``,
+    not a string, to indicate truncation.)
 
   - Otherwise, the value behind ``ipv4``/``ipv6`` key is a string corresponding to *some* local
     IPv4/IPv6 address of the interface.

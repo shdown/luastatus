@@ -388,6 +388,37 @@ static ssize_t my_recvmsg(int fd_netlink, struct msghdr *msg, LS_TimeDelta tmo, 
     return recvmsg(fd_netlink, msg, 0);
 }
 
+static bool interpret_nl_msg(LuastatusPluginData *pd, char *msg_buf, size_t len)
+{
+    for (
+        struct nlmsghdr *nh = (struct nlmsghdr *) msg_buf;
+        NLMSG_OK(nh, len);
+        nh = NLMSG_NEXT(nh, len))
+    {
+        if (nh->nlmsg_type == NLMSG_DONE) {
+            // end of multipart message
+            break;
+        }
+        if (nh->nlmsg_type == NLMSG_ERROR) {
+            if (nh->nlmsg_len < NLMSG_LENGTH(sizeof(struct nlmsgerr))) {
+                LS_ERRF(pd, "netlink error message truncated");
+                return false;
+            }
+            struct nlmsgerr *e = NLMSG_DATA(nh);
+            int errnum = e->error;
+            if (errnum) {
+                LS_ERRF(pd, "netlink error: %s", ls_tls_strerror(-errnum));
+                false;
+            } else {
+                LS_WARNF(pd, "unexpected ACK - what's going on?");
+                continue;
+            }
+        }
+        // we don't care about the message
+    }
+    return true;
+}
+
 static bool interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
@@ -452,32 +483,9 @@ static bool interact(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
             }
         }
 
-        for (struct nlmsghdr *nh = (struct nlmsghdr *) buf;
-             NLMSG_OK(nh, len);
-             nh = NLMSG_NEXT(nh, len))
-        {
-            if (nh->nlmsg_type == NLMSG_DONE) {
-                // end of multipart message
-                break;
-            }
-            if (nh->nlmsg_type == NLMSG_ERROR) {
-                if (nh->nlmsg_len < NLMSG_LENGTH(sizeof(struct nlmsgerr))) {
-                    LS_ERRF(pd, "netlink error message truncated");
-                    ret = true;
-                    goto error;
-                }
-                struct nlmsgerr *e = NLMSG_DATA(nh);
-                int errnum = e->error;
-                if (errnum) {
-                    LS_ERRF(pd, "netlink error: %s", ls_tls_strerror(-errnum));
-                    ret = true;
-                    goto error;
-                } else {
-                    LS_WARNF(pd, "unexpected ACK - what's going on?");
-                    continue;
-                }
-            }
-            // we don't care about the message
+        if (!interpret_nl_msg(pd, buf, len)) {
+            ret = true;
+            goto error;
         }
 
         make_call(pd, funcs, true, "update");
