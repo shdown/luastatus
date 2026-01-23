@@ -32,6 +32,7 @@ valgrind)
     ;;
 helgrind)
     PT_PREFIX=( valgrind --tool=helgrind -q --exit-on-first-error=yes --error-exitcode=42 )
+    PT_PREFIX+=( --suppressions="$PT_BUILD_DIR/tests/glib.supp" )
     ;;
 kcov)
     PT_PREFIX=( ./kcov_wrapper kcov "${PT_KCOV_DIR?}" )
@@ -342,7 +343,23 @@ pt_run_test_suite() {
 }
 
 pt_cmake_opt_enabled() {
-    cmake -LA "$PT_SOURCE_DIR" | grep -E -q "^$1:BOOL=ON$"
+    local sed_cmd='s/^'
+    sed_cmd+=$1
+    sed_cmd+=':BOOL=(.*)$/\1/p'
+
+    local val
+    val=$(cmake -LA "$PT_SOURCE_DIR" | sed -rn "$sed_cmd") \
+        || pt_fail "Cannot extract value of CMake option '$1'"
+
+    case "$val" in
+    1|ON|YES|TRUE|Y)
+        return 0
+        ;;
+    0|OFF|NO|FALSE|N|IGNORE|NOTFOUND|*-NOTFOUND)
+        return 1
+        ;;
+    esac
+    pt_fail "Cannot make heads or tails of CMake boolean value '$val' (key $1)"
 }
 PT_SKIP_ME_YES=0
 PT_SKIP_ME_NO=1

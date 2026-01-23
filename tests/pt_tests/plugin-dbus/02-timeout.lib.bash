@@ -38,6 +38,10 @@ exec {pfd}<"$main_fifo_file"
 pt_expect_line 'init' <&$pfd
 pt_expect_line 'cb {["what"]="hello"}' <&$pfd
 
+measure_start
+pt_expect_line 'cb {["what"]="timeout"}' <&$pfd
+measure_check_ms 2000
+
 for (( i = 0; i < 3; ++i )); do
     pt_check dbus-send \
         --session \

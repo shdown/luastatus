@@ -56,4 +56,6 @@ pt_expect_line 'cb {["bus"]="session",["interface"]="org.luastatus.ExampleInterf
 pt_close_fd "$pfd"
 pt_testcase_end
 
+pt_kill_thing dbus_sender
+
 x_dbus_end

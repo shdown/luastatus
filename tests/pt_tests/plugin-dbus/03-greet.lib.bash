@@ -35,6 +35,8 @@ exec {pfd}<"$main_fifo_file"
 pt_expect_line 'init' <&$pfd
 pt_expect_line 'cb {["what"]="hello"}' <&$pfd
 
+sleep 1
+
 pt_check dbus-send \
     --session \
     /org/luastatus/sample/object/name \

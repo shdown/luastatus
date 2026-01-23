@@ -1,0 +1,62 @@
+{
+   glib-thread-fuckery-misc-1
+   Helgrind:Race
+   ...
+   fun:g_source_attach
+}
+
+{
+   glib-thread-fuckery-misc-2
+   Helgrind:Race
+   ...
+   fun:g_bus_get_sync
+}
+
+{
+   glib-thread-fuckery-misc-3
+   Helgrind:Race
+   ...
+   fun:g_dbus_connection_send_message_with_reply_sync
+}
+
+{
+   glib-thread-fuckery-misc-4
+   Helgrind:Race
+   ...
+   fun:g_task_propagate_pointer
+}
+
+{
+   glib-thread-fuckery-ctx-1
+   Helgrind:Race
+   ...
+   fun:g_main_context_acquire
+}
+
+{
+   glib-thread-fuckery-ctx-2
+   Helgrind:Race
+   ...
+   fun:g_main_context_iteration
+}
+
+{
+   glib-thread-fuckery-ctx-3
+   Helgrind:Race
+   ...
+   fun:g_main_context_release
+}
+
+{
+   glib-thread-fuckery-ctx-4
+   Helgrind:Race
+   ...
+   fun:g_main_loop_run
+}
+
+{
+   glib-thread-fuckery-wtf
+   Helgrind:Race
+   ...
+   fun:g_variant_get_type
+}
