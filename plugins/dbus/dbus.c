@@ -256,6 +256,8 @@ static void callback_signal(
 {
     PluginRunArgs *args = (PluginRunArgs *) user_data;
 
+    LS_PTH_CHECK(pthread_mutex_lock(&args->mtx));
+
     const char *bus_name = "";
     if (cnx == args->cnx_session) {
         bus_name = "session";
@@ -278,14 +280,17 @@ static void callback_signal(
     lua_setfield(L, -2, "parameters"); // L: table
 
     args->funcs.call_end(args->pd->userdata);
+
+    LS_PTH_CHECK(pthread_mutex_unlock(&args->mtx));
 }
 
 static gboolean callback_timeout(gpointer user_data)
 {
     PluginRunArgs *args = (PluginRunArgs *) user_data;
-    lua_State *L = args->funcs.call_begin(args->pd->userdata);
 
     LS_PTH_CHECK(pthread_mutex_lock(&args->mtx));
+
+    lua_State *L = args->funcs.call_begin(args->pd->userdata);
 
     lua_createtable(L, 0, 1); // L: table
     lua_pushstring(L, "timeout"); // L: table string
