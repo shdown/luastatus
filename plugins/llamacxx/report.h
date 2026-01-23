@@ -57,7 +57,7 @@ LS_INHEADER ReportField report_field_cstr(const char *k, const char *val)
 LS_INHEADER ReportField report_field_lstr(const char *k, const char *val, size_t nval)
 {
     return (ReportField) {
-        .type = REPORT_TYPE_CSTR,
+        .type = REPORT_TYPE_LSTR,
         .k = k,
         .v = val,
         .nv = nval,

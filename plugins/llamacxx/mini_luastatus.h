@@ -23,13 +23,13 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <pthread.h>
-#include "conc_queue.h"
+#include "conq.h"
 #include "external_context.h"
 
 bool mini_luastatus_run(
     const char *lua_program,
     const char *name,
-    ConcQueue *q,
+    Conq *q,
     size_t q_idx,
     ExternalContext ectx,
     pthread_t *out_pid);

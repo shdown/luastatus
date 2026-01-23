@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025  luastatus developers
+ * Copyright (C) 2026  luastatus developers
  *
  * This file is part of luastatus.
  *
@@ -17,50 +17,33 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef conc_queue_h_
-#define conc_queue_h_
+#include "conq.h"
 
-#include <stdint.h>
 #include <stdlib.h>
 #include <pthread.h>
-#include "libls/ls_compdep.h"
+
 #include "libls/ls_alloc_utils.h"
-#include "libls/ls_string.h"
-#include "libls/ls_panic.h"
 #include "libls/ls_assert.h"
+#include "libls/ls_panic.h"
+#include "libls/ls_string.h"
 
-// Concurrent queue.
-// Instead of single value, it maintains a list of LS_String,
-// each of which might get "updated" independently.
-// The size of the list is limited to CONC_QUEUE_MAX_SLOTS.
-
-typedef uint64_t CONC_QUEUE_MASK;
-
-enum { CONC_QUEUE_MAX_SLOTS = sizeof(CONC_QUEUE_MASK) * 8 };
-
-typedef enum {
-    SLOT_STATE_EMPTY,
-    SLOT_STATE_NIL,
-    SLOT_STATE_HAS_VALUE,
-    SLOT_STATE_ERROR_PLUGIN_DONE,
-    SLOT_STATE_ERROR_LUA_ERR,
-} SlotState;
-
-typedef struct {
+struct Conq {
     pthread_mutex_t mtx;
     pthread_cond_t condvar;
 
     LS_String *slots;
     size_t nslots;
 
-    char slot_states[CONC_QUEUE_MAX_SLOTS];
+    char slot_states[CONQ_MAX_SLOTS];
 
-    CONC_QUEUE_MASK new_data_mask;
-} ConcQueue;
+    CONQ_MASK new_data_mask;
+};
 
-LS_INHEADER void conc_queue_create(ConcQueue *q, size_t nslots)
+Conq *conq_create(size_t nslots)
 {
-    LS_ASSERT(nslots <= CONC_QUEUE_MAX_SLOTS);
+    LS_ASSERT(nslots <= CONQ_MAX_SLOTS);
+
+    Conq *q = LS_XNEW(Conq, 1);
 
     LS_PTH_CHECK(pthread_mutex_init(&q->mtx, NULL));
     LS_PTH_CHECK(pthread_cond_init(&q->condvar, NULL));
@@ -68,46 +51,48 @@ LS_INHEADER void conc_queue_create(ConcQueue *q, size_t nslots)
     q->slots = LS_XNEW(LS_String, nslots);
     for (size_t i = 0; i < nslots; ++i) {
         q->slots[i] = ls_string_new_reserve(1024);
-        q->slot_states[i] = SLOT_STATE_EMPTY;
+        q->slot_states[i] = CONQ_SLOT_STATE_EMPTY;
     }
     q->nslots = nslots;
 
     q->new_data_mask = 0;
+
+    return q;
 }
 
-LS_INHEADER void conc_queue_update_slot(
-    ConcQueue *q,
+void conq_update_slot(
+    Conq *q,
     size_t slot_idx,
     const char *buf, size_t nbuf,
-    SlotState state)
+    ConqSlotState state)
 {
     LS_ASSERT(slot_idx < q->nslots);
 
     LS_PTH_CHECK(pthread_mutex_lock(&q->mtx));
 
     LS_String *old = &q->slots[slot_idx];
-    SlotState old_state = q->slot_states[slot_idx];
+    ConqSlotState old_state = q->slot_states[slot_idx];
     if (ls_string_eq_b(*old, buf, nbuf) && old_state == state) {
         goto unlock;
     }
     ls_string_assign_b(old, buf, nbuf);
     q->slot_states[slot_idx] = state;
 
-    q->new_data_mask |= ((CONC_QUEUE_MASK) 1) << slot_idx;
+    q->new_data_mask |= ((CONQ_MASK) 1) << slot_idx;
     LS_PTH_CHECK(pthread_cond_signal(&q->condvar));
 
 unlock:
     LS_PTH_CHECK(pthread_mutex_unlock(&q->mtx));
 }
 
-LS_INHEADER CONC_QUEUE_MASK conc_queue_fetch_updates(
-    ConcQueue *q,
+CONQ_MASK conq_fetch_updates(
+    Conq *q,
     LS_String *out,
-    char *out_states)
+    ConqSlotState *out_states)
 {
     LS_PTH_CHECK(pthread_mutex_lock(&q->mtx));
 
-    CONC_QUEUE_MASK mask;
+    CONQ_MASK mask;
     while (!(mask = q->new_data_mask)) {
         LS_PTH_CHECK(pthread_cond_wait(&q->condvar, &q->mtx));
     }
@@ -127,18 +112,18 @@ LS_INHEADER CONC_QUEUE_MASK conc_queue_fetch_updates(
     return mask;
 }
 
-LS_INHEADER CONC_QUEUE_MASK conc_queue_peek_at_updates(ConcQueue *q)
+CONQ_MASK conq_peek_at_updates(Conq *q)
 {
     LS_PTH_CHECK(pthread_mutex_lock(&q->mtx));
 
-    CONC_QUEUE_MASK res = q->new_data_mask;
+    CONQ_MASK res = q->new_data_mask;
 
     LS_PTH_CHECK(pthread_mutex_unlock(&q->mtx));
 
     return res;
 }
 
-LS_INHEADER void conc_queue_destroy(ConcQueue *q)
+void conq_destroy(Conq *q)
 {
     LS_PTH_CHECK(pthread_mutex_destroy(&q->mtx));
     LS_PTH_CHECK(pthread_cond_destroy(&q->condvar));
@@ -148,6 +133,6 @@ LS_INHEADER void conc_queue_destroy(ConcQueue *q)
     }
 
     free(q->slots);
-}
 
-#endif
+    free(q);
+}

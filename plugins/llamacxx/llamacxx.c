@@ -45,7 +45,7 @@
 
 #include "libsafe/safev.h"
 
-#include "conc_queue.h"
+#include "conq.h"
 #include "requester.h"
 #include "my_error.h"
 #include "dss_list.h"
@@ -99,16 +99,16 @@ static int visit_data_sources_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
         moon_visit_err(mv, "lua program contains NUL character");
         return -1;
     }
-    DSS_list_push(&p->dss_list, DSS_new(name, lua_program));
+    DSS_list_push(p->dss_list, name, lua_program);
 
     return 1;
 }
 
 static bool perform_initial_checks(LuastatusPluginData *pd, Priv *p)
 {
-    size_t n = DSS_list_size(&p->dss_list);
-    if (n > CONC_QUEUE_MAX_SLOTS) {
-        LS_FATALF(pd, "too many keys in 'data_sources' (limit is %d)", (int) CONC_QUEUE_MAX_SLOTS);
+    size_t n = DSS_list_size(p->dss_list);
+    if (n > CONQ_MAX_SLOTS) {
+        LS_FATALF(pd, "too many keys in 'data_sources' (limit is %d)", (int) CONQ_MAX_SLOTS);
         return false;
     }
     if (!n && p->upd_timeout == 0) {
@@ -120,7 +120,7 @@ static bool perform_initial_checks(LuastatusPluginData *pd, Priv *p)
     }
 
     const char *duplicate;
-    if (!DSS_list_names_unique(&p->dss_list, &duplicate)) {
+    if (!DSS_list_names_unique(p->dss_list, &duplicate)) {
         LS_FATALF(pd, "duplicate key '%s' in 'data_sources'", duplicate);
         return false;
     }
@@ -335,13 +335,13 @@ static int lfunc_get_state_on_error(lua_State *L)
     return 1;
 }
 
-static void flash_call_push_error_result(lua_State *L, SlotState state)
+static void flash_call_push_error_result(lua_State *L, ConqSlotState state)
 {
     switch (state) {
-    case SLOT_STATE_ERROR_LUA_ERR:
+    case CONQ_SLOT_STATE_ERROR_LUA_ERR:
         lua_pushstring(L, "cb_lua_error"); // L: str
         break;
-    case SLOT_STATE_ERROR_PLUGIN_DONE:
+    case CONQ_SLOT_STATE_ERROR_PLUGIN_DONE:
         lua_pushstring(L, "plugin_exited"); // L: str
         break;
     default:
@@ -356,7 +356,7 @@ static int get_prompt_via_flash_call(
     LuastatusPluginData *pd,
     LuastatusPluginRunFuncs funcs,
     const LS_String *slots,
-    const char *slot_states,
+    const ConqSlotState *slot_states,
     size_t nslots,
     LS_String *out)
 {
@@ -370,22 +370,21 @@ static int get_prompt_via_flash_call(
     // L: func
     lua_createtable(L, 0, nslots); // L: func table
     for (size_t i = 0; i < nslots; ++i) {
-        SlotState state = slot_states[i];
-        switch (state) {
-        case SLOT_STATE_EMPTY:
-        case SLOT_STATE_NIL:
+        switch (slot_states[i]) {
+        case CONQ_SLOT_STATE_EMPTY:
+        case CONQ_SLOT_STATE_NIL:
             lua_pushnil(L);
             break;
-        case SLOT_STATE_HAS_VALUE:
+        case CONQ_SLOT_STATE_HAS_VALUE:
             lua_pushlstring(L, slots[i].data, slots[i].size);
             break;
-        case SLOT_STATE_ERROR_LUA_ERR:
-        case SLOT_STATE_ERROR_PLUGIN_DONE:
-            flash_call_push_error_result(L, state);
+        case CONQ_SLOT_STATE_ERROR_LUA_ERR:
+        case CONQ_SLOT_STATE_ERROR_PLUGIN_DONE:
+            flash_call_push_error_result(L, slot_states[i]);
             break;
         }
         // L: func table value
-        lua_setfield(L, -2, DSS_list_get_name(&p->dss_list, i)); // L: func table
+        lua_setfield(L, -2, DSS_list_get_name(p->dss_list, i)); // L: func table
     }
 
     int retval;
@@ -434,9 +433,9 @@ static int get_prompt_via_flash_call(
 }
 
 typedef struct {
-    ConcQueue q;
+    Conq *q;
     LS_String *slots;
-    char *slot_states;
+    ConqSlotState *slot_states;
     LS_String answer_str;
     LS_String prompt_str;
     Requester *R;
@@ -447,12 +446,12 @@ typedef struct {
 
 static void run_data_init(RunData *rd, size_t n)
 {
-    conc_queue_create(&rd->q, n);
+    rd->q = conq_create(n);
     rd->slots = LS_XNEW(LS_String, n);
     for (size_t i = 0; i < n; ++i) {
         rd->slots[i] = ls_string_new_reserve(1024);
     }
-    rd->slot_states = LS_XNEW(char, n);
+    rd->slot_states = LS_XNEW(ConqSlotState, n);
     rd->answer_str = ls_string_new_reserve(1024);
     rd->prompt_str = ls_string_new_reserve(1024);
     rd->R = NULL;
@@ -468,7 +467,7 @@ static void run_data_destroy(RunData *rd, size_t n)
     }
     free(rd->tid_list);
 
-    conc_queue_destroy(&rd->q);
+    conq_destroy(rd->q);
 
     for (size_t i = 0; i < n; ++i) {
         ls_string_free(rd->slots[i]);
@@ -485,11 +484,32 @@ static void run_data_destroy(RunData *rd, size_t n)
     my_error_dispose(&rd->e);
 }
 
+static void do_run_widgets(LuastatusPluginData *pd, RunData *rd)
+{
+    Priv *p = pd->priv;
+
+    MapValue_PI *val = map_ref_load(p->map_ref);
+    LS_PTH_CHECK(pthread_mutex_lock(&val->mtx));
+
+    size_t n = DSS_list_size(p->dss_list);
+    for (size_t i = 0; i < n; ++i) {
+        pthread_t tid;
+        const char *name = DSS_list_get_name(p->dss_list, i);
+        const char *lua_program = DSS_list_get_lua_program(p->dss_list, i);
+        if (mini_luastatus_run(lua_program, name, rd->q, i, pd, &tid)) {
+            rd->tid_list[rd->tid_list_n++] = tid;
+        }
+        DSS_list_free_lua_program(p->dss_list, i);
+    }
+
+    LS_PTH_CHECK(pthread_mutex_unlock(&val->mtx));
+}
+
 static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
 
-    size_t n = DSS_list_size(&p->dss_list);
+    size_t n = DSS_list_size(p->dss_list);
 
     RunData rd;
     run_data_init(&rd, n);
@@ -499,20 +519,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         goto fail;
     }
 
-    {
-        MapValue_PI *val = map_ref_load(p->map_ref);
-        LS_PTH_CHECK(pthread_mutex_lock(&val->mtx));
-        for (size_t i = 0; i < n; ++i) {
-            pthread_t tid;
-            const char *name = DSS_list_get_name(&p->dss_list, i);
-            const char *lua_program = DSS_list_get_lua_program(&p->dss_list, i);
-            if (mini_luastatus_run(lua_program, name, &rd.q, i, pd, &tid)) {
-                rd.tid_list[rd.tid_list_n++] = tid;
-            }
-            DSS_list_free_lua_program(&p->dss_list, i);
-        }
-        LS_PTH_CHECK(pthread_mutex_unlock(&val->mtx));
-    }
+    do_run_widgets(pd, &rd);
 
     if (p->greet) {
         LS_DEBUGF(pd, "greeting");
@@ -527,7 +534,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 
         // fetch updates
         if (n != 0) {
-            (void) conc_queue_fetch_updates(&rd.q, rd.slots, rd.slot_states);
+            (void) conq_fetch_updates(rd.q, rd.slots, rd.slot_states);
         }
 
         LS_DEBUGF(pd, "generatig prompt");
@@ -558,7 +565,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         if (req_ok) {
             int mu = -1;
             if (p->report_mu) {
-                CONC_QUEUE_MASK mask = conc_queue_peek_at_updates(&rd.q);
+                CONQ_MASK mask = conq_peek_at_updates(rd.q);
                 mu = mask ? 1 : 0;
             }
             report_answer(pd, funcs, rd.answer_str.data, rd.answer_str.size, mu);

@@ -61,7 +61,7 @@ typedef struct {
 
     int lref_prompt_func;
 
-    DSS_List dss_list;
+    DSS_List *dss_list;
 
     PushedStr pushed_extra_params_json;
 
@@ -120,7 +120,7 @@ LS_INHEADER void priv_destroy_inner(Priv *p)
 
     free(p->extra_params_json);
 
-    DSS_list_destroy(&p->dss_list);
+    DSS_list_destroy(p->dss_list);
 
     ls_close(p->self_pipe[0]);
     ls_close(p->self_pipe[1]);

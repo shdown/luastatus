@@ -46,7 +46,7 @@
 
 #include "config.generated.h"
 
-#include "conc_queue.h"
+#include "conq.h"
 #include "describe_lua_err.h"
 #include "external_context.h"
 
@@ -106,7 +106,7 @@ struct Myself {
     MyUserData ud_for_me;
     MyUserData ud_for_data_source;
 
-    ConcQueue *q;
+    Conq *q;
 
     size_t q_idx;
 
@@ -171,7 +171,7 @@ static void external_sayf(void *userdata, int level, const char *fmt, ...)
     va_end(vl);
 }
 
-static Myself *myself_new(const char *name, ConcQueue *q, size_t q_idx, ExternalContext ectx)
+static Myself *myself_new(const char *name, Conq *q, size_t q_idx, ExternalContext ectx)
 {
     Myself *myself = LS_XNEW(Myself, 1);
     *myself = (Myself) {
@@ -194,12 +194,12 @@ static Myself *myself_new(const char *name, ConcQueue *q, size_t q_idx, External
 
 static void myself_done(Myself *myself)
 {
-    conc_queue_update_slot(myself->q, myself->q_idx, NULL, 0, SLOT_STATE_ERROR_PLUGIN_DONE);
+    conq_update_slot(myself->q, myself->q_idx, NULL, 0, CONQ_SLOT_STATE_ERROR_PLUGIN_DONE);
 }
 
 static void myself_do_report_error(Myself *myself)
 {
-    conc_queue_update_slot(myself->q, myself->q_idx, NULL, 0, SLOT_STATE_ERROR_LUA_ERR);
+    conq_update_slot(myself->q, myself->q_idx, NULL, 0, CONQ_SLOT_STATE_ERROR_LUA_ERR);
 }
 
 static void myself_do_report_result(Myself *myself, lua_State *L)
@@ -208,9 +208,9 @@ static void myself_do_report_result(Myself *myself, lua_State *L)
     if (t == LUA_TSTRING) {
         size_t res_n;
         const char *res = lua_tolstring(L, -1, &res_n);
-        conc_queue_update_slot(myself->q, myself->q_idx, res, res_n, SLOT_STATE_HAS_VALUE);
+        conq_update_slot(myself->q, myself->q_idx, res, res_n, CONQ_SLOT_STATE_HAS_VALUE);
     } else if (t == LUA_TNIL) {
-        conc_queue_update_slot(myself->q, myself->q_idx, NULL, 0, SLOT_STATE_NIL);
+        conq_update_slot(myself->q, myself->q_idx, NULL, 0, CONQ_SLOT_STATE_NIL);
     } else {
         ERRF(myself, "cb returned %s value (expected string or nil)", lua_typename(L, t));
         myself_do_report_error(myself);
@@ -644,7 +644,7 @@ static void *data_source_thread(void *arg)
 bool mini_luastatus_run(
     const char *lua_program,
     const char *name,
-    ConcQueue *q,
+    Conq *q,
     size_t q_idx,
     ExternalContext ectx,
     pthread_t *out_pid)
