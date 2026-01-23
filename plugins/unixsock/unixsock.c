@@ -25,7 +25,6 @@
 #include <errno.h>
 #include <unistd.h>
 #include <poll.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 
@@ -35,15 +34,13 @@
 #include "libmoonvisit/moonvisit.h"
 
 #include "libls/ls_alloc_utils.h"
-#include "libls/ls_assert.h"
 #include "libls/ls_evloop_lfuncs.h"
-#include "libls/ls_string.h"
 #include "libls/ls_tls_ebuf.h"
 #include "libls/ls_time_utils.h"
 #include "libls/ls_io_utils.h"
 #include "libls/ls_osdep.h"
 
-#include "cloexec_accept.h"
+#include "server.h"
 
 typedef struct {
     char *path;
@@ -95,10 +92,15 @@ static int init(LuastatusPluginData *pd, lua_State *L)
         goto mverror;
 
     // Parse max_concur_conns
-    if (moon_visit_uint(&mv, -1, "max_concur_conns", &p->max_clients, true) < 0)
+    if (moon_visit_uint(&mv, -1, "max_concur_conns", &p->max_clients, true) < 0) {
         goto mverror;
+    }
     if (!p->max_clients) {
         LS_FATALF(pd, "max_concur_conns is zero");
+        goto error;
+    }
+    if (p->max_clients > SERVER_MAX_CLIENTS_LIMIT) {
+        LS_FATALF(pd, "max_concur_conns is too big (limit is %d)", (int) SERVER_MAX_CLIENTS_LIMIT);
         goto error;
     }
 
@@ -123,90 +125,6 @@ static void register_funcs(LuastatusPluginData *pd, lua_State *L)
     // L: table
     ls_pushed_timeout_push_luafunc(&p->pushed_tmo, L); // L: table func
     lua_setfield(L, -2, "push_timeout"); // L: table
-}
-
-typedef struct {
-    int fd;
-    LS_String buf;
-} Client;
-
-static inline void client_drop(Client *c)
-{
-    ls_close(c->fd);
-    c->fd = -1;
-}
-
-static inline void client_destroy(Client *c)
-{
-    ls_close(c->fd);
-    ls_string_free(c->buf);
-}
-
-typedef struct {
-    size_t nclients;
-    Client *clients;
-    struct pollfd *pfds;
-} ServerState;
-
-static inline ServerState server_state_new(void)
-{
-    return (ServerState) {
-        .nclients = 0,
-        .clients = NULL,
-        .pfds = LS_XNEW(struct pollfd, 1),
-    };
-}
-
-static inline void server_state_update_pfds(ServerState *s)
-{
-    for (size_t i = 0; i < s->nclients; ++i) {
-        s->pfds[i + 1] = (struct pollfd) {
-            .fd = s->clients[i].fd,
-            .events = POLLIN,
-        };
-    }
-}
-
-static inline void server_state_set_nclients(ServerState *s, size_t n)
-{
-    if (s->nclients != n) {
-        s->nclients = n;
-        s->clients = LS_M_XREALLOC(s->clients, n);
-        s->pfds = LS_M_XREALLOC(s->pfds, n + 1);
-    }
-}
-
-static void server_state_compact(ServerState *s)
-{
-    // Remove in-place clients that have been "dropped".
-    size_t off = 0;
-    size_t nclients = s->nclients;
-    for (size_t i = 0; i < nclients; ++i) {
-        if (s->clients[i].fd < 0) {
-            client_destroy(&s->clients[i]);
-            ++off;
-        } else {
-            s->clients[i - off] = s->clients[i];
-        }
-    }
-
-    server_state_set_nclients(s, nclients - off);
-    server_state_update_pfds(s);
-}
-
-static inline void server_state_add_client(ServerState *s, Client c)
-{
-    server_state_set_nclients(s, s->nclients + 1);
-    s->clients[s->nclients - 1] = c;
-    server_state_update_pfds(s);
-}
-
-static inline void server_state_destroy(ServerState *s)
-{
-    for (size_t i = 0; i < s->nclients; ++i)
-        client_destroy(&s->clients[i]);
-    free(s->clients);
-    free(s->pfds);
 }
 
 static inline LS_TimeStamp new_deadline(Priv *p)
@@ -256,9 +174,9 @@ static void report_line(
 static int mk_server(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
-    int sockfd = ls_cloexec_socket(AF_UNIX, SOCK_STREAM, 0);
+    int fd = ls_cloexec_socket(AF_UNIX, SOCK_STREAM, 0);
 
-    if (sockfd < 0) {
+    if (fd < 0) {
         LS_FATALF(pd, "ls_cloexec_socket: %s", ls_tls_strerror(errno));
         goto error;
     }
@@ -277,51 +195,35 @@ static int mk_server(LuastatusPluginData *pd)
     }
     memcpy(saun.sun_path, p->path, npath + 1);
 
-    if (bind(sockfd, (struct sockaddr *) &saun, sizeof(saun)) < 0) {
+    if (bind(fd, (struct sockaddr *) &saun, sizeof(saun)) < 0) {
         LS_FATALF(pd, "bind: %s", ls_tls_strerror(errno));
         goto error;
     }
 
-    if (listen(sockfd, SOMAXCONN) < 0) {
+    if (listen(fd, SOMAXCONN) < 0) {
         LS_FATALF(pd, "listen: %s", ls_tls_strerror(errno));
         goto error;
     }
 
-    return sockfd;
+    return fd;
 
 error:
-    ls_close(sockfd);
+    ls_close(fd);
     return -1;
 }
-
-static size_t find_NL(LS_String buf, size_t last_read_n)
-{
-    LS_ASSERT(last_read_n != 0);
-    LS_ASSERT(last_read_n >= buf.size);
-
-    const char *pos = memchr(
-        buf.data + buf.size - last_read_n,
-        '\n',
-        last_read_n);
-
-    if (!pos) {
-        return -1;
-    }
-    return pos - buf.data;
-}
-
-enum { NCHUNK = 1024 };
 
 static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
-    ServerState st = server_state_new();
-    int sockfd = mk_server(pd);
 
-    if (sockfd < 0)
+    Server *S = NULL;
+    int srv_fd = mk_server(pd);
+
+    if (srv_fd < 0) {
         goto error;
+    }
+    S = server_new(srv_fd, p->max_clients);
 
-    ls_make_nonblock(sockfd);
     LS_TimeStamp deadline = new_deadline(p);
 
     if (p->greet) {
@@ -330,78 +232,67 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     }
 
     for (;;) {
-        if (st.nclients < p->max_clients)
-            st.pfds[0] = (struct pollfd) {.fd = sockfd, .events = POLLIN};
-        else
-            st.pfds[0] = (struct pollfd) {.fd = -1};
-
         LS_TimeDelta tmo = get_time_until_TS(deadline);
-        int nfds = ls_poll(st.pfds, st.nclients + 1, tmo);
-        if (nfds < 0) {
-            LS_FATALF(pd, "ls_poll: %s", ls_tls_strerror(errno));
+
+        struct pollfd *pfds;
+        size_t pfds_num;
+        bool can_accept;
+
+        int poll_rc = server_poll(S, tmo, &pfds, &pfds_num, &can_accept);
+        if (poll_rc < 0) {
+            LS_FATALF(pd, "poll: %s", ls_tls_strerror(errno));
             goto error;
         }
-        if (nfds == 0) {
+
+        if (poll_rc == 0) {
             report_status(pd, funcs, "timeout");
             deadline = new_deadline(p);
         }
 
-        if (st.pfds[0].revents & POLLIN) {
-            int fd = cloexec_accept(sockfd);
-            if (fd < 0) {
-                if (LS_IS_EAGAIN(errno) || errno == ECONNABORTED)
-                    continue;
-
-                LS_FATALF(pd, "accept: %s", ls_tls_strerror(errno));
-                goto error;
-            } else {
-                ls_make_nonblock(fd);
-                server_state_add_client(&st, (Client) {
-                    .fd = fd,
-                    .buf = ls_string_new_reserve(NCHUNK),
-                });
+        for (size_t i = 0; i < pfds_num; ++i) {
+            if (!pfds[i].revents) {
                 continue;
             }
-        }
-
-        for (size_t i = 0; i < st.nclients; ++i) {
-            if (!(st.pfds[i + 1].revents & POLLIN))
+            int read_rc = server_read_from_client(S, i);
+            if (read_rc < 0) {
+                if (errno == 0) {
+                    LS_DEBUGF(pd, "clent disconnected before sending a full line");
+                } else {
+                    LS_WARNF(pd, "read: %s", ls_tls_strerror(errno));
+                }
+                server_drop_client(S, i);
                 continue;
 
-            Client *c = &st.clients[i];
+            } else if (read_rc > 0) {
+                size_t nline;
+                const char *line = server_get_full_line(S, i, &nline);
 
-            ls_string_ensure_avail(&c->buf, NCHUNK);
-            ssize_t r = read(c->fd, c->buf.data + c->buf.size, NCHUNK);
-            if (r < 0) {
-                if (LS_IS_EAGAIN(errno))
-                    continue;
-                LS_WARNF(pd, "read: %s", ls_tls_strerror(errno));
-                client_drop(c);
-                continue;
-            }
-            if (r == 0) {
-                client_drop(c);
-                continue;
-            }
-
-            c->buf.size += r;
-
-            size_t NL_pos = find_NL(c->buf, r);
-            if (NL_pos != (size_t) -1) {
-                report_line(pd, funcs, c->buf.data, NL_pos);
+                report_line(pd, funcs, line, nline);
+                server_drop_client(S, i);
 
                 deadline = new_deadline(p);
-                client_drop(c);
             }
-
         }
 
-        server_state_compact(&st);
+        if (can_accept) {
+            int accept_rc = server_accept_new_client(S);
+            if (accept_rc < 0) {
+                LS_FATALF(pd, "accept: %s", ls_tls_strerror(errno));
+                goto error;
+
+            } else if (accept_rc > 0) {
+                LS_DEBUGF(pd, "accepted a new client");
+            }
+        }
+
+        server_compact(S);
     }
 
 error:
-    ls_close(sockfd);
-    server_state_destroy(&st);
+    ls_close(srv_fd);
+    if (S) {
+        server_destroy(S);
+    }
 }
 
 LuastatusPluginIface luastatus_plugin_iface_v1 = {
