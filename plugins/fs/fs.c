@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2025  luastatus developers
+ * Copyright (C) 2015-2026  luastatus developers
  *
  * This file is part of luastatus.
  *
@@ -21,8 +21,10 @@
 #include <glob.h>
 #include <stdbool.h>
 #include <lua.h>
+#include <lauxlib.h>
 #include <stdlib.h>
 #include <sys/statvfs.h>
+#include <pthread.h>
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
@@ -34,12 +36,23 @@
 #include "libls/ls_fifo_device.h"
 #include "libls/ls_tls_ebuf.h"
 #include "libls/ls_time_utils.h"
+#include "libls/ls_panic.h"
+#include "libls/ls_assert.h"
+
+#include "strlist.h"
+
+enum { MAX_DYN_PATHS = 256 };
 
 typedef struct {
     LS_StringArray paths;
     LS_StringArray globs;
+
     double period;
     char *fifo;
+
+    bool dyn_paths_enabled;
+    Strlist dyn_paths;
+    pthread_mutex_t dyn_mtx;
 } Priv;
 
 static void destroy(LuastatusPluginData *pd)
@@ -48,6 +61,12 @@ static void destroy(LuastatusPluginData *pd)
     ls_strarr_destroy(p->paths);
     ls_strarr_destroy(p->globs);
     free(p->fifo);
+
+    if (p->dyn_paths_enabled) {
+        strlist_destroy(p->dyn_paths);
+        LS_PTH_CHECK(pthread_mutex_destroy(&p->dyn_mtx));
+    }
+
     free(p);
 }
 
@@ -87,6 +106,7 @@ static int init(LuastatusPluginData *pd, lua_State *L)
     *p = (Priv) {
         .paths = ls_strarr_new(),
         .globs = ls_strarr_new(),
+        .dyn_paths_enabled = false,
         .period = 10.0,
         .fifo = NULL,
     };
@@ -113,9 +133,21 @@ static int init(LuastatusPluginData *pd, lua_State *L)
     if (moon_visit_str(&mv, -1, "fifo", &p->fifo, NULL, true) < 0)
         goto mverror;
 
-    // Warn if both paths and globs are empty
-    if (!ls_strarr_size(p->paths) && !ls_strarr_size(p->globs))
-        LS_WARNF(pd, "both paths and globs are empty");
+    // Parse enable_dyn_paths
+    bool enable_dyn_paths = false;
+    if (moon_visit_bool(&mv, -1, "enable_dyn_paths", &enable_dyn_paths, true) < 0) {
+        goto mverror;
+    }
+    if (enable_dyn_paths) {
+        p->dyn_paths_enabled = true;
+        p->dyn_paths = strlist_new(MAX_DYN_PATHS);
+        LS_PTH_CHECK(pthread_mutex_init(&p->dyn_mtx, NULL));
+    }
+
+    // Warn if both paths and globs are empty and /enable_dyn_paths/ is false
+    if (!enable_dyn_paths && !ls_strarr_size(p->paths) && !ls_strarr_size(p->globs)) {
+        LS_WARNF(pd, "both paths and globs are empty, and enable_dyn_paths is false");
+    }
 
     return LUASTATUS_OK;
 
@@ -143,6 +175,38 @@ static bool push_for(LuastatusPluginData *pd, lua_State *L, const char *path)
     return true;
 }
 
+typedef struct {
+    lua_State *L;
+    LuastatusPluginData *pd;
+    LuastatusPluginRunFuncs funcs;
+} Call;
+
+static inline Call start_call(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
+{
+    lua_State *L = funcs.call_begin(pd->userdata);
+    lua_newtable(L);
+
+    return (Call) {
+        .L = L,
+        .pd = pd,
+        .funcs = funcs,
+    };
+}
+
+static inline void add_path_to_call(Call c, const char *path)
+{
+    LS_ASSERT(path != NULL);
+
+    if (push_for(c.pd, c.L, path)) {
+        lua_setfield(c.L, -2, path);
+    }
+}
+
+static inline void end_call(Call c)
+{
+    c.funcs.call_end(c.pd->userdata);
+}
+
 static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
@@ -153,14 +217,20 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 
     while (1) {
         // make a call
-        lua_State *L = funcs.call_begin(pd->userdata);
-        lua_newtable(L);
+        Call call = start_call(pd, funcs);
+
         for (size_t i = 0; i < ls_strarr_size(p->paths); ++i) {
-            const char *path = ls_strarr_at(p->paths, i, NULL);
-            if (push_for(pd, L, path)) {
-                lua_setfield(L, -2, path);
-            }
+            add_path_to_call(call, ls_strarr_at(p->paths, i, NULL));
         }
+
+        if (p->dyn_paths_enabled) {
+            LS_PTH_CHECK(pthread_mutex_lock(&p->dyn_mtx));
+            for (size_t i = 0; i < p->dyn_paths.size; ++i) {
+                add_path_to_call(call, p->dyn_paths.data[i]);
+            }
+            LS_PTH_CHECK(pthread_mutex_unlock(&p->dyn_mtx));
+        }
+
         for (size_t i = 0; i < ls_strarr_size(p->globs); ++i) {
             const char *pattern = ls_strarr_at(p->globs, i, NULL);
             glob_t gbuf;
@@ -172,13 +242,13 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
                 LS_WARNF(pd, "glob() failed (out of memory?)");
             }
             for (size_t j = 0; j < gbuf.gl_pathc; ++j) {
-                if (push_for(pd, L, gbuf.gl_pathv[j])) {
-                    lua_setfield(L, -2, gbuf.gl_pathv[j]);
-                }
+                add_path_to_call(call, gbuf.gl_pathv[j]);
             }
             globfree(&gbuf);
         }
-        funcs.call_end(pd->userdata);
+
+        end_call(call);
+
         // wait
         if (ls_fifo_device_open(&dev, p->fifo) < 0) {
             LS_WARNF(pd, "ls_fifo_device_open: %s: %s", p->fifo, ls_tls_strerror(errno));
@@ -193,8 +263,70 @@ error:
     ls_fifo_device_close(&dev);
 }
 
+static int lfunc_add_dyn_path(lua_State *L)
+{
+    Priv *p = lua_touserdata(L, lua_upvalueindex(1));
+    const char *path = luaL_checkstring(L, 1);
+
+    LS_ASSERT(p->dyn_paths_enabled);
+
+    LS_PTH_CHECK(pthread_mutex_lock(&p->dyn_mtx));
+    int rc = strlist_push(&p->dyn_paths, path);
+    LS_PTH_CHECK(pthread_mutex_unlock(&p->dyn_mtx));
+
+    if (rc < 0) {
+        return luaL_error(L, "no place for new path");
+    }
+    lua_pushboolean(L, rc);
+    return 1;
+}
+
+static int lfunc_remove_dyn_path(lua_State *L)
+{
+    Priv *p = lua_touserdata(L, lua_upvalueindex(1));
+    const char *path = luaL_checkstring(L, 1);
+
+    LS_ASSERT(p->dyn_paths_enabled);
+
+    LS_PTH_CHECK(pthread_mutex_lock(&p->dyn_mtx));
+    int rc = strlist_remove(&p->dyn_paths, path);
+    LS_PTH_CHECK(pthread_mutex_unlock(&p->dyn_mtx));
+
+    lua_pushboolean(L, rc);
+    return 1;
+}
+
+static int lfunc_get_max_dyn_paths(lua_State *L)
+{
+    lua_pushinteger(L, MAX_DYN_PATHS);
+    return 1;
+}
+
+static void register_funcs(LuastatusPluginData *pd, lua_State *L)
+{
+    Priv *p = pd->priv;
+
+    if (!p->dyn_paths_enabled) {
+        return;
+    }
+
+    // L: ? table
+
+    lua_pushlightuserdata(L, p); // L: ? table ud
+    lua_pushcclosure(L, lfunc_add_dyn_path, 1); // L: ? table func
+    lua_setfield(L, -2, "add_dyn_path"); // L: ? table
+
+    lua_pushlightuserdata(L, p); // L: ? table ud
+    lua_pushcclosure(L, lfunc_remove_dyn_path, 1); // L: ? table func
+    lua_setfield(L, -2, "remove_dyn_path"); // L: ? table
+
+    lua_pushcfunction(L, lfunc_get_max_dyn_paths); // L: ? table func
+    lua_setfield(L, -2, "get_max_dyn_paths"); // L: ? table
+}
+
 LuastatusPluginIface luastatus_plugin_iface_v1 = {
     .init = init,
+    .register_funcs = register_funcs,
     .run = run,
     .destroy = destroy,
 };
