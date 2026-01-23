@@ -13,7 +13,10 @@ set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra")
 
 option (WITH_UBSAN "build with UBSAN (undefined behavior sanitizer)" OFF)
 if (${WITH_UBSAN})
-    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=undefined -fsanitize=local-bounds -fsanitize-trap=all -fno-sanitize-recover=all")
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=undefined -fsanitize-trap=all -fno-sanitize-recover=all")
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=local-bounds")
+    endif ()
 endif ()
 
 option (WITH_ASAN "build with ASAN (address sanitizer)" OFF)
