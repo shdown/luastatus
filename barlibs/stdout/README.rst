@@ -28,6 +28,8 @@ That's why this barlib requires that stdout file descriptor is manually redirect
 ``luastatus-stdout-wrapper``, is shipped with it; it does all the redirections needed and executes
 ``luastatus`` with ``-b stdout`` and additional arguments passed by you.
 
+It does not redirect stdin and/or pass ``in_fd=`` option. Make your own wrapper if this is needed.
+
 ``cb`` return value
 ===================
 Either of:
@@ -62,19 +64,25 @@ The following options are supported:
  Set the content of an "error" segment. Defaults to ``"(Error)"``.
 
 * ``in_filename=<string>``
+* ``in_fd=<fd>``
 
   Enable event watcher.
-  If specified, this barlib will open the specified filename for reading
-  and will read lines from it. Each line will be treated as an event.
+
+  If ``in_filename=<string>`` is specified, this barlib will open the specified
+  filename for reading and then read from. If ``in_fd=<fd>`` is specified, the
+  specified file descriptor will be read from. It is invalid to pass both options;
+  in this case, this barlib will fail to initialize.
+
+  This barilib will then read lines from the specified source. Each line will be
+  treated as an event.
+
   This barlib doesn't try to interpret the content of the line; instead, the event
   will be broadcast to all widgets. Thus, if this option is used, it is the
   responsibility of each widget (that listens to the events) to check if the event
   is somehow related to it.
-  The path should normally refer to a FIFO or be a file descriptor specifier
-  like ``/proc/self/fd/9``.
 
 ``event`` argument
 ==================
-Events are only reported if ``in_filename=`` option was specified (see above).
-In this case, the argument is the line that was read from the specified file,
-without the trailing newline character.
+Events are only reported if either ``in_filename=`` or ``in_fd=`` option was
+specified (see above). In this case, the argument is the line that was read from
+the specified file, without the trailing newline character.

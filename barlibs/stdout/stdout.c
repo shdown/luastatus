@@ -23,7 +23,6 @@
 #include <lauxlib.h>
 #include <errno.h>
 #include <stdbool.h>
-#include <fcntl.h>
 #include <sys/types.h>
 
 #include "include/barlib_v1.h"
@@ -33,12 +32,12 @@
 #include "libls/ls_cstring_utils.h"
 #include "libls/ls_tls_ebuf.h"
 #include "libls/ls_parse_int.h"
-#include "libls/ls_io_utils.h"
 #include "libls/ls_alloc_utils.h"
 #include "libls/ls_lua_compat.h"
 #include "libsafe/safev.h"
 
 #include "sanitize.h"
+#include "open_stdio_file.h"
 
 typedef struct {
     size_t nwidgets;
@@ -57,7 +56,7 @@ typedef struct {
     FILE *out;
 
     // Value of /in_filename/ option.
-    char *in_filename;
+    FILE *in;
 } Priv;
 
 static void destroy(LuastatusBarlibData *bd)
@@ -73,7 +72,9 @@ static void destroy(LuastatusBarlibData *bd)
     if (p->out) {
         fclose(p->out);
     }
-    free(p->in_filename);
+    if (p->in) {
+        fclose(p->in);
+    }
     free(p);
 }
 
@@ -87,6 +88,7 @@ static int init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidget
         .sep = NULL,
         .error = NULL,
         .out = NULL,
+        .in = NULL,
     };
     for (size_t i = 0; i < nwidgets; ++i)
         p->bufs[i] = ls_string_new_reserve(512);
@@ -96,11 +98,17 @@ static int init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidget
     const char *error = NULL;
     const char *in_filename = NULL;
     int out_fd = -1;
+    int in_fd = -1;
     for (const char *const *s = opts; *s; ++s) {
         const char *v;
         if ((v = ls_strfollow(*s, "out_fd="))) {
             if ((out_fd = ls_full_strtou(v)) < 0) {
                 LS_FATALF(bd, "out_fd value is not a valid unsigned integer");
+                goto error;
+            }
+        } else if ((v = ls_strfollow(*s, "in_fd="))) {
+            if ((in_fd = ls_full_strtou(v)) < 0) {
+                LS_FATALF(bd, "in_fd value is not a valid unsigned integer");
                 goto error;
             }
         } else if ((v = ls_strfollow(*s, "separator="))) {
@@ -116,7 +124,6 @@ static int init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidget
     }
     p->sep = ls_xstrdup(sep ? sep : " | ");
     p->error = ls_xstrdup(error ? error : "(Error)");
-    p->in_filename = in_filename ? ls_xstrdup(in_filename) : NULL;
 
     // we require /out_fd/ to be >=3 because making stdin/stdout/stderr CLOEXEC has very bad
     // consequences, and we just don't want to complicate the logic.
@@ -124,16 +131,19 @@ static int init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidget
         LS_FATALF(bd, "out_fd is not specified or less than 3");
         goto error;
     }
-
-    // open
-    if (!(p->out = fdopen(out_fd, "w"))) {
-        LS_FATALF(bd, "can't fdopen %d: %s", out_fd, ls_tls_strerror(errno));
+    // same goes for /in_fd/, if specified
+    if (in_fd >= 0 && in_fd < 3) {
+        LS_FATALF(bd, "in_fd is less than 3");
         goto error;
     }
 
-    // make CLOEXEC
-    if (ls_make_cloexec(out_fd) < 0) {
-        LS_FATALF(bd, "can't make fd %d CLOEXEC: %s", out_fd, ls_tls_strerror(errno));
+    // open output
+    if (!open_output(bd, &p->out, out_fd)) {
+        goto error;
+    }
+
+    // open input
+    if (!open_input(bd, &p->in, in_fd, in_filename)) {
         goto error;
     }
 
@@ -247,28 +257,16 @@ static int event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
 {
     Priv *p = bd->priv;
 
-    if (!p->in_filename) {
-        LS_DEBUGF(bd, "event watcher: in_filename was not specified, returning");
+    if (!p->in) {
+        LS_DEBUGF(bd, "event watcher: in_fd/in_filename not specified, returning");
         return LUASTATUS_NONFATAL_ERR;
     }
 
     char *line = NULL;
-    FILE *f = NULL;
-    int fd = open(p->in_filename, O_RDONLY | O_CLOEXEC);
-    if (fd < 0) {
-        LS_FATALF(bd, "event watcher: open: %s: %s", p->in_filename, ls_tls_strerror(errno));
-        goto error;
-    }
-
-    if (!(f = fdopen(fd, "r"))) {
-        LS_FATALF(bd, "event watcher: fdopen: %s", ls_tls_strerror(errno));
-        goto error;
-    }
-    fd = -1;
-
     size_t line_buf_n = 1024;
+
     ssize_t line_n;
-    while ((line_n = getline(&line, &line_buf_n, f)) >= 0) {
+    while ((line_n = getline(&line, &line_buf_n, p->in)) >= 0) {
 
         if (line_n && line[line_n - 1] == '\n') {
             --line_n;
@@ -281,18 +279,13 @@ static int event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
         }
     }
 
-    if (feof(f)) {
+    if (feof(p->in)) {
         LS_FATALF(bd, "event watcher: the other end of pipe/FIFO/something has been closed");
     } else {
         LS_FATALF(bd, "event watcher: I/O error: %s", ls_tls_strerror(errno));
     }
 
-error:
     free(line);
-    if (f) {
-        fclose(f);
-    }
-    ls_close(fd);
     return LUASTATUS_ERR;
 }
 
