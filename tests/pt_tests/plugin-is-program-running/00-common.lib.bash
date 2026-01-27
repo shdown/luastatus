@@ -22,19 +22,22 @@ end
 
 function format_result(t)
     local chunks = {}
-    local arr
-    if type(next(t)) ~= 'number' then
-        arr = {}
-        for k, v in pairs(t) do
-            table.insert(arr, {k, v})
+    local arr = {}
+
+    if type(next(t)) == 'number' then
+        for i, v in ipairs(t) do
+            table.insert(arr, {i, v})
         end
         table.sort(arr, function(PQ_x, PQ_y)
             return PQ_x[1] < PQ_y[1]
         end)
     else
-        arr = t
+        for k, v in pairs(t) do
+            table.insert(arr, {k, v})
+        end
     end
-    for _, x in pairs(arr) do
+
+    for _, x in ipairs(arr) do
         table.insert(chunks, format_result_entry(x))
     end
     return table.concat(chunks, ' ')
