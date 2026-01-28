@@ -12,6 +12,15 @@ local function make_wifi_gauge(dbm)
     return ('●'):rep(nbright) .. ('○'):rep(NGAUGE - nbright)
 end
 
+local function sorted_keys(tbl)
+    local keys = {}
+    for k, _ in pairs(tbl) do
+        keys[#keys + 1] = k
+    end
+    table.sort(keys)
+    return keys
+end
+
 widget = {
     plugin = 'network-linux',
     opts = {
@@ -22,8 +31,13 @@ widget = {
         if not t then
             return nil
         end
+
+        -- Sort for determinism
+        local ifaces = sorted_keys(t)
+
         local r = {}
-        for iface, params in pairs(t) do
+        for _, iface in ipairs(ifaces) do
+            local params = t[iface]
             if params.wireless then
                 if params.wireless.ssid then
                     r[#r + 1] = params.wireless.ssid

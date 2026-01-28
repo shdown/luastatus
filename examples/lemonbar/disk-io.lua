@@ -18,6 +18,9 @@ end
 widget = luastatus.require_plugin('disk-io-linux').widget{
     period = 2,
     cb = function(t)
+        -- Sort by name for determinism
+        table.sort(t, function(a, b) return a.name < b.name end)
+
         local segments = {}
         for _, entry in ipairs(t) do
             local R = entry.read_bytes
