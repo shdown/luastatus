@@ -17,11 +17,19 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef prop_ctx_parse_h_
-#define prop_ctx_parse_h_
+#include "prop_field.h"
+#include <string.h>
+#include <stddef.h>
+#include "libls/ls_assert.h"
 
-#include "prop_ctx.h"
+char **lookup_in_pfields(PField *fields, const char *key)
+{
+    LS_ASSERT(key != NULL);
 
-void pctx_parse(PCtx *ctx);
-
-#endif
+    for (PField *f = fields; f->key; ++f) {
+        if (strcmp(f->key, key) == 0) {
+            return &f->value;
+        }
+    }
+    return NULL;
+}

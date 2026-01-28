@@ -8,6 +8,19 @@ x_dbus_end() {
     pt_dbus_daemon_kill
 }
 
+dbus_srv_py_fifo=./tmp-fifo-for-dbus-srv-py
+
+x_dbus_spawn_dbus_srv_py() {
+    pt_add_fifo "$dbus_srv_py_fifo"
+    pt_spawn_thing dbus_srv_py ./optional/dbus_srv.py "$dbus_srv_py_fifo"
+    pt_expect_line 'running' < "$dbus_srv_py_fifo"
+    sleep 1
+}
+
+x_dbus_kill_dbus_srv_py() {
+    pt_kill_thing dbus_srv_py
+}
+
 preface='
 local function _fmt_x(x)
     local function _validate_str(s)

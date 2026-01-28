@@ -1,70 +1,93 @@
 -- === Description ===
 
 -- This is a widget to monitor the state of a systemd unit.
--- If currently does not react to D-Bus signals, instead querying
--- a D-Bus property of the unit periodically (see PERIOD variable).
 
 -- === Settings ===
 
 local UNIT = 'tor.service'
 local HUMAN_NAME = 'Tor'
-local PERIOD = 3
 
 -- === Implementation ===
 
-local unit_file = nil
+local function unwrap1_into_str(x)
+    assert(type(x) == 'table')
+    assert(#x == 1)
+    local res = x[1]
+    assert(type(res) == 'string')
+    return res
+end
 
-local function requery_unit_file()
-    -- This should happen on startup and then extremely rarely, so we
-    -- can afford spawning a process.
-    local argv = {
-        'dbus-send',
-        '--system',
-        '--dest=org.freedesktop.systemd1',
-        '--print-reply=literal',
-        '/org/freedesktop/systemd1',
-        'org.freedesktop.systemd1.Manager.GetUnit',
-        'string:' .. UNIT,
-    }
-    local shell_cmd = table.concat(argv, ' ')
-    local f = assert(io.popen(shell_cmd))
-    local answer = f:read('*line')
-    f:close()
+local function subscribe()
+    local is_ok, res = luastatus.plugin.call_method_str({
+        bus = 'system',
+        dest = 'org.freedesktop.systemd1',
+        object_path = '/org/freedesktop/systemd1',
+        interface = 'org.freedesktop.systemd1.Manager',
+        method = 'Subscribe',
+        -- no "arg_str" parameter
+    })
+    assert(is_ok, res)
+end
 
-    assert(answer and answer ~= '', 'dbus-send command failed')
-    unit_file = assert(string.match(answer, '%S+'))
+local function get_unit_path()
+    local is_ok, res = luastatus.plugin.call_method_str({
+        bus = 'system',
+        dest = 'org.freedesktop.systemd1',
+        object_path = '/org/freedesktop/systemd1',
+        interface = 'org.freedesktop.systemd1.Manager',
+        method = 'GetUnit',
+        arg_str = UNIT,
+    })
+    assert(is_ok, res)
+    return unwrap1_into_str(res)
+end
+
+local function get_state(unit_path)
+    local is_ok, res = luastatus.plugin.get_property({
+        bus = 'system',
+        dest = 'org.freedesktop.systemd1',
+        object_path = unit_path,
+        interface = 'org.freedesktop.systemd1.Unit',
+        property_name = 'ActiveState',
+    })
+    assert(is_ok, res)
+    return unwrap1_into_str(res)
 end
 
 local function make_output(text)
     return string.format('[%s: %s]', HUMAN_NAME, text)
 end
 
+local is_subscribed = false
+
 widget = {
     plugin = 'dbus',
     opts = {
-        signals = {},
-        timeout = PERIOD,
+        signals = {
+            {
+                bus = 'system',
+                interface = 'org.freedesktop.DBus.Properties',
+                signal = 'PropertiesChanged',
+                arg0 = 'org.freedesktop.systemd1.Unit',
+            },
+            {
+                bus = 'system',
+                interface = 'org.freedesktop.systemd1.Manager',
+                signal = 'UnitFilesChanged',
+                arg0 = 'org.freedesktop.systemd1.Unit',
+            },
+        },
+        timeout = 30,
         greet = true,
     },
     cb = function(_)
-        if not unit_file then
-            requery_unit_file()
-        end
-        local is_ok, res = luastatus.plugin.get_property({
-            bus = 'system',
-            dest = 'org.freedesktop.systemd1',
-            object_path = assert(unit_file),
-            interface = 'org.freedesktop.systemd1.Unit',
-            property_name = 'ActiveState',
-        })
-        if not is_ok then
-            print('WARNING: get_property failed:', res)
-            unit_file = nil
-            return make_output('no unit file')
+        if not is_subscribed then
+            subscribe()
+            is_subscribed = true
         end
 
-        assert(type(res) == 'table' and #res == 1)
-        local state = res[1]
+        local unit_path = get_unit_path()
+        local state = get_state(unit_path)
 
         if state == 'active' then
             return make_output('✓')

@@ -29,9 +29,11 @@
 #include "libls/ls_xallocf.h"
 #include "libls/ls_assert.h"
 
-PCtx pctx_new(lua_State *L)
+#include "prop_field.h"
+
+PCtx pctx_new(lua_State *L, PField *fields)
 {
-    return (PCtx) {.L = L};
+    return (PCtx) {.L = L, .fields = fields};
 }
 
 void pctx_set_error_fatal(PCtx *ctx, const char *fmt, ...)
@@ -83,10 +85,13 @@ int pctx_realize_error_and_destroy(PCtx *ctx)
 
 void pctx_destroy(PCtx *ctx)
 {
+    for (PField *f = ctx->fields; f->key; ++f) {
+        free(f->value);
+    }
     free(ctx->which_bus);
-    free(ctx->dest);
-    free(ctx->object_path);
-    free(ctx->interface);
-    free(ctx->property_name);
+    //free(ctx->dest);
+    //free(ctx->object_path);
+    //free(ctx->interface);
+    //free(ctx->property_name);
     free(ctx->error_msg);
 }

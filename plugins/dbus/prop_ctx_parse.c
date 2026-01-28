@@ -29,8 +29,9 @@
 #include "libls/ls_time_utils.h"
 
 #include "prop_ctx.h"
+#include "prop_field.h"
 
-static bool load_field(PCtx *ctx, const char *key, int expected_type, bool nil_is_ok)
+static bool load_table_elem(PCtx *ctx, const char *key, int expected_type, bool nil_is_ok)
 {
     if (pctx_has_error(ctx)) {
         return false;
@@ -54,10 +55,10 @@ static bool load_field(PCtx *ctx, const char *key, int expected_type, bool nil_i
     return true;
 }
 
-static void do_str(PCtx *ctx, char **dst, const char *key)
+static void do_str(PCtx *ctx, char **dst, const char *key, bool nil_is_ok)
 {
     // ctx->L: ? table
-    if (load_field(ctx, key, LUA_TSTRING, false)) {
+    if (load_table_elem(ctx, key, LUA_TSTRING, nil_is_ok)) {
         // ctx->L: ? table str
         *dst = ls_xstrdup(lua_tostring(ctx->L, -1));
         lua_pop(ctx->L, 1); // ctx->L: ? table
@@ -67,7 +68,7 @@ static void do_str(PCtx *ctx, char **dst, const char *key)
 static void maybe_do_bool(PCtx *ctx, bool *dst, const char *key)
 {
     // ctx->L: ? table
-    if (load_field(ctx, key, LUA_TSTRING, true)) {
+    if (load_table_elem(ctx, key, LUA_TSTRING, true)) {
         // ctx->L: ? table bool
         *dst = lua_toboolean(ctx->L, -1);
         lua_pop(ctx->L, 1); // ctx->L: ? table
@@ -77,7 +78,7 @@ static void maybe_do_bool(PCtx *ctx, bool *dst, const char *key)
 static void maybe_do_timeout(PCtx *ctx, int *dst, const char *key)
 {
     // ctx->L: ? table
-    if (load_field(ctx, key, LUA_TNUMBER, true)) {
+    if (load_table_elem(ctx, key, LUA_TNUMBER, true)) {
         // ctx->L: ? table number
         double d = lua_tonumber(ctx->L, -1);
 
@@ -95,14 +96,12 @@ static void maybe_do_timeout(PCtx *ctx, int *dst, const char *key)
     }
 }
 
-void pctx_parse(PCtx *ctx, bool with_property_name)
+void pctx_parse(PCtx *ctx)
 {
-    do_str(ctx, &ctx->which_bus, "bus");
-    do_str(ctx, &ctx->dest, "dest");
-    do_str(ctx, &ctx->object_path, "object_path");
-    do_str(ctx, &ctx->interface, "interface");
-    if (with_property_name) {
-        do_str(ctx, &ctx->property_name, "property_name");
+    do_str(ctx, &ctx->which_bus, "bus", false);
+
+    for (PField *f = ctx->fields; f->key; ++f) {
+        do_str(ctx, &f->value, f->key, f->nullable);
     }
 
     bool no_autostart = false;

@@ -149,14 +149,36 @@ A special object is a function that, when called, returns either of:
 
 Functions
 =========
+
+Common fields
+-------------
+This plugin provides some functions to interact with D-Bus objects.
+All of them take a single argument named ``params``, which must be
+a table.
+
+Fields that are required by all the functions are the following:
+
+* ``bus`` (string): the bus to use: either ``"system"`` or ``"session"``.
+
+* ``flag_no_autostart`` (boolean, optional): whether to pass
+  ``G_DBUS_CALL_FLAGS_NO_AUTO_START`` flag (which means don't launch an
+  owner for the destination name in response to this method invocation).
+
+  Defaults to false.
+
+* ``timeout`` (number, optional): timeout to wait for the reply for, in seconds.
+  Default is to use the proxy default timeout.
+  Pass ``math.huge`` to wait forever.
+
+List of functions provided
+--------------------------
+
 The following functions are provided:
 
 * ``luastatus.plugin.get_property(params)``
 
   Get D-Bus property associated with an interface. ``params`` must be a table
-  with the following values:
-
-  - ``bus`` (string): the bus to use: either ``"system"`` or ``"session"``.
+  with the following fields, in addition to the "common" fields:
 
   - ``dest`` (string): a unique or well-known name of the owner of the property.
 
@@ -165,16 +187,6 @@ The following functions are provided:
   - ``interface`` (string): the name of the interface.
 
   - ``property_name`` (string): the name of the property.
-
-  - ``flag_no_autostart`` (boolean, optional): whether to pass
-    ``G_DBUS_CALL_FLAGS_NO_AUTO_START`` flag (which means don't launch an
-    owner for the destination name in response to this method invocation).
-
-    Defaults to false.
-
-  - ``timeout`` (number, optional): timeout to wait for the reply for, in seconds.
-    Default is to use the proxy default timeout.
-    Pass ``math.huge`` to wait forever.
 
   On success, returns ``true, result``, where ``result`` is unmarshalled
   as described in section `D-Bus objects`_.
@@ -191,5 +203,39 @@ The following functions are provided:
   It looks like this::
 
     {{{"Property1", "Value1"}, {"Property2", "Value2"}}}
+
+  On failure, returns ``false, err_msg, err_code``.
+
+* ``luastatus.plugin.set_property_str(params)``
+
+  Set D-Bus property associated with an inteface, to a string. ``params`` must be
+  the same as to ``get_property``, except that a new string field ``value_str``
+  must be set.
+
+  On success, returns ``true, result``, where ``result`` is an empty table (the ``Set``
+  method does not return anything).
+
+  On failure, returns ``false, err_msg, err_code``.
+
+* ``luastatus.plugin.call_method_str(params)``
+
+  Call a D-Bus method, either with no arguments or a single string argument.
+
+  ``params`` must be a table with the following fields, in addition to the "common" fields:
+
+  - ``dest`` (string): a unique or well-known name of the owner.
+
+  - ``object_path`` (string): the path to the object.
+
+  - ``interface`` (string): the name of the interface.
+
+  - ``method`` (string): the name of the method.
+
+  - ``arg_str`` (optional, string): the argument for the call. If specified, the method
+    will be called with a single string argument. If not specified, the method will be
+    called with no arguments.
+
+  On success, returns ``true, result``, where ``result`` is the result of
+  the call call, unmarshalled as described in section `D-Bus objects`_.
 
   On failure, returns ``false, err_msg, err_code``.

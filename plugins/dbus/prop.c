@@ -34,9 +34,27 @@
 #include "prop_ctx.h"
 #include "prop_ctx_parse.h"
 
-static int do_perform_call(
+static inline const char *getf(PCtx *ctx, const char *key)
+{
+    char **res = lookup_in_pfields(ctx->fields, key);
+    LS_ASSERT(res != NULL);
+    LS_ASSERT(*res != NULL);
+    return *res;
+}
+
+static inline const char *getf_optional(PCtx *ctx, const char *key)
+{
+    char **res = lookup_in_pfields(ctx->fields, key);
+    LS_ASSERT(res != NULL);
+    return *res;
+}
+
+static int perform_this_bloody_call_already(
     GDBusConnection *conn,
     PCtx *ctx,
+    const char *dest,
+    const char *object_path,
+    const char *interface_name,
     const char *method_name,
     GVariant *params)
 {
@@ -45,9 +63,9 @@ static int do_perform_call(
     GError *err = NULL;
     GVariant *res = g_dbus_connection_call_sync(
         conn,
-        /*bus_name=*/ ctx->dest,
-        /*object_path=*/ ctx->object_path,
-        /*interface_name=*/ "org.freedesktop.DBus.Properties",
+        /*bus_name=*/ dest,
+        /*object_path=*/ object_path,
+        /*interface_name=*/ interface_name,
         /*method_name=*/ method_name,
         /*parameters=*/ params,
         /*reply_type=*/ NULL,
@@ -77,11 +95,18 @@ static int do_get_prop(
     if (pctx_has_error(ctx)) {
         return -1;
     }
-    return do_perform_call(
+    return perform_this_bloody_call_already(
         conn,
         ctx,
+        /*dest=*/ getf(ctx, "dest"),
+        /*object_path=*/ getf(ctx, "object_path"),
+        /*interface_name=*/ "org.freedesktop.DBus.Properties",
         /*method_name=*/ "Get",
-        /*params=*/ g_variant_new("(ss)", ctx->interface, ctx->property_name)
+        /*params=*/ g_variant_new(
+            "(ss)",
+            getf(ctx, "interface"),
+            getf(ctx, "property_name")
+        )
     );
 }
 
@@ -92,11 +117,68 @@ static int do_get_all_props(
     if (pctx_has_error(ctx)) {
         return -1;
     }
-    return do_perform_call(
+    return perform_this_bloody_call_already(
         conn,
         ctx,
+        /*dest=*/ getf(ctx, "dest"),
+        /*object_path=*/ getf(ctx, "object_path"),
+        /*interface_name=*/ "org.freedesktop.DBus.Properties",
         /*method_name=*/ "GetAll",
-        /*params=*/ g_variant_new("(s)", ctx->interface)
+        /*params=*/ g_variant_new(
+            "(s)",
+            getf(ctx, "interface")
+        )
+    );
+}
+
+static int do_set_prop_str(
+    GDBusConnection *conn,
+    PCtx *ctx)
+{
+    if (pctx_has_error(ctx)) {
+        return -1;
+    }
+    return perform_this_bloody_call_already(
+        conn,
+        ctx,
+        /*dest=*/ getf(ctx, "dest"),
+        /*object_path=*/ getf(ctx, "object_path"),
+        /*interface_name=*/ "org.freedesktop.DBus.Properties",
+        /*method_name=*/ "Set",
+        /*params=*/ g_variant_new(
+            "(ssv)",
+            getf(ctx, "interface"),
+            getf(ctx, "property_name"),
+            g_variant_new("s", getf(ctx, "value_str"))
+        )
+    );
+}
+
+static int do_call_method_str(
+    GDBusConnection *conn,
+    PCtx *ctx)
+{
+    if (pctx_has_error(ctx)) {
+        return -1;
+    }
+
+    const char *arg_str = getf_optional(ctx, "arg_str");
+
+    GVariant *params;
+    if (arg_str) {
+        params = g_variant_new("(s)", arg_str);
+    } else {
+        params = g_variant_new("()");
+    }
+
+    return perform_this_bloody_call_already(
+        conn,
+        ctx,
+        /*dest=*/ getf(ctx, "dest"),
+        /*object_path=*/ getf(ctx, "object_path"),
+        /*interface_name=*/ getf(ctx, "interface"),
+        /*method_name=*/ getf(ctx, "method"),
+        /*params=*/ params
     );
 }
 
@@ -153,8 +235,16 @@ static int l_get_property(lua_State *L)
     luaL_checktype(L, 1, LUA_TTABLE);
     lua_settop(L, 1);
 
-    PCtx ctx = pctx_new(L);
-    pctx_parse(&ctx, true);
+    PField fields[] = {
+        {.key = "dest"},
+        {.key = "object_path"},
+        {.key = "interface"},
+        {.key = "property_name"},
+        {0},
+    };
+
+    PCtx ctx = pctx_new(L, fields);
+    pctx_parse(&ctx);
 
     GDBusConnection *conn = get_conn(&ctx);
     int nret = do_get_prop(conn, &ctx);
@@ -172,11 +262,74 @@ static int l_get_all_properties(lua_State *L)
     luaL_checktype(L, 1, LUA_TTABLE);
     lua_settop(L, 1);
 
-    PCtx ctx = pctx_new(L);
-    pctx_parse(&ctx, false);
+    PField fields[] = {
+        {.key = "dest"},
+        {.key = "object_path"},
+        {.key = "interface"},
+        {0},
+    };
+
+    PCtx ctx = pctx_new(L, fields);
+    pctx_parse(&ctx);
 
     GDBusConnection *conn = get_conn(&ctx);
     int nret = do_get_all_props(conn, &ctx);
+
+    if (pctx_has_error(&ctx)) {
+        return pctx_realize_error_and_destroy(&ctx);
+    } else {
+        pctx_destroy(&ctx);
+        return nret;
+    }
+}
+
+static int l_set_property_str(lua_State *L)
+{
+    luaL_checktype(L, 1, LUA_TTABLE);
+    lua_settop(L, 1);
+
+    PField fields[] = {
+        {.key = "dest"},
+        {.key = "object_path"},
+        {.key = "interface"},
+        {.key = "property_name"},
+        {.key = "value_str"},
+        {0},
+    };
+
+    PCtx ctx = pctx_new(L, fields);
+    pctx_parse(&ctx);
+
+    GDBusConnection *conn = get_conn(&ctx);
+    int nret = do_set_prop_str(conn, &ctx);
+
+    if (pctx_has_error(&ctx)) {
+        return pctx_realize_error_and_destroy(&ctx);
+    } else {
+        pctx_destroy(&ctx);
+        return nret;
+    }
+}
+
+static int l_call_method_str(lua_State *L)
+{
+    luaL_checktype(L, 1, LUA_TTABLE);
+    lua_settop(L, 1);
+
+    PField fields[] = {
+        {.key = "dest"},
+        {.key = "object_path"},
+        {.key = "interface"},
+        {.key = "method"},
+        {.key = "arg_str", .nullable = true},
+        {0},
+    };
+
+    PCtx ctx = pctx_new(L, fields);
+    pctx_parse(&ctx);
+
+    GDBusConnection *conn = get_conn(&ctx);
+    int nret = do_call_method_str(conn, &ctx);
 
     if (pctx_has_error(&ctx)) {
         return pctx_realize_error_and_destroy(&ctx);
@@ -209,6 +362,8 @@ void p_register_funcs(PUserdata *ud, lua_State *L)
 {
     register_closure(ud, L, l_get_property, "get_property");
     register_closure(ud, L, l_get_all_properties, "get_all_properties");
+    register_closure(ud, L, l_set_property_str, "set_property_str");
+    register_closure(ud, L, l_call_method_str, "call_method_str");
 }
 
 void p_destroy(PUserdata *ud)

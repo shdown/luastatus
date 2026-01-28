@@ -27,12 +27,16 @@
 
 #include "libls/ls_compdep.h"
 
+#include "prop_field.h"
+
 typedef struct {
+    //char *dest;
+    //char *object_path;
+    //char *interface;
+    //char *property_name;
+    PField *fields;
+
     char *which_bus;
-    char *dest;
-    char *object_path;
-    char *interface;
-    char *property_name;
     GDBusCallFlags flags;
     int tmo_ms;
 
@@ -43,7 +47,7 @@ typedef struct {
     char *error_msg;
 } PCtx;
 
-PCtx pctx_new(lua_State *L);
+PCtx pctx_new(lua_State *L, PField *fields);
 
 LS_ATTR_PRINTF(2, 3)
 void pctx_set_error_fatal(PCtx *ctx, const char *fmt, ...);

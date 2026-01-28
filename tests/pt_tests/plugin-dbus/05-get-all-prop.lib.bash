@@ -1,5 +1,3 @@
-pt_require_tools dbus-send
-
 x_dbus_begin
 
 pt_testcase_begin

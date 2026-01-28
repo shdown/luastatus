@@ -17,11 +17,17 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef prop_ctx_parse_h_
-#define prop_ctx_parse_h_
+#ifndef prop_field_h_
+#define prop_field_h_
 
-#include "prop_ctx.h"
+#include <stdbool.h>
 
-void pctx_parse(PCtx *ctx);
+typedef struct {
+    const char *key;
+    char *value;
+    bool nullable;
+} PField;
+
+char **lookup_in_pfields(PField *fields, const char *key);
 
 #endif
