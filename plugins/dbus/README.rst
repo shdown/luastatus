@@ -154,9 +154,7 @@ Common fields
 -------------
 This plugin provides some functions to interact with D-Bus objects.
 All of them take a single argument named ``params``, which must be
-a table.
-
-Fields that are required by all the functions are the following:
+a table. Fields that are understood by all the functions are the following:
 
 * ``bus`` (string): the bus to use: either ``"system"`` or ``"session"``.
 
