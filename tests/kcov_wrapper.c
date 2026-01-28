@@ -43,6 +43,7 @@
 #include <stdint.h>
 #include <sys/wait.h>
 #include <sys/types.h>
+#include <inttypes.h>
 #include <spawn.h>
 #include <poll.h>
 
@@ -218,6 +219,36 @@ static int wait_and_make_exit_code(pid_t pid)
     return RC_CHILD_TERMINATED_IN_WEIRD_WAY;
 }
 
+static char *read_line(FILE *f)
+{
+    char *buf = NULL;
+    size_t nbuf = 0;
+    if (getline(&buf, &nbuf, f) < 0) {
+        free(buf);
+        return NULL;
+    }
+    return buf;
+}
+
+static bool parse_imax(const char *s, intmax_t *out)
+{
+    errno = 0;
+    char *endptr;
+    *out = strtoimax(s, &endptr, 10);
+    if (errno || endptr == s || endptr[0] != '\0') {
+        return false;
+    }
+    return true;
+}
+
+static void trim_newline(char *s)
+{
+    size_t ns = strlen(s);
+    if (ns && s[ns - 1] == '\n') {
+        s[ns - 1] = '\0';
+    }
+}
+
 static pid_t get_grandchild_pid(pid_t child_pid)
 {
     static const char *SHELL_PROGRAM_SUFFIX =
@@ -249,19 +280,28 @@ static pid_t get_grandchild_pid(pid_t child_pid)
 
     pid_t res = -1;
 
+    char *line = NULL;
     FILE *f = popen(prog, "r");
     if (!f) {
         say_perror("popen");
         goto cleanup;
     }
+
+    line = read_line(f);
+    if (!line) {
+        say_perror("cannot read line from shell program");
+        goto cleanup;
+    }
+    trim_newline(line);
     intmax_t raw_res;
-    if (fscanf(f, "%jd\n", &raw_res) != 1) {
-        say_error("fscanf failed (from shell program)");
+    if (!parse_imax(line, &raw_res)) {
+        say_error("cannot parse line from shell program into intmax_t");
         goto cleanup;
     }
     res = raw_res;
 
 cleanup:
+    free(line);
     if (f) {
         int status = pclose(f);
         if (status < 0 || !WIFEXITED(status) || WEXITSTATUS(status) != 0) {

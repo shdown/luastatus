@@ -21,6 +21,8 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
+#include <errno.h>
 #include <inttypes.h>
 #include <sys/time.h>
 
@@ -61,12 +63,22 @@ static inline uint64_t now_ms(void)
 
 static uint64_t parse_uint_cstr_or_die(const char *s)
 {
-    uint64_t r;
-    if (sscanf(s, "%" SCNu64, &r) != 1) {
+    errno = 0;
+    char *endptr;
+    uint64_t r = strtoull(s, &endptr, 10);
+    if (errno || endptr == s || endptr[0] != '\0') {
         fprintf(stderr, "stopwatch: cannot parse as unsigned integer: '%s'.\n", s);
         abort();
     }
     return r;
+}
+
+static void trim_newline(char *s)
+{
+    size_t ns = strlen(s);
+    if (ns && s[ns - 1] == '\n') {
+        s[ns - 1] = '\0';
+    }
 }
 
 int main(int argc, char **argv)
@@ -104,6 +116,7 @@ int main(int argc, char **argv)
                     fprintf(stderr, "stopwatch: expected space after 'c', found symbol '%c'.\n", buf[1]);
                     abort();
                 }
+                trim_newline(buf);
                 uint64_t cur = now_ms();
                 uint64_t delta = cur - start;
                 uint64_t expected = parse_uint_cstr_or_die(buf + 2);

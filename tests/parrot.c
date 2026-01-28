@@ -225,12 +225,23 @@ error:
     return -1;
 }
 
+static bool parse_uint(const char *s, unsigned *out)
+{
+    char *endptr;
+    errno = 0;
+    *out = strtoul(s, &endptr, 10);
+    if (errno || endptr == s || endptr[0] != '\0') {
+        return false;
+    }
+    return true;
+}
+
 static int make_tcp_client(const char *portstr)
 {
     int fd = -1;
 
     unsigned port;
-    if (sscanf(portstr, "%u", &port) != 1) {
+    if (!parse_uint(portstr, &port)) {
         fprintf(stderr, "parrot: invalid port number: '%s'.\n", portstr);
         goto error;
     }
@@ -262,7 +273,7 @@ static int make_tcp_server(const char *portstr)
     int fd = -1;
 
     unsigned port;
-    if (sscanf(portstr, "%u", &port) != 1) {
+    if (!parse_uint(portstr, &port)) {
         fprintf(stderr, "parrot: invalid port number: '%s'.\n", portstr);
         goto error;
     }

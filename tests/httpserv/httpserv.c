@@ -287,6 +287,17 @@ typedef struct {
     void *dst;
 } ArgSpec;
 
+static bool parse_int(const char *s, int *out)
+{
+    errno = 0;
+    char *endptr;
+    *out = strtol(s, &endptr, 10);
+    if (errno || endptr == s || endptr[0] != '\0') {
+        return false;
+    }
+    return true;
+}
+
 static int parse_single_arg(const ArgSpec *AS, const char *v)
 {
     int type = AS->bits & (AS_FLAGS_FIRST_BIT - 1);
@@ -299,7 +310,7 @@ static int parse_single_arg(const ArgSpec *AS, const char *v)
     case AS_TYPE_INT:
         {
             int *dst = AS->dst;
-            if (sscanf(v, "%d", dst) != 1) {
+            if (!parse_int(v, dst)) {
                 fprintf(stderr, "Cannot parse value '%s', passed as option '%s', into int.\n", v, AS->spelling);
                 return -1;
             }
