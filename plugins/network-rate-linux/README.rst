@@ -60,8 +60,8 @@ The following functions are provided:
 
   **(optional)**
 
-    Note: ``iface_filter``, ``iface_only`` and ``iface_except`` are mutually exclusive.
-    If neither is specified, network rates for all interfaces will be reported.
+  Note: ``iface_filter``, ``iface_only`` and ``iface_except`` are mutually exclusive.
+  If neither is specified, network rates for all interfaces will be reported.
 
   - ``iface_filter``: a function
 

@@ -14,10 +14,10 @@ This derived plugin checks whether a certain program is running, although
 in order to this plugin to work, the program should indicate its state
 via one of the following widespread mechanisms:
 
-  1. PID file;
-  2. Creation of a file. The file must have a fixed path;
-  3. Creation of a file (with any name) in an otherwise-empty directory. The directory
-     must have a fixed path.
+1. PID file;
+2. Creation of a file. The file must have a fixed path;
+3. Creation of a file (with any name) in an otherwise-empty directory. The directory
+   must have a fixed path.
 
 Functions
 =========
@@ -39,51 +39,51 @@ The following functions are provided:
   Constructs a ``widget`` table required by luastatus. ``tbl`` is a table with the following
   fields:
 
-    **(required)**
+  **(required)**
 
-    - ``cb``: a function
+  - ``cb``: a function
 
-      The callback function that will be called either with a boolean (if ``many`` is not specified)
-      or a table (if ``many`` is specified).
+    The callback function that will be called either with a boolean (if ``many`` is not specified)
+    or a table (if ``many`` is specified).
 
-    **(exactly one of the following is required)**
+  **(exactly one of the following is required)**
 
-    - ``kind`` and ``path``: strings
+  - ``kind`` and ``path``: strings
+
+    Please refer to the documentation for the ``make_watcher`` function above for
+    semantics of ``kind`` and ``path``.
+    If ``kind`` and ``path`` are specified, the plugin will only monitor state of a
+    single program, and ``cb`` will be called with a boolean argument.
+
+  - ``many``: array
+
+    If specified, the plugin will monitor states of N programs, where N is the length
+    of the ``many`` array. The array should contain tables (each being a watcher
+    specification) with the following entries:
+
+    * ``id``: string
+
+      A string used to identify this entry in the ``many`` array;
+
+    * ``kind`` and ``path``: strings
 
       Please refer to the documentation for the ``make_watcher`` function above for
       semantics of ``kind`` and ``path``.
-      If ``kind`` and ``path`` are specified, the plugin will only monitor state of a
-      single program, and ``cb`` will be called with a boolean argument.
 
-    - ``many``: array
+    If ``many`` is specified, ``cb`` will be called with a table argument in which
+    keys are identification strings (``id`` entry in the watcher specification;
+    see above), and values are booleans indicating whether the corresponding
+    process is running.
 
-      If specified, the plugin will monitor states of N programs, where N is the length
-      of the ``many`` array. The array should contain tables (each being a watcher
-      specification) with the following entries:
+  **(optional)**
 
-      * ``id``: string
+  - ``timer_opts``
 
-        A string used to identify this entry in the ``many`` array;
+    Options to pass to the underlying ``timer`` plugin. Note that this includes the period
+    with which this plugin will check if the program(s) is running.
+    The period of the ``timer`` plugin defaults to 1 second.
 
-      * ``kind`` and ``path``: strings
+  - ``event``
 
-        Please refer to the documentation for the ``make_watcher`` function above for
-        semantics of ``kind`` and ``path``.
-
-      If ``many`` is specified, ``cb`` will be called with a table argument in which
-      keys are identification strings (``id`` entry in the watcher specification;
-      see above), and values are booleans indicating whether the corresponding
-      process is running.
-
-    **(optional)**
-
-    - ``timer_opts``
-
-      Options to pass to the underlying ``timer`` plugin. Note that this includes the period
-      with which this plugin will check if the program(s) is running.
-      The period of the ``timer`` plugin defaults to 1 second.
-
-    - ``event``
-
-      The ``event`` entry of the resulting table (see ``luastatus`` documentation for the
-      description of ``widget.event`` field).
+    The ``event`` entry of the resulting table (see ``luastatus`` documentation for the
+    description of ``widget.event`` field).

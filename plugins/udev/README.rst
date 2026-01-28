@@ -18,29 +18,29 @@ The following options are supported:
 
 * ``subsystem``: string
 
-    Subsystem to monitor events from. Optional.
+  Subsystem to monitor events from. Optional.
 
 * ``devtype``: string
 
-    Only report events with this device type. Optional.
+  Only report events with this device type. Optional.
 
 * ``tag``: string
 
-    Only report events with this tag. Optional.
+  Only report events with this tag. Optional.
 
 * ``kernel_events``: boolean
 
-    Monitor kernel uevents, not udev ones. Defaults to false.
+  Monitor kernel uevents, not udev ones. Defaults to false.
 
 * ``greet``: boolean
 
-    Whether or not to call ``cb`` with ``what="hello"`` as soon as the widget starts. Defaults to
-    false.
+  Whether or not to call ``cb`` with ``what="hello"`` as soon as the widget starts. Defaults to
+  false.
 
 * ``timeout``: number
 
-    If specified and not negative, this plugin calls ``cb`` with ``what="timeout"`` if no event has
-    occurred in ``timeout`` seconds.
+  If specified and not negative, this plugin calls ``cb`` with ``what="timeout"`` if no event has
+  occurred in ``timeout`` seconds.
 
 ``cb`` argument
 ===============

@@ -53,18 +53,17 @@ The following options are supported:
 
 * ``out_fd=<fd>``
 
- File descriptor to write to. Usually set by the wrapper.
+  File descriptor to write to. Usually set by the wrapper.
 
 * ``separator=<string>``
 
- Set the separator.
+  Set the separator.
 
 * ``error=<string>``
 
- Set the content of an "error" segment. Defaults to ``"(Error)"``.
+  Set the content of an "error" segment. Defaults to ``"(Error)"``.
 
-* ``in_filename=<string>``
-* ``in_fd=<fd>``
+* ``in_filename=<string>`` or ``in_fd=<fd>``
 
   Enable event watcher.
 
