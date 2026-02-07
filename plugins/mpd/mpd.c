@@ -25,6 +25,8 @@
 #include <string.h>
 #include <stdbool.h>
 #include <sys/socket.h>
+#include <netinet/tcp.h>
+#include <netinet/in.h>
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
@@ -445,6 +447,14 @@ static void do_enable_tcp_keepalive(LuastatusPluginData *pd, int fd)
     }
 }
 
+static void do_enable_tcp_nodelay(LuastatusPluginData *pd, int fd)
+{
+    int value = 1;
+    if (setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &value, sizeof(value)) < 0) {
+        LS_WARNF(pd, "setsockopt: TCP_NODELAY: %s", ls_tls_strerror(errno));
+    }
+}
+
 static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
@@ -471,6 +481,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
             if (p->enable_tcp_keepalive) {
                 do_enable_tcp_keepalive(pd, fd);
             }
+            do_enable_tcp_nodelay(pd, fd);
         }
 
         interact(pd, funcs, fd);
