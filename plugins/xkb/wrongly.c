@@ -27,8 +27,6 @@
 #include <X11/Xatom.h>
 
 #include "libls/ls_alloc_utils.h"
-#include "libsafe/safev.h"
-#include "parse_symbols.h"
 
 static const char *NAMES_PROP_ATOM = "_XKB_RULES_NAMES";
 
@@ -104,14 +102,27 @@ done:
     return ret;
 }
 
-static void my_parse_cb(void *ud, SAFEV segment)
-{
-    LS_StringArray *out = ud;
-    ls_strarr_append(out, SAFEV_ptr_UNSAFE(segment), SAFEV_len(segment));
-}
-
 void wrongly_parse_layout(const char *layout, LS_StringArray *out)
 {
-    SAFEV layout_v = SAFEV_new_from_cstr_UNSAFE(layout);
-    parse_symbols(layout_v, my_parse_cb, out);
+    const char *prev = layout;
+    size_t balance = 0;
+    for (;; ++layout) {
+        switch (*layout) {
+        case '(':
+            ++balance;
+            break;
+        case ')':
+            --balance;
+            break;
+        case ',':
+            if (balance == 0) {
+                ls_strarr_append(out, prev, layout - prev);
+                prev = layout + 1;
+            }
+            break;
+        case '\0':
+            ls_strarr_append(out, prev, layout - prev);
+            return;
+        }
+    }
 }

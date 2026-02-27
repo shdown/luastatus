@@ -25,10 +25,9 @@
 #include <X11/extensions/XKBstr.h>
 #include <X11/XKBlib.h>
 #include <stdbool.h>
+#include <string.h>
 #include <stdlib.h>
 #include "libls/ls_alloc_utils.h"
-#include "libsafe/safev.h"
-#include "parse_symbols.h"
 
 char *somehow_fetch_symbols(Display *dpy, uint64_t deviceid)
 {
@@ -62,58 +61,57 @@ done:
     return ret;
 }
 
-static inline bool bad_matches(SAFEV bad, SAFEV v)
+// Assumes that /s[nbad]/ and /bad[nbad]/ are defined and set to either the next symbol or '\0'.
+static inline bool bad_matches(const char *bad, size_t nbad, const char *s, size_t ns)
 {
-    if (!SAFEV_starts_with(v, bad)) {
-        return false;
-    }
-    size_t nbad = SAFEV_len(bad);
-    if (nbad == SAFEV_len(v)) {
-        return true;
-    }
-    char c = SAFEV_at(v, nbad);
-    return c == '(' || c == ':';
-}
-
-static inline bool check_bad(SAFEV bad, SAFEV v)
-{
-    if (!SAFEV_len(v)) {
-        return true;
-    }
-    if (!SAFEV_len(bad)) {
-        return false;
-    }
-    for (;;) {
-        size_t i = SAFEV_index_of(bad, ',');
-        if (i == (size_t) -1) {
-            return bad_matches(bad, v);
-        }
-        if (bad_matches(SAFEV_subspan(bad, 0, i), v)) {
+    if (ns >= nbad && memcmp(bad, s, nbad) == 0) {
+        if (ns == nbad)
             return true;
-        }
-        bad = SAFEV_suffix(bad, i + 1);
+
+        char c = s[nbad];
+        if (c == '(' || c == ':')
+            return true;
     }
+    return false;
 }
 
-typedef struct {
-    LS_StringArray *out;
-    SAFEV bad_v;
-} MyParseUserdata;
-
-static void my_parse_cb(void *vud, SAFEV segment)
+static inline bool check_bad(const char *bad, const char *s, size_t ns)
 {
-    MyParseUserdata *ud = vud;
-    if (!check_bad(ud->bad_v, segment)) {
-        ls_strarr_append(ud->out, SAFEV_ptr_UNSAFE(segment), SAFEV_len(segment));
-    }
+    if (!ns)
+        return true;
+    if (bad[0] == '\0')
+        return false;
+    for (const char *bad_next; (bad_next = strchr(bad, ',')); bad = bad_next + 1)
+        if (bad_matches(bad, bad_next - bad, s, ns))
+            return true;
+    return bad_matches(bad, strlen(bad), s, ns);
 }
 
 void somehow_parse_symbols(const char *symbols, LS_StringArray *out, const char *bad)
 {
-    SAFEV symbols_v = SAFEV_new_from_cstr_UNSAFE(symbols);
-    MyParseUserdata ud = {
-        .out = out,
-        .bad_v = SAFEV_new_from_cstr_UNSAFE(bad),
-    };
-    parse_symbols(symbols_v, my_parse_cb, &ud);
+    const char *prev = symbols;
+    size_t balance = 0;
+    for (;; ++symbols) {
+        switch (*symbols) {
+        case '(':
+            ++balance;
+            break;
+        case ')':
+            --balance;
+            break;
+        case '+':
+            if (balance == 0) {
+                if (!check_bad(bad, prev, symbols - prev)) {
+                    ls_strarr_append(out, prev, symbols - prev);
+                }
+                prev = symbols + 1;
+            }
+            break;
+        case '\0':
+            if (!check_bad(bad, prev, symbols - prev)) {
+                ls_strarr_append(out, prev, symbols - prev);
+            }
+            return;
+        }
+    }
 }

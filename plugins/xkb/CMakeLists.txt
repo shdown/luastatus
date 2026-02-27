@@ -1,11 +1,5 @@
 file (GLOB sources "*.c")
-luastatus_add_plugin (
-    plugin-xkb
-    $<TARGET_OBJECTS:ls>
-    $<TARGET_OBJECTS:moonvisit>
-    $<TARGET_OBJECTS:safe>
-    ${sources}
-)
+luastatus_add_plugin (plugin-xkb $<TARGET_OBJECTS:ls> $<TARGET_OBJECTS:moonvisit> ${sources})
 
 target_compile_definitions (plugin-xkb PUBLIC -D_POSIX_C_SOURCE=200809L)
 luastatus_target_compile_with (plugin-xkb LUA)

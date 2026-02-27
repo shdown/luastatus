@@ -36,7 +36,6 @@
 
 #include "libls/ls_alloc_utils.h"
 #include "libls/ls_strarr.h"
-#include "libls/ls_panic.h"
 
 #include "wrongly.h"
 #include "somehow.h"
@@ -241,63 +240,14 @@ static inline bool query(LuastatusPluginData *pd, Display *dpy, LS_StringArray *
     LS_MUST_BE_UNREACHABLE();
 }
 
-typedef struct {
-    bool requery_everything;
-    size_t group;
-    unsigned led_state;
-    int ext_base_ev_code;
-} Data;
-
-static void interpret_event(LuastatusPluginData *pd, XEvent *event, Data *data)
-{
-    data->requery_everything = false;
-
-    if (event->type != data->ext_base_ev_code) {
-        LS_WARNF(pd, "got X event of unknown type %d", event->type);
-        return;
-    }
-
-    XkbAnyEvent ev1;
-    memcpy(&ev1, event, sizeof(ev1));
-
-    switch (ev1.xkb_type) {
-    case XkbNewKeyboardNotify:
-    case XkbMapNotify:
-        data->requery_everything = true;
-        break;
-    case XkbStateNotify:
-        {
-            XkbStateNotifyEvent ev2;
-            memcpy(&ev2, event, sizeof(ev2));
-            data->group = ev2.group;
-        }
-        break;
-    case XkbIndicatorStateNotify:
-    case XkbIndicatorMapNotify:
-        {
-            XkbIndicatorNotifyEvent ev2;
-            memcpy(&ev2, event, sizeof(ev2));
-            data->led_state = ev2.state;
-        }
-        break;
-    default:
-        LS_WARNF(pd, "got XKB event of unknown xkb_type %d", ev1.xkb_type);
-    }
-}
-
 static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
     LS_StringArray groups = ls_strarr_new();
     Display *dpy = NULL;
+    int ext_base_ev_code;
 
-    Data data = {
-        .requery_everything = true,
-        .group = -1,
-        .led_state = -1,
-    };
-
-    if (!(dpy = open_dpy(pd, p->dpyname, &data.ext_base_ev_code)))
+    if (!(dpy = open_dpy(pd, p->dpyname, &ext_base_ev_code)))
         goto error;
 
     // So, the X server maintains the bit mask of events we are interesed in; we can alter this mask
@@ -363,9 +313,13 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         }
     }
 
+    bool requery_everything = true;
+    size_t group = -1;
+    unsigned led_state = -1;
+
     while (1) {
         // re-query everything, if needed
-        if (data.requery_everything) {
+        if (requery_everything) {
             // re-query group names
             if (!query(pd, dpy, &groups)) {
                 LS_WARNF(pd, "query() failed");
@@ -377,24 +331,24 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
                 LS_FATALF(pd, "XkbGetState() failed");
                 goto error;
             }
-            data.group = state.group;
+            group = state.group;
 
             // check if group is valid and possibly re-query group names
-            if (data.group >= ls_strarr_size(groups)) {
-                LS_WARNF(pd, "group ID (%zu) is too large, requerying", data.group);
+            if (group >= ls_strarr_size(groups)) {
+                LS_WARNF(pd, "group ID (%zu) is too large, requerying", group);
 
                 if (!query(pd, dpy, &groups)) {
                     LS_WARNF(pd, "query() failed");
                 }
 
-                if (data.group >= ls_strarr_size(groups)) {
+                if (group >= ls_strarr_size(groups)) {
                     LS_WARNF(pd, "group ID is still too large");
                 }
             }
 
             // explicitly query current state of LED indicators
             if (p->led) {
-                if (XkbGetIndicatorState(dpy, p->deviceid, &data.led_state) != Success) {
+                if (XkbGetIndicatorState(dpy, p->deviceid, &led_state) != Success) {
                     LS_FATALF(pd, "XkbGetIndicatorState() failed");
                     goto error;
                 }
@@ -404,19 +358,19 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         // make a call
         lua_State *L = funcs.call_begin(pd->userdata); // L: -
         lua_createtable(L, 0, 2); // L: table
-        lua_pushinteger(L, data.group); // L: table n
+        lua_pushinteger(L, group); // L: table n
         lua_setfield(L, -2, "id"); // L: table
-        if (data.group < ls_strarr_size(groups)) {
+        if (group < ls_strarr_size(groups)) {
             size_t nbuf;
-            const char *buf = ls_strarr_at(groups, data.group, &nbuf);
+            const char *buf = ls_strarr_at(groups, group, &nbuf);
             lua_pushlstring(L, buf, nbuf); // L: table name
             lua_setfield(L, -2, "name"); // L: table
         }
         if (p->led) {
-            lua_pushinteger(L, data.led_state); // L: table n
+            lua_pushinteger(L, led_state); // L: table n
             lua_setfield(L, -2, "led_state"); // L: table
         }
-        if (data.requery_everything) {
+        if (requery_everything) {
             lua_pushboolean(L, true); // L: table true
             lua_setfield(L, -2, "requery"); // L: table
         }
@@ -427,7 +381,38 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         XNextEvent(dpy, &event);
 
         // interpret the event
-        interpret_event(pd, &event, &data);
+        requery_everything = false;
+        if (event.type == ext_base_ev_code) {
+
+            XkbAnyEvent ev1;
+            memcpy(&ev1, &event, sizeof(ev1));
+
+            switch (ev1.xkb_type) {
+            case XkbNewKeyboardNotify:
+            case XkbMapNotify:
+                requery_everything = true;
+                break;
+            case XkbStateNotify:
+                {
+                    XkbStateNotifyEvent ev2;
+                    memcpy(&ev2, &event, sizeof(ev2));
+                    group = ev2.group;
+                }
+                break;
+            case XkbIndicatorStateNotify:
+            case XkbIndicatorMapNotify:
+                {
+                    XkbIndicatorNotifyEvent ev2;
+                    memcpy(&ev2, &event, sizeof(ev2));
+                    led_state = ev2.state;
+                }
+                break;
+            default:
+                LS_WARNF(pd, "got XKB event of unknown xkb_type %d", ev1.xkb_type);
+            }
+        } else {
+            LS_WARNF(pd, "got X event of unknown type %d", event.type);
+        }
     }
 
 error:
