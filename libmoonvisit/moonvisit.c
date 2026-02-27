@@ -244,6 +244,30 @@ done:
     return r;
 }
 
+static inline bool aux_is_first_key_numeric(lua_State *L, int pos)
+{
+    // L: ?
+    int adj_pos = pos < 0 ? (pos - 1) : pos;
+    lua_pushnil(L); // L: ? nil
+    if (!lua_next(L, adj_pos)) {
+        // L: ?
+        return false;
+    }
+    // L: ? key value
+    bool res = lua_isnumber(L, -2);
+    lua_pop(L, 2); // L: ?
+    return res;
+}
+
+static inline size_t aux_get_array_len(lua_State *L, int pos)
+{
+#if LUA_VERSION_NUM <= 501
+    return lua_objlen(L, pos);
+#else
+    return lua_rawlen(L, pos);
+#endif
+}
+
 int moon_visit_table_f_at(
     MoonVisit *mv,
     const char *what,
@@ -260,18 +284,38 @@ int moon_visit_table_f_at(
     }
 
     r = 0;
-    int adj_pos = pos < 0 ? (pos - 1) : pos;
     const char *old_where = mv->where;
-    lua_pushnil(mv->L);
-    while (lua_next(mv->L, adj_pos)) {
-        r = f(mv, ud, -2, -1);
-        mv->where = old_where;
-        if (r < 0) {
-            lua_settop(mv->L, top);
-            break;
+
+    if (aux_is_first_key_numeric(mv->L, pos)) {
+        int adj_pos = pos < 0 ? (pos - 2) : pos;
+        size_t len = aux_get_array_len(mv->L, pos);
+        // L: ?
+        for (size_t i = 1; i <= len; ++i) {
+            lua_pushinteger(mv->L, i); // mv->L: ? i
+            lua_pushvalue(mv->L, -1); // mv->L: ? i i
+            lua_gettable(mv->L, adj_pos); // mv->L: ? i value
+            r = f(mv, ud, -2, -1);
+            mv->where = old_where;
+            if (r < 0) {
+                break;
+            }
+            lua_pop(mv->L, 2); // mv->L: ?
         }
-        lua_pop(mv->L, 1);
+    } else {
+        int adj_pos = pos < 0 ? (pos - 1) : pos;
+        // mv->L: ?
+        lua_pushnil(mv->L); // mv->L: ? nil
+        while (lua_next(mv->L, adj_pos)) {
+            // mv->L: ? key value
+            r = f(mv, ud, -2, -1);
+            mv->where = old_where;
+            if (r < 0) {
+                break;
+            }
+            lua_pop(mv->L, 1); // mv->L: ? key
+        }
     }
+    lua_settop(mv->L, top);
 done:
     return r;
 }
