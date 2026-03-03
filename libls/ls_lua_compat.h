@@ -34,14 +34,6 @@
 #   define ls_lua_pushfail(L_) lua_pushnil(L_)
 #endif
 
-#include "ls_compdep.h"
-
-#if LUA_VERSION_NUM >= 504
-#   define ls_lua_pushfail(L_) luaL_pushfail(L_)
-#else
-#   define ls_lua_pushfail(L_) lua_pushnil(L_)
-#endif
-
 LS_INHEADER bool ls_lua_is_lua51(lua_State *L)
 {
 #if LUA_VERSION_NUM >= 502
