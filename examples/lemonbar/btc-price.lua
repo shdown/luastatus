@@ -2,10 +2,11 @@
 -- Updates on click and every 5 minutes.
 -- Requires (luarocks packages):
 --     * luasec
---     * lua-cjson
+--     * lua-cjson (or lua-dkjson if your distro doesn't have lua-cjson)
 local https = require 'ssl.https'
 local ltn12 = require 'ltn12'
-local cjson = require 'cjson'
+-- You can replace 'cjson' with 'dkjson' in the line below:
+local json = require 'cjson'
 
 -- All the arguments except for 'url' may be absent or nil; default method is GET.
 -- Returns: code (integer), body (string), headers (table), status (string).
@@ -60,7 +61,7 @@ widget = {
         local is_ok, body = pcall(request_check_code, 'https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT')
         local text
         if is_ok then
-            text = cjson.decode(body).price:match('[^.]+')
+            text = json.decode(body).price:match('[^.]+')
         else
             text = '......'
             luastatus.plugin.push_period(5) -- retry in 5 seconds
