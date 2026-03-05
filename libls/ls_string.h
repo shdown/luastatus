@@ -111,6 +111,7 @@ LS_INHEADER void ls_string_append_c(LS_String *x, char c)
 }
 
 // Appends a formatted string to /x/.
+LS_ATTR_PRINTF(2, 0)
 void ls_string_append_vf(LS_String *x, const char *fmt, va_list vl);
 
 // Appends a formatted string to /x/.
@@ -123,6 +124,7 @@ void ls_string_append_f(LS_String *x, const char *fmt, ...)
     va_end(vl);
 }
 
+LS_ATTR_PRINTF(2, 0)
 LS_INHEADER void ls_string_assign_vf(LS_String *x, const char *fmt, va_list vl)
 {
     ls_string_clear(x);
@@ -152,7 +154,8 @@ LS_INHEADER LS_String ls_string_new_from_b(const char *buf, size_t nbuf)
     return x;
 }
 
-LS_INHEADER LS_String ls_string_new_from_vf(const char *fmt, va_list vl)
+LS_INHEADER LS_ATTR_PRINTF(1, 0)
+LS_String ls_string_new_from_vf(const char *fmt, va_list vl)
 {
     LS_String x = ls_string_new();
     ls_string_append_vf(&x, fmt, vl);

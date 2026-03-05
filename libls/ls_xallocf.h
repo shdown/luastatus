@@ -27,6 +27,7 @@
 // They panic on failure (including out-of-memory condition, bad format
 // string, etc).
 
+LS_ATTR_PRINTF(1, 0)
 char *ls_xallocvf(const char *fmt, va_list vl);
 
 LS_INHEADER LS_ATTR_PRINTF(1, 2)
