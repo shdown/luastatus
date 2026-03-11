@@ -287,13 +287,12 @@ int moon_visit_table_f_at(
     const char *old_where = mv->where;
 
     if (aux_is_first_key_numeric(mv->L, pos)) {
-        int adj_pos = pos < 0 ? (pos - 2) : pos;
+        int adj_pos = pos < 0 ? (pos - 1) : pos;
         size_t len = aux_get_array_len(mv->L, pos);
         // L: ?
         for (size_t i = 1; i <= len; ++i) {
             lua_pushinteger(mv->L, i); // mv->L: ? i
-            lua_pushvalue(mv->L, -1); // mv->L: ? i i
-            lua_gettable(mv->L, adj_pos); // mv->L: ? i value
+            lua_rawgeti(mv->L, adj_pos, i); // mv->L: ? i value
             r = f(mv, ud, -2, -1);
             mv->where = old_where;
             if (r < 0) {
