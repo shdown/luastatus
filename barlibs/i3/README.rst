@@ -144,3 +144,9 @@ The following options are supported:
 
   Allow i3bar to send luastatus ``SIGSTOP`` when it thinks it becomes invisible, and ``SIGCONT``
   when it thinks it becomes visible. Quite a questionable feature.
+
+* ``extra_init_json=<string>``
+
+  Extra JSON to output in header, e.g. ``"key1":10,"key2":true``.
+  This could be of some use because Sway WM seems to be experimenting with additional header
+  fields (but not yet documenting them), e.g. ``float_event_coords``.

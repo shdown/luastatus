@@ -76,6 +76,7 @@ static int init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidget
     // All the options may be passed multiple times!
     int in_fd = -1;
     int out_fd = -1;
+    const char *extra_init_json = NULL;
     bool allow_stopping = false;
     for (const char *const *s = opts; *s; ++s) {
         const char *v;
@@ -95,6 +96,8 @@ static int init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidget
             p->noseps = true;
         } else if (strcmp(*s, "allow_stopping") == 0) {
             allow_stopping = true;
+        } else if ((v = ls_strfollow(*s, "extra_init_json="))) {
+            extra_init_json = v;
         } else {
             LS_FATALF(bd, "unknown option '%s'", *s);
             goto error;
@@ -131,6 +134,9 @@ static int init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidget
 
     // print header
     fprintf(p->out, "{\"version\":1,\"click_events\":%s", p->noclickev ? "false" : "true");
+    if (extra_init_json && extra_init_json[0]) {
+        fprintf(p->out, ",%s", extra_init_json);
+    }
     if (!allow_stopping) {
         fprintf(p->out, ",\"stop_signal\":0,\"cont_signal\":0");
     }
@@ -343,7 +349,7 @@ static int set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
             {
                 size_t len = ls_lua_array_len(L, -1);
                 for (size_t i = 1; i <= len; ++i) {
-                    ls_lua_geti(L, -1, i); // L: ? data value
+                    lua_rawgeti(L, -1, i); // L: ? data value
                     switch (lua_type(L, -1)) {
                     case LUA_TTABLE:
                         if (!append_segment(bd, L, widget_idx)) {
