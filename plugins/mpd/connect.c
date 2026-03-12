@@ -36,7 +36,6 @@
 #include "libls/ls_osdep.h"
 #include "libls/ls_io_utils.h"
 #include "libls/ls_panic.h"
-#include "libls/ls_assert.h"
 
 int unixdom_open(LuastatusPluginData *pd, const char *path)
 {

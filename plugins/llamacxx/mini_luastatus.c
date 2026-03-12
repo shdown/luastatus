@@ -39,7 +39,7 @@
 #include "libls/ls_tls_ebuf.h"
 #include "libls/ls_xallocf.h"
 #include "libls/ls_lua_compat.h"
-#include "libls/ls_assert.h"
+#include "libls/ls_panic.h"
 
 #include "librunshell/runshell.h"
 #include "libwidechar/libwidechar.h"

@@ -24,9 +24,9 @@
 
 #define LS_SWAP(Type_, X_, Y_) \
     do { \
-        Type_ ls_swap_tmp____ = (X_); \
+        Type_ ls_swap_tmp_ = (X_); \
         (X_) = (Y_); \
-        (Y_) = ls_swap_tmp____; \
+        (Y_) = ls_swap_tmp_; \
     } while (0)
 
 #endif

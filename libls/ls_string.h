@@ -29,7 +29,7 @@
 #include "ls_alloc_utils.h"
 #include "ls_algo.h"
 #include "ls_freemem.h"
-#include "ls_assert.h"
+#include "ls_panic.h"
 
 typedef struct {
     char *data;

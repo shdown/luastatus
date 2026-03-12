@@ -27,7 +27,7 @@
 
 #include "libls/ls_alloc_utils.h"
 #include "libls/ls_xallocf.h"
-#include "libls/ls_assert.h"
+#include "libls/ls_panic.h"
 
 #include "prop_field.h"
 

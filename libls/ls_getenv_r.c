@@ -21,7 +21,7 @@
 
 #include <stddef.h>
 #include <string.h>
-#include "ls_assert.h"
+#include "ls_panic.h"
 
 extern char **environ;
 

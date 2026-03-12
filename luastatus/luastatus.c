@@ -41,7 +41,6 @@
 #include "libls/ls_panic.h"
 #include "libls/ls_xallocf.h"
 #include "libls/ls_lua_compat.h"
-#include "libls/ls_assert.h"
 
 #include "libwidechar/libwidechar.h"
 #include "librunshell/runshell.h"

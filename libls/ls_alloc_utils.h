@@ -25,7 +25,6 @@
 
 #include "ls_panic.h"
 #include "ls_compdep.h"
-#include "ls_assert.h"
 
 #define LS_XNEW(Type_, NElems_) \
     ((Type_ *) ls_xmalloc(NElems_, sizeof(Type_)))

@@ -20,7 +20,7 @@
 #include "describe_lua_err.h"
 #include <lua.h>
 #include <lauxlib.h>
-#include "libls/ls_assert.h"
+#include "libls/ls_panic.h"
 
 void describe_lua_err(
     lua_State *L,

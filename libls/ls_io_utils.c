@@ -26,7 +26,6 @@
 #include <sys/stat.h>
 #include "ls_time_utils.h"
 #include "ls_panic.h"
-#include "ls_assert.h"
 
 static int poll_forever(struct pollfd *fds, nfds_t nfds)
 {

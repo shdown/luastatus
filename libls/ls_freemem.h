@@ -23,7 +23,7 @@
 #include <stddef.h>
 #include "ls_alloc_utils.h"
 #include "ls_compdep.h"
-#include "ls_assert.h"
+#include "ls_panic.h"
 
 // This function is called whenever a dynamic array is cleared.
 // We want to "preserve" at most 1 Kb of the previous capacity.

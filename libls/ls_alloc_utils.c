@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include "ls_assert.h"
+#include "ls_panic.h"
 
 static inline bool mul_zu(size_t *dst, size_t a, size_t b)
 {

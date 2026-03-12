@@ -24,7 +24,7 @@
 #include <string.h>
 
 #include "ls_compdep.h"
-#include "ls_assert.h"
+#include "ls_panic.h"
 
 // If zero-terminated string /str/ starts with zero-terminated string /prefix/, returns
 // /str + strlen(prefix)/; otherwise, returns /NULL/.

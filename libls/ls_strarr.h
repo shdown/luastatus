@@ -27,7 +27,7 @@
 #include "ls_alloc_utils.h"
 #include "ls_compdep.h"
 #include "ls_freemem.h"
-#include "ls_assert.h"
+#include "ls_panic.h"
 
 // An array of constant strings on a single buffer. Panics on allocation failure.
 

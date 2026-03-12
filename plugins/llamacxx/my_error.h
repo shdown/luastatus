@@ -24,7 +24,7 @@
 #include <stdarg.h>
 #include "libls/ls_compdep.h"
 #include "libls/ls_xallocf.h"
-#include "libls/ls_assert.h"
+#include "libls/ls_panic.h"
 
 typedef struct {
     char meta_domain;

@@ -24,7 +24,7 @@
 #include "libls/ls_alloc_utils.h"
 #include "libls/ls_compdep.h"
 #include "libls/ls_freemem.h"
-#include "libls/ls_assert.h"
+#include "libls/ls_panic.h"
 
 StringSet string_set_new(void)
 {

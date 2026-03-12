@@ -31,7 +31,6 @@
 #include <lauxlib.h>
 #include "libls/ls_compdep.h"
 #include "libls/ls_panic.h"
-#include "libls/ls_assert.h"
 #include "libls/ls_alloc_utils.h"
 #include "libls/ls_time_utils.h"
 #include "libmoonvisit/moonvisit.h"

@@ -24,7 +24,7 @@
 #include <string.h>
 
 #include "ls_compdep.h"
-#include "ls_assert.h"
+#include "ls_panic.h"
 
 // Parses (locale-independently) a decimal unsigned integer, inspecting no more than first /ns/
 // characters of /s/. Once this limit is reached, or a non-digit character is found, this function

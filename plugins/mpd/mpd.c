@@ -40,7 +40,7 @@
 #include "libls/ls_fifo_device.h"
 #include "libls/ls_strarr.h"
 #include "libls/ls_io_utils.h"
-#include "libls/ls_assert.h"
+#include "libls/ls_panic.h"
 #include "libsafe/safev.h"
 
 #include "connect.h"

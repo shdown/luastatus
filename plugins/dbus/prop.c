@@ -28,7 +28,7 @@
 #include <gio/gio.h>
 
 #include "libls/ls_alloc_utils.h"
-#include "libls/ls_assert.h"
+#include "libls/ls_panic.h"
 
 #include "marshal.h"
 #include "prop_ctx.h"

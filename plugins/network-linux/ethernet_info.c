@@ -30,7 +30,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
-#include "libls/ls_assert.h"
+#include "libls/ls_panic.h"
 
 int get_ethernet_speed(int sockfd, const char *iface)
 {

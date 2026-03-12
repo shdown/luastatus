@@ -37,7 +37,7 @@
 #include "libls/ls_evloop_lfuncs.h"
 #include "libls/ls_time_utils.h"
 #include "libls/ls_io_utils.h"
-#include "libls/ls_assert.h"
+#include "libls/ls_panic.h"
 
 #ifdef PA_CHECK_VERSION
 # define MY_CHECK_VERSION(A_, B_, C_) PA_CHECK_VERSION(A_, B_, C_)

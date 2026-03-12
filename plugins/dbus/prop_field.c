@@ -20,7 +20,7 @@
 #include "prop_field.h"
 #include <string.h>
 #include <stddef.h>
-#include "libls/ls_assert.h"
+#include "libls/ls_panic.h"
 
 char **lookup_in_pfields(PField *fields, const char *key)
 {
