@@ -24,7 +24,7 @@
 #include <time.h>
 #include <unistd.h>
 #include "libls/ls_compdep.h"
-#include "libls/ls_assert.h"
+#include "libls/ls_panic.h"
 
 // MINSTD pseudo-random number generator, year 1990 version.
 
