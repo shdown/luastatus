@@ -29,7 +29,7 @@
 #include <glib/gtypes.h>
 #include <lua.h>
 #include "libls/ls_compdep.h"
-#include "libls/ls_assert.h"
+#include "libls/ls_panic.h"
 #include "libls/ls_lua_compat.h"
 
 static int l_special_object(lua_State *L)
