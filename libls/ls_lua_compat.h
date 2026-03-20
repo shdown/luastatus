@@ -68,4 +68,9 @@ LS_INHEADER size_t ls_lua_array_len(lua_State *L, int pos)
 # define LS_LUA_MAXI INT_MAX
 #endif
 
+LS_INHEADER int ls_lua_num_prealloc(size_t n)
+{
+    return n < (size_t) INT_MAX ? (int) n : INT_MAX;
+}
+
 #endif
