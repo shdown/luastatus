@@ -124,13 +124,19 @@ int procalive_lfunc_stat(lua_State *L)
     return 2;
 }
 
+static inline int get_lua_num_prealloc(size_t n)
+{
+    return n < (size_t) INT_MAX ? (int) n : INT_MAX;
+}
+
 static bool push_glob_t(lua_State *L, glob_t *g)
 {
-    if (g->gl_pathc > (size_t) MAXI) {
+    size_t n = g->gl_pathc;
+    if (n > (size_t) MAXI) {
         return false;
     }
-    lua_createtable(L, g->gl_pathc, 0); // L: array
-    for (size_t i = 0; i < g->gl_pathc; ++i) {
+    lua_createtable(L, get_lua_num_prealloc(n), 0); // L: array
+    for (size_t i = 0; i < n; ++i) {
         lua_pushstring(L, g->gl_pathv[i]); // L: array str
         lua_rawseti(L, -2, i + 1); // L: array
     }
