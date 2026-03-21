@@ -40,8 +40,6 @@
 
 #include "strlist.h"
 
-enum { MAX_DYN_PATHS = 256 };
-
 typedef struct {
     LS_StringArray paths;
     LS_StringArray globs;
@@ -139,7 +137,7 @@ static int init(LuastatusPluginData *pd, lua_State *L)
     }
     if (enable_dyn_paths) {
         p->dyn_paths_enabled = true;
-        p->dyn_paths = strlist_new(MAX_DYN_PATHS);
+        p->dyn_paths = strlist_new();
         LS_PTH_CHECK(pthread_mutex_init(&p->dyn_mtx, NULL));
     }
 
@@ -270,12 +268,9 @@ static int lfunc_add_dyn_path(lua_State *L)
     LS_ASSERT(p->dyn_paths_enabled);
 
     LS_PTH_CHECK(pthread_mutex_lock(&p->dyn_mtx));
-    int rc = strlist_push(&p->dyn_paths, path);
+    bool rc = strlist_push(&p->dyn_paths, path);
     LS_PTH_CHECK(pthread_mutex_unlock(&p->dyn_mtx));
 
-    if (rc < 0) {
-        return luaL_error(L, "no place for new path");
-    }
     lua_pushboolean(L, rc);
     return 1;
 }
@@ -288,16 +283,17 @@ static int lfunc_remove_dyn_path(lua_State *L)
     LS_ASSERT(p->dyn_paths_enabled);
 
     LS_PTH_CHECK(pthread_mutex_lock(&p->dyn_mtx));
-    int rc = strlist_remove(&p->dyn_paths, path);
+    bool rc = strlist_remove(&p->dyn_paths, path);
     LS_PTH_CHECK(pthread_mutex_unlock(&p->dyn_mtx));
 
     lua_pushboolean(L, rc);
     return 1;
 }
 
+// Note: this Lua function is provided for backward compatibility purposes only.
 static int lfunc_get_max_dyn_paths(lua_State *L)
 {
-    lua_pushinteger(L, MAX_DYN_PATHS);
+    lua_pushinteger(L, INT_MAX);
     return 1;
 }
 
@@ -318,6 +314,8 @@ static void register_funcs(LuastatusPluginData *pd, lua_State *L)
     lua_pushlightuserdata(L, p); // L: ? table ud
     lua_pushcclosure(L, lfunc_remove_dyn_path, 1); // L: ? table func
     lua_setfield(L, -2, "remove_dyn_path"); // L: ? table
+
+    // Note: function /get_max_dyn_paths/ is provided for backward compatibility purposes only.
 
     lua_pushcfunction(L, lfunc_get_max_dyn_paths); // L: ? table func
     lua_setfield(L, -2, "get_max_dyn_paths"); // L: ? table

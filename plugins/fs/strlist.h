@@ -21,19 +21,19 @@
 #define strlist_h_
 
 #include <stddef.h>
+#include <stdbool.h>
 
 typedef struct {
     char **data;
     size_t size;
     size_t capacity;
-    size_t max_size;
 } Strlist;
 
-Strlist strlist_new(size_t max_size);
+Strlist strlist_new(void);
 
-int strlist_push(Strlist *x, const char *s);
+bool strlist_push(Strlist *x, const char *s);
 
-int strlist_remove(Strlist *x, const char *s);
+bool strlist_remove(Strlist *x, const char *s);
 
 void strlist_destroy(Strlist x);
 

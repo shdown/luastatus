@@ -23,14 +23,9 @@
 #include "libls/ls_alloc_utils.h"
 #include "libls/ls_panic.h"
 
-Strlist strlist_new(size_t max_size)
+Strlist strlist_new(void)
 {
-    return (Strlist) {
-        .data = NULL,
-        .size = 0,
-        .capacity = 0,
-        .max_size = max_size,
-    };
+    return (Strlist) {0};
 }
 
 #define BAD_INDEX ((size_t) -1)
@@ -47,23 +42,19 @@ static size_t find(Strlist *x, const char *s)
     return BAD_INDEX;
 }
 
-int strlist_push(Strlist *x, const char *s)
+bool strlist_push(Strlist *x, const char *s)
 {
     LS_ASSERT(s != NULL);
 
-    if (x->size == x->max_size) {
-        return -1;
-    }
-
     if (find(x, s) != BAD_INDEX) {
-        return 0;
+        return false;
     }
 
     if (x->size == x->capacity) {
         x->data = LS_M_X2REALLOC(x->data, &x->capacity);
     }
     x->data[x->size++] = ls_xstrdup(s);
-    return 1;
+    return true;
 }
 
 static void remove_at(Strlist *x, size_t i)
@@ -79,17 +70,17 @@ static void remove_at(Strlist *x, size_t i)
     --x->size;
 }
 
-int strlist_remove(Strlist *x, const char *s)
+bool strlist_remove(Strlist *x, const char *s)
 {
     LS_ASSERT(s != NULL);
 
     size_t i = find(x, s);
     if (i == BAD_INDEX) {
-        return 0;
+        return false;
     }
 
     remove_at(x, i);
-    return 1;
+    return true;
 }
 
 void strlist_destroy(Strlist x)

@@ -22,12 +22,8 @@ local function check_eq(s1, s2)
 end
 local function add(k, expected_result)
     local path = '$globtest_dir/' .. k
-    local pcall_ok, result = pcall(luastatus.plugin.add_dyn_path, path)
-    if pcall_ok then
-        check_eq(result and 'true' or 'false', expected_result)
-    else
-        check_eq(expected_result, 'error')
-    end
+    local result = luastatus.plugin.add_dyn_path(path)
+    check_eq(result and 'true' or 'false', expected_result)
 end
 local function remove(k, expected_result)
     local path = '$globtest_dir/' .. k
@@ -79,17 +75,7 @@ local function check_keys(keys)
     end
     if i == 8 then
         local max = luastatus.plugin.get_max_dyn_paths()
-
-        for j = 1, max do
-            add(string.format('junk_%d', j), 'true')
-        end
-
-        add('more_junk', 'error')
-
-        for j = 1, max do
-            remove(string.format('junk_%d', j), 'true')
-        end
-
+        assert(max == 2147483647)
         return true
     end
 

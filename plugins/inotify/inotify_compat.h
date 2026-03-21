@@ -37,9 +37,6 @@ LS_INHEADER int compat_inotify_init(bool nonblock, bool cloexec)
 #else
     int fd = inotify_init();
     if (fd < 0) {
-        int saved_errno = errno;
-        ls_close(fd);
-        errno = saved_errno;
         return -1;
     }
     if (nonblock) {

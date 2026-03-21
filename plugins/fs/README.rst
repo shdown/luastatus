@@ -70,14 +70,9 @@ if ``enable_dyn_paths`` option was set to true:
   Tries to add ``path`` (which must be a string) to the set of "dynamic" paths.
   On successful insertion, it returns ``true``.
   If the path is already in the set, returns ``false``.
-  If the path is not in the set, but the set is already of maximum possible size, it throws an error.
 
 * ``luastatus.plugin.remove_dyn_path(path)``
 
   Tries to remove ``path`` (which must be string) from the set of "dynamic" paths.
   On successful removal, it returns ``true``.
   If the path is not in the set, returns ``false``.
-
-* ``luastatus.plugin.get_max_dyn_paths()``
-
-  Returns an integer indicating the maximum possible size of the set of "dynamic" paths (currently 256).
