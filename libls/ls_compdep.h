@@ -20,8 +20,6 @@
 #ifndef ls_compdep_h_
 #define ls_compdep_h_
 
-#include <stdlib.h> // for abort()
-
 // ------------------------------------------------------------
 // GCC version (set by clang to some very old version)
 // ------------------------------------------------------------
@@ -42,15 +40,6 @@
 #   define LS_CLANG_HAS_BUILTIN(X_) __has_builtin(X_)
 #else
 #   define LS_CLANG_HAS_BUILTIN(X_) 0
-#endif
-
-// ------------------------------------------------------------
-// LS_TRAP()
-// ------------------------------------------------------------
-#if LS_GCC_VERSION >= 40204 || LS_CLANG_HAS_BUILTIN(__builtin_trap)
-#   define LS_TRAP() __builtin_trap()
-#else
-#   define LS_TRAP() abort()
 #endif
 
 // ------------------------------------------------------------
