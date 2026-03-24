@@ -17,7 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "marshal.h"
+#include "cvt.h"
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -74,14 +74,6 @@ static inline void push_gvariant_strlike(lua_State *L, GVariant *var)
     lua_pushlstring(L, s, ns);
 }
 
-static inline int get_lua_table_num_prealloc(size_t n)
-{
-    if (n > (size_t) INT_MAX) {
-        return INT_MAX;
-    }
-    return n;
-}
-
 static void push_gvariant_iterable(lua_State *L, GVariant *var, unsigned recurlim)
 {
     if (!recurlim--) {
@@ -97,8 +89,7 @@ static void push_gvariant_iterable(lua_State *L, GVariant *var, unsigned recurli
         push_special_object(L, "array would be too big", -1, true);
         return;
     }
-
-    lua_createtable(L, get_lua_table_num_prealloc(n), 0); // L: table
+    lua_createtable(L, ls_lua_num_prealloc(n), 0); // L: table
 
     GVariant *elem;
     for (size_t i = 1; (elem = g_variant_iter_next_value(&iter)); ++i) {
@@ -179,18 +170,6 @@ static void push_gvariant(lua_State *L, GVariant *var, unsigned recurlim)
         }
         break;
 
-    case G_VARIANT_CLASS_MAYBE:
-        {
-            GVariant *maybe = g_variant_get_maybe(var);
-            if (maybe) {
-                push_gvariant(L, maybe, recurlim);
-                g_variant_unref(maybe);
-            } else {
-                push_special_object(L, "nothing", -1, false);
-            }
-        }
-        break;
-
     case G_VARIANT_CLASS_ARRAY:
     case G_VARIANT_CLASS_TUPLE:
     case G_VARIANT_CLASS_DICT_ENTRY:
@@ -209,7 +188,7 @@ static void push_gvariant(lua_State *L, GVariant *var, unsigned recurlim)
     }
 }
 
-void marshal(lua_State *L, GVariant *var)
+void cvt(lua_State *L, GVariant *var)
 {
     if (!var) {
         lua_pushnil(L);

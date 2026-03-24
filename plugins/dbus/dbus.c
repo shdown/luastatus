@@ -35,8 +35,10 @@
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
 
-#include "marshal.h"
-#include "prop.h"
+#include "bustype2idx.h"
+#include "cvt.h"
+#include "load_lualib.h"
+#include "zoo/zoo.h"
 
 typedef struct {
     char *sender;
@@ -83,16 +85,11 @@ static inline void signal_list_destroy(SignalList *x)
     free(x->data);
 }
 
-typedef enum {
-    BUS_SESSION,
-    BUS_SYSTEM,
-} BusType;
-
 typedef struct {
     SignalList subs[2];
     double tmo;
     bool greet;
-    PUserdata *p_ud;
+    Zoo *zoo;
 } Priv;
 
 static void destroy(LuastatusPluginData *pd)
@@ -101,22 +98,28 @@ static void destroy(LuastatusPluginData *pd)
     for (int i = 0; i < 2; ++i) {
         signal_list_destroy(&p->subs[i]);
     }
-    if (p->p_ud) {
-        p_destroy(p->p_ud);
+    if (p->zoo) {
+        zoo_destroy(p->zoo);
     }
     free(p);
+}
+
+static inline SignalList *get_sub(Priv *p, GBusType bus_type)
+{
+    size_t idx = bustype2idx(bus_type);
+    return &p->subs[idx];
 }
 
 static int parse_bus_str(MoonVisit *mv, void *ud, const char *s, size_t ns)
 {
     (void) ns;
-    BusType *out = ud;
+    GBusType *out = ud;
     if (strcmp(s, "session") == 0) {
-        *out = BUS_SESSION;
+        *out = G_BUS_TYPE_SESSION;
         return 1;
     }
     if (strcmp(s, "system") == 0) {
-        *out = BUS_SYSTEM;
+        *out = G_BUS_TYPE_SYSTEM;
         return 1;
     }
     moon_visit_err(mv, "unknown bus: '%s'", s);
@@ -158,8 +161,8 @@ static int parse_signals_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
     if (moon_visit_checktype_at(mv, NULL, vpos, LUA_TTABLE) < 0)
         goto error;
 
-    BusType bus = BUS_SESSION;
-    if (moon_visit_str_f(mv, vpos, "bus", parse_bus_str, &bus, true) < 0)
+    GBusType bus_type = G_BUS_TYPE_SESSION;
+    if (moon_visit_str_f(mv, vpos, "bus", parse_bus_str, &bus_type, true) < 0)
         goto error;
 
     if (moon_visit_str(mv, vpos, "sender", &s.sender, NULL, true) < 0)
@@ -180,7 +183,7 @@ static int parse_signals_elem(MoonVisit *mv, void *ud, int kpos, int vpos)
     if (moon_visit_table_f(mv, vpos, "flags", parse_flags_elem, &s.flags, true) < 0)
         goto error;
 
-    signal_list_add(&p->subs[bus], s);
+    signal_list_add(get_sub(p, bus_type), s);
     return 1;
 
 error:
@@ -195,7 +198,7 @@ static int init(LuastatusPluginData *pd, lua_State *L)
         .subs = {signal_list_new(), signal_list_new()},
         .tmo = -1,
         .greet = false,
-        .p_ud = p_new(),
+        .zoo = zoo_new(),
     };
     char errbuf[256];
     MoonVisit mv = {.L = L, .errbuf = errbuf, .nerrbuf = sizeof(errbuf)};
@@ -225,7 +228,9 @@ static void register_funcs(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv;
 
-    p_register_funcs(p->p_ud, L);
+    zoo_register_funcs(p->zoo, L);
+
+    (void) load_lualib(pd, L);
 }
 
 typedef struct {
@@ -275,7 +280,7 @@ static void callback_signal(
     set_str(L, interface_name, "interface");
     set_str(L, signal_name, "signal");
 
-    marshal(L, parameters); // L: table value
+    cvt(L, parameters); // L: table value
     lua_setfield(L, -2, "parameters"); // L: table
 
     args->funcs.call_end(args->pd->userdata);
@@ -303,12 +308,13 @@ static gboolean callback_timeout(gpointer user_data)
 }
 
 static GDBusConnection *maybe_connect_and_subscribe(
+        Priv *p,
         GBusType bus_type,
-        SignalList x,
         gpointer userdata,
         GError **err)
 {
-    if (!x.size) {
+    SignalList *SL = get_sub(p, bus_type);
+    if (!SL->size) {
         return NULL;
     }
 
@@ -319,8 +325,8 @@ static GDBusConnection *maybe_connect_and_subscribe(
 
     LS_ASSERT(cnx != NULL);
 
-    for (size_t i = 0; i < x.size; ++i) {
-        Signal s = x.data[i];
+    for (size_t i = 0; i < SL->size; ++i) {
+        Signal s = SL->data[i];
         g_dbus_connection_signal_subscribe(
             cnx,
             s.sender,
@@ -350,23 +356,13 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     PluginRunArgs args = {.pd = pd, .funcs = funcs};
     LS_PTH_CHECK(pthread_mutex_init(&args.mtx, NULL));
 
-    session_bus = maybe_connect_and_subscribe(
-        G_BUS_TYPE_SESSION,
-        p->subs[BUS_SESSION],
-        &args,
-        &err);
-
+    session_bus = maybe_connect_and_subscribe(p, G_BUS_TYPE_SESSION, &args, &err);
     if (err) {
         LS_FATALF(pd, "cannot connect to the session bus: %s", err->message);
         goto error;
     }
 
-    system_bus = maybe_connect_and_subscribe(
-        G_BUS_TYPE_SYSTEM,
-        p->subs[BUS_SYSTEM],
-        &args,
-        &err);
-
+    system_bus = maybe_connect_and_subscribe(p, G_BUS_TYPE_SYSTEM, &args, &err);
     if (err) {
         LS_FATALF(pd, "cannot connect to the system bus: %s", err->message);
         goto error;

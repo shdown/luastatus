@@ -13,7 +13,7 @@ Overview
 This plugin subscribes to D-Bus signals.
 
 Options
-========
+=======
 The following options are supported:
 
 * ``greet``: boolean
@@ -125,10 +125,6 @@ D-Bus objects are marshalled as follows:
 | string, object path,  | string                 |
 | signature             |                        |
 +-----------------------+------------------------+
-| maybe                 | as-is, or as a         |
-|                       | special object with    |
-|                       | value ``"nothing"``    |
-+-----------------------+------------------------+
 | handle                | special object with    |
 |                       | value ``"handle"``     |
 +-----------------------+------------------------+
@@ -139,7 +135,7 @@ D-Bus objects are marshalled as follows:
 If an object cannot be marshalled, a special object with an error is generated instead.
 
 Special objects
-===============
+---------------
 Special objects represent D-Bus objects that cannot be marshalled to Lua.
 
 A special object is a function that, when called, returns either of:
@@ -150,90 +146,46 @@ A special object is a function that, when called, returns either of:
 Functions
 =========
 
-Common fields
--------------
-This plugin provides some functions to interact with D-Bus objects.
-All of them take a single argument named ``params``, which must be
-a table. Fields that are understood by all the functions are the following:
+This plugin provides functions to:
 
-* ``bus`` (string): the bus to use: either ``"system"`` or ``"session"``.
+1. interact with other programs over D-Bus (calling methods and getting/setting properties);
+2. construct D-Bus values and types from within Lua; this is needed for calling methods and setting properties.
 
-* ``flag_no_autostart`` (boolean, optional): whether to pass
-  ``G_DBUS_CALL_FLAGS_NO_AUTO_START`` flag (which means don't launch an
-  owner for the destination name in response to this method invocation).
+The full descriptions of all those functions would be a bit too long for a single man page.
+So the detailed descriptions are provided in other man pages (or .rst files):
 
-  Defaults to false.
+* **luastatus-plugin-dbus-fn-call-method(7)** (or ``README_FN_CALL_METHOD.rst`` file): functions to
+  call methods of D-Bus objects:
 
-* ``timeout`` (number, optional): timeout to wait for the reply for, in seconds.
-  Default is to use the proxy default timeout.
-  Pass ``math.huge`` to wait forever.
+  - ``luastatus.plugin.call_method``: calls a method of a D-Bus object.
 
-List of functions provided
---------------------------
+  - ``luastatus.plugin.call_method_str``: same as above, but can only call methods accepting
+    a single string argument or no arguments. It exists because it's easier to use it compared to
+    the above, and also for backward compatibility.
 
-The following functions are provided:
+* **luastatus-plugin-dbus-fn-prop(7)** (or ``README_FN_PROP.rst`` file): functions to get/set
+  properties of D-Bus objects:
 
-* ``luastatus.plugin.get_property(params)``
+  - ``luastatus.plugin.get_property``: get a property of a D-Bus object.
 
-  Get D-Bus property associated with an interface. ``params`` must be a table
-  with the following fields, in addition to the "common" fields:
+  - ``luastatus.plugin.get_all_properties``: get all properties of a D-Bus object.
 
-  - ``dest`` (string): a unique or well-known name of the owner of the property.
+  - ``luastatus.plugin.set_property``: set a property of a D-Bus object.
 
-  - ``object_path`` (string): the path to the object to get a property of.
+  - ``luastatus.plugin.set_property_str``: same as above, but can only set string properties. It exists
+    because it's easier to use it compared to the above, and also for backward compatibility.
 
-  - ``interface`` (string): the name of the interface.
+* **luastatus-plugin-dbus-fn-mkval(7)** (or ``README_FN_MKVAL.rst`` file): functions to construct D-Bus
+  values and types from within Lua:
 
-  - ``property_name`` (string): the name of the property.
+  - module ``dbustypes``:
 
-  On success, returns ``true, result``, where ``result`` is unmarshalled
-  as described in section `D-Bus objects`_.
+    + ``luastatus.plugin.dbustypes.mkval_from_fmt``: make a D-Bus value object from a type format string and a Lua value.
 
-  On failure, returns ``false, err_msg, err_code``.
+    + ``luastatus.plugin.dbustypes.parse_dtype``: parse a type format string into a D-Bus type object.
 
-* ``luastatus.plugin.get_all_propertes(params)``
+    + ``luastatus.plugin.dbustypes.mkval_of_dtype``: make a D-Bus value object from a D-Bus type object and a Lua value.
 
-  Get all D-Bus properties associated with an inteface. ``params`` must be the
-  same as to ``get_property``, except that ``property_name`` should not be set.
-
-  On success, returns ``true, result``, where ``result`` is the result of
-  the ``GetAll`` call, unmarshalled as described in section `D-Bus objects`_.
-  It looks like this::
-
-    {{{"Property1", "Value1"}, {"Property2", "Value2"}}}
-
-  On failure, returns ``false, err_msg, err_code``.
-
-* ``luastatus.plugin.set_property_str(params)``
-
-  Set D-Bus property associated with an inteface, to a string. ``params`` must be
-  the same as to ``get_property``, except that a new string field ``value_str``
-  must be set.
-
-  On success, returns ``true, result``, where ``result`` is an empty table (the ``Set``
-  method does not return anything).
-
-  On failure, returns ``false, err_msg, err_code``.
-
-* ``luastatus.plugin.call_method_str(params)``
-
-  Call a D-Bus method, either with no arguments or a single string argument.
-
-  ``params`` must be a table with the following fields, in addition to the "common" fields:
-
-  - ``dest`` (string): a unique or well-known name of the owner.
-
-  - ``object_path`` (string): the path to the object.
-
-  - ``interface`` (string): the name of the interface.
-
-  - ``method`` (string): the name of the method.
-
-  - ``arg_str`` (optional, string): the argument for the call. If specified, the method
-    will be called with a single string argument. If not specified, the method will be
-    called with no arguments.
-
-  On success, returns ``true, result``, where ``result`` is the result of
-  the call call, unmarshalled as described in section `D-Bus objects`_.
-
-  On failure, returns ``false, err_msg, err_code``.
+There is also a module named ``dbustypes_lowlevel``.
+It is not documented, because this module is probably of little interest to the user.
+It is used by implementation of "high-level" ``dbustypes`` module.

@@ -62,6 +62,72 @@ class MyServerObject(dbus.service.Object):
         log('Called ReturnFortyTwo')
         return 42
 
+    @dbus.service.method(MY_INTERFACE, in_signature='as', out_signature='a{ss}')
+    def ConvertArrayToDictHexify(self, arr):
+        log('Called ConvertArrayToDictHexify')
+        def _hexify(s):
+            return s.encode('utf8').hex().upper()
+        return {
+            _hexify(str(i)): _hexify(s)
+            for i, s in enumerate(arr)
+        }
+
+    @dbus.service.method(MY_INTERFACE, in_signature='a{ss}', out_signature='s')
+    def ConvertDictToString(self, d):
+        log('Called ConvertDictToString')
+        return ','.join(f'{key}:{value}' for key, value in sorted(d.items()))
+
+    @dbus.service.method(MY_INTERFACE, in_signature='', out_signature='s')
+    def RecvTuple0(self):
+        log('Called RecvTuple0')
+        return 'Empty'
+
+    @dbus.service.method(MY_INTERFACE, in_signature='s', out_signature='s')
+    def RecvTuple1(self, arg):
+        log('Called RecvTuple1')
+        return arg
+
+    @dbus.service.method(MY_INTERFACE, in_signature='ss', out_signature='s')
+    def RecvTuple2(self, arg1, arg2):
+        log('Called RecvTuple2')
+        return arg1 + arg2
+
+    @dbus.service.method(MY_INTERFACE, in_signature='sss', out_signature='s')
+    def RecvTuple3(self, arg1, arg2, arg3):
+        log('Called RecvTuple3')
+        return arg1 + arg2 + arg3
+
+    @dbus.service.method(MY_INTERFACE, in_signature='v', out_signature='s')
+    def RecvVariant(self, x):
+        log(f'Called RecvVariant, type(x)={type(x)}')
+
+        TABLE = [
+            (dbus.Boolean, 'bool'),
+            (dbus.Double, 'double'),
+            (dbus.Byte, 'byte'),
+            (dbus.String, 'string'),
+            (dbus.ObjectPath, 'object_path'),
+            (dbus.Signature, 'signature'),
+
+            (dbus.Int16, 'i16'),
+            (dbus.Int32, 'i32'),
+            (dbus.Int64, 'i64'),
+
+            (dbus.UInt16, 'u16'),
+            (dbus.UInt32, 'u32'),
+            (dbus.UInt64, 'u64'),
+        ]
+
+        if hasattr(x, 'variant_level'):
+            if x.variant_level > 0:
+                return 'variant'
+
+        for dbus_type, retval in TABLE:
+            if isinstance(x, dbus_type):
+                return retval
+
+        raise ValueError('Got Variant wrapping an unsupported type')
+
     @dbus.service.method(PROP_INTERFACE, in_signature='ss', out_signature='s')
     def Get(self, _, prop_name):
         prop_name = str(prop_name)
