@@ -1,5 +1,5 @@
 .. :X-man-page-only: luastatus-plugin-dbus-fn-mkval
-.. :X-man-page-only: #############################
+.. :X-man-page-only: ##############################
 .. :X-man-page-only:
 .. :X-man-page-only: ############################################################
 .. :X-man-page-only: D-Bus plugin for luastatus: functions to create D-Bus values
@@ -44,7 +44,7 @@ The following functions for construction of D-Bus values and types from within L
   For information on type strings, see `DBus type system and type strings`_.
 
 DBus type system and type strings
-=================
+=================================
 This section discusses the D-Bus type system and type strings.
 
 In D-Bus, each type can be expressed as a type string, which is a printable

@@ -16,7 +16,10 @@ find_package (Threads REQUIRED)
 # link against pthread
 target_link_libraries (plugin-dbus PUBLIC Threads::Threads)
 
-luastatus_add_man_page (README.rst luastatus-plugin-dbus 7)
+luastatus_add_man_page (README.rst                  luastatus-plugin-dbus 7)
+luastatus_add_man_page (README_FN_CALL_METHOD.rst   luastatus-plugin-dbus-fn-call-method 7)
+luastatus_add_man_page (README_FN_PROP.rst          luastatus-plugin-dbus-fn-prop 7)
+luastatus_add_man_page (README_FN_MKVAL.rst         luastatus-plugin-dbus-fn-mkval 7)
 
 # === lualib stuff below ===
 
