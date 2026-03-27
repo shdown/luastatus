@@ -11,6 +11,8 @@
 
 Overview
 ========
+**NOTE**: this is a legacy plugin. Please use ``pipev2`` plugin instead.
+
 This derived plugin monitors the output of a process and calls the callback function whenever it
 produces a line.
 
