@@ -46,7 +46,7 @@ Functions
 =========
 The following functions are provided:
 
-* ``push_period(seconds)``
+* ``luastatus.plugin.push_period(seconds)``
 
   Changes the timer period for one iteration.
 
