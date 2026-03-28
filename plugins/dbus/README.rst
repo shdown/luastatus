@@ -26,7 +26,9 @@ The following options are supported:
   Whether or not to call to ``cb`` with ``what="ready"`` once the plugin has subscribed to
   all events successfully.
   Note that there is no guarantee this will be done before any other call, including calls
-  with ``what="signal"``, because glib has something called "priorities".
+  with ``what="signal"``, because glib has something called "priorities". You can simply
+  ignore any calls before one with ``what="ready"``.
+
   Defaults to false.
 
 * ``timeout``: number
