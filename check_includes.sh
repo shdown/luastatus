@@ -32,9 +32,11 @@ if (( ! luastatus_dir_found )); then
     exit 1
 fi
 
+cmakelists_dir=${CMAKELISTS_DIR:-$check_dir}
+
 modules=()
-if [[ -e "$check_dir"/CMakeLists.txt ]]; then
-    modules_raw=$(sed -rn 's/^\s*pkg_check_modules\s*\(.*\s+REQUIRED\s+(.*)\)\s*$/\1/p' "$check_dir"/CMakeLists.txt)
+if [[ -e "$cmakelists_dir"/CMakeLists.txt ]]; then
+    modules_raw=$(sed -rn 's/^\s*pkg_check_modules\s*\(.*\s+REQUIRED\s+(.*)\)\s*$/\1/p' "$cmakelists_dir"/CMakeLists.txt)
     # Replace all whitespace with newlines
     modules_raw=$(sed -r 's/\s+/\n/g' <<< "$modules_raw")
     # Remove version specifications (e.g. "yajl>=2.0.4" -> "yajl")
