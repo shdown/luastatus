@@ -21,6 +21,14 @@ The following options are supported:
   Whether or not a first call to ``cb`` with ``what="hello"`` should be made as soon as the
   widget starts. Defaults to false.
 
+* ``report_when_ready``: boolean
+
+  Whether or not to call to ``cb`` with ``what="ready"`` once the plugin has subscribed to
+  all events successfully.
+  Note that there is no guarantee this will be done before any other call, including calls
+  with ``what="signal"``, because glib has something called "priorities".
+  Defaults to false.
+
 * ``timeout``: number
 
   If specified and not negative, this plugin calls ``cb`` with ``what="timeout"`` if no D-Bus
@@ -74,6 +82,9 @@ A table with a ``what`` entry.
 
 * If ``what`` is ``"hello"``, this is the first call to ``cb`` (only if the ``greet`` option was
   set to ``true``).
+
+* If ``what`` is ``"ready"``, the plugin has subscribed to all the events successfully (only if
+  the ``report_when_ready`` option was set to ``true``).
 
 * It ``what`` is ``"timeout"``, a signal has not been received for the number of seconds specified
   as the ``timeout`` option.

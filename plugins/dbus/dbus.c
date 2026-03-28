@@ -89,6 +89,7 @@ typedef struct {
     SignalList subs[2];
     double tmo;
     bool greet;
+    bool report_when_ready;
     Zoo *zoo;
 } Priv;
 
@@ -198,6 +199,7 @@ static int init(LuastatusPluginData *pd, lua_State *L)
         .subs = {signal_list_new(), signal_list_new()},
         .tmo = -1,
         .greet = false,
+        .report_when_ready = false,
         .zoo = zoo_new(),
     };
     char errbuf[256];
@@ -205,6 +207,10 @@ static int init(LuastatusPluginData *pd, lua_State *L)
 
     // Parse greet
     if (moon_visit_bool(&mv, -1, "greet", &p->greet, true) < 0)
+        goto mverror;
+
+    // Parse report_when_ready
+    if (moon_visit_bool(&mv, -1, "report_when_ready", &p->report_when_ready, true) < 0)
         goto mverror;
 
     // Parse timeout
@@ -288,23 +294,40 @@ static void callback_signal(
     LS_PTH_CHECK(pthread_mutex_unlock(&args->mtx));
 }
 
+static void report_simple(
+        LuastatusPluginData *pd,
+        LuastatusPluginRunFuncs funcs,
+        const char *what)
+{
+    lua_State *L = funcs.call_begin(pd->userdata);
+
+    lua_createtable(L, 0, 1); // L: table
+    lua_pushstring(L, what); // L: table string
+    lua_setfield(L, -2, "what"); // L: table
+
+    funcs.call_end(pd->userdata);
+}
+
 static gboolean callback_timeout(gpointer user_data)
 {
     PluginRunArgs *args = (PluginRunArgs *) user_data;
 
     LS_PTH_CHECK(pthread_mutex_lock(&args->mtx));
-
-    lua_State *L = args->funcs.call_begin(args->pd->userdata);
-
-    lua_createtable(L, 0, 1); // L: table
-    lua_pushstring(L, "timeout"); // L: table string
-    lua_setfield(L, -2, "what"); // L: table
-
-    args->funcs.call_end(args->pd->userdata);
-
+    report_simple(args->pd, args->funcs, "timeout");
     LS_PTH_CHECK(pthread_mutex_unlock(&args->mtx));
 
     return G_SOURCE_CONTINUE;
+}
+
+static gboolean callback_idle(gpointer user_data)
+{
+    PluginRunArgs *args = (PluginRunArgs *) user_data;
+
+    LS_PTH_CHECK(pthread_mutex_lock(&args->mtx));
+    report_simple(args->pd, args->funcs, "ready");
+    LS_PTH_CHECK(pthread_mutex_unlock(&args->mtx));
+
+    return G_SOURCE_REMOVE;
 }
 
 static GDBusConnection *maybe_connect_and_subscribe(
@@ -351,7 +374,8 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     GDBusConnection *system_bus = NULL;
     GMainLoop *mainloop = NULL;
     GMainContext *context = g_main_context_get_thread_default();
-    GSource *source = NULL;
+    GSource *source_tmo = NULL;
+    GSource *source_idle = NULL;
 
     PluginRunArgs args = {.pd = pd, .funcs = funcs};
     LS_PTH_CHECK(pthread_mutex_init(&args.mtx, NULL));
@@ -374,27 +398,34 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     LS_TimeDelta TD = ls_double_to_TD(p->tmo, LS_TD_FOREVER);
     if (!ls_TD_is_forever(TD)) {
         int tmo_ms = ls_TD_to_poll_ms_tmo(TD);
-        source = g_timeout_source_new(tmo_ms);
-        g_source_set_callback(source, callback_timeout, &args, NULL);
-        if (g_source_attach(source, context) == 0) {
-            LS_FATALF(pd, "g_source_attach() failed");
+        source_tmo = g_timeout_source_new(tmo_ms);
+        g_source_set_callback(source_tmo, callback_timeout, &args, NULL);
+        if (g_source_attach(source_tmo, context) == 0) {
+            LS_FATALF(pd, "g_source_attach() failed (timeout source)");
             goto error;
         }
     }
     if (p->greet) {
-        lua_State *L = funcs.call_begin(pd->userdata);
-        lua_createtable(L, 0, 1); // L: table
-        lua_pushstring(L, "hello"); // L: table string
-        lua_setfield(L, -2, "what"); // L: table
-        funcs.call_end(pd->userdata);
+        report_simple(pd, funcs, "hello");
+    }
+    if (p->report_when_ready) {
+        source_idle = g_idle_source_new();
+        g_source_set_callback(source_idle, callback_idle, &args, NULL);
+        if (g_source_attach(source_idle, context) == 0) {
+            LS_FATALF(pd, "g_source_attach() failed (idle source)");
+            goto error;
+        }
     }
 
     mainloop = g_main_loop_new(context, FALSE);
     g_main_loop_run(mainloop);
 
 error:
-    if (source) {
-        g_source_unref(source);
+    if (source_tmo) {
+        g_source_unref(source_tmo);
+    }
+    if (source_idle) {
+        g_source_unref(source_idle);
     }
     if (context) {
         g_main_context_unref(context);
