@@ -46,6 +46,10 @@ enum { IS_DUMMY_IMPLEMENTATION = 1 };
 
 #endif
 
+#if defined(__NetBSD__)
+#define uselocale(x) ((locale_t) 0)
+#endif
+
 static inline bool next(mbstate_t *state, xspan x, xspan *new_x, wchar_t *out)
 {
     SAFEV unproc_v = xspan_unprocessed_v(x);
@@ -330,6 +334,7 @@ void libwidechar_register_lua_funcs(lua_State *L)
 {
     // L: table
 
+#if ! defined(__NetBSD__)
     lua_pushcfunction(L, lfunc_width); // L: table func
     lua_setfield(L, -2, "width"); // L: table
 
@@ -341,4 +346,5 @@ void libwidechar_register_lua_funcs(lua_State *L)
 
     lua_pushcfunction(L, lfunc_is_dummy_implementation); // L: table func
     lua_setfield(L, -2, "is_dummy_implementation"); // L: table
+#endif
 }
