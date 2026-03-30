@@ -332,9 +332,10 @@ static int lfunc_is_dummy_implementation(lua_State *L)
 
 void libwidechar_register_lua_funcs(lua_State *L)
 {
-    // L: table
+    (void) L;
 
 #if ! defined(__NetBSD__)
+    // L: table
     lua_pushcfunction(L, lfunc_width); // L: table func
     lua_setfield(L, -2, "width"); // L: table
 
