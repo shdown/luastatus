@@ -49,7 +49,7 @@ This section discusses the D-Bus type system and type strings.
 
 In D-Bus, each type can be expressed as a type string, which is a printable
 string, e.g. ``d`` or ``(susssasa{sv}i)``.
-We will refer to the type string of a type as of *spelling* of that type.
+We will refer to the type string of a type as the *spelling* of that type.
 
 For a more digestible description, the reader is advised to visit
 <https://docs.gtk.org/glib/gvariant-format-strings.html> and/or
@@ -68,7 +68,7 @@ is always a single letter:
 
 * ``q``, ``u``, ``t``: unsigned integer types, 16-bit, 32-bit and 64-bit, correspondingly.
 
-* ``d``: floating-point type (the same a Lua number).
+* ``d``: floating-point type (the same as Lua number).
 
 * ``s``: string type; note that the string must be valid UTF-8, and must not contain NUL characters (``\0``).
 
@@ -123,11 +123,11 @@ and "nothing at all" is spelled as ``()``. The latter is called an empty tuple.
 
 Dict entry types
 ----------------
-The D-Bus type system don't have a dictionary type; instead, it emulates dictionaries
+The D-Bus type system doesn't have a dictionary type; instead, it emulates dictionaries
 with arrays of *dict entries*. Basically, a dict entry is a pair of key and value,
 with the requirement that the key must be of basic type.
 
-Suppose we have two types, one with spelling ``K`` and anther with spelling ``V``.
+Suppose we have two types, one with spelling ``K`` and another with spelling ``V``.
 We want to use the type with spelling ``K`` as the "key" type in a "dictionary",
 and use the type with spelling ``V`` as the "value" type.
 (Note that this can only be done if the "key" type is basic.)

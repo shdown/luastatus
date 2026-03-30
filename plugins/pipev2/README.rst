@@ -10,7 +10,7 @@
 
 Overview
 ========
-This plugin spawn a process and then read lines (or chunks separated by some other configured delimiter) from its stdout.
+This plugin spawns a process and then reads lines (or chunks separated by some other configured delimiter) from its stdout.
 
 It can optionally redirect the child process' stdin as well.
 This way, a widget is able to write data into its stdin, thus establishing bidirectional communication.

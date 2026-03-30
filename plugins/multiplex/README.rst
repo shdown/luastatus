@@ -63,7 +63,7 @@ A table with ``what`` field.
 * If ``what`` is ``"hello"``, then the ``greet`` was enabled and the plugin is making
   this call before doing anything else. Defaults to false.
 
-* If ``what`` is ``"update"``, then some nested widget's plugin has produces a value.
+* If ``what`` is ``"update"``, then some nested widget's plugin has produced a value.
   In this case, ``updates`` field is also present and is a table that contains all the
   updates (note that only updates are specified, not the full snapshot).
   Its keys are identifiers of data sources, and values are as follows:

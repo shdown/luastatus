@@ -65,7 +65,7 @@ The following functions for getting/setting properties of D-Bus objects are prov
 
 * ``luastatus.plugin.get_all_propertes(params)``
 
-  Get all D-Bus properties associated with an inteface. ``params`` must be the
+  Get all D-Bus properties associated with an interface. ``params`` must be the
   same as to ``get_property``, except that ``property_name`` should not be set.
 
   On success, returns ``true, result``, where ``result`` is the result of
@@ -78,7 +78,7 @@ The following functions for getting/setting properties of D-Bus objects are prov
 
 * ``luastatus.plugin.set_property(params)``
 
-  Set a D-Bus property associated with an inteface. ``params`` must be
+  Set a D-Bus property associated with an interface. ``params`` must be
   the same as to ``get_property``, except that a new field ``value`` must be set.
   ``value`` must be a D-Bus value object; it can be constructed with
   ``luastatus.plugin.dbustypes.mkval_from_fmt`` or
@@ -92,7 +92,7 @@ The following functions for getting/setting properties of D-Bus objects are prov
 
 * ``luastatus.plugin.set_property_str(params)``
 
-  Set D-Bus property associated with an inteface, to a string. ``params`` must be
+  Set D-Bus property associated with an interface, to a string. ``params`` must be
   the same as to ``get_property``, except that a new string field ``value_str``
   must be set.
 
