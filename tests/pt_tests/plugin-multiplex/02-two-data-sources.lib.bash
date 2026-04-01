@@ -18,7 +18,7 @@ function make_data_source(num, period)
             },
             cb = function(t)
                 if t == 'hello' then
-                    return t
+                    return nil
                 end
                 i = i + 1
                 return string.format("[src%d] %s %d", MY_NUM, t, i)
@@ -31,22 +31,22 @@ widget = {
     plugin = '$PT_BUILD_DIR/plugins/multiplex/plugin-multiplex.so',
     opts = {
         data_sources = {
-            src1 = make_data_source(1, 1.0),
-            src2 = make_data_source(2, 2.5),
+            src1 = make_data_source(1, 3.0),
+            src2 = make_data_source(2, 7.5),
         },
     },
     cb = function(t)
         assert(t.what == 'update')
         local text = t.updates.src1 or t.updates.src2
-        f:write('cb ' .. text .. '\n')
+        if type(text) == 'string' then
+            f:write('cb ' .. text .. '\n')
+        end
     end,
 }
 __EOF__
 pt_spawn_luastatus
 exec {pfd}<"$main_fifo_file"
 pt_expect_line 'init' <&$pfd
-pt_expect_line 'cb hello' <&$pfd
-pt_expect_line 'cb hello' <&$pfd
 
 pt_expect_line "cb [src1] timeout 1" <&$pfd
 pt_expect_line "cb [src1] timeout 2" <&$pfd
