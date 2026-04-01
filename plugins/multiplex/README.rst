@@ -78,12 +78,12 @@ Error codes
 -----------
 The following error codes can be reported (as of now):
 
-* 128: plugin's ``run()`` function for this nested widget has returned (due to a fatal error),
+* 64: plugin's ``run()`` function for this nested widget has returned (due to a fatal error),
   there will be no events from it anymore;
 
-* 129: Lua error occurred in this nested widget's ``cb`` function;
+* 65: Lua error occurred in this nested widget's ``cb`` function;
 
-* 130: This nested widget's ``cb`` function returned something other than a string or nil.
+* 66: This nested widget's ``cb`` function returned something other than a string or nil.
 
 Functions
 =========
