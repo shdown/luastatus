@@ -267,6 +267,7 @@ static void recv_callback(void *vud, RunnerCallbackReason reason, lua_State *L)
         conq_update_slot(cq, i, NULL, 0, CONQ_SLOT_STATE_ERROR_PLUGIN_DONE);
         return;
     }
+
     LS_MUST_BE_UNREACHABLE();
 }
 
