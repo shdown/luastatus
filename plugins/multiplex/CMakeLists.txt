@@ -13,7 +13,7 @@ configure_file ("config.in.h" "config.generated.h")
 
 target_compile_definitions (plugin-multiplex PUBLIC -D_POSIX_C_SOURCE=200809L)
 luastatus_target_compile_with (plugin-multiplex LUA)
-target_include_directories (plugin-multiplex PUBLIC "${PROJECT_SOURCE_DIR}")
+target_include_directories (plugin-multiplex PUBLIC "${PROJECT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}")
 
 # find pthreads
 set (CMAKE_THREAD_PREFER_PTHREAD TRUE)

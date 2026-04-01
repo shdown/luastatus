@@ -16,4 +16,4 @@ endif ()
 
 set_target_properties (widechar PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-target_include_directories (widechar PUBLIC "${PROJECT_SOURCE_DIR}")
+target_include_directories (widechar PUBLIC "${PROJECT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}")
