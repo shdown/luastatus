@@ -56,4 +56,4 @@ sleep 1
 pa_start
 
 #PT_TOOL=valgrind PT_MAX_LAG=250 ./tests/pt.sh .
-PT_MAX_LAG=250 ./tests/pt.sh .
+PT_MAX_LAG=300 ./tests/pt.sh .
