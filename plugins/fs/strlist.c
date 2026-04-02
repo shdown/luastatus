@@ -28,6 +28,12 @@ Strlist strlist_new(void)
     return (Strlist) {0};
 }
 
+static void resize_to(Strlist *x, size_t new_size)
+{
+    x->data = LS_M_XREALLOC(x->data, new_size);
+    x->size = new_size;
+}
+
 #define BAD_INDEX ((size_t) -1)
 
 static size_t find(Strlist *x, const char *s)
@@ -50,10 +56,11 @@ bool strlist_push(Strlist *x, const char *s)
         return false;
     }
 
-    if (x->size == x->capacity) {
-        x->data = LS_M_X2REALLOC(x->data, &x->capacity);
-    }
-    x->data[x->size++] = ls_xstrdup(s);
+    // Increase the size.
+    resize_to(x, x->size + 1);
+
+    // Insert the new element.
+    x->data[x->size - 1] = ls_xstrdup(s);
     return true;
 }
 
@@ -64,10 +71,12 @@ static void remove_at(Strlist *x, size_t i)
     // Free the string at index /i/.
     free(x->data[i]);
 
-    // Move the last element to position /i/ and decrease the size.
+    // Move the last element to position /i/.
     size_t i_last = x->size - 1;
     x->data[i] = x->data[i_last];
-    --x->size;
+
+    // Decrease the size.
+    resize_to(x, x->size - 1);
 }
 
 bool strlist_remove(Strlist *x, const char *s)

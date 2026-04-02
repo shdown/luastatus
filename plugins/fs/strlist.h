@@ -26,7 +26,6 @@
 typedef struct {
     char **data;
     size_t size;
-    size_t capacity;
 } Strlist;
 
 Strlist strlist_new(void);
