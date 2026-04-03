@@ -24,8 +24,9 @@
 #include <signal.h>
 #include <stdbool.h>
 #include <limits.h>
-#include <stddef.h>
+#include <stdlib.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
@@ -190,34 +191,23 @@ fail:
     return 2;
 }
 
-static pid_t parse_pid(const char *s)
+static pid_t parse_pid(const char *s, const char **out_err_msg)
 {
-    if (!*s) {
-        goto fail;
+    char *endptr;
+    errno = 0;
+    intmax_t mres = strtoimax(s, &endptr, 10);
+
+    if (errno != 0 || *s == '\0' || *endptr != '\0') {
+        *out_err_msg = "cannot parse into intmax_t";
+        return -1;
     }
-    intmax_t mres = 0;
-    for (; *s; ++s) {
-        int digit = ((int) *s) - '0';
-        if (digit < 0 || digit > 9) {
-            goto fail;
-        }
-        if (mres > INTMAX_MAX / 10) {
-            goto fail;
-        }
-        mres *= 10;
-        if (mres > INTMAX_MAX - digit) {
-            goto fail;
-        }
-        mres += digit;
-    }
+
     pid_t res = mres;
     if (res <= 0 || res != mres) {
-        goto fail;
+        *out_err_msg = "outside of valid range for pid_t";
+        return -1;
     }
     return res;
-
-fail:
-    return -1;
 }
 
 int procalive_lfunc_is_process_alive(lua_State *L)
@@ -227,9 +217,10 @@ int procalive_lfunc_is_process_alive(lua_State *L)
     pid_t pid;
 
     if (lua_isstring(L, 1)) {
-        pid = parse_pid(lua_tostring(L, 1));
+        const char *err_msg;
+        pid = parse_pid(lua_tostring(L, 1), &err_msg);
         if (pid <= 0) {
-            return luaL_argerror(L, 1, "cannot parse string as PID");
+            return luaL_argerror(L, 1, err_msg);
         }
     } else if (lua_isnumber(L, 1)) {
         double d = lua_tonumber(L, 1);
@@ -242,7 +233,7 @@ int procalive_lfunc_is_process_alive(lua_State *L)
         int i = (int) d;
         pid = (pid_t) i;
         if (pid <= 0 || pid != i) {
-            return luaL_argerror(L, 1, "somehow out of range of pid_t");
+            return luaL_argerror(L, 1, "outside of valid range for pid_t");
         }
     } else {
         return luaL_argerror(L, 1, "neither number nor string");
