@@ -76,7 +76,7 @@ Plugin 'udev' has the following dependencies:
 * libudev >=204
 
 Plugin 'web' has the following dependencies:
-* cJSON >=1.7.18
+* cJSON >=1.7.10
 * libcurl >=7.8
 
 Plugin 'xkb' has the following dependencies:
