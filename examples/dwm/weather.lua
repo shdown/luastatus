@@ -1,67 +1,150 @@
--- you need to install 'luasec' module (e.g. with luarocks)
--- you can look up all available flags here: https://github.com/chubin/wttr.in#one-line-output
+local LOCATION_NAME = 'Moscow'
 
-local https = require('ssl.https')
-local ltn12 = require('ltn12')
+local TIMEOUT = 10
 
--- All the arguments except for 'url' may be absent or nil; default method is GET.
--- Returns: code (integer), body (string), headers (table), status (string).
-local function request(url, headers, method, body)
-    local out_body = {}
-    local is_ok, code_or_errmsg, out_headers, status = https.request(
-        {
+local INTERVAL = 9
+local SLEEP_AFTER_INITIAL = 5
+
+local coordinates = nil
+
+local function planner()
+    -- Get coordinates of LOCATION_NAME.
+    while true do
+        -- Form the URL
+        local url = string.format(
+            'https://geocoding-api.open-meteo.com/v1/search?name=%s&count=1',
+            luastatus.plugin.urlencode(LOCATION_NAME)
+        )
+        -- Make request
+        coroutine.yield({action = 'request', params = {
             url = url,
-            sink = ltn12.sink.table(out_body),
-            redirect = false,
-            cafile = '/etc/ssl/certs/ca-certificates.crt',
-            verify = 'peer',
-            method = method,
-            headers = headers,
-        },
-        body)
-    assert(is_ok, code_or_errmsg)
-    return code_or_errmsg, table.concat(out_body), out_headers, status
-end
+            timeout = TIMEOUT,
+        }})
+        -- If successful, break
+        if coordinates ~= nil then
+            break
+        end
+        -- Failure; sleep and retry
+        coroutine.yield({action = 'sleep', period = INTERVAL})
+    end
 
--- Arguments are the same to those of 'request'.
--- Returns: body (string), headers (table).
-local function request_check_code(...)
-    local code, body, headers, status = request(...)
-    assert(code == 200, string.format('HTTP %s %s', code, status))
-    return body, headers
-end
+    -- Coordinates fetched, sleep for SLEEP_AFTER_INITIAL.
+    coroutine.yield({action = 'sleep', period = SLEEP_AFTER_INITIAL})
 
-local function urlencode(s)
-    return string.gsub(s, '[^-_.~a-zA-Z0-9]', function(c)
-        return string.format('%%%02X', string.byte(c))
-    end)
-end
+    -- Form the weather URL
+    local weather_url = string.format(
+        'https://api.open-meteo.com/v1/forecast' ..
+        '?latitude=%f' ..
+        '&longitude=%f' ..
+        '&current_weather=true',
+        coordinates.latitude,
+        coordinates.longitude
+    )
 
-local BASE_URL = 'wttr.in'
-local LANG = 'en'
-local LOCATION = ''
-
-local function get_weather(format)
-    -- encoding is needed to allow usage of special use characters
-    format = urlencode(format)
-    local url = string.format('https://%s.%s/%s?format=%s', LANG, BASE_URL, LOCATION, format)
-    local is_ok, body = pcall(request_check_code, url)
-    if is_ok then
-        return body:gsub("[\n\r]", "")
-    else
-        return nil
+    -- Fetch weather, periodically
+    while true do
+        -- Make request
+        coroutine.yield({action = 'request', params = {
+            url = weather_url,
+            timeout = TIMEOUT,
+        }})
+        -- Sleep and repeat
+        coroutine.yield({action = 'sleep', period = INTERVAL})
     end
 end
 
+local function check_error(t)
+    if t.error then
+        -- Low-level libcurl error
+        return t.error
+    end
+    if t.status < 200 or t.status > 299 then
+        -- Bad HTTP status
+        return string.format('HTTP status %d', t.status)
+    end
+    -- Everything's OK
+    return nil
+end
+
+local WEATHER_CODES = {
+    [0] = 'Clear sky',
+
+    [1] = 'Mainly clear',
+    [2] = 'Partly cloudy',
+    [3] = 'Overcast',
+
+    [45] = 'Fog',
+    [48] = 'Depositing rime fog',
+
+    [51] = 'Drizzle, light',
+    [53] = 'Drizzle, moderate',
+    [55] = 'Drizzle, dense',
+
+    [56] = 'Freezing drizzle, light',
+    [57] = 'Freezing drizzle, dense',
+
+    [61] = 'Rain, slight',
+    [63] = 'Rain, moderate',
+    [65] = 'Rain, heavy',
+
+    [66] = 'Freezing rain, light',
+    [67] = 'Freezing rain, heavy',
+
+    [71] = 'Snow fall, slight',
+    [73] = 'Snow fall, moderate',
+    [75] = 'Snow fall, heavy',
+
+    [77] = 'Snow grains',
+
+    [80] = 'Rain shower, slight',
+    [81] = 'Rain shower, moderate',
+    [82] = 'Rain shower, violent',
+
+    [85] = 'Snow showers, slight',
+    [87] = 'Snow showers, heavy',
+
+    [95] = 'Thunderstorm',
+    [96] = 'Thunderstorm, slight hail',
+    [99] = 'Thunderstorm, heavy hail',
+}
+
+local function fmt_weather(temp, _, _, weather_code)
+    local segment1 = string.format('%.0f°', temp)
+    -- segment2 is either string or nil
+    local segment2 = WEATHER_CODES[weather_code]
+    return {segment1, segment2}
+end
+
 widget = {
-    plugin = 'timer',
-    opts = {period = 15 * 60},
-    cb = function()
-        local text = get_weather('%l: %C %t(%f)')
-        if text == nil then
-            luastatus.plugin.push_period(60) -- retry in 60 seconds
-            text = '......'
+    plugin = 'web',
+    opts = {
+        planner = planner,
+    },
+    cb = function(t)
+        local err_msg = check_error(t)
+        if err_msg then
+            print(string.format('WARNING: luastatus: weather widget: %s'), err_msg)
+            return '<!>'
         end
-        return text
+
+        if coordinates == nil then
+            local obj = assert(luastatus.plugin.json_decode(t.body))
+            local result = assert(obj.results[1])
+            local latitude = assert(result.latitude)
+            local longitude = assert(result.longitude)
+            coordinates = {latitude = latitude, longitude = longitude}
+            return '...'
+        end
+
+        local obj = assert(luastatus.plugin.json_decode(t.body))
+        local cw = assert(obj.current_weather)
+
+        local temp = assert(cw.temperature)
+        local wind_speed = assert(cw.windspeed)
+        -- is_day is an integer, either 0 or 1
+        local is_day = assert(cw.is_day) ~= 0
+        local weather_code = assert(cw.weathercode)
+
+        return fmt_weather(temp, wind_speed, is_day, weather_code)
     end,
 }

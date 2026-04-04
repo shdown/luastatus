@@ -19,7 +19,7 @@ cd -- "$(dirname "$(readlink "$0" || printf '%s\n' "$0")")"
 COMMON_D_ARGS=(
     -DBUILD_PLUGIN_PULSE=YES
     -DBUILD_PLUGIN_UNIXSOCK=YES
-    -DBUILD_PLUGIN_LLAMACXX=YES
+    -DBUILD_PLUGIN_WEB=YES
     -DBUILD_TESTS=YES
 )
 OPTIONS=(

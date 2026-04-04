@@ -97,7 +97,7 @@ LS_INHEADER LS_TimeDelta ls_double_to_TD_or_die(double delta)
     return res;
 }
 
-LS_INHEADER double ls_timespec_to_raw_double_(struct timespec ts)
+LS_INHEADER double ls_timespec_to_raw_double(struct timespec ts)
 {
     double s = ts.tv_sec;
     double ns = ts.tv_nsec;
@@ -106,12 +106,12 @@ LS_INHEADER double ls_timespec_to_raw_double_(struct timespec ts)
 
 LS_INHEADER LS_TimeStamp ls_timespec_to_TS(struct timespec ts)
 {
-    return (LS_TimeStamp) {ls_timespec_to_raw_double_(ts)};
+    return (LS_TimeStamp) {ls_timespec_to_raw_double(ts)};
 }
 
 LS_INHEADER LS_TimeDelta ls_timespec_to_TD(struct timespec ts)
 {
-    return (LS_TimeDelta) {ls_timespec_to_raw_double_(ts)};
+    return (LS_TimeDelta) {ls_timespec_to_raw_double(ts)};
 }
 
 LS_INHEADER struct timespec ls_now_timespec(void)

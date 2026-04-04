@@ -1,38 +1,19 @@
 -- Bitcoin price widget.
 -- Updates on click and every 5 minutes.
--- Requires (luarocks packages):
---     * luasec
---     * lua-cjson (or lua-dkjson if your distro doesn't have lua-cjson)
-local https = require 'ssl.https'
-local ltn12 = require 'ltn12'
--- You can replace 'cjson' with 'dkjson' in the line below:
-local json = require 'cjson'
 
--- All the arguments except for 'url' may be absent or nil; default method is GET.
--- Returns: code (integer), body (string), headers (table), status (string).
-local function request(url, headers, method, body)
-    local out_body = {}
-    local is_ok, code_or_errmsg, out_headers, status = https.request(
-        {
-            url = url,
-            sink = ltn12.sink.table(out_body),
-            redirect = false,
-            cafile = '/etc/ssl/certs/ca-certificates.crt',
-            verify = 'peer',
-            method = method,
-            headers = headers,
-        },
-        body)
-    assert(is_ok, code_or_errmsg)
-    return code_or_errmsg, table.concat(out_body), out_headers, status
-end
+local custom_sleep_amt = nil
 
--- Arguments are the same to those of 'request'.
--- Returns: body (string), headers (table).
-local function request_check_code(...)
-    local code, body, headers, status = request(...)
-    assert(code == 200, string.format('HTTP %s %s', code, status))
-    return body, headers
+local function check_error(t)
+    if t.error then
+        -- Low-level libcurl error
+        return t.error
+    end
+    if t.status < 200 or t.status > 299 then
+        -- Bad HTTP status
+        return string.format('HTTP status %d', t.status)
+    end
+    -- Everything's OK
+    return nil
 end
 
 local function stylize(styles, fmt, ...)
@@ -53,23 +34,41 @@ local function stylize(styles, fmt, ...)
 end
 
 widget = {
-    plugin = 'timer',
+    plugin = 'web',
     opts = {
-        period = 5 * 60,
+        planner = function()
+            while true do
+                coroutine.yield({action = 'request', params = {
+                    url = 'https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT',
+                    timeout = 5,
+                }})
+                local period = custom_sleep_amt or (5 * 60)
+                custom_sleep_amt = nil
+                coroutine.yield({action = 'sleep', period = period})
+            end
+        end,
+        make_self_pipe = true,
     },
-    cb = function()
-        local is_ok, body = pcall(request_check_code, 'https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT')
+    cb = function(t)
         local text
-        if is_ok then
-            text = json.decode(body).price:match('[^.]+')
-        else
+        local err_msg = check_error(t)
+        if err_msg then
+            print(string.format('WARNING: luastatus: btc-price widget: %s'), err_msg)
             text = '......'
-            luastatus.plugin.push_period(5) -- retry in 5 seconds
+            custom_sleep_amt = 5
+        else
+            local obj = assert(luastatus.plugin.json_decode(t.body))
+            text = obj.price:match('[^.]+')
         end
         return stylize(
             {'%{F#586A4B}', '%{F#C0863F}'},
             '@1[@2$@1%1]@0',
             luastatus.barlib.escape(text)
         )
+    end,
+    event = function(t)
+        if t.button == 1 then
+            luastatus.plugin.wake_up()
+        end
     end,
 }
