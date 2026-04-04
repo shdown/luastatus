@@ -24,7 +24,17 @@
 #include <limits.h>
 #include <lua.h>
 #include <lauxlib.h>
-#include <cJSON.h>
+
+// It is actually located in ${CMAKE_CURRENT_BINARY_DIR}.
+// CMakeLists.txt adds it to the "include directories" list.
+#include "json_config.generated.h"
+
+#if CJSON_FOUND_BY_PKG_CONFIG
+#   include <cJSON.h>
+#else
+#   include <cjson/cJSON.h>
+#endif
+
 #include "libls/ls_panic.h"
 
 typedef struct {
