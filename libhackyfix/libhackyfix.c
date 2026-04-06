@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <locale.h>
 #include "get_rtld_next_handle.h"
 #include "fatal.h"
 
@@ -34,15 +35,76 @@
 #endif
 
 static int (*orig_fflush)(FILE *f);
+static struct lconv *(*orig_localeconv)(void);
+
+static struct lconv my_lconv;
+
+static char *xstrdup_or_null(const char *s)
+{
+    if (!s) {
+        return NULL;
+    }
+    size_t ns = strlen(s);
+    char *res = malloc(ns + 1);
+    if (!res) {
+        libhackyfix_fatal("FATAL: libhackyfix: malloc() failed\n");
+    }
+    memcpy(res, s, ns + 1);
+    return res;
+}
+
+static void query_and_copy_lconv(void)
+{
+    struct lconv *cur = orig_localeconv();
+    my_lconv = *cur;
+
+#define copy(field) (my_lconv.field = xstrdup_or_null(cur->field))
+
+    copy(decimal_point);
+    copy(thousands_sep);
+    copy(grouping);
+    copy(int_curr_symbol);
+    copy(currency_symbol);
+    copy(mon_decimal_point);
+    copy(mon_thousands_sep);
+    copy(mon_grouping);
+    copy(positive_sign);
+    copy(negative_sign);
+
+#undef copy
+}
 
 __attribute__((constructor))
 static void initialize(void)
 {
     void *rtld_next_handle = libhackyfix_get_rtld_next_handle();
+
     *(void **) &orig_fflush = dlsym(rtld_next_handle, "fflush");
     if (!orig_fflush) {
         libhackyfix_fatal("FATAL: libhackyfix: dlsym(..., \"fflush\") failed\n");
     }
+
+    *(void **) &orig_localeconv = dlsym(rtld_next_handle, "localeconv");
+    if (!orig_localeconv) {
+        libhackyfix_fatal("FATAL: libhackyfix: dlsym(..., \"localeconv\") failed\n");
+    }
+
+    query_and_copy_lconv();
+}
+
+__attribute__((destructor))
+static void deinitialize(void)
+{
+    free(my_lconv.decimal_point);
+    free(my_lconv.thousands_sep);
+    free(my_lconv.grouping);
+    free(my_lconv.int_curr_symbol);
+    free(my_lconv.currency_symbol);
+    free(my_lconv.mon_decimal_point);
+    free(my_lconv.mon_thousands_sep);
+    free(my_lconv.mon_grouping);
+    free(my_lconv.positive_sign);
+    free(my_lconv.negative_sign);
 }
 
 // ==================================================
@@ -97,6 +159,14 @@ char *getenv(const char *name)
         }
     }
     return NULL;
+}
+
+// ==================================================
+// Replacement for /localeconv/
+// ==================================================
+struct lconv *localeconv(void)
+{
+    return &my_lconv;
 }
 
 #if REPLACE_DLERROR

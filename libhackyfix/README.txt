@@ -37,6 +37,8 @@ Examples of usage of non-thread-safe (according to POSIX-2008) functions:
 
   * strerror(): used internally!
 
+  * localeconv(): used internally!
+
 So this library replaces the following functions with thread-safe counterparts
 and/or different semantics to work around things that are very problematic in
 multi-threaded environments:
@@ -46,5 +48,7 @@ multi-threaded environments:
   * strerror();
 
   * getenv();
+
+  * localeconv();
 
   * dlerror() (unless compiled with glibc, where it *is* thread-safe).
