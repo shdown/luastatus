@@ -245,6 +245,9 @@ static void inject_wireless_info(lua_State *L, struct ifaddrs *addr)
 
 static void inject_ethernet_info(lua_State *L, struct ifaddrs *addr, int sockfd)
 {
+    if (sockfd < 0) {
+        return;
+    }
     int speed = get_ethernet_speed(sockfd, addr->ifa_name);
     if (!speed) {
         return;
@@ -408,7 +411,7 @@ static bool interpret_nl_msg(LuastatusPluginData *pd, char *msg_buf, size_t len)
             int errnum = e->error;
             if (errnum) {
                 LS_ERRF(pd, "netlink error: %s", ls_tls_strerror(-errnum));
-                false;
+                return false;
             } else {
                 LS_WARNF(pd, "unexpected ACK - what's going on?");
                 continue;

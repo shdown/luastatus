@@ -204,6 +204,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         }
     }
 error:
+    udev_monitor_unref(mon);
     udev_unref(udev);
 }
 
