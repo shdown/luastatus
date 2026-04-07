@@ -17,7 +17,6 @@ $CC -Wall -Wextra -O3 -fsanitize=undefined -std=c99 -D_POSIX_C_SOURCE=200809L \
     "$luastatus_root"/libls/ls_string.c \
     "$luastatus_root"/libls/ls_alloc_utils.c \
     "$luastatus_root"/libls/ls_panic.c \
-    "$luastatus_root"/libls/ls_assert.c \
     "$luastatus_root"/libls/ls_cstring_utils.c \
     "$luastatus_root"/libls/ls_parse_int.c \
     "$luastatus_root"/libsafe/*.c \

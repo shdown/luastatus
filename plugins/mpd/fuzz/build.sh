@@ -26,7 +26,6 @@ do_build_variant() {
         "$luastatus_root"/libls/ls_string.c \
         "$luastatus_root"/libls/ls_alloc_utils.c \
         "$luastatus_root"/libls/ls_panic.c \
-        "$luastatus_root"/libls/ls_assert.c \
         "$luastatus_root"/libls/ls_cstring_utils.c \
         "$luastatus_root"/libsafe/*.c \
         -o "$output"
