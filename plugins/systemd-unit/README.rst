@@ -40,6 +40,7 @@ The following functions are provided:
   Constructs a ``widget`` table required by luastatus. ``tbl`` must be a table with the following fields:
 
   **(required)**
+
   - ``unit_name``: string
 
     The name of the systemd unit to monitor (e.g., ``"tor.service"``).

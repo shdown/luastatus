@@ -23,7 +23,7 @@ The following functions are provided:
 
   **(required)**
 
-  - ``player``: a string
+  - ``player``: string
 
     The name of the MPRIS player (e.g., ``"clementine"``).
     It will be automatically prefixed with ``org.mpris.MediaPlayer2.`` when communicating over D-Bus.
@@ -35,7 +35,7 @@ The following functions are provided:
             | grep -F 'org.mpris.MediaPlayer2'
 
 
-  - ``cb``: a function
+  - ``cb``: function
 
     The callback function that will be called with a table containing the current MPRIS player
     properties (such as ``Metadata``, ``PlaybackStatus``, ``Volume``, etc.).
@@ -43,11 +43,13 @@ The following functions are provided:
 
   **(optional)**
 
-  - ``forced_refresh_interval``: a number
+  - ``forced_refresh_interval``: number
 
     The interval in seconds for manually querying the player properties.
     Defaults to 30.
     This acts as a safety fallback if D-Bus signals are missed or invalidated.
 
   - ``event``
-    The ``event`` entry of the resulting table (see ``luastatus`` documentation for the description of ``widget.event`` field).
+
+    The ``event`` entry of the resulting table (see ``luastatus`` documentation
+    for the description of ``widget.event`` field).
