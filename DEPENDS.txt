@@ -55,6 +55,9 @@ Plugin 'inotify' has the following dependencies:
 Plugin 'mem-usage-linux' has the following dependencies:
 * plugin 'timer'
 
+Plugin 'mpris' has the following dependencies:
+* plugin 'dbus'
+
 Plugin 'network-linux' has the following dependencies:
 * a Linux system with Linux kernel headers
 * libnl >=3.0
@@ -68,6 +71,9 @@ Plugin 'pipe' has the following dependencies:
 
 Plugin 'pulse' has the following dependencies:
 * libpulse >=4.0
+
+Plugin 'systemd-unit' has the following dependencies:
+* plugin 'dbus'
 
 Plugin 'temperature-linux' has the following dependencies:
 * plugin 'timer'

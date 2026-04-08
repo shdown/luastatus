@@ -1,0 +1,3 @@
+install (FILES mpris.lua DESTINATION ${LUA_PLUGINS_DIR})
+
+luastatus_add_man_page (README.rst luastatus-plugin-mpris 7)
