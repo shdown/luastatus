@@ -59,6 +59,9 @@ local function get_device_info(mac_address)
     if mac_address == nil then
         mac_address = ""
     end
+
+    assert(string.match(mac_address, '^[%x:]*$') ~= nil)
+
     local device_info = {}
     local handle = io.popen(string.format("bluetoothctl info %s", mac_address))
     for line in handle:lines() do
