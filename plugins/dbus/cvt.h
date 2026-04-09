@@ -22,4 +22,6 @@
 #include <lua.h>
 #include <glib.h>
 
+// "cvt" means "convert", as in "convert GVariant to Lua value".
+
 void cvt(lua_State *L, GVariant *var);

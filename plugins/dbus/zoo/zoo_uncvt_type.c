@@ -217,7 +217,7 @@ static int l_mktype_simple(lua_State *L)
     if (ns != 1) {
         goto bad;
     }
-    if (memchr(VALID, s[0], sizeof(VALID)) == NULL) {
+    if (memchr(VALID, (unsigned char) s[0], sizeof(VALID)) == NULL) {
         goto bad;
     }
     make_tobj_steal(L, g_variant_type_new(s));
