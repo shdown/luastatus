@@ -367,7 +367,7 @@ static bool do_spawn(LuastatusPluginData *pd, FILE **out_f)
 
     FILE *f = fdopen(res.fd_stdout, "r");
     if (!f) {
-        LS_FATALF(pd, "fdopen: %s", ls_tls_strerror(err.errnum));
+        LS_FATALF(pd, "fdopen: %s", ls_tls_strerror(errno));
         do_cleanup_leftover(pd, res);
         return false;
     }

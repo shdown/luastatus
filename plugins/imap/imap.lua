@@ -28,19 +28,36 @@ local IMAP_TIMEOUT_ERROR = {}
 
 local IMAP = {}
 
-function IMAP:open(host, port, params)
-    local conn = socket.tcp()
-    conn:connect(host, port)
-    conn:settimeout(params.handshake_timeout)
-    if params.use_ssl then
-        conn = assert(ssl.wrap(conn, {
+local function safely_wrap_ssl(conn)
+    local new_conn
+    local conn_to_close = conn
+
+    local is_ok, err = pcall(function()
+        new_conn = assert(ssl.wrap(conn, {
             mode = 'client',
             protocol = 'tlsv1',
             cafile = '/etc/ssl/certs/ca-certificates.crt',
             verify = 'peer',
             options = 'all',
         }))
-        assert(conn:dohandshake())
+        conn_to_close = new_conn
+        assert(new_conn:dohandshake())
+    end)
+
+    if not is_ok then
+        conn_to_close:close()
+        error(err)
+    end
+
+    return new_conn
+end
+
+function IMAP:open(host, port, params)
+    local conn = socket.tcp()
+    conn:connect(host, port)
+    conn:settimeout(params.handshake_timeout)
+    if params.use_ssl then
+        conn = safely_wrap_ssl(conn)
     end
     conn:settimeout(params.timeout)
     self.__index = self
