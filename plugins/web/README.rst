@@ -118,6 +118,7 @@ The ``params`` table in a ``request`` action supports the following options:
   Enable TCP keepalive.
 
 * ``proxy``, ``proxy_username``, ``proxy_password``: strings
+
   Proxy configuration.
 
 * ``post_fields``: string
