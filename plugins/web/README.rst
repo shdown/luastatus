@@ -35,12 +35,15 @@ The following options are supported at plugin initialization:
     end
 
 * ``with_headers_global``: boolean
+
   Whether to include HTTP response headers in all response callbacks. Defaults to false.
 
 * ``debug_global``: boolean
+
   Whether to enable verbose libcurl debug logging globally. Defaults to false.
 
 * ``make_self_pipe``: boolean
+
   If true, the ``wake_up()`` (see the `Functions`_ section) function will be available. Defaults to
   false.
 
