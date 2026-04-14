@@ -25,14 +25,13 @@
 #include <linux/sockios.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
-#include <sys/socket.h>
 #include <net/if.h>
 #include <stdio.h>
 #include <string.h>
-#include <limits.h>
+#include <stdint.h>
 #include "libls/ls_panic.h"
 
-int get_ethernet_speed(int sockfd, const char *iface)
+uint32_t get_ethernet_speed(int sockfd, const char *iface)
 {
     LS_ASSERT(iface != NULL);
 
@@ -40,15 +39,20 @@ int get_ethernet_speed(int sockfd, const char *iface)
     struct ifreq ifr = {.ifr_data = (caddr_t) &ecmd};
 
     size_t niface = strlen(iface);
-    if (niface + 1 > sizeof(ifr.ifr_name))
+    if (niface + 1 > sizeof(ifr.ifr_name)) {
         goto fail;
+    }
     memcpy(ifr.ifr_name, iface, niface + 1);
 
-    if (ioctl(sockfd, SIOCETHTOOL, &ifr) < 0)
+    if (ioctl(sockfd, SIOCETHTOOL, &ifr) < 0) {
         goto fail;
-    if (ecmd.speed == USHRT_MAX)
+    }
+
+    uint32_t res = ethtool_cmd_speed(&ecmd);
+    if (res == (uint32_t) SPEED_UNKNOWN) {
         goto fail;
-    return ecmd.speed;
+    }
+    return res;
 
 fail:
     return 0;

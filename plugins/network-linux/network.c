@@ -28,6 +28,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <errno.h>
 #include <poll.h>
 #include <netinet/in.h>
@@ -248,7 +249,7 @@ static void inject_ethernet_info(lua_State *L, struct ifaddrs *addr, int sockfd)
     if (sockfd < 0) {
         return;
     }
-    int speed = get_ethernet_speed(sockfd, addr->ifa_name);
+    uint32_t speed = get_ethernet_speed(sockfd, addr->ifa_name);
     if (!speed) {
         return;
     }

@@ -20,6 +20,8 @@
 #ifndef ethernet_info_h_
 #define ethernet_info_h_
 
-int get_ethernet_speed(int sockfd, const char *iface);
+#include <stdint.h>
+
+uint32_t get_ethernet_speed(int sockfd, const char *iface);
 
 #endif
