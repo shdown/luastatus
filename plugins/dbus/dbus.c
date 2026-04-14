@@ -373,7 +373,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     GDBusConnection *session_bus = NULL;
     GDBusConnection *system_bus = NULL;
     GMainLoop *mainloop = NULL;
-    GMainContext *context = g_main_context_get_thread_default();
+    GMainContext *context = g_main_context_ref_thread_default();
     GSource *source_tmo = NULL;
     GSource *source_idle = NULL;
 
