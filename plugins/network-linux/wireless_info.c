@@ -42,22 +42,29 @@ static void find_ssid(uint8_t *ies, uint32_t ies_len, uint8_t **ssid, uint32_t *
 {
     enum { WLAN_EID_SSID = 0 };
 
-    *ssid = NULL;
-    *ssid_len = 0;
+    for (;;) {
+        if (ies_len < 2) {
+            goto not_found;
+        }
 
-    while (ies_len > 2 && ies[0] != WLAN_EID_SSID) {
-        ies_len -= ies[1] + 2;
-        ies += ies[1] + 2;
+        uint32_t cur_len = ies[1] + 2;
+        if (cur_len > ies_len) {
+            goto not_found;
+        }
+
+        if (ies[0] == WLAN_EID_SSID) {
+            *ssid = ies + 2;
+            *ssid_len = cur_len - 2;
+            return;
+        }
+
+        ies_len -= cur_len;
+        ies += cur_len;
     }
 
-    if (ies_len < 2)
-        return;
-
-    if (ies_len < ((uint32_t) ies[1]) + 2)
-        return;
-
-    *ssid_len = ies[1];
-    *ssid = ies + 2;
+not_found:
+    *ssid = NULL;
+    *ssid_len = 0;
 }
 
 static int gwi_sta_cb(struct nl_msg *msg, void *vud)
