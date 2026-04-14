@@ -167,6 +167,15 @@ static void push_port_type(lua_State *L, int type)
 }
 #endif
 
+static inline void push_str_or_nil(lua_State *L, const char *s)
+{
+    if (s) {
+        lua_pushstring(L, s);
+    } else {
+        lua_pushnil(L);
+    }
+}
+
 static void store_volume_from_sink_cb(
         pa_context *c,
         const pa_sink_info *info,
@@ -192,9 +201,9 @@ static void store_volume_from_sink_cb(
             lua_setfield(L, -2, "mute"); // L: ? table
             lua_pushinteger(L, info->index); // L: ? table integer
             lua_setfield(L, -2, "index"); // L: ? table
-            lua_pushstring(L, info->name); // L: ? table string
+            push_str_or_nil(L, info->name); // L: ? table string
             lua_setfield(L, -2, "name"); // L: ? table
-            lua_pushstring(L, info->description); // L: ? table string
+            push_str_or_nil(L, info->description); // L: ? table string
             lua_setfield(L, -2, "desc"); // L: ? table
 
 #if MY_CHECK_VERSION(0, 9, 16)
@@ -202,9 +211,9 @@ static void store_volume_from_sink_cb(
                 lua_pushnil(L); // L: ? table nil
             } else {
                 lua_createtable(L, 0, 3); // L: ? table table
-                lua_pushstring(L, info->active_port->name); // L: ? table table string
+                push_str_or_nil(L, info->active_port->name); // L: ? table table string
                 lua_setfield(L, -2, "name"); // L: ? table table
-                lua_pushstring(L, info->active_port->description); // L: ? table table string
+                push_str_or_nil(L, info->active_port->description); // L: ? table table string
                 lua_setfield(L, -2, "desc"); // L: ? table table
 # if MY_CHECK_VERSION(14, 0, 0)
                 push_port_type(L, info->active_port->type); // L: ? table table string

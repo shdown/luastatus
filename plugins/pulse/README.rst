@@ -48,21 +48,21 @@ The following options are supported:
 
     Index of the default sink.
 
-  - ``name``: string
+  - ``name``: string (**optional**, may be ``nil``)
 
     Name of the default sink.
 
-  - ``desc``: string
+  - ``desc``: string (**optional**, may be ``nil``)
 
     Description of the default sink.
 
   - ``port``: table with following entries, or ``nil`` if there is no active port:
 
-    - ``name``: string
+    - ``name``: string (**optional**, may be ``nil``)
 
       Name of the default sink's active port.
 
-    - ``desc``: string
+    - ``desc``: string (**optional**, may be ``nil``)
 
       Description of the default sink's active port.
 
