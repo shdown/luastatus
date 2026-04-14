@@ -50,8 +50,10 @@ char *somehow_fetch_symbols(Display *dpy, uint64_t deviceid)
         goto done;
 
     char *s = XGetAtomName(dpy, a);
-    ret = ls_xstrdup(s);
-    XFree(s);
+    if (s) {
+        ret = ls_xstrdup(s);
+        XFree(s);
+    }
 
 done:
     if (k) {
