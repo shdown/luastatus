@@ -183,16 +183,22 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 
     int rc;
 
-    rc = udev_monitor_filter_add_match_subsystem_devtype(mon, p->subsystem, p->devtype);
-    if (rc < 0) {
-        LS_FATALF(pd, "udev_monitor_filter_add_match_subsystem_devtype() failed (%d)", rc);
-        goto error;
+    if (p->subsystem) {
+        // udev_monitor_filter_add_match_subsystem_devtype() allows the second argument
+        // to be NULL, but not the first one.
+        rc = udev_monitor_filter_add_match_subsystem_devtype(mon, p->subsystem, p->devtype);
+        if (rc < 0) {
+            LS_FATALF(pd, "udev_monitor_filter_add_match_subsystem_devtype() failed (%d)", rc);
+            goto error;
+        }
     }
 
-    rc = udev_monitor_filter_add_match_tag(mon, p->tag);
-    if (rc < 0) {
-        LS_FATALF(pd, "udev_monitor_filter_add_match_tag() failed (%d)", rc);
-        goto error;
+    if (p->tag) {
+        rc = udev_monitor_filter_add_match_tag(mon, p->tag);
+        if (rc < 0) {
+            LS_FATALF(pd, "udev_monitor_filter_add_match_tag() failed (%d)", rc);
+            goto error;
+        }
     }
 
     rc = udev_monitor_enable_receiving(mon);
