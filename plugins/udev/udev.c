@@ -174,11 +174,38 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     }
 
     struct udev_monitor *mon = udev_monitor_new_from_netlink(
-        udev, p->kernel_ev ? "kernel" : "udev");
-    udev_monitor_filter_add_match_subsystem_devtype(mon, p->subsystem, p->devtype);
-    udev_monitor_filter_add_match_tag(mon, p->tag);
-    udev_monitor_enable_receiving(mon);
+        udev,
+        p->kernel_ev ? "kernel" : "udev");
+    if (!mon) {
+        LS_FATALF(pd, "udev_monitor_new_from_netlink() failed");
+        goto error;
+    }
+
+    int rc;
+
+    rc = udev_monitor_filter_add_match_subsystem_devtype(mon, p->subsystem, p->devtype);
+    if (rc < 0) {
+        LS_FATALF(pd, "udev_monitor_filter_add_match_subsystem_devtype() failed (%d)", rc);
+        goto error;
+    }
+
+    rc = udev_monitor_filter_add_match_tag(mon, p->tag);
+    if (rc < 0) {
+        LS_FATALF(pd, "udev_monitor_filter_add_match_tag() failed (%d)", rc);
+        goto error;
+    }
+
+    rc = udev_monitor_enable_receiving(mon);
+    if (rc < 0) {
+        LS_FATALF(pd, "udev_monitor_enable_receiving() failed (%d)", rc);
+        goto error;
+    }
+
     int fd = udev_monitor_get_fd(mon);
+    if (fd < 0) {
+        LS_FATALF(pd, "udev_monitor_get_fd() failed (%d)", fd);
+        goto error;
+    }
 
     if (p->greet) {
         report_status(pd, funcs, "hello");
@@ -204,7 +231,9 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         }
     }
 error:
-    udev_monitor_unref(mon);
+    if (mon) {
+        udev_monitor_unref(mon);
+    }
     udev_unref(udev);
 }
 
