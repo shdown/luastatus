@@ -134,13 +134,15 @@ and reading `luastatus-barlib-<name>(7)` and `luastatus-plugin-<name>(7)`.
 
 Barlib-specific notes on usage follow.
 
-i3
----
-`luastatus-i3-wrapper` should be specified as the i3bar's status command in the i3 config, e.g.:
+i3 or sway
+----------
+`luastatus-i3-wrapper` should be specified as the i3bar's or sway-bar's status command in the config, e.g.:
 ```
 bar {
     status_command cd ~/.config/luastatus && exec luastatus-i3-wrapper -B no_separators time-battery-combined.lua alsa.lua xkb.lua
 ```
+
+Since sway-bar is format-compatible with i3wm, the exact same configuration works for both.
 
 See also [README for i3](https://github.com/shdown/luastatus/blob/master/barlibs/i3/README.rst) and
 [examples for i3](https://github.com/shdown/luastatus/tree/master/examples/i3).

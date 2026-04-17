@@ -1,26 +1,26 @@
 .. :X-man-page-only: luastatus-barlib-i3
-.. :X-man-page-only: #####################
+.. :X-man-page-only: ###################
 .. :X-man-page-only:
-.. :X-man-page-only: ##########################
-.. :X-man-page-only: i3 barlib for luastatus
-.. :X-man-page-only: ##########################
+.. :X-man-page-only: ############################
+.. :X-man-page-only: i3/sway barlib for luastatus
+.. :X-man-page-only: ############################
 .. :X-man-page-only:
 .. :X-man-page-only: :Copyright: LGPLv3
 .. :X-man-page-only: :Manual section: 7
 
 Overview
 ========
-This barlib talks with ``i3bar``.
+This barlib talks with i3bar (or sway-bar).
 
 To use this barlib, you need to specify ``luastatus-i3-wrapper`` with appropriate arguments as the
-``status_command`` parameter of a bar in the i3 configuration file. For example::
+``status_command`` parameter of a bar in the i3 (or sway) configuration file. For example::
 
     bar {
         status_command cd ~/.config/luastatus && exec luastatus-i3-wrapper -B no_separators time-battery-combined.lua alsa.lua xkb.lua
 
 Redirections and ``luastatus-i3-wrapper``
 =========================================
-``i3bar`` requires all the data to be written to stdout and read from stdin.
+i3bar and sway-bar require all the data to be written to stdout and read from stdin.
 
 This makes it very easy
 to mess things up: Lua's ``print()`` prints to stdout, processes spawned by widgets/plugins inherit
@@ -56,7 +56,7 @@ Either of:
 
 ``event`` argument
 ==================
-A table with all click properties ``i3bar`` provides.
+A table with all click properties i3bar (or sway-bar) provides.
 
 For more information, see http://i3wm.org/docs/i3bar-protocol.html#_click_events.
 
@@ -123,7 +123,7 @@ The following options are supported:
 
 * ``in_fd=<fd>``
 
-  File descriptor to read ``i3bar`` input from. Usually set by the wrapper.
+  File descriptor to read i3bar or sway-bar input from. Usually set by the wrapper.
 
 * ``out_fd=<fd>``
 
@@ -131,7 +131,7 @@ The following options are supported:
 
 * ``no_click_events``
 
-  Tell ``i3bar`` we don't want to receive click events. This changes ``i3bar`` behavior in that
+  Tell i3bar (or sway-bar) we don't want to receive click events. This changes its behavior in that
   it will interpret "clicks" on segments as if an empty space on the bar was clicked,
   particularly, will switch workspaces if you scroll on a segment.
 
@@ -142,7 +142,7 @@ The following options are supported:
 
 * ``allow_stopping``
 
-  Allow i3bar to send luastatus ``SIGSTOP`` when it thinks it becomes invisible, and ``SIGCONT``
+  Allow i3bar (or sway-bar) to send luastatus ``SIGSTOP`` when it thinks it becomes invisible, and ``SIGCONT``
   when it thinks it becomes visible. Quite a questionable feature.
 
 * ``extra_init_json=<string>``
