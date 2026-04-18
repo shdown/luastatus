@@ -27,7 +27,7 @@
 #include "ls_time_utils.h"
 #include "ls_panic.h"
 
-static int poll_forever(struct pollfd *fds, nfds_t nfds)
+static int poll_forever(struct pollfd *fds, size_t nfds)
 {
     int r;
     while ((r = poll(fds, nfds, -1)) < 0 && errno == EINTR) {
@@ -36,8 +36,13 @@ static int poll_forever(struct pollfd *fds, nfds_t nfds)
     return r;
 }
 
-int ls_poll(struct pollfd *fds, nfds_t nfds, LS_TimeDelta tmo)
+int ls_poll(struct pollfd *fds, size_t nfds, LS_TimeDelta tmo)
 {
+    if (nfds != (nfds_t) nfds) {
+        errno = EOVERFLOW;
+        return -1;
+    }
+
     int tmo_ms = ls_TD_to_poll_ms_tmo(tmo);
     if (tmo_ms < 0) {
         return poll_forever(fds, nfds);

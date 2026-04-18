@@ -20,6 +20,7 @@
 #ifndef ls_io_utils_h_
 #define ls_io_utils_h_
 
+#include <stddef.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
@@ -75,7 +76,7 @@ LS_INHEADER int ls_close(int fd)
 }
 
 // Poll restarting on /EINTR/ errors.
-int ls_poll(struct pollfd *fds, nfds_t nfds, LS_TimeDelta tmo);
+int ls_poll(struct pollfd *fds, size_t nfds, LS_TimeDelta tmo);
 
 // Poll a single fd for /POLLIN/ events.
 LS_INHEADER int ls_wait_input_on_fd(int fd, LS_TimeDelta tmo)
