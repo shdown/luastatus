@@ -58,8 +58,6 @@ static __thread char errbuf[512];
 #   error "Unsupported feature test macros."
 #endif
 
-static __thread char errbuf[512];
-
 static const char *my_strerror(int errnum)
 {
     // We introduce an /int/ variable in order to get a compilation warning if /strerror_r()/ is
