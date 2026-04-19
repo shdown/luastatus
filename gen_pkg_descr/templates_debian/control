@@ -1,0 +1,14 @@
+Source: luastatus
+Section: misc
+Priority: optional
+Maintainer: Viktor Krapivensky <shdownnine@gmail.com>
+Standards-Version: 4.5.0
+Build-Depends:
+###{__build_deps__}###
+ cmake (>= 3.1.3),
+ debhelper (>= 10),
+ valgrind,
+ pkg-config,
+ python3-docutils
+Homepage: https://github.com/shdown/luastatus
+Rules-Requires-Root: no

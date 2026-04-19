@@ -4,26 +4,28 @@ Priority: optional
 Maintainer: Viktor Krapivensky <shdownnine@gmail.com>
 Standards-Version: 4.5.0
 Build-Depends:
+ libasound2-dev,
+ libcjson-dev,
+ libcurl4-openssl-dev,
+ libgio-2.0-dev,
+ libglib2.0-dev,
+ libluajit-5.1-dev,
+ libnl-3-dev,
+ libnl-genl-3-dev,
+ libpulse-dev,
+ libudev-dev,
+ libx11-dev,
+ libxcb-ewmh-dev,
+ libxcb-icccm4-dev,
+ libxcb-util-dev,
+ libxcb1-dev,
+ libyajl-dev,
+ linux-libc-dev,
  cmake (>= 3.1.3),
  debhelper (>= 10),
  valgrind,
- jq,
- liblua5.3-dev,
  pkg-config,
- python3-docutils,
- libyajl-dev,
- libasound2-dev,
- libglib2.0-dev,
- libpulse-dev,
- libudev-dev,
- linux-libc-dev,
- libnl-3-dev,
- libnl-genl-3-dev,
- libx11-dev,
- libxcb1-dev,
- libxcb-ewmh-dev,
- libxcb-icccm4-dev,
- libxcb-util0-dev
+ python3-docutils
 Homepage: https://github.com/shdown/luastatus
 Rules-Requires-Root: no
 
@@ -34,41 +36,43 @@ Recommends:
 Suggests:
 Description: Universal status bar content generator
  luastatus is a universal status bar content generator.  It allows the user to
- configure the way the data from event sources is processed and shown, with
- Lua.  Its main feature is that the content can be updated immediately as some
- event occurs.
+ configure the way the data from event sources is processed and shown, with Lua.
+ Its main feature is that the content can be updated immediately as some event
+ occurs.
  .
- This package contains the main binary and the following plugins: timer, fs,
- inotify, udev, backlight-linux, battery-linux, cpu-usage-linux,
- file-contents-linux, mem-usage-linux, pipe.
-
-Package: luastatus-barlib-i3
-Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, luastatus
-Recommends:
-Suggests: i3-wm
-Description: i3 barlib for luastatus
- This package contains the i3 barlib for luastatus.  This barlib talks to i3bar
- (part of the i3 window manager), or any other program compatible with it on
- the protocol level.  This package also provides luastatus-i3-wrapper script.
- .
- For more information, see "man 7 luastatus-barlib-i3".
+ This package contains the main binary and the following plugins:
+ backlight-linux, battery-linux, cpu-freq-linux, cpu-usage-linux, dbus,
+ disk-io-linux, file-contents-linux, fs, inotify, is-program-running,
+ mem-usage-linux, mpd, mpris, multiplex, network-linux, network-rate-linux,
+ pipev2, temperature-linux, timer, udev, unixsock.
 
 Package: luastatus-barlib-dwm
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, luastatus
+Depends: ${shlibs:Depends}, ${misc:Depends}
 Recommends:
 Suggests: dwm
 Description: dwm barlib for luastatus
- This package contains the dwm barlib for luastatus.  It updates the name of
- the root window.  Although named dwm, it can really work with any program that
+ This package contains the dwm barlib for luastatus.  It updates the name of the
+ root window.  Although named dwm, it can really work with any program that
  outputs the root window name somewhere.
  .
  For more information, see "man 7 luastatus-barlib-dwm".
 
+Package: luastatus-barlib-i3
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Recommends:
+Suggests: i3-wm
+Description: i3 barlib for luastatus
+ This package contains the i3 barlib for luastatus.  This barlib talks to i3bar
+ (part of the i3 window manager), or any other program compatible with it on the
+ protocol level.  This package also provides luastatus-i3-wrapper script.
+ .
+ For more information, see "man 7 luastatus-barlib-i3".
+
 Package: luastatus-barlib-lemonbar
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, luastatus
+Depends:
 Recommends:
 Suggests: lemonbar
 Description: lemonbar barlib for luastatus
@@ -79,9 +83,9 @@ Description: lemonbar barlib for luastatus
 
 Package: luastatus-barlib-stdout
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, luastatus
+Depends:
 Recommends:
-Suggests: dzen2 | xmobar | yabar | dvtm
+Suggests: dzen2 | xmobar | dvtm
 Description: stdout barlib for luastatus
  This is stdout barlib for luastatus.  It simply outputs lines to given file
  descriptor.  It can be used with, for example, dzen2, xmobar, yabar, dvtm.
@@ -91,93 +95,78 @@ Description: stdout barlib for luastatus
 
 Package: luastatus-plugin-alsa
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, luastatus
+Depends: ${shlibs:Depends}, ${misc:Depends}
 Recommends:
 Suggests:
 Description: ALSA plugin for luastatus
- This package contains the ALSA plugin for luastatus.  It  monitors volume and
+ This package contains the ALSA plugin for luastatus.  It monitors volume and
  mute state of an ALSA channel.
  .
  For more information, see "man 7 luastatus-plugin-alsa".
 
-Package: luastatus-plugin-dbus
-Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, luastatus
+Package: luastatus-plugin-imap
+Architecture: all
+Depends: lua5.1-socket, lua5.1-sec
 Recommends:
 Suggests:
-Description: D-Bus plugin for luastatus
- This package contains the D-Bus plugin for luastatus.  It subscribes to and
- reports D-Bus signals.
+Description: IMAP (email) plugin for luastatus
+ This package contains the IMAP plugin for luastatus.  monitors the number of
+ unread mails in an IMAP (email) mailbox.
  .
- For more information, see "man 7 luastatus-plugin-dbus".
-
-Package: luastatus-plugin-mpd
-Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, luastatus
-Recommends:
-Suggests: mpd
-Description: MPD plugin for luastatus
- This package contains the MPD plugin for luastatus.  It monitors the state of
- an MPD server.
- .
- For more information, see "man 7 luastatus-plugin-mpd".
-
-Package: luastatus-plugin-network-linux
-Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, luastatus
-Recommends:
-Suggests:
-Description: network-linux plugin for luastatus
- This package contains the network-linux plugin for luastatus.  It monitors
- network routing and link updates, and can report IP addresses used for
- outgoing connections by various network interfaces, information about a
- wireless connection, and speed of an ethernet connection.
- .
- For more information, see "man 7 luastatus-plugin-network-linux".
+ For more information, see "man 7 luastatus-plugin-imap".
 
 Package: luastatus-plugin-pulse
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, luastatus
+Depends: ${shlibs:Depends}, ${misc:Depends}
 Recommends:
 Suggests: pulseaudio
 Description: PulseAudio plugin for luastatus
- This package contains the PulseAudio plugin for luastatus.  It monitors the
- volume and mute status of a PulseAudio sink.
+ This package contains the PulseAudio plugin for luastatus.  It monitors volume,
+ mute state and other parameters.
  .
  For more information, see "man 7 luastatus-plugin-pulse".
 
+Package: luastatus-plugin-systemd-unit
+Architecture: any
+Depends: systemd
+Recommends:
+Suggests:
+Description: systemd unit state monitoring plugin for luastatus
+ This package contains the "systemd-unit" plugin for luastatus.  It monitors the
+ state of a systemd unit.
+ .
+ For more information, see "man 7 luastatus-plugin-systemd-unit".
+
+Package: luastatus-plugin-web
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Recommends:
+Suggests:
+Description: Web (HTTP/HTTPS) plugin for luastatus
+ This package contains the "web" plugin for luastatus.  It can make HTTP/HTTPS
+ requests, encode/decode JSON and URL-encoding.
+ .
+ For more information, see "man 7 luastatus-plugin-web".
+
 Package: luastatus-plugin-xkb
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, luastatus
+Depends: ${shlibs:Depends}, ${misc:Depends}
 Recommends:
 Suggests:
 Description: XKB plugin for luastatus
- This package contains the XKB plugin for luastatus.  It monitors the current
- keyboard layout, and, optionally, the state of LED indicators, such as
- Caps Lock and Num Lock.
+ This package contains the XKB plugin for luastatus.  It monitors current
+ keyboard layout, and, optionally, the state of LED indicators (such as "Caps
+ Lock" and "Num Lock").
  .
  For more information, see "man 7 luastatus-plugin-xkb".
 
 Package: luastatus-plugin-xtitle
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, luastatus
+Depends: ${shlibs:Depends}, ${misc:Depends}
 Recommends:
 Suggests:
 Description: xtitle plugin for luastatus
- This package conntains the xtitle plugin for luastatus.  It monitors the
- active window title.
+ This package contains the xtitle plugin for luastatus.  It monitors the title,
+ class and instance of the active window.
  .
  For more information, see "man 7 luastatus-plugin-xtitle".
-
-Package: luastatus-plugin-imap
-Architecture: all
-Depends: ${misc:Depends}, luastatus,
- lua5.3-socket,
- lua5.3-sec
-Recommends:
-Suggests:
-Description: IMAP plugin for luastatus
- This package contains the IMAP plugin for luastatus.  It monitors the number
- of unread mails in an IMAP mailbox.
- .
- For more information, see "man 7 luastatus-plugin-imap".
