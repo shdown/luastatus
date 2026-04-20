@@ -28,14 +28,14 @@ local IMAP_TIMEOUT_ERROR = {}
 
 local IMAP = {}
 
-local function safely_wrap_ssl(conn)
+local function safely_wrap_ssl(conn, ssl_params)
     local new_conn
     local conn_to_close = conn
 
     local is_ok, err = pcall(function()
-        new_conn = assert(ssl.wrap(conn, {
+        new_conn = assert(ssl.wrap(conn, ssl_params or {
             mode = 'client',
-            protocol = 'tlsv1',
+            protocol = 'any',
             cafile = '/etc/ssl/certs/ca-certificates.crt',
             verify = 'peer',
             options = 'all',
@@ -57,7 +57,7 @@ function IMAP:open(host, port, params)
     conn:connect(host, port)
     conn:settimeout(params.handshake_timeout)
     if params.use_ssl then
-        conn = safely_wrap_ssl(conn)
+        conn = safely_wrap_ssl(conn, params.ssl_params)
     end
     conn:settimeout(params.timeout)
     self.__index = self
@@ -131,6 +131,7 @@ function P.widget(tbl)
             timeout = tbl.timeout,
             handshake_timeout = tbl.handshake_timeout,
             verbose = tbl.verbose,
+            ssl_params = tbl.ssl_params,
         })
 
         assert(mbox:command(string.format('LOGIN %s %s', tbl.login, tbl.password)))

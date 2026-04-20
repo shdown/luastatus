@@ -49,9 +49,15 @@ Functions
 
   **(optional)**
 
-- ``use_ssl``: boolean
+  - ``use_ssl``: boolean
 
     Whether to use SSL (you probably should set it to ``true``). Defaults to false.
+
+  - ``ssl_params``: table
+
+    Parameters to pass to LuaSec's ``ssl.wrap`` function as the second
+    argument, instead of the default defined in the plugin. Must include ``mode="client"``.
+    See LuaSec's documentation for ``ssl.wrap`` function for more information.
 
   - ``verbose``: boolean
 
