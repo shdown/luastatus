@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef wrongly_h_
-#define wrongly_h_
+#pragma once
 
 #include <X11/Xlib.h>
 #include <stdbool.h>
@@ -36,5 +35,3 @@ typedef struct {
 bool wrongly_fetch(Display *dpy, WronglyResult *out);
 
 void wrongly_parse_layout(const char *layout, LS_StringArray *out);
-
-#endif

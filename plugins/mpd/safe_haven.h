@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef safe_haven_h_
-#define safe_haven_h_
+#pragma once
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -39,5 +38,3 @@ void write_quoted(FILE *f, SAFEV v);
 
 // If /line/ is of form "key: value", appends /key/ and /value/ to /sa/.
 void append_line_to_kv_strarr(LS_StringArray *sa, SAFEV line);
-
-#endif

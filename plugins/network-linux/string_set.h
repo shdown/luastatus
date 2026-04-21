@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef string_set_h_
-#define string_set_h_
+#pragma once
 
 #include <stdlib.h>
 #include <stdbool.h>
@@ -41,5 +40,3 @@ void string_set_freeze(StringSet *s);
 bool string_set_contains(StringSet s, const char *val);
 
 void string_set_destroy(StringSet s);
-
-#endif

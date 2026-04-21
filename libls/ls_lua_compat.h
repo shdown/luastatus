@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ls_lua_compat_h_
-#define ls_lua_compat_h_
+#pragma once
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -72,5 +71,3 @@ LS_INHEADER int ls_lua_num_prealloc(size_t n)
 {
     return n < (size_t) INT_MAX ? (int) n : INT_MAX;
 }
-
-#endif

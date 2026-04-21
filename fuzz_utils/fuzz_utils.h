@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef luastatus_fuzz_utils_h_
-#define luastatus_fuzz_utils_h_
+#pragma once
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -121,5 +120,3 @@ FUZZ_UTILS_INHEADER void fuzz_utils_used(const char *ptr, size_t len)
         : "memory"
     );
 }
-
-#endif

@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef luastatus_include_common_h_
-#define luastatus_include_common_h_
+#pragma once
 
 enum {
     LUASTATUS_OK,
@@ -37,5 +36,3 @@ enum {
 
     LUASTATUS_LOG_LAST,
 };
-
-#endif

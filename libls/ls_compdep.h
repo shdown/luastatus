@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ls_compdep_h_
-#define ls_compdep_h_
+#pragma once
 
 // ------------------------------------------------------------
 // GCC version (set by clang to some very old version)
@@ -66,5 +65,3 @@
 // LS_INHEADER
 // ------------------------------------------------------------
 #define LS_INHEADER static inline LS_ATTR_UNUSED
-
-#endif

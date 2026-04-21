@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ls_osdep_h_
-#define ls_osdep_h_
+#pragma once
 
 // We can't define /_GNU_SOURCE/ here, nor can we include "probes.generated.h", as
 // it may be located outside of the source tree: /libls/ is built with /libls/'s
@@ -33,5 +32,3 @@ int ls_cloexec_pipe(int pipefd[2]);
 // descriptor is make close-on-exec. If the latter fails, the pipe is destroyed, /-1/ is reurned and
 // /errno/ is set.
 int ls_cloexec_socket(int domain, int type, int protocol);
-
-#endif

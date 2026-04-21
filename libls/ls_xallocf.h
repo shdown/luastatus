@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ls_xallocf_h_
-#define ls_xallocf_h_
+#pragma once
 
 #include <stdarg.h>
 #include "ls_compdep.h"
@@ -39,5 +38,3 @@ char *ls_xallocf(const char *fmt, ...)
     va_end(vl);
     return r;
 }
-
-#endif

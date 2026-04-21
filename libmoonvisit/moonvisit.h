@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef moonvisit_h_
-#define moonvisit_h_
+#pragma once
 
 #include <lua.h>
 #include <stddef.h>
@@ -162,5 +161,3 @@ int moon_visit_scrutinize_str(
     const char **out,
     size_t *out_len,
     bool nil_ok);
-
-#endif

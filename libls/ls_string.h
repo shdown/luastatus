@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ls_string_h_
-#define ls_string_h_
+#pragma once
 
 #include <stdlib.h>
 #include <stdarg.h>
@@ -194,5 +193,3 @@ LS_INHEADER void ls_string_free(LS_String x)
 {
     free(x.data);
 }
-
-#endif

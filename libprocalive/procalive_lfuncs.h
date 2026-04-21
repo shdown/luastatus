@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef libprocalive_procalive_lfuncs_h_
-#define libprocalive_procalive_lfuncs_h_
+#pragma once
 
 #include <lua.h>
 
@@ -64,5 +63,3 @@ int procalive_lfunc_is_process_alive(lua_State *L);
 
 // Registers all functions described above into a table on the top of /L/'s stack.
 void procalive_lfuncs_register_all(lua_State *L);
-
-#endif

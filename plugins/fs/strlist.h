@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef strlist_h_
-#define strlist_h_
+#pragma once
 
 #include <stddef.h>
 #include <stdbool.h>
@@ -35,5 +34,3 @@ bool strlist_push(Strlist *x, const char *s);
 bool strlist_remove(Strlist *x, const char *s);
 
 void strlist_destroy(Strlist x);
-
-#endif

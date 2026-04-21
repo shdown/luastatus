@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ls_alloc_utils_h_
-#define ls_alloc_utils_h_
+#pragma once
 
 #include <stddef.h>
 #include <string.h>
@@ -98,5 +97,3 @@ char *ls_xstrdup(const char *s)
 
     return ls_xmemdup(s, strlen(s) + 1);
 }
-
-#endif

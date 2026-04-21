@@ -17,9 +17,6 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef libhackyfix_fatal_h_
-#define libhackyfix_fatal_h_
+#pragma once
 
 void libhackyfix_fatal(const char *msg);
-
-#endif

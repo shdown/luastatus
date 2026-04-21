@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef luastatus_include_barlib_v1_h_
-#define luastatus_include_barlib_v1_h_
+#pragma once
 
 #include <lua.h>
 
@@ -28,5 +27,3 @@
 const int LUASTATUS_BARLIB_LUA_VERSION_NUM = LUA_VERSION_NUM;
 
 extern LuastatusBarlibIface_v1 luastatus_barlib_iface_v1;
-
-#endif

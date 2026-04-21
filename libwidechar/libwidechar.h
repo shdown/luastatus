@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef libwidechar_h_
-#define libwidechar_h_
+#pragma once
 
 #include <stddef.h>
 #include <stdint.h>
@@ -39,5 +38,3 @@ void libwidechar_make_valid_and_printable(
         void *append_ud);
 
 void libwidechar_register_lua_funcs(lua_State *L);
-
-#endif

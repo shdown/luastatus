@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ls_time_utils_h_
-#define ls_time_utils_h_
+#pragma once
 
 #include <errno.h>
 #include <math.h>
@@ -222,5 +221,3 @@ LS_INHEADER void ls_sleep_simple(double seconds)
 {
     ls_sleep(ls_double_to_TD_or_die(seconds));
 }
-
-#endif

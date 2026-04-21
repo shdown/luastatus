@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef priv_h_
-#define priv_h_
+#pragma once
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -44,5 +43,3 @@ typedef struct {
 
     bool noseps;
 } Priv;
-
-#endif

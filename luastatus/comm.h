@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef luastatus_comm_h_
-#define luastatus_comm_h_
+#pragma once
 
 #include <stddef.h>
 
@@ -45,5 +44,3 @@ int comm_cas(
 void comm_destroy(Comm *c);
 
 void comm_global_deinit(void);
-
-#endif

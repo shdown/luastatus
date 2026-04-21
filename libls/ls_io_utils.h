@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ls_io_utils_h_
-#define ls_io_utils_h_
+#pragma once
 
 #include <stddef.h>
 #include <fcntl.h>
@@ -87,5 +86,3 @@ LS_INHEADER int ls_wait_input_on_fd(int fd, LS_TimeDelta tmo)
 
 // Open a FIFO for reading, and check that this is really a FIFO.
 int ls_open_fifo(const char *fifo);
-
-#endif

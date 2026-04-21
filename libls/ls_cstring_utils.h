@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ls_cstring_utils_h_
-#define ls_cstring_utils_h_
+#pragma once
 
 #include <stddef.h>
 #include <string.h>
@@ -40,5 +39,3 @@ LS_INHEADER const char *ls_strfollow(const char *str, const char *prefix)
 // Behaves like the GNU-specific /strerror_r/: either fills /buf/ and returns it, or returns a
 // pointer to a static string.
 const char *ls_strerror_r(int errnum, char *buf, size_t nbuf);
-
-#endif

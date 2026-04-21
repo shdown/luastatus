@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef open_stdio_file_
-#define open_stdio_file_
+#pragma once
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -34,5 +33,3 @@ bool open_output(
         LuastatusBarlibData *bd,
         FILE **dst,
         int fd);
-
-#endif

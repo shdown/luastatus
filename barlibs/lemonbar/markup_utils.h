@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef markup_utils_h_
-#define markup_utils_h_
+#pragma once
 
 #include <stddef.h>
 
@@ -33,5 +32,3 @@ void escape(
 void append_sanitized(LS_String *buf, size_t widget_idx, SAFEV v);
 
 const char *parse_command(const char *line, size_t nline, size_t *ncommand, size_t *widget_idx);
-
-#endif

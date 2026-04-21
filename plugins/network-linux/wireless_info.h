@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef wireless_info_h_
-#define wireless_info_h_
+#pragma once
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -43,5 +42,3 @@ typedef struct {
 } WirelessInfo;
 
 bool get_wireless_info(const char *iface, WirelessInfo *info);
-
-#endif

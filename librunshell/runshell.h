@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef luastatus_runshell_h_
-#define luastatus_runshell_h_
+#pragma once
 
 #include <lua.h>
 
@@ -40,5 +39,3 @@ int runshell(const char *cmd);
 int runshell_l_os_execute(lua_State *L);
 
 int runshell_l_os_execute_lua51ver(lua_State *L);
-
-#endif

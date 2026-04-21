@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef pango_escape_h_
-#define pango_escape_h_
+#pragma once
 
 #include "libsafe/safev.h"
 
@@ -26,5 +25,3 @@ void pango_escape(
     SAFEV v,
     void (*append)(void *ud, SAFEV segment),
     void *ud);
-
-#endif

@@ -17,11 +17,8 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef iface_type_h_
-#define iface_type_h_
+#pragma once
 
 #include <stdbool.h>
 
 bool is_wlan_iface(const char *iface);
-
-#endif

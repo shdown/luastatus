@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef connect_h_
-#define connect_h_
+#pragma once
 
 #include "include/plugin_data_v1.h"
 
@@ -36,5 +35,3 @@ int inetdom_open(
     const char *service,
     const char *bind_addr,
     BindAddrFamily bind_addr_family);
-
-#endif

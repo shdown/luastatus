@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ls_evloop_lfuncs_h_
-#define ls_evloop_lfuncs_h_
+#pragma once
 
 #include <stddef.h>
 #include <math.h>
@@ -170,5 +169,3 @@ LS_INHEADER void ls_self_pipe_push_luafunc(int fds[2], lua_State *L)
     lua_pushlightuserdata(L, fds);
     lua_pushcclosure(L, ls_self_pipe_lfunc, 1);
 }
-
-#endif

@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ls_parse_int_h_
-#define ls_parse_int_h_
+#pragma once
 
 #include <stddef.h>
 #include <string.h>
@@ -50,5 +49,3 @@ LS_INHEADER int ls_full_strtou(const char *s)
 
     return ls_full_strtou_b(s, strlen(s));
 }
-
-#endif

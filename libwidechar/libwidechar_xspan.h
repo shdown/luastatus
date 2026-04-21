@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef libwidechar_xspan_h_
-#define libwidechar_xspan_h_
+#pragma once
 
 #include <stddef.h>
 #include <stdbool.h>
@@ -70,5 +69,3 @@ LIBWIDECHAR_INHEADER xspan xspan_skip_processed(xspan x)
         .cur = 0,
     };
 }
-
-#endif

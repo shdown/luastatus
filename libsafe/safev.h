@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef libsafe_safev_h_
-#define libsafe_safev_h_
+#pragma once
 
 #include "safe_common.h"
 #include <stddef.h>
@@ -193,5 +192,3 @@ LIBSAFE_INHEADER int SAFEV_bounded_len(SAFEV v, int bound)
 #define SAFEV_FMT_ARG(V_, MaxLen_) \
     SAFEV_bounded_len((V_), (MaxLen_)), \
     (V_).s__
-
-#endif

@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef libwidechar_compdep_h_
-#define libwidechar_compdep_h_
+#pragma once
 
 #if __GNUC__ >= 2
 #   define LIBWIDECHAR_UNUSED __attribute__((unused))
@@ -27,5 +26,3 @@
 #endif
 
 #define LIBWIDECHAR_INHEADER static inline LIBWIDECHAR_UNUSED
-
-#endif

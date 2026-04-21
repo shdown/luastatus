@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef inotify_compat_h_
-#define inotify_compat_h_
+#pragma once
 
 #include <stdbool.h>
 #include <sys/inotify.h>
@@ -48,5 +47,3 @@ LS_INHEADER int compat_inotify_init(bool nonblock, bool cloexec)
     return fd;
 #endif
 }
-
-#endif

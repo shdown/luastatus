@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef luastatus_include_plugin_v1_h_
-#define luastatus_include_plugin_v1_h_
+#pragma once
 
 #include <lua.h>
 
@@ -28,5 +27,3 @@
 const int LUASTATUS_PLUGIN_LUA_VERSION_NUM = LUA_VERSION_NUM;
 
 extern LuastatusPluginIface_v1 luastatus_plugin_iface_v1;
-
-#endif

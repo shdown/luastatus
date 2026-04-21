@@ -1,6 +1,3 @@
-#ifndef luastatus_plugin_unixsock_probes_h_
-#define luastatus_plugin_unixsock_probes_h_
+#pragma once
 
 #cmakedefine01 HAVE_GNU_ACCEPT4
-
-#endif

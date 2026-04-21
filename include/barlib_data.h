@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef luastatus_include_barlib_data_h_
-#define luastatus_include_barlib_data_h_
+#pragma once
 
 #include <lua.h>
 #include <stddef.h>
@@ -156,5 +155,3 @@ typedef struct {
     // This function must destroy a previously successfully initialized barlib.
     void (*destroy)(LuastatusBarlibData_v1 *bd);
 } LuastatusBarlibIface_v1;
-
-#endif

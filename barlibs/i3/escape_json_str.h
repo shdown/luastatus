@@ -17,13 +17,10 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef escape_json_str_h_
-#define escape_json_str_h_
+#pragma once
 
 #include "libls/ls_string.h"
 #include "libsafe/safev.h"
 
 // Append to /dst/ JSON-escaped C string /v/.
 void append_json_escaped_str(LS_String *dst, SAFEV v);
-
-#endif

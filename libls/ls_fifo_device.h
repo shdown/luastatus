@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ls_fifo_device_h_
-#define ls_fifo_device_h_
+#pragma once
 
 #include <unistd.h>
 #include "ls_compdep.h"
@@ -90,5 +89,3 @@ LS_INHEADER void ls_fifo_device_reset(LS_FifoDevice *dev)
     ls_fifo_device_close(dev);
     *dev = ls_fifo_device_new();
 }
-
-#endif

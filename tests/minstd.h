@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef minstd_h_
-#define minstd_h_
+#pragma once
 
 #include <stdint.h>
 #include <time.h>
@@ -82,5 +81,3 @@ LS_INHEADER uint32_t minstd_prng_next_limit_u32(MINSTD_Prng *P, uint32_t limit)
     LS_ASSERT(limit != 0);
     return minstd_prng_next_u64(P) % limit;
 }
-
-#endif

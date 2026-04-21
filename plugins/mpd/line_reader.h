@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef line_reader_h_
-#define line_reader_h_
+#pragma once
 
 #include <stddef.h>
 #include <stdio.h>
@@ -34,5 +33,3 @@ LineReader line_reader_new(size_t prealloc);
 int line_reader_read_line(LineReader *LR, FILE *f, SAFEV *out);
 
 void line_reader_destroy(LineReader *LR);
-
-#endif

@@ -17,9 +17,6 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef libhackyfix_get_rtld_next_handle_h_
-#define libhackyfix_get_rtld_next_handle_h_
+#pragma once
 
 void *libhackyfix_get_rtld_next_handle(void);
-
-#endif

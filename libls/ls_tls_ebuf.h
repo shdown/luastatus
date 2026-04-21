@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ls_tls_ebuf_h_
-#define ls_tls_ebuf_h_
+#pragma once
 
 #include "ls_compdep.h"
 #include "ls_cstring_utils.h"
@@ -33,5 +32,3 @@ LS_INHEADER const char *ls_tls_strerror(int errnum)
 {
     return ls_strerror_r(errnum, ls_tls_ebuf(), LS_TLS_EBUF_N);
 }
-
-#endif

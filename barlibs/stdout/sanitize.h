@@ -17,12 +17,9 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef sanitize_h_
-#define sanitize_h_
+#pragma once
 
 #include "libls/ls_string.h"
 #include "libsafe/safev.h"
 
 void append_sanitized(LS_String *buf, SAFEV v);
-
-#endif

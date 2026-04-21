@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef libsafe_mut_safev_h_
-#define libsafe_mut_safev_h_
+#pragma once
 
 #include "safe_common.h"
 #include <stddef.h>
@@ -58,5 +57,3 @@ LIBSAFE_INHEADER SAFEV MUT_SAFEV_TO_SAFEV(MUT_SAFEV Mv)
 {
     return SAFEV_new_UNSAFE(Mv.mut_s__, Mv.mut_n__);
 }
-
-#endif

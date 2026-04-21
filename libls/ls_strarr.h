@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ls_strarr_h_
-#define ls_strarr_h_
+#pragma once
 
 #include <stdlib.h>
 #include <string.h>
@@ -109,5 +108,3 @@ LS_INHEADER void ls_strarr_destroy(LS_StringArray sa)
     ls_string_free(sa.buf);
     free(sa.offsets.data);
 }
-
-#endif

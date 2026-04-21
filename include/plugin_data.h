@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef luastatus_include_plugin_data_h_
-#define luastatus_include_plugin_data_h_
+#pragma once
 
 #include <lua.h>
 #include <stddef.h>
@@ -124,5 +123,3 @@ typedef struct {
     // This function should destroy a previously successfully initialized widget.
     void (*destroy)(LuastatusPluginData_v1 *pd);
 } LuastatusPluginIface_v1;
-
-#endif

@@ -17,9 +17,6 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef cloexec_accept_h_
-#define cloexec_accept_h_
+#pragma once
 
 int cloexec_accept(int sockfd);
-
-#endif

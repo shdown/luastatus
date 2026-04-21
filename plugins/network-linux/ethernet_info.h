@@ -17,11 +17,8 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ethernet_info_h_
-#define ethernet_info_h_
+#pragma once
 
 #include <stdint.h>
 
 uint32_t get_ethernet_speed(int sockfd, const char *iface);
-
-#endif

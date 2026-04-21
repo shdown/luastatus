@@ -1,6 +1,3 @@
-#ifndef luastatus_plugin_inotify_probes_h_
-#define luastatus_plugin_inotify_probes_h_
+#pragma once
 
 #cmakedefine01 HAVE_INOTIFY_INIT1
-
-#endif

@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ls_panic_h_
-#define ls_panic_h_
+#pragma once
 
 #include "ls_compdep.h"
 
@@ -77,5 +76,3 @@ LS_ATTR_NORETURN void ls__do_panic_with_errnum_impl__(
 
 // Just use it to tell the compiler some code is unreachable.
 #define LS_MUST_BE_UNREACHABLE() LS_PANIC("LS_MUST_BE_UNREACHABLE()")
-
-#endif

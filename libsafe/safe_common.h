@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef libsafe_safe_common_h_
-#define libsafe_safe_common_h_
+#pragma once
 
 #if __GNUC__ >= 2
 #   define LIBSAFE_ATTR_UNUSED           __attribute__((unused))
@@ -42,5 +41,3 @@ LIBSAFE_ATTR_NORETURN void libsafe_assert_failed__(
             libsafe_assert_failed__(#Expr_, __func__, __FILE__, __LINE__); \
         } \
     } while (0)
-
-#endif

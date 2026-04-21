@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef somehow_h_
-#define somehow_h_
+#pragma once
 
 #include <X11/Xlib.h>
 #include <stdint.h>
@@ -29,5 +28,3 @@
 char *somehow_fetch_symbols(Display *dpy, uint64_t deviceid);
 
 void somehow_parse_symbols(const char *symbols, LS_StringArray *out, const char *bad);
-
-#endif

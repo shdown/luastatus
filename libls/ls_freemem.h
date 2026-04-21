@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ls_freemem_h_
-#define ls_freemem_h_
+#pragma once
 
 #include <stddef.h>
 #include "ls_alloc_utils.h"
@@ -46,5 +45,3 @@ void *ls_freemem(void *data, size_t *psize, size_t *pcapacity, size_t elemsz)
         (SizePtr_),     \
         (CapacityPtr_), \
         sizeof(*(Data_))))
-
-#endif

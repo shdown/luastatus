@@ -17,8 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef server_h_
-#define server_h_
+#pragma once
 
 #include <stddef.h>
 #include <stdbool.h>
@@ -64,5 +63,3 @@ int server_accept_new_client(Server *S);
 void server_compact(Server *S);
 
 void server_destroy(Server *S);
-
-#endif
