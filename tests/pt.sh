@@ -32,7 +32,6 @@ valgrind)
     ;;
 helgrind)
     PT_PREFIX=( valgrind --tool=helgrind -q --exit-on-first-error=yes --error-exitcode=42 )
-    PT_PREFIX+=( --suppressions="$PT_BUILD_DIR/tests/glib.supp" )
     ;;
 kcov)
     PT_PREFIX=( ./kcov_wrapper kcov "${PT_KCOV_DIR?}" )
