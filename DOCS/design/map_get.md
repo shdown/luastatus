@@ -14,3 +14,6 @@ luastatus maintains a global mapping from zero-terminated strings to pointers (`
 You can read and/or write from/to this pointer-to-pointer; it is guaranteed to be persistent across other calls to `map_get` and other functions.
 
 Its intended use is for synchronization.
+
+For plugins that spawn nested widgets, the initialization of nested widgets must happen only under the mutex located
+in the struct behind the ``"plugin-init-mtx"`` value of the map; see `plugins/multiplex/map_ref.c` for an example.
