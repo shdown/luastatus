@@ -10,7 +10,7 @@ workflows:
 jobs:
   subetedesu:
     docker:
-      - image: cimg/base:2021.01-20.04
+      - image: cimg/base:2024.12
     parameters:
       luaver:
         type: string
