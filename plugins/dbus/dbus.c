@@ -90,6 +90,7 @@ typedef struct {
     double tmo;
     bool greet;
     bool report_when_ready;
+    bool no_interactive_funcs;
     Zoo *zoo;
 } Priv;
 
@@ -200,6 +201,7 @@ static int init(LuastatusPluginData *pd, lua_State *L)
         .tmo = -1,
         .greet = false,
         .report_when_ready = false,
+        .no_interactive_funcs = false,
         .zoo = zoo_new(),
     };
     char errbuf[256];
@@ -211,6 +213,10 @@ static int init(LuastatusPluginData *pd, lua_State *L)
 
     // Parse report_when_ready
     if (moon_visit_bool(&mv, -1, "report_when_ready", &p->report_when_ready, true) < 0)
+        goto mverror;
+
+    // Parse no_interactive_funcs
+    if (moon_visit_bool(&mv, -1, "_no_interactive_funcs", &p->no_interactive_funcs, true) < 0)
         goto mverror;
 
     // Parse timeout
@@ -234,9 +240,10 @@ static void register_funcs(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv;
 
-    zoo_register_funcs(p->zoo, L);
-
-    (void) load_lualib(pd, L);
+    if (!p->no_interactive_funcs) {
+        zoo_register_funcs(p->zoo, L);
+        (void) load_lualib(pd, L);
+    }
 }
 
 typedef struct {
