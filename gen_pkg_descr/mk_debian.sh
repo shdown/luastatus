@@ -52,3 +52,4 @@ gen_rules() {
 gen_control > "$dst_dir"/control
 
 gen_rules > "$dst_dir"/rules
+chmod +x -- "$dst_dir"/rules
