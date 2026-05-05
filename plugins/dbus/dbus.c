@@ -216,7 +216,7 @@ static int init(LuastatusPluginData *pd, lua_State *L)
         goto mverror;
 
     // Parse no_interactive_funcs
-    if (moon_visit_bool(&mv, -1, "_no_interactive_funcs", &p->no_interactive_funcs, true) < 0)
+    if (moon_visit_bool(&mv, -1, "no_interactive_funcs", &p->no_interactive_funcs, true) < 0)
         goto mverror;
 
     // Parse timeout
