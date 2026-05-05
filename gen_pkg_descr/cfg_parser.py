@@ -41,7 +41,7 @@ def _is_valid_token(s):
 def _parse_bool(s):
     if s == 'true':
         return True
-    if s == 'False':
+    if s == 'false':
         return False
     raise _ConfigError(f'invalid boolean value "{s}"')
 
