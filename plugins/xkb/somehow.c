@@ -34,20 +34,26 @@ char *somehow_fetch_symbols(Display *dpy, uint64_t deviceid)
     char *ret = NULL;
 
     XkbDescRec *k = XkbAllocKeyboard();
-    if (!k)
+    if (!k) {
         goto done;
+    }
 
     k->dpy = dpy;
-    if (deviceid != XkbUseCoreKbd)
+    if (deviceid != XkbUseCoreKbd) {
         k->device_spec = deviceid;
+    }
 
-    XkbGetNames(dpy, XkbSymbolsNameMask, k);
-    if (!k->names)
+    if (XkbGetNames(dpy, XkbSymbolsNameMask, k) != Success) {
         goto done;
+    }
+    if (!k->names) {
+        goto done;
+    }
 
     Atom a = k->names->symbols;
-    if (a == None)
+    if (a == None) {
         goto done;
+    }
 
     char *s = XGetAtomName(dpy, a);
     if (s) {
@@ -57,8 +63,7 @@ char *somehow_fetch_symbols(Display *dpy, uint64_t deviceid)
 
 done:
     if (k) {
-        XkbFreeNames(k, XkbSymbolsNameMask, True);
-        XFree(k);
+        XkbFreeKeyboard(k, 0, True);
     }
     return ret;
 }
