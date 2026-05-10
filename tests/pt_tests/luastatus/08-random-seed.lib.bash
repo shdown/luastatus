@@ -26,6 +26,8 @@ local function seq_eq(xs, ys)
 end
 
 function test_seed(f)
+    -- p(fail) < 3.1e-24
+
     local N = 4
 
     math.randomseed(2)

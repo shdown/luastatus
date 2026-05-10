@@ -116,6 +116,21 @@ test_int_gen(123, 12345, function()
     return 123 + math.floor(r * (12345 - 123 + 1))
 end)
 
+function test_range()
+    -- p(fail) < 1e-10000
+
+    local M = 3
+    local seen = {}
+    for i = 1, 64*1024 do
+        local x = math.random(1, M)
+        seen[x] = true
+    end
+    for i = 1, M do
+        assert(seen[i])
+    end
+end
+test_range()
+
 f:write('ok\n')
 __EOF__
 
