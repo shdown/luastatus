@@ -194,9 +194,9 @@ def main() -> None:
 
     if not (g.has_choices_for_key('A') and g.has_choices_for_key('B')):
         if not g.has_choices_for_key('A'):
-            print('Ether "--a" or "--a-range" must be specified.', file=sys.stderr)
+            print('Either "--a" or "--a-range" must be specified.', file=sys.stderr)
         else:
-            print('Ether "--b" or "--b-range" must be specified.', file=sys.stderr)
+            print('Either "--b" or "--b-range" must be specified.', file=sys.stderr)
         ap.print_help(sys.stderr)
         sys.exit(2)
 

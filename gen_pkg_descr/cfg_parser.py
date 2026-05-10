@@ -76,7 +76,7 @@ def _parse_dependency(v):
         return _parse_dependency_normal(v)
 
 
-def _parse_decription(s):
+def _parse_description(s):
     db = models.DescriptionBuilder()
 
     for line in s.split('\n'):
@@ -135,7 +135,7 @@ class _PackageListBuilder:
         elif k == 'depends':
             pkg.add_dependency(_parse_dependency(v))
         elif k == 'description':
-            pkg.set_description(_parse_decription(v))
+            pkg.set_description(_parse_description(v))
         else:
             raise _ConfigError(f'trying set unknown property "{k}"')
 
