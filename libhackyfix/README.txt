@@ -31,6 +31,10 @@ Examples of usage of non-thread-safe (according to POSIX-2008) functions:
   * system(): only used in implementation of os.execute().
     - we replace this Lua function in luastatus.
 
+  * rand() and srand(): only used in implementation of math.random() and
+      math.randomseed(), and only in Lua 5.1, 5.2 and 5.3.
+    - we replace this Lua function in luastatus.
+
   * dlerror(): used internally!
 
   * getenv(): used internally! And also in implementation of os.getenv().

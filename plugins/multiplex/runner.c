@@ -40,6 +40,7 @@
 
 #include "librunshell/runshell.h"
 #include "libwidechar/libwidechar.h"
+#include "liblrand/liblrand.h"
 
 #include "external_context.h"
 
@@ -353,6 +354,9 @@ static int l_require_plugin(lua_State *L)
 
 static void inject_libs_replacements(lua_State *L)
 {
+    // L: ?
+    liblrand_inject(L); // L: ?
+
     lua_getglobal(L, "os"); // L: ? os
 
     lua_pushcfunction(L, l_os_exit); // L: ? os l_os_exit

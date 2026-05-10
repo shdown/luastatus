@@ -44,6 +44,7 @@
 
 #include "libwidechar/libwidechar.h"
 #include "librunshell/runshell.h"
+#include "liblrand/liblrand.h"
 
 #include "config.generated.h"
 #include "comm.h"
@@ -274,7 +275,11 @@ static void external_sayf(void *userdata, int level, const char *fmt, ...)
     if (userdata) {
         Widget *w = userdata;
         char who[1024];
-        snprintf(who, sizeof(who), "%s@%s", w->plugin.name, w->filename);
+        if (snprintf(who, sizeof(who), "%s@%s", w->plugin.name, w->filename) < 0) {
+            // Extremely unlikely and probably impossible, but it may fail with EOVERFLOW: number of
+            // bytes in result would overflow int. Let's handle this anyway.
+            who[0] = '\0';
+        }
         common_vsayf(level, who, fmt, vl);
     } else {
         common_vsayf(level, "barlib", fmt, vl);
@@ -633,6 +638,9 @@ static int l_communicate(lua_State *L)
 
 static void inject_libs_replacements(lua_State *L)
 {
+    // L: ?
+    liblrand_inject(L); // L: ?
+
     lua_getglobal(L, "os"); // L: ? os
 
     lua_pushcfunction(L, l_os_exit); // L: ? os l_os_exit

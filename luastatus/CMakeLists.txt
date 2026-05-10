@@ -12,6 +12,7 @@ add_executable (
     $<TARGET_OBJECTS:hackyfix>
     $<TARGET_OBJECTS:runshell>
     $<TARGET_OBJECTS:widechar>
+    $<TARGET_OBJECTS:lrand>
 
     # Required by libwidechar
     $<TARGET_OBJECTS:safe>
