@@ -125,22 +125,22 @@ static int l_math_random(lua_State *L)
     int nargs = lua_gettop(L);
     if (nargs == 0) {
         lua_pushnumber(L, r);
-        return;
+        return 1;
     } else if (nargs == 1) {
         // only upper limit
         l = 1;
-        u = luaL_checknumber(L, 1);
+        u = luaL_checkinteger(L, 1);
     } else if (nargs == 2) {
         // lower and upper limits
-        l = luaL_checknumber(L, 1);
-        u = luaL_checknumber(L, 2);
+        l = luaL_checkinteger(L, 1);
+        u = luaL_checkinteger(L, 2);
     } else {
         return luaL_error(L, "wrong number of arguments");
     }
 
     luaL_argcheck(L, l <= u, 1, "interval is empty");
     luaL_argcheck(L, l >= 0 || u <= LUA_MAXINTEGER + l, 1, "interval too large");
-    r *= (double)(u - l) + 1.0;
+    r *= ((double) (u - l)) + 1.0;
     lua_pushinteger(L, ((lua_Integer) r) + l);
 
     return 1;
