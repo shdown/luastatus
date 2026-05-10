@@ -217,3 +217,7 @@ which bombard luastatus with a lot of events from a plugin and a barlib simultan
 We tried to use additional compiler warnings, `-fanalyzer`, and external linters/static analyzers, but
 these tools only gave false positives, except for PVS-Studio, which found one actual bug, but with a lot of false positives.
 So we don't use any of these on a regular basis.
+
+We do use various AI tools for analysis, though (but not for code generation).
+This has proven to have much better signal-to-noise ratio than the traditional static analysis tools.
+This is currently done manually.
