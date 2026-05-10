@@ -1,5 +1,9 @@
 # Regression test for https://github.com/shdown/luastatus/issues/63.
 
+if ! pt_cmake_opt_enabled BUILD_PLUGIN_MPD; then
+    return 0
+fi
+
 pt_testcase_begin
 for (( i = 0; i < 8; ++i )); do
     pt_write_widget_file <<__EOF__
