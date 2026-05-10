@@ -461,6 +461,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         LS_ERRF(pd, "read error: %s", ls_tls_strerror(errno));
     }
 
+    free(buf);
     fclose(f);
 
     do_wait(pd);
