@@ -19,11 +19,11 @@ import re
 import models
 
 
-class _ConfigError(BaseException):
+class _ConfigError(Exception):
     pass
 
 
-class ParserError(BaseException):
+class ParserError(Exception):
     def __init__(self, msg, file_path, line_num):
         super().__init__(msg)
         self.file_path = file_path
