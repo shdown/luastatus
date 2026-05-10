@@ -60,6 +60,7 @@ static bool check_is_luajit(lua_State *L)
     return is_luajit;
 }
 
+#if LUA_VERSION_NUM == 501
 static int l_math_random(lua_State *L)
 {
     PRNG *prng = lua_touserdata(L, lua_upvalueindex(1));
@@ -85,6 +86,68 @@ static int l_math_random(lua_State *L)
     }
     return 1;
 }
+#elif LUA_VERSION_NUM == 502
+static int l_math_random(lua_State *L)
+{
+    PRNG *prng = lua_touserdata(L, lua_upvalueindex(1));
+
+    lua_Number r = ((lua_Number) prng_next(prng)) / (((uint32_t) PRNG_MAX) + 1);
+
+    int nargs = lua_gettop(L);
+    if (nargs == 0) {
+        lua_pushnumber(L, r);
+    } else if (nargs == 1) {
+        // only upper limit
+        lua_Number u = luaL_checknumber(L, 1);
+        luaL_argcheck(L, ((lua_Number) 1.0) <= u, 1, "interval is empty");
+        lua_pushnumber(L, floor(r * u) + (lua_Number) 1.0);
+    } else if (nargs == 2) {
+        // lower and upper limits
+        lua_Number l = luaL_checknumber(L, 1);
+        lua_Number u = luaL_checknumber(L, 2);
+        luaL_argcheck(L, l <= u, 2, "interval is empty");
+        lua_pushnumber(L, floor(r * (u - l + 1)) + l);
+    } else {
+        return luaL_error(L, "wrong number of arguments");
+    }
+    return 1;
+}
+#elif LUA_VERSION_NUM == 503
+static int l_math_random(lua_State *L)
+{
+    PRNG *prng = lua_touserdata(L, lua_upvalueindex(1));
+
+    double r = ((double) prng_next(prng)) * (1.0 / (((double) PRNG_MAX) + 1.0));
+
+    lua_Integer l;
+    lua_Integer u;
+
+    int nargs = lua_gettop(L);
+    if (nargs == 0) {
+        lua_pushnumber(L, r);
+        return;
+    } else if (nargs == 1) {
+        // only upper limit
+        l = 1;
+        u = luaL_checknumber(L, 1);
+    } else if (nargs == 2) {
+        // lower and upper limits
+        l = luaL_checknumber(L, 1);
+        u = luaL_checknumber(L, 2);
+    } else {
+        return luaL_error(L, "wrong number of arguments");
+    }
+
+    luaL_argcheck(L, l <= u, 1, "interval is empty");
+    luaL_argcheck(L, l >= 0 || u <= LUA_MAXINTEGER + l, 1, "interval too large");
+    r *= (double)(u - l) + 1.0;
+    lua_pushinteger(L, ((lua_Integer) r) + l);
+
+    return 1;
+}
+#else
+# error "Unsupported LUA_VERSION_NUM."
+#endif
 
 static int l_math_randomseed(lua_State *L)
 {
@@ -92,9 +155,6 @@ static int l_math_randomseed(lua_State *L)
 
     int seed = luaL_checkinteger(L, 1);
     prng_init(prng, seed);
-
-    // Warm up.
-    (void) prng_next(prng);
 
     return 0;
 }

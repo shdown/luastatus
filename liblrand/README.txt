@@ -6,7 +6,7 @@ It only does so if it's not LuaJIT and Lua version is less than 5.4:
   * LuaJIT and Lua >=5.4 implement their own lua_State-local PRNGs;
 
   * Lua 5.1/5.2 use rand()/srand() (not thread-safe; using from different
-    threads without coordication leads to undefined behavior on e.g. FreeBSD).
+    threads without coordination leads to undefined behavior on e.g. FreeBSD).
 
   * Lua 5.3 apparently uses random()/srandom() on POSIX systems. This *seems*
     not to invoke undefined behavior directly (POSIX doesn't list these

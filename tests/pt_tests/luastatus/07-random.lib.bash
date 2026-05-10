@@ -6,6 +6,8 @@ f = assert(io.open('$main_fifo_file', 'w'))
 f:setvbuf('line')
 
 function test_fp_gen()
+    -- p(fail) < 10^-205000
+
     local seen = {}
     local num_uniq = 0
 
@@ -23,6 +25,8 @@ end
 test_fp_gen()
 
 function test_int_gen_uniq(lbound, rbound, f)
+    -- p(fail) < 10^-205000
+
     local seen = {}
     local num_uniq = 0
 
@@ -59,7 +63,9 @@ local function seq_shift(xs, new_v)
 end
 
 function test_int_gen_period(lbound, rbound, f)
-    local N = 3
+    -- p(fail) < 3.08e-22
+
+    local N = 6
 
     local xs = {}
     for i = 1, N do
@@ -78,6 +84,8 @@ function test_int_gen_period(lbound, rbound, f)
 end
 
 function test_int_gen_quality(lbound, rbound, f)
+    -- p(fail) < 1e-296
+
     local N = 64*1024
 
     local first_third = lbound + math.floor((rbound - lbound + 1) / 3)
