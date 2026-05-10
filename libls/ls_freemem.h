@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025  luastatus developers
+ * Copyright (C) 2025-2026  luastatus developers
  *
  * This file is part of luastatus.
  *

@@ -57,9 +57,7 @@ static const char *lookupf(Zoo_CallParams *p, const char *key)
             return f->value;
         }
     }
-    char buf[128];
-    snprintf(buf, sizeof(buf), "lookupf: cannot find string field '%s'", key);
-    LS_PANIC(buf);
+    LS_PANIC("lookupf: cannot find string field");
 }
 
 struct Zoo {
