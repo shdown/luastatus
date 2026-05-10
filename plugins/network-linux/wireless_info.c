@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2025  luastatus developers
+ * Copyright (C) 2015-2026  luastatus developers
  *
  * This file is part of luastatus.
  *
@@ -202,7 +202,7 @@ static int gwi_scan_cb(struct nl_msg *msg, void *vud)
             &ssid,
             &ssid_len);
 
-        if (ssid && ssid_len) {
+        if (ssid && ssid_len && ssid_len < 1024 * 64) {
             info->flags |= HAS_ESSID;
             snprintf(info->essid, sizeof(info->essid), "%.*s", (int) ssid_len, ssid);
         }

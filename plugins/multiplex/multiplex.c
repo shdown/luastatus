@@ -19,9 +19,9 @@
 
 #include <stdlib.h>
 #include <stdbool.h>
-#include <pthread.h>
-
 #include <stdio.h>
+#include <string.h>
+#include <pthread.h>
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -69,6 +69,11 @@ static int visit_wspec(MoonVisit *mv, void *ud, int kpos, int vpos)
 
     const char *name = lua_tostring(mv->L, kpos);
     const char *code = lua_tostring(mv->L, vpos);
+
+    if (strlen(name) > 1024 * 1024) {
+        moon_visit_err(mv, "data_sources table: key is too long");
+        return -1;
+    }
 
     wspec_list_add(&p->wspecs, name, code);
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2025  luastatus developers
+ * Copyright (C) 2015-2026  luastatus developers
  *
  * This file is part of luastatus.
  *
@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include <fcntl.h>
 #include "libls/ls_io_utils.h"
 #include "libls/ls_panic.h"
@@ -29,6 +30,10 @@
 bool is_wlan_iface(const char *iface)
 {
     LS_ASSERT(iface != NULL);
+
+    if (strlen(iface) > 200) {
+        return false;
+    }
 
     FILE *f = NULL;
     int fd = -1;
@@ -38,6 +43,7 @@ bool is_wlan_iface(const char *iface)
 
     char path[256];
     snprintf(path, sizeof(path), "/sys/class/net/%s/uevent", iface);
+
     if ((fd = open(path, O_RDONLY | O_CLOEXEC)) < 0) {
         goto done;
     }
