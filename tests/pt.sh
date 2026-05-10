@@ -250,7 +250,10 @@ pt_kill_thing() {
 
 pt_spawn_luastatus() {
     pt_spawn_thing luastatus \
-        "${PT_PREFIX[@]}" "${PT_LUASTATUS[@]}" -b ./barlib-mock.so "$@" "${PT_WIDGET_FILES[@]}"
+        "${PT_PREFIX[@]}" "${PT_LUASTATUS[@]}" \
+        -b "$PT_BUILD_DIR"/tests/barlib-mock.so \
+        "$@" \
+        "${PT_WIDGET_FILES[@]}"
 }
 
 pt_spawn_luastatus_for_barlib_test_via_runner() {
@@ -347,7 +350,7 @@ pt_cmake_opt_enabled() {
     sed_cmd+=':BOOL=(.*)$/\1/p'
 
     local val
-    val=$(cmake -LA "$PT_SOURCE_DIR" | sed -rn "$sed_cmd") \
+    val=$(cmake -LA "$PT_BUILD_DIR" | sed -rn "$sed_cmd") \
         || pt_fail "Cannot extract value of CMake option '$1'"
 
     case "$val" in
