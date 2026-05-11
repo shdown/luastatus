@@ -72,7 +72,7 @@ The following options are supported:
   specified file descriptor will be read from. It is invalid to pass both options;
   in this case, this barlib will fail to initialize.
 
-  This barilib will then read lines from the specified source. Each line will be
+  This barlib will then read lines from the specified source. Each line will be
   treated as an event.
 
   This barlib doesn't try to interpret the content of the line; instead, the event

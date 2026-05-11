@@ -141,11 +141,11 @@ cb argument
 The callback function ``cb`` is called with a table argument. The structure depends on the
 action completed. Note that the ``sleep`` action doesn't call ``cb``.
 
-* For ``request`` actions (HTTP requests has been done, regardless of status):
+* For ``request`` actions (HTTP request has been done, regardless of status):
 
   A table ``{what = "response", status = <integer>, body = <string>, headers = <table (optional)>}``.
 
-* For ``request`` actions (HTTP requests has **not** been done):
+* For ``request`` actions (HTTP request has **not** been done):
 
   A table ``{what = "response", status = 0, body = "", headers = {}, error = <string>}``.
 
