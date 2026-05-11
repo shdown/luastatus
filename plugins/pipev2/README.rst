@@ -33,7 +33,7 @@ The following options are supported:
 
 * ``pipe_stdin``: boolean
 
-  Whether or not to rediect the child process' stdin.
+  Whether or not to redirect the child process' stdin.
   If enabled, the widget will be able to write data into its stdin, thus establishing bidirectional communication.
   Defaults to ``false``.
 

@@ -23,7 +23,7 @@ The following functions are provided:
   the filter.
 
   If specified, ``iface_filter`` must be a function that takes a string (interface name) and
-  return ``true`` if the reader should should report network rates for this interface,
+  return ``true`` if the reader should report network rates for this interface,
   ``false`` or ``nil`` otherwise. If ``iface_filter`` is not specified the reader will report
   network rates for all interfaces.
 
