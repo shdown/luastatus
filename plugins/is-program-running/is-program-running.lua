@@ -87,7 +87,7 @@ function P.widget(tbl)
         watcher_ids = {}
         for _, elem in ipairs(tbl.many) do
             table.insert(watcher_ids, elem.id)
-            table.insert(watchers, P.make_watcher(elem.knid, elem.path))
+            table.insert(watchers, P.make_watcher(elem.kind, elem.path))
         end
     else
         single_watcher = P.make_watcher(tbl.kind, tbl.path)
