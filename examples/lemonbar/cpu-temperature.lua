@@ -28,4 +28,4 @@ local plugin_params = {
     end,
 }
 
-widget = luastatus.require_plugin('cpu-temp-linux').widget(plugin_params, plugin_data)
+widget = luastatus.require_plugin('temperature-linux').widget(plugin_params, plugin_data)
