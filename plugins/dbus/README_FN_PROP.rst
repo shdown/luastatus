@@ -63,7 +63,7 @@ The following functions for getting/setting properties of D-Bus objects are prov
 
   On failure, returns ``false, err_msg, err_code``.
 
-* ``luastatus.plugin.get_all_propertes(params)``
+* ``luastatus.plugin.get_all_properties(params)``
 
   Get all D-Bus properties associated with an interface. ``params`` must be the
   same as to ``get_property``, except that ``property_name`` should not be set.

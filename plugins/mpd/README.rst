@@ -121,7 +121,7 @@ A table with ``what`` entry.
 
     All values are strings.
 
-* It ``what`` is ``"timeout"``, the server hasn't changed its state for the number of seconds
+* If ``what`` is ``"timeout"``, the server hasn't changed its state for the number of seconds
   specified as the ``timeout`` option.
 
 * If ``what`` is ``"error"``, the connection has been lost; the plugin is now going to sleep and try

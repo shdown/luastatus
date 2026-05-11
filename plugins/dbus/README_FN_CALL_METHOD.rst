@@ -64,7 +64,7 @@ The following functions for calling methods of D-Bus objects are provided:
     functions (see **luastatus-plugin-dbus-fn-mkval(7)** for more information).
 
   On success, returns ``true, result``, where ``result`` is the result of
-  the call call, unpacked as described in section `Marshalling`_.
+  the call, unpacked as described in section `Marshalling`_.
 
   On failure, returns ``false, err_msg, err_code``.
 

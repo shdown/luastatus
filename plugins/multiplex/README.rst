@@ -1,9 +1,9 @@
 .. :X-man-page-only: luastatus-plugin-timer
 .. :X-man-page-only: ######################
 .. :X-man-page-only:
-.. :X-man-page-only: ##########################
-.. :X-man-page-only: timer plugin for luastatus
-.. :X-man-page-only: ##########################
+.. :X-man-page-only: ##############################
+.. :X-man-page-only: multiplex plugin for luastatus
+.. :X-man-page-only: ##############################
 .. :X-man-page-only:
 .. :X-man-page-only: :Copyright: LGPLv3
 .. :X-man-page-only: :Manual section: 7
