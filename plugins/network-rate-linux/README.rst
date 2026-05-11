@@ -30,7 +30,7 @@ The following functions are provided:
 * ``reader_read(reader, divisor[, in_array_form])``
 
   Queries network rates using the given reader. ``reader`` must be a reader instance returned
-  by ``reader_make``.
+  by ``reader_new``.
 
   For a given interface, we define a *datum* as a table of form with keys ``"R"`` and ``"S"``;
   the ``"R"``/``"S"`` fields contain the increase in the number of bytes received/sent,
