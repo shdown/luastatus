@@ -17,7 +17,7 @@ Functions
 =========
 The following functions are provided:
 
-* ``reader_make([iface_filter])``
+* ``reader_new([iface_filter])``
 
   Creates a *reader* that can be used to query network rates for network interfaces that match
   the filter.
