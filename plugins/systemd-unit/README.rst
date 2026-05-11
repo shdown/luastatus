@@ -13,6 +13,10 @@ Overview
 
 This derived plugin monitors the state of a systemd unit.
 
+The following states are currently defined by systemd: ``active``, ``reloading``,
+``inactive``, ``failed``, ``activating``, ``deactivating``. For more information, see
+https://www.freedesktop.org/wiki/Software/systemd/dbus/#Unit-ActiveState.
+
 Functions
 =========
 
@@ -47,7 +51,8 @@ The following functions are provided:
 
   - ``cb``: function
 
-    The callback function that will be called with the current unit state as a string.
+    The callback function that will be called with the current unit state as a string
+    (or with ``nil`` if ``no_throw`` is set and the current state cannot be fetched).
 
   **(optional)**
 
