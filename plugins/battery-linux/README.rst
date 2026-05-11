@@ -56,11 +56,11 @@ The following functions are provided:
 
     **(optional)**
 
-    - ``dev``: string
+    + ``dev``: string
 
       Device directory name under ``/sys/class/power_supply``; default is ``"BAT0"``.
 
-    - ``period``: number
+    + ``period``: number
 
       The period in seconds for polling ``sysfs``; default is 2 seconds.
 
@@ -68,12 +68,12 @@ The following functions are provided:
       battery state changes (such as cable (un-)plugging) immediately, irrespective of
       the value of the period.
 
-    - ``use_energy_full_design``: boolean
+    + ``use_energy_full_design``: boolean
 
       If ``true``, the ``energy_full_design`` property (not ``energy_full``) will be used for
       capacity calculation.
 
-    - ``event``
+    + ``event``
 
       The ``event`` entry of the resulting table (see ``luastatus`` documentation for the
       description of ``widget.event`` field).
