@@ -88,7 +88,7 @@ A table with a ``what`` entry.
 * If ``what`` is ``"ready"``, the plugin has subscribed to all the events successfully (only if
   the ``report_when_ready`` option was set to ``true``).
 
-* It ``what`` is ``"timeout"``, a signal has not been received for the number of seconds specified
+* If ``what`` is ``"timeout"``, a signal has not been received for the number of seconds specified
   as the ``timeout`` option.
 
 * If ``what`` is ``"signal"``, a signal has been received. In this case, the table has the
