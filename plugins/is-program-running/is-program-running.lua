@@ -81,8 +81,8 @@ function P.widget(tbl)
     local watchers
     local single_watcher
     if tbl.many then
-        assert(P.kind == nil)
-        assert(P.path == nil)
+        assert(tbl.kind == nil)
+        assert(tbl.path == nil)
         watchers = {}
         watcher_ids = {}
         for _, elem in ipairs(tbl.many) do

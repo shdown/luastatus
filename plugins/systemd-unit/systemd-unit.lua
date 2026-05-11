@@ -119,6 +119,7 @@ function P.widget(tbl)
                 return tbl.cb(P.get_state_by_unit_name(tbl.unit_name))
             end
         end,
+        event = tbl.event,
     }
 end
 
