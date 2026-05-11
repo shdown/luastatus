@@ -1,5 +1,5 @@
-.. :X-man-page-only: luastatus-plugin-timer
-.. :X-man-page-only: ######################
+.. :X-man-page-only: luastatus-plugin-multiplex
+.. :X-man-page-only: ##########################
 .. :X-man-page-only:
 .. :X-man-page-only: ##############################
 .. :X-man-page-only: multiplex plugin for luastatus
