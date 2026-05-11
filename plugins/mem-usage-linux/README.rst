@@ -1,5 +1,5 @@
-.. :X-man-page-only: luastatus-mem-usage-linux
-.. :X-man-page-only: #########################
+.. :X-man-page-only: luastatus-plugin-mem-usage-linux
+.. :X-man-page-only: ################################
 .. :X-man-page-only:
 .. :X-man-page-only: ################################################
 .. :X-man-page-only: Linux-specific memory usage plugin for luastatus
