@@ -10,7 +10,7 @@
 
 Overview
 ========
-This derived plugin periodically polls Linux ``sysfs`` for the rate of CPU usage.
+This derived plugin periodically polls Linux ``procfs`` for the rate of CPU usage.
 
 Functions
 =========

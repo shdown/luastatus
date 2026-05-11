@@ -74,7 +74,7 @@ The following functions are provided:
 
   **(optional)**
 
-  - ``period``: table
+  - ``period``: number
 
     Period, in seconds, to query updates. Defaults to 1.
 

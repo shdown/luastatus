@@ -36,7 +36,7 @@ The following functions are provided:
 
 * ``get_state_by_unit_name(unit_name)``
 
-  Returns the current ``ActiveState`` propety for the specified systemd unit name.
+  Returns the current ``ActiveState`` property for the specified systemd unit name.
   This is just a combination of ``get_state_by_unit_path`` and ``get_unit_path_by_unit_name``.
 
 * ``widget(tbl)``
