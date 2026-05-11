@@ -61,7 +61,7 @@ The following options are supported:
 A table with ``what`` field.
 
 * If ``what`` is ``"hello"``, then the ``greet`` was enabled and the plugin is making
-  this call before doing anything else. Defaults to false.
+  this call before doing anything else.
 
 * If ``what`` is ``"update"``, then some nested widget's plugin has produced a value.
   In this case, ``updates`` field is also present and is a table that contains all the
