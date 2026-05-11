@@ -45,7 +45,7 @@ Either of:
   Is interpreted as a single segment (or a "block"). The keys *should not* include ``name``, as it
   is set automatically to be able to tell which widget was clicked.
 
-  For more information, see http://i3wm.org/docs/i3bar-protocol.html#_blocks_in_detail.
+  For more information, see https://i3wm.org/docs/i3bar-protocol.html#_blocks_in_detail.
 
 * an array (table with numeric keys)
 
@@ -58,7 +58,7 @@ Either of:
 ==================
 A table with all click properties i3bar (or sway-bar) provides.
 
-For more information, see http://i3wm.org/docs/i3bar-protocol.html#_click_events.
+For more information, see https://i3wm.org/docs/i3bar-protocol.html#_click_events.
 
 Functions
 =========
@@ -91,7 +91,7 @@ An example that uses all possible features::
                 -- no markup unless you specify markup='pango'
                 return {full_text = '<Hello!>', color = '#aaaa00'}
             elseif i == 3 then
-                -- see https://developer.gnome.org/pygtk/stable/pango-markup-language.html
+                -- see https://docs.gtk.org/Pango/pango_markup.html
                 return {full_text = 'Hello, <span color="#aaaa00">'
                                     .. luastatus.barlib.pango_escape(get_user_name())
                                     .. '</span>!',

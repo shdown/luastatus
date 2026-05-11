@@ -171,8 +171,9 @@ luastatus should be launched with `luastatus-stdout-wrapper`; or write your own 
 the [wrapper for launching dvtm with luastatus](https://github.com/shdown/luastatus/blob/master/barlibs/stdout/luastatus-dvtm).
 
 See also
-[README for stdout](https://github.com/shdown/luastatus/blob/master/barlibs/stdout/README.rst) and
-and [examples for stdout](https://github.com/shdown/luastatus/tree/master/examples/stdout).
+[README for stdout](https://github.com/shdown/luastatus/blob/master/barlibs/stdout/README.rst)
+and [examples for stdout](https://github.com/shdown/luastatus/tree/master/examples/stdout)
+(note the latter directory is a symlink).
 
 Supported Lua versions
 ===

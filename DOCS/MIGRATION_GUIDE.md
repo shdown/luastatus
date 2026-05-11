@@ -16,7 +16,7 @@
 * `pipe` plugin has been removed. Use the `timer` plugin and `io.open` instead:
     ````lua
     f = io.popen('your command', 'r')
-    wdiget = {
+    widget = {
         plugin = 'timer',
         cb = function()
             local line = f:read('*line')

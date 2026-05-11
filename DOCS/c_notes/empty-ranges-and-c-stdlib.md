@@ -1,4 +1,4 @@
-http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf
+https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf
 
 Subclause 7.1.4 Use of library functions, point 1:
 

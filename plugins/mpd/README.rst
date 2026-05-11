@@ -45,7 +45,7 @@ Options
 * ``events``: array of strings
 
   List of MPD subsystems to poll for changes in. See the description of ``idle`` command at
-  https://www.musicpd.org/doc/html/protocol.html#querying-mpd-s-status for the complete list.
+  https://mpd.readthedocs.io/en/stable/protocol.html#querying-mpd-s-status for the complete list.
   Default is ``{"mixer","player"}``.
 
 * ``enable_tcp_keepalive``: bool
