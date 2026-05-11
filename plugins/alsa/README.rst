@@ -13,7 +13,7 @@ Overview
 This plugin monitors volume and mute state of an ALSA channel.
 
 Options
-========
+=======
 The following options are supported:
 
 * ``card``: string

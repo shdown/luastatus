@@ -48,7 +48,7 @@ Options
   https://mpd.readthedocs.io/en/stable/protocol.html#querying-mpd-s-status for the complete list.
   Default is ``{"mixer","player"}``.
 
-* ``enable_tcp_keepalive``: bool
+* ``enable_tcp_keepalive``: boolean
 
   Whether or not to enable TCP keepalive. Defaults to ``false``.
   This option is ignored if the plugin is configured to connect to a UNIX domain socket.

@@ -106,7 +106,7 @@ are tables with the following entries (all are optional):
     Interface speed, in Mbits/s.
 
 Fetching the "what"
-================================
+===================
 
 If new overall format is used, and the argument is a table ``t``,
 then the reason why the callback has been called is simply stored in ``t.what``.

@@ -13,7 +13,7 @@ Overview
 This plugin monitors file system usage. It is timer-driven, plus a wake-up FIFO can be specified.
 
 Options
-========
+=======
 The following options are supported:
 
 * ``paths``: array of strings
@@ -28,8 +28,7 @@ The following options are supported:
 * ``enable_dyn_paths``: boolean
 
   Whether to enable support for adding/removing paths dynamically (in run time).
-  If set to true, functions ``add_dyn_path``, ``remove_dyn_path``, ``get_max_dyn_paths``
-  will be available.
+  If set to true, functions ``add_dyn_path`` and ``remove_dyn_path`` will be available.
 
   Defaults to false.
 
