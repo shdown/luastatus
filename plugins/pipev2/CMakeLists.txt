@@ -14,7 +14,7 @@ target_include_directories (plugin-pipev2 PUBLIC "${PROJECT_SOURCE_DIR}")
 set (CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set (THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package (Threads REQUIRED)
-# link aginst pthread
+# link against pthread
 target_link_libraries (plugin-pipev2 PUBLIC Threads::Threads)
 
 luastatus_add_man_page (README.rst luastatus-plugin-pipev2 7)
