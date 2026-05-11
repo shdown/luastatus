@@ -54,7 +54,7 @@ The following functions are provided:
     local period = 5
 
     -- each 'period' seconds:
-        local new, deltas = plugin.diskstats(old, period)
+        local new, deltas = plugin.read_diskstats(old, period)
         old = new
         -- somehow use 'deltas'
 
