@@ -1,7 +1,7 @@
 0.2.0 to 0.3.0
 ===
 * Semantics of the `greet` option of `inotify` plugin has changed;
-  see `plugins/inotify/README.md` for details.
+  see `plugins/inotify/README.rst` for details.
 
 0.1.0 to 0.2.0
 ===
