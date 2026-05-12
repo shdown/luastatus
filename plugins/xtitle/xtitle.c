@@ -175,6 +175,15 @@ static inline void push_window_title_or_nil(Data *d, lua_State *L, xcb_window_t 
     }
 }
 
+static inline void push_str_or_nil(lua_State *L, const char *s)
+{
+    if (s) {
+        lua_pushstring(L, s);
+    } else {
+        lua_pushnil(L);
+    }
+}
+
 static bool push_window_class_and_instance(Data *d, lua_State *L, xcb_window_t win)
 {
     if (win == XCB_NONE) {
@@ -189,17 +198,8 @@ static bool push_window_class_and_instance(Data *d, lua_State *L, xcb_window_t w
         return false;
     }
 
-    const char *class_name = prop.class_name;
-    if (!class_name) {
-        class_name = "";
-    }
-    lua_pushstring(L, class_name); // L: class
-
-    const char *instance_name = prop.instance_name;
-    if (!instance_name) {
-        instance_name = "";
-    }
-    lua_pushstring(L, instance_name); // L: instance
+    push_str_or_nil(L, prop.class_name); // L: class
+    push_str_or_nil(L, prop.instance_name); // L: instance
 
     xcb_icccm_get_wm_class_reply_wipe(&prop);
 
