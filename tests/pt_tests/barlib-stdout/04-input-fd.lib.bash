@@ -28,10 +28,10 @@ __EOF__
     pt_testcase_end
 }
 
-x_testcase_input
+x_testcase_input_fd
 
-x_testcase_input foo
+x_testcase_input_fd foo
 
-x_testcase_input foo bar
+x_testcase_input_fd foo bar
 
-x_testcase_input foo bar baz
+x_testcase_input_fd foo bar baz
