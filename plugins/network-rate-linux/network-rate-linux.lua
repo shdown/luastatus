@@ -63,7 +63,7 @@ local function parse_line(line, reader, divisor)
     if prev_recv and prev_sent then
         local delta_recv = recv - prev_recv
         local delta_sent = sent - prev_sent
-        if (delta_recv >= 0 and delta_sent >= 0) and (recv > 0 and sent > 0) then
+        if (delta_recv >= 0 and delta_sent >= 0) and (recv > 0 or sent > 0) then
             datum = {R = delta_recv / divisor, S = delta_sent / divisor}
         end
     end
