@@ -1250,7 +1250,7 @@ int main(int argc, char **argv)
         goto cleanup;
     }
 
-    // Init the "comm" modue
+    // Init the "comm" module
 
     comm_global_init();
 

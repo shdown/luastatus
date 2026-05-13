@@ -23,7 +23,7 @@ The following functions are provided:
   the filter.
 
   If specified, ``iface_filter`` must be a function that takes a string (interface name) and
-  return ``true`` if the reader should report network rates for this interface,
+  returns ``true`` if the reader should report network rates for this interface,
   ``false`` or ``nil`` otherwise. If ``iface_filter`` is not specified the reader will report
   network rates for all interfaces.
 
@@ -45,6 +45,9 @@ The following functions are provided:
   ``in_array_form`` is not specified or ``false``), the result will be a dictionary (a table
   with string keys) with interface names as keys and datums as values.
 
+  Network counters can wrap around. In this case, the data on the corresponding network
+  interfaces is simply not reported for the iteration where the wrap-around happened.
+
 * ``widget(tbl)``
 
   Constructs a ``widget`` table required by luastatus. ``tbl`` is a table with the following
@@ -65,7 +68,7 @@ The following functions are provided:
 
   - ``iface_filter``: a function
 
-    If specified, this must be a function that takes a string (interface name) and return
+    If specified, this must be a function that takes a string (interface name) and returns
     ``true`` if we are interested in network rates for this interface, ``false`` or ``nil``
     otherwise.
 
@@ -97,8 +100,8 @@ The following functions are provided:
 
     The period, in seconds, with which the callback function will be called.
 
-    This will also be a divisor (all rates will be divided by this value
-    so that the rates be per ``period`` seconds instead of 1 second). Please
+    This will also be the divisor (all rates will be divided by this value
+    so that the rates be per 1 second instead of ``period`` second). Please
     refer to the description of ``divisor`` argument to ``reader_read`` function
     above for more information.
 

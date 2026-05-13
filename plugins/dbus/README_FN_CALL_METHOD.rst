@@ -66,7 +66,7 @@ The following functions for calling methods of D-Bus objects are provided:
   On success, returns ``true, result``, where ``result`` is the result of
   the call, unpacked as described in section `Marshalling`_.
 
-  On failure, returns ``false, err_msg, err_code``.
+  On failure, returns ``false, err_msg``.
 
 * ``luastatus.plugin.call_method_str(params)``
 
@@ -92,7 +92,7 @@ The following functions for calling methods of D-Bus objects are provided:
   On success, returns ``true, result``, where ``result`` is the result of
   the call call, unpacked as described in section `Marshalling`_.
 
-  On failure, returns ``false, err_msg, err_code``.
+  On failure, returns ``false, err_msg``.
 
 Marshalling
 ===========

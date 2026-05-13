@@ -207,12 +207,12 @@ We do the following things:
   * We compile with `-Wall -Wextra`
   * We have a comprehensive test suite; it contains tests for luastatus, barlibs and plugins, and also includes "torture"-style tests (a.k.a. stress tests)
 which bombard luastatus with a lot of events from a plugin and a barlib simultaneously:
-    * It passes under valgrind [memcheck tool]
-    * It passes under valgrind [helgrind tool]
-    * It passes under UBSAN (Undefined Behavior Sanitizer)
-    * It passes under ASAN (Address Sanitizer)
-    * It passes under LSAN (Leak Sanitizer)
-    * It passes under TSAN (Thread Sanitizer)
+    - It passes under valgrind [memcheck tool]
+    - It passes under valgrind [helgrind tool]
+    - It passes under UBSAN (Undefined Behavior Sanitizer)
+    - It passes under ASAN (Address Sanitizer)
+    - It passes under LSAN (Leak Sanitizer)
+    - It passes under TSAN (Thread Sanitizer)
   * Everything that theoretically can be an attack surface is fuzzed, under UBSAN, with both AFL and AFL++; we also have a sophisticated fuzz testcase generator (in `fuzz_utils/gen_testcases/`)
 
 We tried to use additional compiler warnings, `-fanalyzer`, and external linters/static analyzers, but

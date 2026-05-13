@@ -15,6 +15,8 @@ This derived plugin periodically polls Linux ``procfs`` for memory usage.
 
 Functions
 =========
+The following functions are provided:
+
 * ``get_usage()``
 
   Returns a table with two entries, ``avail`` and ``total``. Both are tables that have ``value``

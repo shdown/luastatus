@@ -256,7 +256,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
             int read_rc = server_read_from_client(S, i);
             if (read_rc < 0) {
                 if (errno == 0) {
-                    LS_DEBUGF(pd, "clent disconnected before sending a full line");
+                    LS_DEBUGF(pd, "client disconnected before sending a full line");
                 } else {
                     LS_WARNF(pd, "read: %s", ls_tls_strerror(errno));
                 }

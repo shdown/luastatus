@@ -87,7 +87,7 @@ int libwidechar_width(SAFEV v, uint64_t *out_width)
 size_t libwidechar_truncate_to_width(
         SAFEV v,
         uint64_t max_width,
-        uint64_t *out_resut_width)
+        uint64_t *out_result_width)
 {
     xspan x = v_to_xspan(v);
     mbstate_t state = {0};
@@ -112,7 +112,7 @@ size_t libwidechar_truncate_to_width(
         x = new_x;
     }
 
-    *out_resut_width = width;
+    *out_result_width = width;
     return xspan_processed_len(x);
 }
 

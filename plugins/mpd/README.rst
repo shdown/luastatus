@@ -117,7 +117,7 @@ A table with ``what`` entry.
     +----------------------+-----------------------------+
 
   - ``status``: table with server's response to the ``status`` command. See the ``status`` command
-    description at https://www.musicpd.org/doc/html/protocol.html#querying-mpd-s-status.
+    description at https://mpd.readthedocs.io/en/stable/protocol.html.
 
     All values are strings.
 

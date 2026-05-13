@@ -11,7 +11,7 @@
 Overview
 ========
 This derived plugin checks whether a certain program is running, although
-in order to this plugin to work, the program should indicate its state
+in order for this plugin to work, the program should indicate its state
 via one of the following widespread mechanisms:
 
 1. PID file;

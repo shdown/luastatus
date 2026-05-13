@@ -201,7 +201,7 @@ static int l_write_to_stdin(lua_State *L)
     LS_PTH_CHECK(pthread_mutex_unlock(&p->child_mtx));
 
     if (fd < 0) {
-        return luaL_error(L, "process have not been created yet");
+        return luaL_error(L, "process has not been created yet");
     }
 
     if (utils_full_write(fd, data, ndata) >= 0) {
@@ -251,7 +251,7 @@ static int l_kill(lua_State *L)
 
     // If /is_ok/ == 1: killed successfully.
     // If /is_ok/ == 0: error, error number in /err_num/.
-    // If /is_ok/ == -1: process have not been created yet.
+    // If /is_ok/ == -1: process has not been created yet.
     int is_ok;
     int err_num;
 
@@ -275,7 +275,7 @@ static int l_kill(lua_State *L)
     LS_PTH_CHECK(pthread_mutex_unlock(&p->child_mtx));
 
     if (is_ok < 0) {
-        return luaL_error(L, "process have not been created yet");
+        return luaL_error(L, "process has not been created yet");
     }
 
     if (is_ok) {

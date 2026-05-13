@@ -36,7 +36,7 @@ typedef struct {
     // Input file descriptor.
     int in_fd;
 
-    // /fdopen/'ed output file descritor.
+    // /fdopen/'ed output file descriptor.
     FILE *out;
 
     bool noclickev;

@@ -55,7 +55,7 @@ Functions
 =========
 If ``enable_dyn_paths`` option was set to true, then:
 
-* the set of "dynamic" path, initially empty, is maintained in run time;
+* the set of "dynamic" paths, initially empty, is maintained in run time;
 
 * each call to ``cb`` also includes all paths from this set;
 

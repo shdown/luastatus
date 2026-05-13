@@ -29,7 +29,7 @@ int libwidechar_width(SAFEV v, uint64_t *out_width);
 size_t libwidechar_truncate_to_width(
         SAFEV v,
         uint64_t max_width,
-        uint64_t *out_resut_width);
+        uint64_t *out_result_width);
 
 void libwidechar_make_valid_and_printable(
         SAFEV v,

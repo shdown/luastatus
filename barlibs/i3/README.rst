@@ -52,8 +52,6 @@ Either of:
   Is interpreted as an array of segments. To be able to tell which one was clicked, set the
   ``instance`` field of a segment.
 
-  ``nil`` elements are ignored.
-
 ``event`` argument
 ==================
 A table with all click properties i3bar (or sway-bar) provides.
@@ -100,9 +98,6 @@ An example that uses all possible features::
                 i = 0
                 return {
                     {full_text = 'Now,', instance = 'now-segment'},
-                    nil, -- nils are ignored so that you can do
-                         --     return {get_time(), get_battery(), get_smth_else()}
-                         -- where, for example, get_battery() returns nil if the battery is full.
                     {full_text = 'click me!', instance = 'click-me-segment'},
                 }
             end

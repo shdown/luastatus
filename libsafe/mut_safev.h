@@ -41,7 +41,7 @@ LIBSAFE_INHEADER MUT_SAFEV MUT_SAFEV_new_UNSAFE(char *buf, size_t nbuf)
     };
 }
 
-#define MUT_SAVEF_STATIC_INIT_UNSAFE(Ptr_, Len_) \
+#define MUT_SAFEV_STATIC_INIT_UNSAFE(Ptr_, Len_) \
     { \
         .mut_s__ = (Ptr_), \
         .mut_n__ = (Len_), \

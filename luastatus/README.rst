@@ -129,7 +129,7 @@ LUA LIBRARIES
 The ``luastatus`` module
 ------------------------
 luastatus provides the ``luastatus`` module, which currently contains the following functions and
-one submodules:
+submodules:
 
 * ``luastatus.require_plugin(name)`` acts like the Lua's built-in ``require`` function, except
   that it loads a file named ``<name>.lua`` from luastatus' derived plugins directory. This
@@ -203,7 +203,7 @@ In luastatus, ``os.setlocale`` always fails as it is inherently not thread-safe.
 
 SEPARATE STATE
 ==============
-If ``widget.cb`` field has string type, it gets compiled as a function in a *separate state* (as if
+If ``widget.event`` field has string type, it gets compiled as a function in a *separate state* (as if
 with Lua's built-in ``loadstring`` function).
 Whenever an event on such a widget occurs, the compiled function will be called in that state (not
 in the widget's state, in which ``cb`` gets called).

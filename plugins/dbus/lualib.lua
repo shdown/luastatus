@@ -1,3 +1,5 @@
+-- Use tabs to reduce file size.
+
 local PLUGIN_TABLE = ...
 local DT_LL = PLUGIN_TABLE.dbustypes_lowlevel
 

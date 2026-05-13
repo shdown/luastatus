@@ -68,7 +68,7 @@ The following options are supported:
   Enable event watcher.
 
   If ``in_filename=<string>`` is specified, this barlib will open the specified
-  filename for reading and then read from. If ``in_fd=<fd>`` is specified, the
+  filename for reading and then read from it. If ``in_fd=<fd>`` is specified, the
   specified file descriptor will be read from. It is invalid to pass both options;
   in this case, this barlib will fail to initialize.
 

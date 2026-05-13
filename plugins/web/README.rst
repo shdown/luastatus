@@ -29,8 +29,8 @@ The following options are supported at plugin initialization:
 
     function()
         while true do
-            coroutine.yield({what = 'request', params = {...}})
-            coroutine.yield({what = 'sleep', period = 5.0})
+            coroutine.yield({action = 'request', params = {...}})
+            coroutine.yield({action = 'sleep', period = 5.0})
         end
     end
 
@@ -89,7 +89,7 @@ The ``params`` table in a ``request`` action supports the following options:
 * ``max_file_size``: integer
 
   Maximum file size to download. Zero means no limit (this is the default).
-  Must be less than 2 Gb.
+  Must be less than 2 GB.
 
 * ``auto_referer``: boolean
 

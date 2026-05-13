@@ -150,17 +150,17 @@ int inetdom_open(
     for (struct addrinfo *pai = ai; pai; pai = pai->ai_next) {
         fd = ls_cloexec_socket(pai->ai_family, pai->ai_socktype, pai->ai_protocol);
         if (fd < 0) {
-            LS_WARNF(pd, "(candiate) socket: %s", ls_tls_strerror(errno));
+            LS_WARNF(pd, "(candidate) socket: %s", ls_tls_strerror(errno));
             continue;
         }
         if (do_bind_to_addr(fd, bind_addr, bind_addr_family) < 0) {
-            LS_WARNF(pd, "(candiate) cannot bind to address: %s", ls_tls_strerror(errno));
+            LS_WARNF(pd, "(candidate) cannot bind to address: %s", ls_tls_strerror(errno));
             close(fd);
             fd = -1;
             continue;
         }
         if (connect(fd, pai->ai_addr, pai->ai_addrlen) < 0) {
-            LS_WARNF(pd, "(candiate) connect: %s", ls_tls_strerror(errno));
+            LS_WARNF(pd, "(candidate) connect: %s", ls_tls_strerror(errno));
             close(fd);
             fd = -1;
             continue;
