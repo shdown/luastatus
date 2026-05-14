@@ -8,10 +8,10 @@
 .. :X-man-page-only: :Copyright: LGPLv3
 .. :X-man-page-only: :Manual section: 7
 
-
 Overview
 ========
 **NOTE**: this is a legacy plugin. Please use ``pipev2`` plugin instead.
+However, it will never be removed in future versions for reasons of backward compatibility.
 
 This derived plugin monitors the output of a process and calls the callback function whenever it
 produces a line.
