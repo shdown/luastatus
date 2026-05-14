@@ -118,7 +118,7 @@ The spelling of a tuple type consists of:
 2. spellings of the types of all the items concatenated (without any delimiter), and
 3. symbol ``)``.
 
-So, "three strings" is spelled as ``(sss)``, "an int32 and a string" is spelled as "(is)",
+So, "three strings" is spelled as ``(sss)``, "an int32 and a string" is spelled as ``(is)``,
 and "nothing at all" is spelled as ``()``. The latter is called an empty tuple.
 
 Dict entry types
@@ -158,8 +158,7 @@ require the following correspondence between D-Bus types and Lua values:
 | string, object path,   | string                  |
 | signature              |                         |
 +------------------------+-------------------------+
-| handle                 | special object with     |
-|                        | value ``"handle"``      |
+| handle                 | (not supported)         |
 +------------------------+-------------------------+
 | array, tuple           | array (a table with     |
 |                        | numeric keys)           |
