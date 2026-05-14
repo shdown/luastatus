@@ -126,10 +126,10 @@ luastatus has arguably fallen a victim of second-system effect: we have *a lot* 
 Here we give a list of plugins that would probably be of interest to most users in the first place:
 
 * Time/date: plugin `timer`
-    - examples: `examples/*/time-data.lua`
+    - examples: `examples/*/time-date.lua`
 
 * If you have multiple keyboard layouts, keyboard layout indicator: plugin `xkb`
-    - examples: `examples/*/time-data.lua`
+    - examples: `examples/*/time-date.lua`
 
 * Volume indicator: plugin `alsa` or `pulse`
     - examples for ALSA: `examples/*/alsa{,-gauge,-interactive-gauge}.lua`
