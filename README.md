@@ -120,6 +120,30 @@ Gentoo
 ---
 You can use the ebuild located at `gentoo/luastatus-9999.ebuild`.
 
+Plugins of interest
+===
+luastatus has arguably fallen a victim of second-system effect: we have *a lot* of plugins.
+Here we give a list of plugins that would probably be of interest to most users in the first place:
+
+* Time/date: plugin `timer`
+    - examples: `examples/*/time-data.lua`
+
+* If you have multiple keyboard layouts, keyboard layout indicator: plugin `xkb`
+    - examples: `examples/*/time-data.lua`
+
+* Volume indicator: plugin `alsa` or `pulse`
+    - examples for ALSA: `examples/*/alsa{,-gauge,-interactive-gauge}.lua`
+    - examples for PulseAudio: `examples/*/pulse{,-gauge,-interactive-gauge}.lua`
+
+* Battery state indicator: plugin `battery-linux`
+    - examples: `examples/*/battery.lua`
+
+* Network state indicator (either Wi-Fi or wired connection): plugin `network-linux`
+    - examples: `examples/*/wireless.lua`
+
+* Backlight level indicator (only shows info when it changes; mostly of use on laptops): plugin `backlight-linux`
+    - examples: `examples/*/backlight.lua`
+
 Getting started
 ===
 It is recommended to first have a look at the
