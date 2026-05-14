@@ -1,5 +1,9 @@
 pt_testcase_begin
 pt_add_fifo "$main_fifo_file"
+
+globtest_dir=$(mktemp -d) || pt_fail "'mktemp -d' failed"
+pt_add_dir_to_remove "$globtest_dir"
+
 pt_write_widget_file <<__EOF__
 f = assert(io.open('$main_fifo_file', 'w'))
 f:setvbuf('line')

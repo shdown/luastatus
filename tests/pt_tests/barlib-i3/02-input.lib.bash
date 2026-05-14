@@ -75,7 +75,7 @@ __EOF__
 
 x_testcase_input '{"name":"0","foo":"bar"}' '{["foo"]="bar",["name"]="0"}'
 x_testcase_input '{"name":"1","what":"invalid widget index"},
-{"name":"1234567","what":"ivalid widget index"},
+{"name":"1234567","what":"invalid widget index"},
 {"name":"-0","what":"widget index is minus zero"},
 {"name":"-1","what":"negative widget index"},
 {"name":"0","finally ok":"yes"}' '{["finally ok"]="yes",["name"]="0"}'
