@@ -199,11 +199,12 @@ static int set(LuastatusBarlibData *bd, lua_State *L, size_t widget_idx)
             size_t len = ls_lua_array_len(L, -1);
             for (size_t i = 1; i <= len; ++i) {
                 lua_rawgeti(L, -1, i); // L: ? data value
-                if (lua_isnil(L, -1)) {
+                int t = lua_type(L, -1);
+                if (t == LUA_TNIL) {
                     goto next;
                 }
-                if (!lua_isstring(L, -1)) {
-                    LS_ERRF(bd, "table value: expected string, found %s", luaL_typename(L, -1));
+                if (t != LUA_TSTRING) {
+                    LS_ERRF(bd, "table value: expected string, found %s", lua_typename(L, t));
                     goto invalid_data;
                 }
                 size_t ns;

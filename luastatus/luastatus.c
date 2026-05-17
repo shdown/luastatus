@@ -727,7 +727,7 @@ static bool widget_init_inspect_plugin(Widget *w)
     lua_State *L = w->L;
     // L: ? widget
     lua_getfield(L, -1, "plugin"); // L: ? widget plugin
-    if (!lua_isstring(L, -1)) {
+    if (lua_type(L, -1) != LUA_TSTRING) {
         ERRF("'widget.plugin': expected string, found %s", luaL_typename(L, -1));
         return false;
     }

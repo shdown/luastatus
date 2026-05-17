@@ -53,7 +53,7 @@ static bool check_if_our_flag(NextRequestParams *dst, const char *s)
 static bool handle_option(NextRequestParams *dst, lua_State *L, char **out_errmsg, int *out_opt_idx)
 {
     // L: ? key value
-    if (!lua_isstring(L, -2)) {
+    if (lua_type(L, -2) != LUA_TSTRING) {
         set_type_error(out_errmsg, L, -2, LUA_TSTRING, "table key: ");
         return false;
     }

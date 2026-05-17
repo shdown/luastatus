@@ -232,10 +232,12 @@ static void recv_handle_new_data(
         size_t i,
         lua_State *L)
 {
-    if (lua_isnil(L, -1)) {
+    int t = lua_type(L, -1);
+
+    if (t == LUA_TNIL) {
         conq_update_slot(cq, i, NULL, 0, CONQ_SLOT_STATE_NIL);
 
-    } else if (lua_isstring(L, -1)) {
+    } else if (t == LUA_TSTRING) {
         size_t ns;
         const char *s = lua_tolstring(L, -1, &ns);
         conq_update_slot(cq, i, s, ns, CONQ_SLOT_STATE_HAS_VALUE);
@@ -246,7 +248,7 @@ static void recv_handle_new_data(
         LS_WARNF(
             pd, "cb of widget [%s] returned %s value (expected string or nil)",
             name,
-            luaL_typename(L, -1)
+            lua_typename(L, t)
         );
         conq_update_slot(cq, i, NULL, 0, CONQ_SLOT_STATE_ERROR_BAD_TYPE);
     }

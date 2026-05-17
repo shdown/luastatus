@@ -239,7 +239,7 @@ static bool append_segment(LuastatusBarlibData *bd, lua_State *L, size_t widget_
     lua_pushnil(L); // L: ? table nil
     while (lua_next(L, -2)) {
         // L: ? table key value
-        if (!lua_isstring(L, -2)) {
+        if (lua_type(L, -2) != LUA_TSTRING) {
             LS_ERRF(bd, "segment key: expected string, found %s", luaL_typename(L, -2));
             return false;
         }
@@ -320,7 +320,7 @@ static inline TableClass classify_table(lua_State *L)
         return TC_EMPTY;
     }
     // L: ? table key value
-    bool is_array = lua_isnumber(L, -2);
+    bool is_array = lua_type(L, -2) == LUA_TNUMBER;
     lua_pop(L, 2); // L: ? table
     return is_array ? TC_ARRAY : TC_DICT;
 }

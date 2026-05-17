@@ -221,14 +221,15 @@ static int fetch_sig_num(lua_State *L)
         return SIGTERM;
     }
 
-    if (lua_isnumber(L, 1)) {
+    int t = lua_type(L, 1);
+    if (t == LUA_TNUMBER) {
         int res = lua_tointeger(L, 1);
         if (res < 0) {
             return luaL_argerror(L, 1, "number is negative or out of range");
         }
         return res;
 
-    } else if (lua_isstring(L, 1)) {
+    } else if (t == LUA_TSTRING) {
         const char *sig_name = lua_tostring(L, 1);
         int res = sigdb_lookup_num_by_name(sig_name);
         if (res < 0) {

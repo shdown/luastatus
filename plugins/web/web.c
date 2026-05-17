@@ -240,7 +240,7 @@ static bool parseY_sleep(lua_State *L, Ctx *ctx, char **out_errmsg)
 {
     // L: ? table
     lua_getfield(L, -1, "period"); // L: ? table period
-    if (!lua_isnumber(L, -1)) {
+    if (lua_type(L, -1) != LUA_TNUMBER) {
         set_type_error(out_errmsg, L, -1, LUA_TNUMBER, "'period' field: ");
         return false;
     }
@@ -256,7 +256,7 @@ static bool parseY_call_cb(lua_State *L, Ctx *ctx, char **out_errmsg)
 {
     // L: ? table
     lua_getfield(L, -1, "what"); // L: ? table what
-    if (!lua_isstring(L, -1)) {
+    if (lua_type(L, -1) != LUA_TSTRING) {
         set_type_error(out_errmsg, L, -1, LUA_TSTRING, "'what' field: ");
         return false;
     }
@@ -290,7 +290,7 @@ static bool parseY(lua_State *L, Ctx *ctx, char **out_errmsg)
     // L: ? table
 
     lua_getfield(L, -1, "action"); // L: ? table action
-    if (!lua_isstring(L, -1)) {
+    if (lua_type(L, -1) != LUA_TSTRING) {
         set_type_error(out_errmsg, L, -1, LUA_TSTRING, "'action' field: ");
         return false;
     }

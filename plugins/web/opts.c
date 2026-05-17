@@ -32,7 +32,7 @@
 static bool apply_str(NextRequestParams *dst, lua_State *L, CURLoption which, char **out_errmsg)
 {
     // L: ? something
-    if (!lua_isstring(L, -1)) {
+    if (lua_type(L, -1) != LUA_TSTRING) {
         set_type_error(out_errmsg, L, -1, LUA_TSTRING, "");
         return false;
     }
@@ -71,7 +71,7 @@ static bool fetch_int(
     char **out_errmsg)
 {
     // L: ? something
-    if (!lua_isnumber(L, -1)) {
+    if (lua_type(L, -1) != LUA_TNUMBER) {
         set_type_error(out_errmsg, L, -1, LUA_TNUMBER, "");
         return false;
     }
@@ -171,7 +171,7 @@ static bool apply_headers(NextRequestParams *dst, lua_State *L, CURLoption which
     for (size_t i = 1; i <= n; ++i) {
         lua_rawgeti(L, -1, i); // L: ? table header
 
-        if (!lua_isstring(L, -1)) {
+        if (lua_type(L, -1) != LUA_TSTRING) {
             set_type_error(out_errmsg, L, -1, LUA_TSTRING, "array element: ");
             return false;
         }
@@ -197,7 +197,7 @@ static bool apply_timeout(NextRequestParams *dst, lua_State *L, CURLoption which
     (void) which;
 
     // L: ? value
-    if (!lua_isnumber(L, -1)) {
+    if (lua_type(L, -1) != LUA_TNUMBER) {
         set_type_error(out_errmsg, L, -1, LUA_TNUMBER, "");
         return false;
     }

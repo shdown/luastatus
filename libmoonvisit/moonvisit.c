@@ -254,7 +254,7 @@ static inline bool aux_is_first_key_numeric(lua_State *L, int pos)
         return false;
     }
     // L: ? key value
-    bool res = lua_isnumber(L, -2);
+    bool res = lua_type(L, -2) == LUA_TNUMBER;
     lua_pop(L, 2); // L: ?
     return res;
 }

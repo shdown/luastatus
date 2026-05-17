@@ -216,13 +216,14 @@ int procalive_lfunc_is_process_alive(lua_State *L)
 
     pid_t pid;
 
-    if (lua_isstring(L, 1)) {
+    int t = lua_type(L, 1);
+    if (t == LUA_TSTRING) {
         const char *err_msg;
         pid = parse_pid(lua_tostring(L, 1), &err_msg);
         if (pid <= 0) {
             return luaL_argerror(L, 1, err_msg);
         }
-    } else if (lua_isnumber(L, 1)) {
+    } else if (t == LUA_TNUMBER) {
         double d = lua_tonumber(L, 1);
         if (!isgreaterequal(d, 1.0)) {
             return luaL_argerror(L, 1, "must be >= 1");
