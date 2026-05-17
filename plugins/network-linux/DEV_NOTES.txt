@@ -1,0 +1,18 @@
+We can't count on qsort() being implemented in a reasonable way (in terms of
+worst-case time complexity and stack memory usage).
+
+* dietlibc's qsort() is naive quicksort, having worst-case O(N^2) time
+  complexity and O(N) stack memory usage (!).
+
+* uClibc's qsort() is shellsort, having worst-case O(N*sqrt(N)) time complexity.
+
+See http://www.etalabs.net/compare_libcs.html and source code of the libraries
+mentioned above.
+
+So we roll our own sort implementation. It's naive mergesort. It's not quite
+efficient; instead, it was optimized for readability/auditability and worst-case
+time and memory usage complexity.
+
+We roll our own binary search implementation just for lulz.
+
+Both are thoroughly tested (see directory 'test_strset').

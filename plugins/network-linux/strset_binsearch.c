@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2026  luastatus developers
+ * Copyright (C) 2026  luastatus developers
  *
  * This file is part of luastatus.
  *
@@ -17,26 +17,26 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#pragma once
-
-#include <stdlib.h>
+#include "strset_binsearch.h"
+#include <stddef.h>
 #include <stdbool.h>
+#include <string.h>
 
-typedef struct {
-    char **data;
-    size_t size;
-    size_t capacity;
-} StringSet;
+// See file 'DEV_NOTES.txt' for why we roll our own sorting/binsearch
+// implementation.
 
-StringSet string_set_new(void);
-
-// Clears and unfreezes the set.
-void string_set_reset(StringSet *s);
-
-void string_set_add(StringSet *s, const char *val);
-
-void string_set_freeze(StringSet *s);
-
-bool string_set_contains(StringSet s, const char *val);
-
-void string_set_destroy(StringSet s);
+bool strset_binsearch(char **data, size_t ndata, const char *s)
+{
+    size_t l = 0;
+    size_t r = ndata;
+    // Invariants: l <= r, data at half-open interval [l; r) contains 's'.
+    while (r - l > 1) {
+        size_t m = l + (r - l) / 2;
+        if (strcmp(data[m], s) <= 0) {
+            l = m;
+        } else {
+            r = m;
+        }
+    }
+    return l != r && strcmp(data[l], s) == 0;
+}

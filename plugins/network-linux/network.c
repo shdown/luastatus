@@ -46,7 +46,7 @@
 #include "libls/ls_evloop_lfuncs.h"
 #include "libls/ls_lua_compat.h"
 
-#include "string_set.h"
+#include "strset.h"
 #include "wireless_info.h"
 #include "ethernet_info.h"
 #include "iface_type.h"
@@ -58,7 +58,7 @@ typedef struct {
     bool new_ip_fmt;
     bool new_overall_fmt;
     double tmo;
-    StringSet wlan_ifaces;
+    Strset wlan_ifaces;
     int eth_sockfd;
     int pipefds[2];
 } Priv;
@@ -66,7 +66,7 @@ typedef struct {
 static void destroy(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
-    string_set_destroy(p->wlan_ifaces);
+    strset_destroy(p->wlan_ifaces);
     ls_close(p->eth_sockfd);
     ls_close(p->pipefds[0]);
     ls_close(p->pipefds[1]);
@@ -83,7 +83,7 @@ static int init(LuastatusPluginData *pd, lua_State *L)
         .new_ip_fmt = false,
         .new_overall_fmt = false,
         .tmo = -1,
-        .wlan_ifaces = string_set_new(),
+        .wlan_ifaces = strset_new(),
         .eth_sockfd = -1,
         .pipefds = {-1, -1},
     };
@@ -202,6 +202,10 @@ static void inject_ip_info(lua_State *L, struct ifaddrs *addr, bool new_ip_fmt)
         } else {
             size_t n = ls_lua_array_len(L, -1); // L: ? ifacetbl tbl
             if (n == (size_t) LS_LUA_MAXI) {
+
+                // If we have too many interfaces, replace the last one with 'false' value (of type
+                // boolean) to signal this condition to Lua. This is documented in 'README.rst.
+
                 lua_pushboolean(L, 0); // L: ? ifacetbl tbl false
                 lua_rawseti(L, -2, n); // L: ? ifacetbl tbl
             } else {
@@ -310,7 +314,7 @@ static void make_call(
     lua_newtable(L); // L: ?... table
 
     if (refresh) {
-        string_set_reset(&p->wlan_ifaces);
+        strset_reset(&p->wlan_ifaces);
     }
 
     for (struct ifaddrs *cur = ifaddr; cur; cur = cur->ifa_next) {
@@ -326,10 +330,10 @@ static void make_call(
                 if (refresh) {
                     is_wlan = is_wlan_iface(cur->ifa_name);
                     if (is_wlan) {
-                        string_set_add(&p->wlan_ifaces, cur->ifa_name);
+                        strset_add(&p->wlan_ifaces, cur->ifa_name);
                     }
                 } else {
-                    is_wlan = string_set_contains(p->wlan_ifaces, cur->ifa_name);
+                    is_wlan = strset_contains(&p->wlan_ifaces, cur->ifa_name);
                 }
                 if (is_wlan) {
                     inject_wireless_info(L, cur); // L: ?... table ifacetbl
@@ -353,7 +357,7 @@ static void make_call(
     end_call(p, L, what); // L: ? result
 
     if (refresh) {
-        string_set_freeze(&p->wlan_ifaces);
+        strset_freeze(&p->wlan_ifaces);
     }
 
     freeifaddrs(ifaddr);
