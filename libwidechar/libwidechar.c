@@ -21,7 +21,8 @@
 
 #include "libwidechar.h"
 
-#include <stddef.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <math.h>
@@ -56,6 +57,7 @@ static inline bool next(mbstate_t *state, xspan x, xspan *new_x, wchar_t *out)
 
     size_t rc = mbrtowc(out, SAFEV_ptr_UNSAFE(unproc_v), SAFEV_len(unproc_v), state);
     if ((rc == (size_t) -1) || (rc == (size_t) -2)) {
+        *state = (mbstate_t) {0};
         return false;
     }
     size_t n = rc == 0 ? 1 : rc;
@@ -181,10 +183,11 @@ fail:
     return (LocaleSavedData) {0};
 }
 
-static inline void end_locale(LocaleSavedData lsd, lua_State *L)
+static inline void end_locale(LocaleSavedData lsd)
 {
     if (uselocale(lsd.old) == (locale_t) 0) {
-        luaL_error(L, "end_locale: uselocale() failed");
+        fprintf(stderr, "FATAL: libwidechar: cannot restore old locale (uselocale() failed)\n");
+        abort();
     }
     freelocale(lsd.native);
 }
@@ -262,7 +265,7 @@ static int lfunc_width(lua_State *L)
     LocaleSavedData lsd = begin_locale(L);
     uint64_t width;
     int rc = libwidechar_width(v, &width);
-    end_locale(lsd, L);
+    end_locale(lsd);
 
     // L: ?
     if (rc < 0) {
@@ -286,7 +289,7 @@ static int lfunc_truncate_to_width(lua_State *L)
     LocaleSavedData lsd = begin_locale(L);
     uint64_t res_width;
     size_t res_len = libwidechar_truncate_to_width(v, max_width, &res_width);
-    end_locale(lsd, L);
+    end_locale(lsd);
 
     if (res_len == (size_t) -1) {
         lua_pushnil(L); // L: nil
@@ -317,7 +320,7 @@ static int lfunc_make_valid_and_printable(lua_State *L)
 
     LocaleSavedData lsd = begin_locale(L);
     libwidechar_make_valid_and_printable(v, bad, append_to_lua_buf_callback, &b);
-    end_locale(lsd, L);
+    end_locale(lsd);
 
     luaL_pushresult(&b); // L: result
 
