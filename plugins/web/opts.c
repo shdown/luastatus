@@ -128,6 +128,22 @@ static bool apply_long_nonneg_or_minus1(NextRequestParams *dst, lua_State *L, CU
     return true;
 }
 
+static bool table_has_non_numeric_keys(lua_State *L)
+{
+    // L: ? table
+    lua_pushnil(L); // L: ? table nil
+    while (lua_next(L, -2)) {
+        // L: ? table key value
+        if (lua_type(L, -2) != LUA_TNUMBER) {
+            lua_pop(L, 2); // L: ? table
+            return true;
+        }
+        lua_pop(L, 1); // L: ? table key
+    }
+    // L: ? table
+    return false;
+}
+
 static bool apply_headers(NextRequestParams *dst, lua_State *L, CURLoption which, char **out_errmsg)
 {
     (void) which;
@@ -144,6 +160,11 @@ static bool apply_headers(NextRequestParams *dst, lua_State *L, CURLoption which
         return false;
     }
     // L: ? table
+
+    if (table_has_non_numeric_keys(L)) {
+        set_error(out_errmsg, "headers table contains non-numeric keys (it must be an array)");
+        return false;
+    }
 
     size_t n = ls_lua_array_len(L, -1);
 

@@ -82,6 +82,9 @@ The ``params`` table in a ``request`` action supports the following options:
 
   An array of strings representing HTTP headers to send.
 
+  **NOTE**: this must be an array (table with numeric keys) rather than a dictionary
+  (table with string keys).
+
 * ``timeout``: number
 
   Maximum time, in seconds, for the request. Zero means no timeout (this is the default).
