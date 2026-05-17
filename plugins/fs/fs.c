@@ -230,17 +230,40 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 
         for (size_t i = 0; i < ls_strarr_size(p->globs); ++i) {
             const char *pattern = ls_strarr_at(p->globs, i, NULL);
-            glob_t gbuf;
+
+            // POSIX 2008 is not clear on whether globfree() is needed/valid
+            // after glob() returned an error.
+            //
+            // glibc, musl, FreeBSD work fine if globfree() is invoked after
+            // glob() failed for any reason.
+            //
+            // OpenBSD and NetBSD apparently expect zero-initialization for
+            // the struct.
+            //
+            // God help us if we are running on some other libc.
+            //
+            // Still, zeroing out the struct before glob() and always calling
+            // globfree(), even in case of error, is the most robust strategy.
+            glob_t gbuf = {0};
+
+            size_t path_count;
+
             switch (glob(pattern, GLOB_NOSORT, NULL, &gbuf)) {
             case 0:
+                path_count = gbuf.gl_pathc;
+                break;
             case GLOB_NOMATCH:
+                path_count = 0;
                 break;
             default:
                 LS_WARNF(pd, "glob() failed (out of memory?)");
+                path_count = 0;
             }
-            for (size_t j = 0; j < gbuf.gl_pathc; ++j) {
+
+            for (size_t j = 0; j < path_count; ++j) {
                 add_path_to_call(call, gbuf.gl_pathv[j]);
             }
+
             globfree(&gbuf);
         }
 
