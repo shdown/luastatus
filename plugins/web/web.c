@@ -53,7 +53,8 @@ typedef struct {
     int global_req_flags;
 
     lua_State *coro;
-    int lref;
+    int lref_planner;
+    int lref_thread;
 
     int pipefds[2];
 } Priv;
@@ -68,15 +69,15 @@ static void destroy(LuastatusPluginData *pd)
     free(p);
 }
 
-static lua_State *make_coro(lua_State *L, int *out_lref)
+static void make_coro(lua_State *L, Priv *p)
 {
     // L: ? func
-    lua_State *coro = lua_newthread(L); // L: ? func thread
-    *out_lref = luaL_ref(L, LUA_REGISTRYINDEX); // L: ? func
-    lua_xmove(L, coro, 1);
-    // L: ?
-    // coro: func
-    return coro;
+    p->lref_planner = luaL_ref(L, LUA_REGISTRYINDEX); // L: ?
+
+    lua_State *coro = lua_newthread(L); // L: ? thread
+    p->lref_thread = luaL_ref(L, LUA_REGISTRYINDEX); // L: ?
+
+    p->coro = coro;
 }
 
 static bool parse_planner(MoonVisit *mv, Priv *p)
@@ -87,7 +88,7 @@ static bool parse_planner(MoonVisit *mv, Priv *p)
     if (moon_visit_checktype_at(mv, "planner", -1, LUA_TFUNCTION) < 0) {
         return false;
     }
-    p->coro = make_coro(L, &p->lref); // L: ? table
+    make_coro(L, p); // L: ? table
     return true;
 }
 
@@ -97,7 +98,8 @@ static int init(LuastatusPluginData *pd, lua_State *L)
     *p = (Priv) {
         .global_req_flags = 0,
         .coro = NULL,
-        .lref = LUA_REFNIL,
+        .lref_planner = LUA_REFNIL,
+        .lref_thread = LUA_REFNIL,
         .pipefds = {-1, -1},
     };
 
@@ -326,10 +328,10 @@ static inline void push_planner_by_lref(Priv *p, lua_State *L, lua_State *coro)
 {
     // L: ?
     // coro: ?
-    lua_rawgeti(L, LUA_REGISTRYINDEX, p->lref); // L: ? thread
+    lua_rawgeti(L, LUA_REGISTRYINDEX, p->lref_planner); // L: ? func
     lua_xmove(L, coro, 1);
     // L: ?
-    // coro: ? thread
+    // coro: ? func
 }
 
 static bool make_flash_call(
@@ -349,11 +351,12 @@ static bool make_flash_call(
     bool is_ok;
 
     // L: ?
-    push_wakeup_status(L, ctx->wakeup_status); // L: ? wakeup_status
+    push_planner_by_lref(p, L, coro); // coro: func
+
+    push_wakeup_status(coro, ctx->wakeup_status); // coro: func wakeup_status
     ctx->wakeup_status = WUPSTAT_NOT_APPLICABLE;
 
     int nresults;
-    push_planner_by_lref(p, L, coro); // coro: thread
     int rc = compat_lua_resume(coro, L, 1, &nresults);
     if (rc == LUA_YIELD) {
         if (nresults != 1) {
