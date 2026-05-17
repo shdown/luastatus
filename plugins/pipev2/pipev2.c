@@ -468,6 +468,12 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 
     if (p->bye) {
         make_call_simple(pd, funcs, "bye");
+
+        // It's fine, it is the desired behavior to simply hang here. "bye" is typically used by a
+        // widget to have a last chance to do something and/or show something to the user after the
+        // process has died; not hanging and returning here would mean anything shown to the user in
+        // the "bye" callback is lost (luastatus will tell the barlib to show an error segment
+        // instead).
         for (;;) {
             pause();
         }
