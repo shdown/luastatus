@@ -84,6 +84,8 @@ bool wrongly_fetch(Display *dpy, WronglyResult *out)
 
         if (maxlen > LONG_MAX / 2)
             goto done;
+
+        XFree(data);
         maxlen *= 2;
     }
 
