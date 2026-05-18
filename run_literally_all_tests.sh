@@ -52,7 +52,7 @@ build_with_option() {
     cmake "${COMMON_D_ARGS[@]}" $(get_cmake_D_args "$1") "$BUILD_DIR" \
         || return $?
 
-    ( set -e; cd "$BUILD_DIR"; make; ) \
+    ( set -e; cd "$BUILD_DIR"; make -B; ) \
         || return $?
 
     echo >&2 "Built with option: $LAST_OPTION"
