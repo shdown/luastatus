@@ -260,7 +260,7 @@ void server_compact(Server *S)
 
 void server_destroy(Server *S)
 {
-    close(S->srv_fd);
+    // We don't close /S->srv_fd/; the "owner" of the FD must close it.
 
     for (size_t i = 0; i < S->nclients; ++i) {
         if (!is_dropped(&S->clients[i])) {
