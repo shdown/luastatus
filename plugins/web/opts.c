@@ -103,6 +103,7 @@ static bool apply_long_nonneg(NextRequestParams *dst, lua_State *L, CURLoption w
 
     if (val < 0) {
         set_error(out_errmsg, "value is negative");
+        return false;
     }
 
     CURLcode rc = curl_easy_setopt(dst->C, which, (long) val);
