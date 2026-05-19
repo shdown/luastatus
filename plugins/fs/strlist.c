@@ -73,7 +73,11 @@ static void remove_at(Strlist *x, size_t i)
 
     // Move the last element to position /i/.
     size_t i_last = x->size - 1;
-    x->data[i] = x->data[i_last];
+    if (i_last != i) {
+        // Read (even a *read*, not dereference) of freed pointer is arguably an
+        // undefined behavior in C. So we check that /i_last != i/.
+        x->data[i] = x->data[i_last];
+    }
 
     // Decrease the size.
     resize_to(x, x->size - 1);
