@@ -95,7 +95,6 @@ bool wrongly_fetch(Display *dpy, WronglyResult *out)
     out->rules = dup_and_advance(&cur, end);
     out->model = dup_and_advance(&cur, end);
     out->layout = dup_and_advance(&cur, end);
-    out->options = dup_and_advance(&cur, end);
 
     ret = true;
 done:

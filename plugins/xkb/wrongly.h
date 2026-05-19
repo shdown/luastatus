@@ -29,7 +29,6 @@ typedef struct {
     char *rules;
     char *model;
     char *layout;
-    char *options;
 } WronglyResult;
 
 bool wrongly_fetch(Display *dpy, WronglyResult *out);

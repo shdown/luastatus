@@ -204,7 +204,6 @@ static bool query_wrongly(LuastatusPluginData *pd, Display *dpy, LS_StringArray 
     free(res.rules);
     free(res.model);
     free(res.layout);
-    free(res.options);
 
     return true;
 }
@@ -390,6 +389,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
             switch (ev1.xkb_type) {
             case XkbNewKeyboardNotify:
             case XkbMapNotify:
+            case XkbIndicatorMapNotify:
                 requery_everything = true;
                 break;
             case XkbStateNotify:
@@ -400,7 +400,6 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
                 }
                 break;
             case XkbIndicatorStateNotify:
-            case XkbIndicatorMapNotify:
                 {
                     XkbIndicatorNotifyEvent ev2;
                     memcpy(&ev2, &event, sizeof(ev2));
