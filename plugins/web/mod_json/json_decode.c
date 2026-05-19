@@ -38,7 +38,6 @@
 #include "libls/ls_panic.h"
 
 typedef struct {
-    int recur_lim;
     int lref_mt_array;
     int lref_mt_dict;
     bool mark_nulls;
@@ -73,9 +72,9 @@ static void mt_unref(lua_State *L, int lref)
 }
 
 // Forward declaration
-static bool convert(lua_State *L, cJSON *j, Params *params);
+static bool convert(lua_State *L, cJSON *j, Params *params, int recur_lim);
 
-static bool convert_array(lua_State *L, cJSON *j, Params *params)
+static bool convert_array(lua_State *L, cJSON *j, Params *params, int recur_lim)
 {
     int n = cJSON_GetArraySize(j);
     lua_createtable(L, n, 0); // L: table
@@ -84,7 +83,7 @@ static bool convert_array(lua_State *L, cJSON *j, Params *params)
 
     unsigned i = 1;
     for (cJSON *item = j->child; item; item = item->next) {
-        if (!convert(L, item, params)) {
+        if (!convert(L, item, params, recur_lim)) {
             return false;
         }
         // L: table value
@@ -94,7 +93,7 @@ static bool convert_array(lua_State *L, cJSON *j, Params *params)
     return true;
 }
 
-static bool convert_dict(lua_State *L, cJSON *j, Params *params)
+static bool convert_dict(lua_State *L, cJSON *j, Params *params, int recur_lim)
 {
     // /cJSON_GetArraySize()/ it works for dicts too
     int n = cJSON_GetArraySize(j);
@@ -103,7 +102,7 @@ static bool convert_dict(lua_State *L, cJSON *j, Params *params)
     mt_set(L, params->lref_mt_dict);
 
     for (cJSON *item = j->child; item; item = item->next) {
-        if (!convert(L, item, params)) {
+        if (!convert(L, item, params, recur_lim)) {
             return false;
         }
         // L: table value
@@ -112,9 +111,9 @@ static bool convert_dict(lua_State *L, cJSON *j, Params *params)
     return true;
 }
 
-static bool convert(lua_State *L, cJSON *j, Params *params)
+static bool convert(lua_State *L, cJSON *j, Params *params, int recur_lim)
 {
-    if (!params->recur_lim--) {
+    if (!recur_lim--) {
         params->err_descr = "depth limit exceeded";
         return false;
     }
@@ -148,10 +147,10 @@ static bool convert(lua_State *L, cJSON *j, Params *params)
         return true;
 
     } else if (cJSON_IsArray(j)) {
-        return convert_array(L, j, params);
+        return convert_array(L, j, params, recur_lim);
 
     } else if (cJSON_IsObject(j)) {
-        return convert_dict(L, j, params);
+        return convert_dict(L, j, params, recur_lim);
 
     } else {
         LS_MUST_BE_UNREACHABLE();
@@ -181,7 +180,6 @@ bool json_decode(lua_State *L, const char *input, int max_depth, int flags, char
     }
 
     Params params = {
-        .recur_lim = max_depth,
         .lref_mt_array = LUA_REFNIL,
         .lref_mt_dict = LUA_REFNIL,
         .mark_nulls = false,
@@ -195,7 +193,7 @@ bool json_decode(lua_State *L, const char *input, int max_depth, int flags, char
         params.mark_nulls = true;
     }
 
-    bool is_ok = convert(L, j, &params);
+    bool is_ok = convert(L, j, &params, max_depth);
 
     mt_unref(L, params.lref_mt_array);
     mt_unref(L, params.lref_mt_dict);
