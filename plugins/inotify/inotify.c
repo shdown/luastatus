@@ -357,7 +357,7 @@ static void push_event(lua_State *L, const struct inotify_event *event)
     }
     lua_setfield(L, -2, "mask"); // L: table
 
-    lua_pushnumber(L, event->cookie); // L: table cookie
+    lua_pushinteger(L, event->cookie); // L: table cookie
     lua_setfield(L, -2, "cookie"); // L: table
 
     if (event->len) {
