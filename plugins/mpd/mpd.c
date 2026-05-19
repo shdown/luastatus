@@ -461,7 +461,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 
     LS_FifoDevice retry_fifo_dev = ls_fifo_device_new();
 
-    char portstr[8];
+    char portstr[12];
     snprintf(portstr, sizeof(portstr), "%d", (int) p->port);
 
     while (1) {
