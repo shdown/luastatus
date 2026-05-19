@@ -75,7 +75,7 @@ static void append_to_lua_buf_callback(void *ud, SAFEV v)
 static int l_json_encode_str(lua_State *L)
 {
     size_t ns;
-    const char *s = luaL_checklstring(L, -1, &ns);
+    const char *s = luaL_checklstring(L, 1, &ns);
 
     luaL_Buffer b;
     luaL_buffinit(L, &b);
