@@ -307,7 +307,7 @@ static int l_set_property(lua_State *L)
             "(ssv)",
             lookupf(&p, "interface"),
             lookupf(&p, "property_name"),
-            g_variant_new_variant(p.gvalue)
+            p.gvalue
         )
     );
     zoo_call_params_free(&p);
