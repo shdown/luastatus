@@ -271,7 +271,7 @@ static int lfunc_width(lua_State *L)
     if (rc < 0) {
         lua_pushnil(L); // L: ? nil
     } else {
-        lua_pushnumber(L, width); // ? L: width
+        lua_pushnumber(L, width); // ? L: ? width
     }
     return 1;
 }
