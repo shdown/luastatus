@@ -193,14 +193,16 @@ bool json_decode(lua_State *L, const char *input, int max_depth, int flags, char
         params.mark_nulls = true;
     }
 
+    int orig_top = lua_gettop(L);
     bool is_ok = convert(L, j, &params, max_depth);
+    if (!is_ok) {
+        lua_settop(L, orig_top);
+        snprintf(errbuf, nerrbuf, "%s", params.err_descr);
+    }
 
     mt_unref(L, params.lref_mt_array);
     mt_unref(L, params.lref_mt_dict);
 
-    if (!is_ok) {
-        snprintf(errbuf, nerrbuf, "%s", params.err_descr);
-    }
     cJSON_Delete(j);
     return is_ok;
 }
