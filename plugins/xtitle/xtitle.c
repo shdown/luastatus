@@ -115,53 +115,90 @@ static inline bool get_active_window(Data *d, xcb_window_t *win)
         ) == 1;
 }
 
-static bool push_window_title(Data *d, lua_State *L, xcb_window_t win)
+static bool try_get_title_via_ewmh_visible_name(Data *d, lua_State *L, xcb_window_t win)
 {
-    if (win == XCB_NONE)
-        return false;
-
     xcb_ewmh_get_utf8_strings_reply_t ewmh_txt_prop;
-    xcb_icccm_get_text_property_reply_t icccm_txt_prop;
-    ewmh_txt_prop.strings = NULL;
-    icccm_txt_prop.name = NULL;
 
-    if (d->visible &&
-        xcb_ewmh_get_wm_visible_name_reply(
+    if (xcb_ewmh_get_wm_visible_name_reply(
             d->ewmh,
             xcb_ewmh_get_wm_visible_name(d->ewmh, win),
             &ewmh_txt_prop,
             NULL
-        ) == 1 &&
-        ewmh_txt_prop.strings)
+        ) != 1)
     {
-        lua_pushlstring(L, ewmh_txt_prop.strings, ewmh_txt_prop.strings_len);
-        xcb_ewmh_get_utf8_strings_reply_wipe(&ewmh_txt_prop);
-        return true;
+        return false;
     }
+
+    bool ok = ewmh_txt_prop.strings != NULL;
+    if (ok) {
+        lua_pushlstring(L, ewmh_txt_prop.strings, ewmh_txt_prop.strings_len);
+    }
+
+    xcb_ewmh_get_utf8_strings_reply_wipe(&ewmh_txt_prop);
+    return ok;
+}
+
+static bool try_get_title_via_ewmh_name(Data *d, lua_State *L, xcb_window_t win)
+{
+    xcb_ewmh_get_utf8_strings_reply_t ewmh_txt_prop;
 
     if (xcb_ewmh_get_wm_name_reply(
             d->ewmh,
             xcb_ewmh_get_wm_name(d->ewmh, win),
             &ewmh_txt_prop,
             NULL
-        ) == 1 &&
-        ewmh_txt_prop.strings)
+        ) != 1)
     {
-        lua_pushlstring(L, ewmh_txt_prop.strings, ewmh_txt_prop.strings_len);
-        xcb_ewmh_get_utf8_strings_reply_wipe(&ewmh_txt_prop);
-        return true;
+        return false;
     }
+
+    bool ok = ewmh_txt_prop.strings != NULL;
+    if (ok) {
+        lua_pushlstring(L, ewmh_txt_prop.strings, ewmh_txt_prop.strings_len);
+    }
+
+    xcb_ewmh_get_utf8_strings_reply_wipe(&ewmh_txt_prop);
+    return ok;
+}
+
+static bool try_get_title_via_icccm_name(Data *d, lua_State *L, xcb_window_t win)
+{
+    xcb_icccm_get_text_property_reply_t icccm_txt_prop;
 
     if (xcb_icccm_get_wm_name_reply(
             d->conn,
             xcb_icccm_get_wm_name(d->conn, win),
             &icccm_txt_prop,
             NULL
-        ) == 1 &&
-        icccm_txt_prop.name)
+        ) != 1)
     {
+        return false;
+    }
+
+    bool ok = icccm_txt_prop.name != NULL;
+    if (ok) {
         lua_pushlstring(L, icccm_txt_prop.name, icccm_txt_prop.name_len);
-        xcb_icccm_get_text_property_reply_wipe(&icccm_txt_prop);
+    }
+
+    xcb_icccm_get_text_property_reply_wipe(&icccm_txt_prop);
+    return ok;
+}
+
+static bool push_window_title(Data *d, lua_State *L, xcb_window_t win)
+{
+    if (win == XCB_NONE) {
+        return false;
+    }
+
+    if (d->visible && try_get_title_via_ewmh_visible_name(d, L, win)) {
+        return true;
+    }
+
+    if (try_get_title_via_ewmh_name(d, L, win)) {
+        return true;
+    }
+
+    if (try_get_title_via_icccm_name(d, L, win)) {
         return true;
     }
 
@@ -190,8 +227,7 @@ static bool push_window_class_and_instance(Data *d, lua_State *L, xcb_window_t w
         return false;
     }
 
-    xcb_get_property_cookie_t cookie =
-        xcb_icccm_get_wm_class(d->conn, win);
+    xcb_get_property_cookie_t cookie = xcb_icccm_get_wm_class(d->conn, win);
 
     xcb_icccm_get_wm_class_reply_t prop;
     if (!xcb_icccm_get_wm_class_reply(d->conn, cookie, &prop, NULL)) {
@@ -261,13 +297,19 @@ static bool title_changed(
     return false;
 }
 
-static xcb_screen_iterator_t find_nth_screen(xcb_connection_t *conn, int n)
+static bool find_nth_screen(xcb_connection_t *conn, int n, xcb_screen_iterator_t *out)
 {
     const xcb_setup_t *setup = xcb_get_setup(conn);
+
     xcb_screen_iterator_t iter = xcb_setup_roots_iterator(setup);
-    for (int i = 0; i < n; ++i)
+    for (int i = 0; i < n; ++i) {
+        if (!iter.rem) {
+            return false;
+        }
         xcb_screen_next(&iter);
-    return iter;
+    }
+    *out = iter;
+    return true;
 }
 
 static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
@@ -293,7 +335,12 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     }
 
     // iterate over screens to find our root window
-    d.root = find_nth_screen(d.conn, d.screenp).data->root;
+    xcb_screen_iterator_t screen_iter;
+    if (!find_nth_screen(d.conn, d.screenp, &screen_iter)) {
+        LS_FATALF(pd, "cannot find requested screen (#%d)", d.screenp);
+        goto error;
+    }
+    d.root = screen_iter.data->root;
 
     // initialize ewmh
     if (
