@@ -24,6 +24,7 @@
 #include <xcb/xproto.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <lua.h>
 #include <lauxlib.h>
 
@@ -64,27 +65,35 @@ static void destroy(LuastatusBarlibData *bd)
     free(p);
 }
 
-// Returns zero on success, non-zero XCB error code on failure. In either case, /*out_conn/ is
-// written to, and should be closed with /xcb_disconnect()/.
-static int do_connect(
+// Even if this function returns false, /*out_conn/ is written to, and should be closed with
+// /xcb_disconnect()/.
+static bool do_connect(
         const char *dpyname,
         xcb_connection_t **out_conn,
-        xcb_window_t *out_root)
+        xcb_window_t *out_root,
+        char *errbuf, size_t nerrbuf)
 {
     int screenp;
     *out_conn = xcb_connect(dpyname, &screenp);
     int r = xcb_connection_has_error(*out_conn);
-    if (r != 0)
-        return r;
+    if (r != 0) {
+        snprintf(errbuf, nerrbuf, "XCB error %d", r);
+        return false;
+    }
 
     const xcb_setup_t *setup = xcb_get_setup(*out_conn);
     xcb_screen_iterator_t iter = xcb_setup_roots_iterator(setup);
 
-    for (int i = 0; i < screenp; ++i)
+    for (int i = 0; i < screenp; ++i) {
+        if (!iter.rem) {
+            snprintf(errbuf, nerrbuf, "cannot find requested screen (#%d)", screenp);
+            return false;
+        }
         xcb_screen_next(&iter);
+    }
 
     *out_root = iter.data->root;
-    return 0;
+    return true;
 }
 
 static bool redraw(LuastatusBarlibData *bd)
@@ -157,9 +166,9 @@ static int init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidget
     }
     p->sep = ls_xstrdup(sep ? sep : " | ");
 
-    int r = do_connect(dpyname, &p->conn, &p->root);
-    if (r != 0) {
-        LS_FATALF(bd, "can't connect to display: XCB error %d", r);
+    char errbuf[128];
+    if (!do_connect(dpyname, &p->conn, &p->root, errbuf, sizeof(errbuf))) {
+        LS_FATALF(bd, "cannot connect to display: %s", errbuf);
         goto error;
     }
 
