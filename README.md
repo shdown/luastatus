@@ -238,6 +238,7 @@ which bombard luastatus with a lot of events from a plugin and a barlib simultan
     - It passes under LSAN (Leak Sanitizer)
     - It passes under TSAN (Thread Sanitizer)
   * Everything that theoretically can be an attack surface is fuzzed, under UBSAN, with both AFL and AFL++; we also have a sophisticated fuzz testcase generator (in `fuzz_utils/gen_testcases/`)
+  * We check all Lua code (derived plugins, examples, etc) with luacheck
 
 We tried to use additional compiler warnings, `-fanalyzer`, and external linters/static analyzers, but
 these tools only gave false positives, except for PVS-Studio, which found one actual bug, but with a lot of false positives.
