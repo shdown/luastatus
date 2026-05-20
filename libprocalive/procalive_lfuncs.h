@@ -57,7 +57,7 @@ int procalive_lfunc_glob(lua_State *L);
 
 // Lua function is_process_alive(pid):
 //     Checks if a process with PID 'pid' is currently alive. 'pid' must be either a
-//     or a string.
+//     number or a string.
 //     Returns a boolean that indicates whether the process is alive.
 int procalive_lfunc_is_process_alive(lua_State *L);
 
