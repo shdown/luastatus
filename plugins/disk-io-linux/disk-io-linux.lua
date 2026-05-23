@@ -56,13 +56,18 @@ function P.read_diskstats(old, divisor, _proc_path)
             local written = assert(tonumber(written_str))
 
             if old_entry then
-                deltas[#deltas + 1] = {
-                    num_major     = assert(tonumber(num_major_str)),
-                    num_minor     = assert(tonumber(num_minor_str)),
-                    name          = name,
-                    read_bytes    = factor * (read    - old_entry.read),
-                    written_bytes = factor * (written - old_entry.written),
-                }
+                local delta_read_sectors    = read    - old_entry.read
+                local delta_written_sectors = written - old_entry.written
+
+                if delta_read_sectors >= 0 and delta_written_sectors >= 0 then
+                    deltas[#deltas + 1] = {
+                        num_major     = assert(tonumber(num_major_str)),
+                        num_minor     = assert(tonumber(num_minor_str)),
+                        name          = name,
+                        read_bytes    = factor * delta_read_sectors,
+                        written_bytes = factor * delta_written_sectors,
+                    }
+                end
             end
             new[key] = {read = read, written = written}
         end
@@ -73,6 +78,8 @@ end
 
 function P.widget(tbl)
     local period = tbl.period or 1
+    assert(period > 0)
+
     local old = {}
     return {
         plugin = 'timer',
