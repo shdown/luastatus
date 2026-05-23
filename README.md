@@ -129,7 +129,7 @@ Here we give a list of plugins that would probably be of interest to most users 
     - examples: `examples/*/time-date.lua`
 
 * If you have multiple keyboard layouts, keyboard layout indicator: **plugin `xkb`**
-    - examples: `examples/*/time-date.lua`
+    - examples: `examples/*/xkb.lua`
 
 * Volume indicator: **plugin `alsa` or `pulse`**
     - examples for ALSA: `examples/*/alsa{,-gauge,-interactive-gauge}.lua`
