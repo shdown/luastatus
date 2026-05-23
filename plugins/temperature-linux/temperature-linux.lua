@@ -55,12 +55,22 @@ local function sensor_list_realize(SL, filter_func, cmd)
         end
     end)
 
-    -- numeric sort
-    local function extract_first_number(s)
-        return tonumber(s:match('[0-9]+') or '-1')
+    -- numeric sort, but expects 'sort_by' field to contain two numbers; first number is more
+    -- important for sorting than the second.
+    local function extract_two_numbers(s)
+        local s1, s2 = s:match('([0-9]+)[^0-9]+([0-9]+)')
+        if not s1 then
+            return -1, -1
+        end
+        return tonumber(s1), tonumber(s2)
     end
     table.sort(entries, function(a, b)
-        return extract_first_number(a.sort_by) < extract_first_number(b.sort_by)
+        local a_n1, a_n2 = extract_two_numbers(a.sort_by)
+        local b_n1, b_n2 = extract_two_numbers(b.sort_by)
+        if a_n1 ~= b_n1 then
+            return a_n1 < b_n1
+        end
+        return a_n2 < b_n2
     end)
 
     SL.entries = entries
@@ -115,19 +125,19 @@ D=]] .. thermal_path_escaped .. [[;
 cd -- "$D" || exit $?
 for dir in thermal_zone*; do
     [ -e "$dir"/temp ] || continue
-    printf "%s\t%s\t%s\n" "$dir" "$dir" "$D/$dir/temp"
+    printf "%s\t%s\t%s\n" "$dir" "${dir},0" "$D/$dir/temp"
 done
 ]])
 
     sensor_list_realize(data.SL_hwmon, data.filter_func, [[
 D=]] .. hwmon_path_escaped .. [[;
 cd -- "$D" || exit $?
-for dir in *; do
+for dir in hwmon*; do
     [ -e "$dir"/name ] || continue
     IFS= read -r monitor_name < "$dir"/name || continue
     for f in "$dir"/temp*_input; do
         [ -e "$f" ] || continue
-        printf "%s\t%s\t%s\n" "$monitor_name" "${f##*/}" "$D/$f"
+        printf "%s\t%s\t%s\n" "$monitor_name" "$f" "$D/$f"
     done
 done
 ]])
