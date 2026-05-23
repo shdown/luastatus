@@ -147,6 +147,7 @@ function P.widget(tbl)
     end
 
     local period = tbl.period or 1
+    assert(period > 0)
 
     local reader = P.reader_new(iface_filter)
     reader._procpath = tbl._procpath or DEFAULT_PROCPATH
