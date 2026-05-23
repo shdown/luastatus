@@ -95,7 +95,6 @@ function P.widget(tbl)
                     bus = 'system',
                     interface = 'org.freedesktop.systemd1.Manager',
                     signal = 'UnitFilesChanged',
-                    arg0 = 'org.freedesktop.systemd1.Unit',
                 },
             },
             timeout = tbl.forced_refresh_interval or 30,
