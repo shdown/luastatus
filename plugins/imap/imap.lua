@@ -71,7 +71,11 @@ end
 function IMAP:receive()
     local line, err = self.conn:receive()
     if line == nil then
-        error(err == 'wantread' and IMAP_TIMEOUT_ERROR or err)
+        if err == 'wantread' or err == 'timeout' then
+            error(IMAP_TIMEOUT_ERROR)
+        else
+            error(err)
+        end
     end
     if self.verbose then
         log('<', line)
