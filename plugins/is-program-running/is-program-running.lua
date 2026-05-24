@@ -37,6 +37,12 @@ local function check_glob(pattern, with_hidden)
     return false
 end
 
+local function check_no_glob_patterns_in_path(path)
+    if path:find('[[*?\\]') then
+        error('path contains glob patterns or escapes')
+    end
+end
+
 function P.make_watcher(kind, path)
     assert(type(kind) == 'string')
     assert(type(path) == 'string')
@@ -62,11 +68,13 @@ function P.make_watcher(kind, path)
         end
 
     elseif kind == 'dir_nonempty' then
+        check_no_glob_patterns_in_path(path)
         return function()
             return check_glob(path .. '/*')
         end
 
     elseif kind == 'dir_nonempty_with_hidden' then
+        check_no_glob_patterns_in_path(path)
         return function()
             return check_glob(path .. '/*') or check_glob(path .. '/.*', true)
         end
