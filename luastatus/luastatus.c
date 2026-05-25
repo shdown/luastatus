@@ -41,6 +41,7 @@
 #include "libls/ls_panic.h"
 #include "libls/ls_xallocf.h"
 #include "libls/ls_lua_compat.h"
+#include "libls/ls_lua_madness.h"
 
 #include "libwidechar/libwidechar.h"
 #include "librunshell/runshell.h"
@@ -571,14 +572,14 @@ static int l_require_plugin(lua_State *L)
     }
     lua_pop(L, 1); // L: ? table
 
-    char *filename = ls_xallocf("%s/%s.lua", LUASTATUS_LUA_PLUGINS_DIR, arg);
-    int r = luaL_loadfile(L, filename);
-    free(filename);
+    lua_pushfstring(L, "%s/%s.lua", LUASTATUS_LUA_PLUGINS_DIR, arg); // L: ? table filename
+    int r = luaL_loadfile(L, lua_tostring(L, -1));
     if (r != 0) {
         return lua_error(L);
     }
+    // L: ? table filename chunk
+    lua_remove(L, -2); // L: ? table chunk
 
-    // L: ? table chunk
     lua_call(L, 0, 1); // L: ? table result
     lua_pushvalue(L, -1); // L: ? table result result
     lua_setfield(L, -3, arg); // L: ? table result
@@ -598,13 +599,13 @@ static int l_communicate(lua_State *L)
     const char *action = luaL_checkstring(L, 1);
     if (strcmp(action, "read") == 0) {
         comm_lock();
-        lua_pushlstring(L, comm->data, comm->data_len); // L: ? data
+        ls_lua_madness_pushlstr(L, comm->data, comm->data_len); // L: ? data
         comm_unlock();
         return 1;
 
     } else if (strcmp(action, "read_and_clear") == 0) {
         comm_lock();
-        lua_pushlstring(L, comm->data, comm->data_len); // L: ? data
+        ls_lua_madness_pushlstr(L, comm->data, comm->data_len); // L: ? data
         comm_set(comm, NULL, 0);
         comm_unlock();
         return 1;
@@ -643,17 +644,17 @@ static void inject_libs_replacements(lua_State *L)
 
     lua_getglobal(L, "os"); // L: ? os
 
-    lua_pushcfunction(L, l_os_exit); // L: ? os l_os_exit
+    /*__OK__*/ lua_pushcfunction(L, l_os_exit); // L: ? os l_os_exit
     lua_setfield(L, -2, "exit"); // L: ? os
 
-    lua_pushcfunction(L, l_os_getenv); // L: ? os l_os_getenv
+    /*__OK__*/ lua_pushcfunction(L, l_os_getenv); // L: ? os l_os_getenv
     lua_setfield(L, -2, "getenv"); // L: ? os
 
-    lua_pushcfunction(L, l_os_setlocale); // L: ? os l_os_setlocale
+    /*__OK__*/ lua_pushcfunction(L, l_os_setlocale); // L: ? os l_os_setlocale
     lua_setfield(L, -2, "setlocale"); // L: ? os
 
     bool is_lua51 = ls_lua_is_lua51(L);
-    lua_pushcfunction(
+    /*__OK__*/ lua_pushcfunction(
         L,
         is_lua51 ? runshell_l_os_execute_lua51ver : runshell_l_os_execute);
     // L: ? os os_execute_func
@@ -668,11 +669,11 @@ static void inject_luastatus_module(lua_State *L, Widget *w)
 
     // ========== require_plugin ==========
     lua_newtable(L); // L: ? table table
-    lua_pushcclosure(L, l_require_plugin, 1); // L: ? table l_require_plugin
+    /*__OK__*/ lua_pushcclosure(L, l_require_plugin, 1); // L: ? table l_require_plugin
     lua_setfield(L, -2, "require_plugin"); // L: ? table
 
     // ========== execute ==========
-    lua_pushcfunction(L, runshell_l_os_execute); // L: ? table cfunction
+    /*__OK__*/ lua_pushcfunction(L, runshell_l_os_execute); // L: ? table cfunction
     lua_setfield(L, -2, "execute"); // L: ? table
 
     // ========== libwidechar ==========
@@ -682,7 +683,7 @@ static void inject_luastatus_module(lua_State *L, Widget *w)
 
     // ========== communicate ==========
     lua_pushlightuserdata(L, w); // L: ? table userdata
-    lua_pushcclosure(L, l_communicate, 1); // L: ? table userdata
+    /*__OK__*/ lua_pushcclosure(L, l_communicate, 1); // L: ? table userdata
     lua_setfield(L, -2, "communicate"); // L: ? table
 
     lua_setglobal(L, "luastatus"); // L: ?
@@ -706,7 +707,7 @@ static void sepstate_maybe_init(void)
     sepstate.L = xnew_lua_state();
     luaL_openlibs(sepstate.L);
     inject_libs(sepstate.L, NULL);
-    lua_pushcfunction(sepstate.L, l_error_handler); // sepstate.L: l_error_handler
+    /*__OK__*/ lua_pushcfunction(sepstate.L, l_error_handler); // sepstate.L: l_error_handler
     LS_PTH_CHECK(pthread_mutex_init(&sepstate.L_mtx, NULL));
 }
 
@@ -828,7 +829,7 @@ static bool widget_init(Widget *w, const char *filename)
     luaL_openlibs(w->L);
     // w->L: -
     inject_libs(w->L, w); // w->L: -
-    lua_pushcfunction(w->L, l_error_handler); // w->L: l_error_handler
+    /*__OK__*/ lua_pushcfunction(w->L, l_error_handler); // w->L: l_error_handler
 
     DEBUGF("running file '%s'", filename);
     if (!check_lua_call(w->L, luaL_loadfile(w->L, filename))) {

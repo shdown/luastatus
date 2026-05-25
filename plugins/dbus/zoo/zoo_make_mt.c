@@ -17,15 +17,24 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "zoo_call_prot.h"
-#include <stdbool.h>
-#include <lua.h>
+#include "zoo_make_mt.h"
 
-bool zoo_call_prot(lua_State *L, int nargs, int nresults, lua_CFunction f, void *f_ud)
+#include <lua.h>
+#include <lauxlib.h>
+#include "zoo_registry.h"
+
+void zoo_make_mt(
+        lua_State *L,
+        const char *mt_name,
+        const Zoo_RegistryEntry *registry)
 {
-    // L: ? args
-    lua_pushlightuserdata(L, f_ud); // L: ? args ud
-    lua_pushcclosure(L, f, 1); // L: ? args func
-    lua_insert(L, -(nargs + 1)); // L: ? func args
-    return lua_pcall(L, nargs, nresults, 0) == 0;
+    // L: ?
+    luaL_newmetatable(L, mt_name); // L: ? mt
+
+    lua_pushvalue(L, -1); // L: ? mt mt
+    lua_setfield(L, -2, "__index"); // L: ? mt
+
+    zoo_registry_register(L, registry); // L: ? mt
+
+    lua_pop(L, 1); // L: ?
 }

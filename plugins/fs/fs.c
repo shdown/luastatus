@@ -331,16 +331,16 @@ static void register_funcs(LuastatusPluginData *pd, lua_State *L)
     // L: ? table
 
     lua_pushlightuserdata(L, p); // L: ? table ud
-    lua_pushcclosure(L, lfunc_add_dyn_path, 1); // L: ? table func
+    /*__OK__*/ lua_pushcclosure(L, lfunc_add_dyn_path, 1); // L: ? table func
     lua_setfield(L, -2, "add_dyn_path"); // L: ? table
 
     lua_pushlightuserdata(L, p); // L: ? table ud
-    lua_pushcclosure(L, lfunc_remove_dyn_path, 1); // L: ? table func
+    /*__OK__*/ lua_pushcclosure(L, lfunc_remove_dyn_path, 1); // L: ? table func
     lua_setfield(L, -2, "remove_dyn_path"); // L: ? table
 
     // Note: function /get_max_dyn_paths/ is provided for backward compatibility purposes only.
 
-    lua_pushcfunction(L, lfunc_get_max_dyn_paths); // L: ? table func
+    /*__OK__*/ lua_pushcfunction(L, lfunc_get_max_dyn_paths); // L: ? table func
     lua_setfield(L, -2, "get_max_dyn_paths"); // L: ? table
 }
 

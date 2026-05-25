@@ -309,20 +309,49 @@ static void append_to_lua_buf_callback(void *ud, SAFEV segment)
     luaL_addlstring(b, SAFEV_ptr_UNSAFE(segment), SAFEV_len(segment));
 }
 
+static int throwable_make_valid_and_printable(lua_State *L)
+{
+    SAFEV v   = *(SAFEV *) lua_touserdata(L, 1);
+    SAFEV bad = *(SAFEV *) lua_touserdata(L, 2);
+
+    luaL_Buffer b;
+    luaL_buffinit(L, &b);
+
+    libwidechar_make_valid_and_printable(v, bad, append_to_lua_buf_callback, &b);
+
+    luaL_pushresult(&b); // L: result
+    return 1;
+}
+
+static void do_lua_call_or_die(lua_State *L, int nargs, int nresults)
+{
+    int rc = lua_pcall(L, nargs, nresults, 0);
+    if (rc != 0) {
+        const char *msg;
+        if (rc == LUA_ERRMEM) {
+            msg = "out of memory (reported from Lua)";
+        } else {
+            msg = "error thrown out of a lua_CFunction that must never throw";
+        }
+        fprintf(stderr, "FATAL: libwidechar: %s\n", msg);
+        abort();
+    }
+}
+
 static int lfunc_make_valid_and_printable(lua_State *L)
 {
     SAFEV v = extract_string_with_ij(L, 1, 3);
 
     SAFEV bad = v_from_lua_string(L, 2);
 
-    luaL_Buffer b;
-    luaL_buffinit(L, &b);
-
     LocaleSavedData lsd = begin_locale(L);
-    libwidechar_make_valid_and_printable(v, bad, append_to_lua_buf_callback, &b);
-    end_locale(lsd);
 
-    luaL_pushresult(&b); // L: result
+    /*__OK__*/ lua_pushcfunction(L, throwable_make_valid_and_printable); // L: ? f
+    lua_pushlightuserdata(L, &v); // L: ? f arg1
+    lua_pushlightuserdata(L, &bad); // L: ? f arg1 arg2
+    do_lua_call_or_die(L, 2, 1); // L: ? result
+
+    end_locale(lsd);
 
     return 1;
 }
@@ -339,16 +368,16 @@ void libwidechar_register_lua_funcs(lua_State *L)
 
 #if ! defined(__NetBSD__)
     // L: table
-    lua_pushcfunction(L, lfunc_width); // L: table func
+    /*__OK__*/ lua_pushcfunction(L, lfunc_width); // L: table func
     lua_setfield(L, -2, "width"); // L: table
 
-    lua_pushcfunction(L, lfunc_truncate_to_width); // L: table func
+    /*__OK__*/ lua_pushcfunction(L, lfunc_truncate_to_width); // L: table func
     lua_setfield(L, -2, "truncate_to_width"); // L: table
 
-    lua_pushcfunction(L, lfunc_make_valid_and_printable); // L: table func
+    /*__OK__*/ lua_pushcfunction(L, lfunc_make_valid_and_printable); // L: table func
     lua_setfield(L, -2, "make_valid_and_printable"); // L: table
 
-    lua_pushcfunction(L, lfunc_is_dummy_implementation); // L: table func
+    /*__OK__*/ lua_pushcfunction(L, lfunc_is_dummy_implementation); // L: table func
     lua_setfield(L, -2, "is_dummy_implementation"); // L: table
 #endif
 }

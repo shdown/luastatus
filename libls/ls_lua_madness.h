@@ -20,6 +20,10 @@
 #pragma once
 
 #include <lua.h>
-#include <stdbool.h>
+#include <stddef.h>
 
-bool zoo_call_prot(lua_State *L, int args, int nresults, lua_CFunction f, void *f_ud);
+void ls_lua_madness_pushlstr(lua_State *L, const char *b, size_t nb);
+
+void ls_lua_madness_pushstr(lua_State *L, const char *s);
+
+void ls_lua_madness_call_or_die(lua_State *L, int nargs, int nresults);

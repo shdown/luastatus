@@ -36,11 +36,12 @@
 #endif
 
 #include "libls/ls_panic.h"
+#include "libls/ls_lua_madness.h"
 
 typedef struct {
-    int lref_mt_array;
-    int lref_mt_dict;
-    bool mark_nulls;
+    JsonDecodeRefs refs;
+    int flags;
+    bool is_ok;
     const char *err_descr;
 } Params;
 
@@ -56,19 +57,14 @@ static int mt_new(lua_State *L, const char *field)
 static void mt_set(lua_State *L, int lref)
 {
     // L: ? mt
-    if (lref == LUA_REFNIL) {
-        return;
-    }
     lua_rawgeti(L, LUA_REGISTRYINDEX, lref); // L: ? table mt
     lua_setmetatable(L, -2); // L: ? table
 }
 
-static void mt_unref(lua_State *L, int lref)
+void json_decode_reg_refs(lua_State *L, JsonDecodeRefs *out)
 {
-    if (lref == LUA_REFNIL) {
-        return;
-    }
-    luaL_unref(L, LUA_REGISTRYINDEX, lref);
+    out->lref_mt_arr  = mt_new(L, "is_array");
+    out->lref_mt_dict = mt_new(L, "is_dict");
 }
 
 // Forward declaration
@@ -79,7 +75,9 @@ static bool convert_array(lua_State *L, cJSON *j, Params *params, int recur_lim)
     int n = cJSON_GetArraySize(j);
     lua_createtable(L, n, 0); // L: table
 
-    mt_set(L, params->lref_mt_array);
+    if (params->flags & JSON_DEC_MARK_ARRAYS_VS_DICT) {
+        mt_set(L, params->refs.lref_mt_arr);
+    }
 
     unsigned i = 1;
     for (cJSON *item = j->child; item; item = item->next) {
@@ -99,7 +97,9 @@ static bool convert_dict(lua_State *L, cJSON *j, Params *params, int recur_lim)
     int n = cJSON_GetArraySize(j);
     lua_createtable(L, 0, n); // L: table
 
-    mt_set(L, params->lref_mt_dict);
+    if (params->flags & JSON_DEC_MARK_ARRAYS_VS_DICT) {
+        mt_set(L, params->refs.lref_mt_dict);
+    }
 
     for (cJSON *item = j->child; item; item = item->next) {
         if (!convert(L, item, params, recur_lim)) {
@@ -123,7 +123,7 @@ static bool convert(lua_State *L, cJSON *j, Params *params, int recur_lim)
     }
 
     if (cJSON_IsNull(j)) {
-        if (params->mark_nulls) {
+        if (params->flags & JSON_DEC_MARK_NULLS) {
             lua_pushlightuserdata(L, NULL);
         } else {
             lua_pushnil(L);
@@ -157,9 +157,32 @@ static bool convert(lua_State *L, cJSON *j, Params *params, int recur_lim)
     }
 }
 
-bool json_decode(lua_State *L, const char *input, int max_depth, int flags, char *errbuf, size_t nerrbuf)
+static int throwable_convert(lua_State *L)
+{
+    cJSON *j = lua_touserdata(L, 1);
+    Params *params = lua_touserdata(L, 2);
+    const int *max_depth = lua_touserdata(L, 3);
+
+    bool is_ok = convert(L, j, params, *max_depth);
+    params->is_ok = is_ok;
+    if (!is_ok) {
+        lua_settop(L, 0);
+        lua_pushnil(L);
+    }
+    return 1;
+}
+
+bool json_decode(
+        lua_State *L,
+        const JsonDecodeRefs *refs,
+        const char *input,
+        int max_depth,
+        int flags,
+        char *errbuf,
+        size_t nerrbuf)
 {
     LS_ASSERT(input != NULL);
+    LS_ASSERT(refs != NULL);
 
     if (!lua_checkstack(L, max_depth)) {
         snprintf(errbuf, nerrbuf, "Lua failed to allocate stack of size %d", max_depth);
@@ -180,29 +203,23 @@ bool json_decode(lua_State *L, const char *input, int max_depth, int flags, char
     }
 
     Params params = {
-        .lref_mt_array = LUA_REFNIL,
-        .lref_mt_dict = LUA_REFNIL,
-        .mark_nulls = false,
+        .refs = *refs,
+        .flags = flags,
+        .is_ok = false,
         .err_descr = NULL,
     };
-    if (flags & JSON_DEC_MARK_ARRAYS_VS_DICT) {
-        params.lref_mt_array = mt_new(L, "is_array");
-        params.lref_mt_dict = mt_new(L, "is_dict");
-    }
-    if (flags & JSON_DEC_MARK_NULLS) {
-        params.mark_nulls = true;
-    }
 
-    int orig_top = lua_gettop(L);
-    bool is_ok = convert(L, j, &params, max_depth);
-    if (!is_ok) {
-        lua_settop(L, orig_top);
-        snprintf(errbuf, nerrbuf, "%s", params.err_descr);
-    }
-
-    mt_unref(L, params.lref_mt_array);
-    mt_unref(L, params.lref_mt_dict);
+    /*__OK__*/ lua_pushcfunction(L, throwable_convert);
+    lua_pushlightuserdata(L, j);
+    lua_pushlightuserdata(L, &params);
+    lua_pushlightuserdata(L, &max_depth);
+    ls_lua_madness_call_or_die(L, 3, 1);
 
     cJSON_Delete(j);
-    return is_ok;
+
+    if (!params.is_ok) {
+        lua_pop(L, 1);
+        snprintf(errbuf, nerrbuf, "%s", params.err_descr);
+    }
+    return params.is_ok;
 }

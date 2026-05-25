@@ -56,7 +56,7 @@ static void push_special_object(lua_State *L, const char *s, size_t ns, bool is_
         num_upvalues = 2;
     }
     lua_pushlstring(L, s, ns);
-    lua_pushcclosure(L, l_special_object, num_upvalues);
+    /*__OK__*/ lua_pushcclosure(L, l_special_object, num_upvalues);
 }
 
 // forward declaration

@@ -31,11 +31,13 @@
 #include "libls/ls_panic.h"
 #include "libls/ls_alloc_utils.h"
 #include "libls/ls_lua_compat.h"
+#include "libls/ls_lua_madness.h"
 
 #include "zoo_checkudata.h"
-#include "zoo_call_prot.h"
+#include "zoo_ccall.h"
 #include "zoo_uncvt_type.h"
-#include "zoo_mt.h"
+#include "zoo_make_mt.h"
+#include "zoo_registry.h"
 #include "../cvt.h"
 
 typedef struct {
@@ -62,17 +64,30 @@ static GVariant *fetch_gvar_borrow(lua_State *L, int pos, const char *what)
     return vobj->v;
 }
 
+static int throwable_make_vobj_steal(lua_State *L)
+{
+    GVariant *v = lua_touserdata(L, 1);
+    LS_ASSERT(v != NULL);
+    LS_ASSERT(!g_variant_is_floating(v));
+
+    // L: ?
+    Vobj *vobj = ls_lua_newud(L, sizeof(Vobj)); // L: ? ud
+    vobj->v = v;
+
+    luaL_getmetatable(L, MT_NAME); // L: ? ud mt
+    lua_setmetatable(L, -2); // L: ? ud
+
+    return 1;
+}
+
 static void make_vobj_steal(lua_State *L, GVariant *v)
 {
     LS_ASSERT(v != NULL);
     LS_ASSERT(!g_variant_is_floating(v));
 
-    // L: ?
-    Vobj *vobj = lua_newuserdata(L, sizeof(Vobj)); // L: ? ud
-    vobj->v = v;
-
-    luaL_getmetatable(L, MT_NAME); // L: ? ud mt
-    lua_setmetatable(L, -2); // L: ? ud
+    /*__OK__*/ lua_pushcfunction(L, throwable_make_vobj_steal);
+    lua_pushlightuserdata(L, v);
+    ls_lua_madness_call_or_die(L, 1, 1);
 }
 
 static void make_vobj_from_floating(lua_State *L, GVariant *v)
@@ -255,7 +270,7 @@ static void free_ud(MkSomethingUD ud)
 
 static int throwable_l_mkval_tuple(lua_State *L)
 {
-    MkSomethingUD *ud = lua_touserdata(L, lua_upvalueindex(1));
+    MkSomethingUD *ud = ZOO_CCALL_USERDATA(L, 1);
 
     luaL_checktype(L, 1, LUA_TTABLE);
     size_t n = ls_lua_array_len(L, 1);
@@ -281,7 +296,9 @@ static int throwable_l_mkval_tuple(lua_State *L)
 static int l_mkval_tuple(lua_State *L)
 {
     MkSomethingUD ud = {0};
-    bool ok = zoo_call_prot(L, lua_gettop(L), 1, throwable_l_mkval_tuple, &ud);
+
+    lua_settop(L, 1);
+    bool ok = zoo_ccall(L, 1, 1, throwable_l_mkval_tuple, &ud);
 
     free_ud(ud);
 
@@ -294,7 +311,7 @@ static int l_mkval_tuple(lua_State *L)
 
 static int throwable_l_mkval_array(lua_State *L)
 {
-    MkSomethingUD *ud = lua_touserdata(L, lua_upvalueindex(1));
+    MkSomethingUD *ud = ZOO_CCALL_USERDATA(L, 2);
 
     // /t/ is borrowed (STACK).
     const GVariantType *t = zoo_uncvt_type_fetch_borrow(L, 1, "argument #1");
@@ -334,7 +351,9 @@ static int throwable_l_mkval_array(lua_State *L)
 static int l_mkval_array(lua_State *L)
 {
     MkSomethingUD ud = {0};
-    bool ok = zoo_call_prot(L, lua_gettop(L), 1, throwable_l_mkval_array, &ud);
+
+    lua_settop(L, 2);
+    bool ok = zoo_ccall(L, 2, 1, throwable_l_mkval_array, &ud);
 
     free_ud(ud);
 
@@ -384,27 +403,28 @@ GVariant *zoo_uncvt_val_fetch_newref(lua_State *L, int pos, const char *what)
 
 static void register_mt(lua_State *L)
 {
-    zoo_mt_begin(L, MT_NAME);
+    static const Zoo_RegistryEntry mt_registry[] = {
+        /*__OK__*/ ZOO_REG_ENT("get_type", l_get_type),
+        /*__OK__*/ ZOO_REG_ENT("equals_to", l_equals_to),
+        /*__OK__*/ ZOO_REG_ENT("to_lua", l_to_lua),
 
-    zoo_mt_add_method(L, "get_type", l_get_type);
-    zoo_mt_add_method(L, "equals_to", l_equals_to);
-    zoo_mt_add_method(L, "to_lua", l_to_lua);
+        /*__OK__*/ ZOO_REG_ENT("__gc", vobj_gc),
 
-    zoo_mt_add_method(L, "__gc", vobj_gc);
-
-    zoo_mt_end(L);
+        {0},
+    };
+    zoo_make_mt(L, MT_NAME, mt_registry);
 }
 
 void zoo_uncvt_val_register_mt_and_funcs(lua_State *L)
 {
     register_mt(L);
 
-#define REG(Name_, F_) (lua_pushcfunction(L, (F_)), lua_setfield(L, -2, (Name_)))
-
-    REG("mkval_simple", l_mkval_simple);
-    REG("mkval_dict_entry", l_mkval_dict_entry);
-    REG("mkval_tuple", l_mkval_tuple);
-    REG("mkval_array", l_mkval_array);
-
-#undef REG
+    static const Zoo_RegistryEntry registry[] = {
+        /*__OK__*/ ZOO_REG_ENT("mkval_simple", l_mkval_simple),
+        /*__OK__*/ ZOO_REG_ENT("mkval_dict_entry", l_mkval_dict_entry),
+        /*__OK__*/ ZOO_REG_ENT("mkval_tuple", l_mkval_tuple),
+        /*__OK__*/ ZOO_REG_ENT("mkval_array", l_mkval_array),
+        {0},
+    };
+    zoo_registry_register(L, registry);
 }

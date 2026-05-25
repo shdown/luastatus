@@ -19,27 +19,19 @@
 
 #pragma once
 
-#include <stdbool.h>
-#include <stddef.h>
 #include <lua.h>
 
-enum {
-    JSON_DEC_MARK_ARRAYS_VS_DICT = 1 << 0,
-    JSON_DEC_MARK_NULLS          = 1 << 1,
-};
-
 typedef struct {
-    int lref_mt_arr;
-    int lref_mt_dict;
-} JsonDecodeRefs;
+    const char *name;
+    lua_CFunction f;
+} Zoo_RegistryEntry;
 
-void json_decode_reg_refs(lua_State *L, JsonDecodeRefs *out);
+#define ZOO_REG_ENT(name, f) {(name), (f)}
 
-bool json_decode(
+void zoo_registry_register(
         lua_State *L,
-        const JsonDecodeRefs *refs,
-        const char *input,
-        int max_depth,
-        int flags,
-        char *errbuf,
-        size_t nerrbuf);
+        const Zoo_RegistryEntry *registry);
+
+void zoo_registry_register_with_upvalue(
+        lua_State *L,
+        const Zoo_RegistryEntry *registry);

@@ -26,6 +26,7 @@
 #include <limits.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <inttypes.h>
 #include <string.h>
 #include <unistd.h>
@@ -125,23 +126,36 @@ int procalive_lfunc_stat(lua_State *L)
     return 2;
 }
 
-static inline int get_lua_num_prealloc(size_t n)
+static int throwable_pushglob(lua_State *L)
 {
-    return n < (size_t) INT_MAX ? (int) n : INT_MAX;
-}
+    glob_t *g = lua_touserdata(L, 1);
 
-static bool push_glob_t(lua_State *L, glob_t *g)
-{
     size_t n = g->gl_pathc;
-    if (n > (size_t) MAXI) {
-        return false;
-    }
-    lua_createtable(L, get_lua_num_prealloc(n), 0); // L: array
+
+    int prealloc = n < INT_MAX ? n : INT_MAX;
+    lua_createtable(L, prealloc, 0); // L: array
+
     for (size_t i = 0; i < n; ++i) {
         lua_pushstring(L, g->gl_pathv[i]); // L: array str
         lua_rawseti(L, -2, i + 1); // L: array
     }
-    return true;
+
+    return 1;
+}
+
+static void do_lua_call_or_die(lua_State *L, int nargs, int nresults)
+{
+    int rc = lua_pcall(L, nargs, nresults, 0);
+    if (rc != 0) {
+        const char *msg;
+        if (rc == LUA_ERRMEM) {
+            msg = "out of memory (reported from Lua)";
+        } else {
+            msg = "error thrown out of a lua_CFunction that must never throw";
+        }
+        fprintf(stderr, "FATAL: libprocalive: %s\n", msg);
+        abort();
+    }
 }
 
 int procalive_lfunc_glob(lua_State *L)
@@ -149,45 +163,58 @@ int procalive_lfunc_glob(lua_State *L)
     const char *pattern = luaL_checkstring(L, 1);
 
     glob_t g = {0};
-    int rc = glob(pattern, GLOB_MARK | GLOB_NOSORT, NULL, &g);
-    int err_num;
+    int glob_rc = glob(pattern, GLOB_MARK | GLOB_NOSORT, NULL, &g);
 
-    switch (rc) {
+    int err_num;
+    int res;
+
+    switch (glob_rc) {
     case 0:
-        if (!push_glob_t(L, &g)) {
+        if (g.gl_pathc > (size_t) MAXI) {
             err_num = EOVERFLOW;
-            goto fail;
+            res = -1;
+            goto done;
         }
-        // L: res
-        goto ok;
+        /*__OK__*/ lua_pushcfunction(L, throwable_pushglob); // L: pushglob
+        lua_pushlightuserdata(L, &g); // L: pushglob g
+        do_lua_call_or_die(L, 1, 1); // L: result
+        res = 1;
+        goto done;
 
     case GLOB_NOMATCH:
-        lua_newtable(L); // L: res
-        goto ok;
+        res = 0;
+        goto done;
 
     case GLOB_ABORTED:
         err_num = EIO;
-        goto fail;
+        res = -1;
+        goto done;
 
     case GLOB_NOSPACE:
         err_num = ENOMEM;
-        goto fail;
+        res = -1;
+        goto done;
 
     default:
         err_num = EINVAL;
-        goto fail;
+        res = -1;
+        goto done;
     }
 
-ok:
+done:
     globfree(&g);
-    // L: res
-    lua_pushnil(L); // L: res nil
-    return 2;
 
-fail:
-    globfree(&g);
-    lua_pushnil(L); // L: nil
-    lua_pushstring(L, my_strerror(err_num)); // L: nil err
+    if (res == 1) {
+        // L: result
+        lua_pushnil(L); // L: result nil
+    } else if (res == 0) {
+        // L: -
+        lua_newtable(L); // L: {}
+        lua_pushnil(L); // L: {} nil
+    } else {
+        lua_pushnil(L); // L: nil
+        lua_pushstring(L, my_strerror(err_num)); // L: nil err
+    }
     return 2;
 }
 
@@ -250,15 +277,15 @@ void procalive_lfuncs_register_all(lua_State *L)
 {
     // L: table
 
-    lua_pushcfunction(L, procalive_lfunc_access); // L: table func
+    /*__OK__*/ lua_pushcfunction(L, procalive_lfunc_access); // L: table func
     lua_setfield(L, -2, "access"); // L: table
 
-    lua_pushcfunction(L, procalive_lfunc_stat); // L: table func
+    /*__OK__*/ lua_pushcfunction(L, procalive_lfunc_stat); // L: table func
     lua_setfield(L, -2, "stat"); // L: table
 
-    lua_pushcfunction(L, procalive_lfunc_glob); // L: table func
+    /*__OK__*/ lua_pushcfunction(L, procalive_lfunc_glob); // L: table func
     lua_setfield(L, -2, "glob"); // L: table
 
-    lua_pushcfunction(L, procalive_lfunc_is_process_alive); // L: table func
+    /*__OK__*/ lua_pushcfunction(L, procalive_lfunc_is_process_alive); // L: table func
     lua_setfield(L, -2, "is_process_alive"); // L: table
 }

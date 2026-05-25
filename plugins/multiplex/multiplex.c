@@ -30,6 +30,7 @@
 #include "libls/ls_tls_ebuf.h"
 #include "libls/ls_alloc_utils.h"
 #include "libls/ls_string.h"
+#include "libls/ls_lua_madness.h"
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
@@ -185,7 +186,7 @@ static int l_call_event(lua_State *L)
     const char *err;
     if (*R) {
         lua_State *borrowed_L = runner_event_begin(*R);
-        lua_pushlstring(borrowed_L, data, ndata);
+        ls_lua_madness_pushlstr(borrowed_L, data, ndata);
         RunnerEventResult res = runner_event_end(*R);
         err = evt_result_to_str(res);
     } else {
@@ -208,7 +209,7 @@ static void register_funcs(LuastatusPluginData *pd, lua_State *L)
 
     // L: table
     lua_pushlightuserdata(L, p); // L: table ud
-    lua_pushcclosure(L, l_call_event, 1); // L: table func
+    /*__OK__*/ lua_pushcclosure(L, l_call_event, 1); // L: table func
     lua_setfield(L, -2, "call_event"); // L: table
 }
 

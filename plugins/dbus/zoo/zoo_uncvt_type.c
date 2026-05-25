@@ -27,9 +27,11 @@
 #include "libls/ls_alloc_utils.h"
 #include "libls/ls_panic.h"
 #include "libls/ls_lua_compat.h"
-#include "zoo_call_prot.h"
+#include "libls/ls_lua_madness.h"
+#include "zoo_ccall.h"
 #include "zoo_checkudata.h"
-#include "zoo_mt.h"
+#include "zoo_make_mt.h"
+#include "zoo_registry.h"
 
 typedef struct {
     // This is an owning handle, not a borrow.
@@ -55,17 +57,28 @@ static const GVariantType *fetch_gtype_borrow(lua_State *L, int pos, const char 
     return tobj->t;
 }
 
+static int throwable_make_tobj_steal(lua_State *L)
+{
+    GVariantType *t = lua_touserdata(L, 1);
+    LS_ASSERT(t != NULL);
+
+    Tobj *tobj = ls_lua_newud(L, sizeof(Tobj)); // L: ? ud
+    tobj->t = t;
+
+    luaL_getmetatable(L, MT_NAME); // L: ? ud mt
+    lua_setmetatable(L, -2); // L: ? ud
+
+    return 1;
+}
+
 // /t/ must be an owning handle, which then gets "stolen".
 static void make_tobj_steal(lua_State *L, GVariantType *t)
 {
     LS_ASSERT(t != NULL);
 
-    // L: ?
-    Tobj *tobj = lua_newuserdata(L, sizeof(Tobj)); // L: ? ud
-    tobj->t = t;
-
-    luaL_getmetatable(L, MT_NAME); // L: ? ud mt
-    lua_setmetatable(L, -2); // L: ? ud
+    /*__OK__*/ lua_pushcfunction(L, throwable_make_tobj_steal);
+    lua_pushlightuserdata(L, t);
+    ls_lua_madness_call_or_die(L, 1, 1);
 }
 
 // /t/ is a borrow, which gets copied.
@@ -256,7 +269,7 @@ typedef struct {
 
 static int throwable_l_mktype_tuple(lua_State *L)
 {
-    MkTupleUD *ud = lua_touserdata(L, lua_upvalueindex(1));
+    MkTupleUD *ud = ZOO_CCALL_USERDATA(L, 1);
 
     luaL_checktype(L, 1, LUA_TTABLE);
     size_t n = ls_lua_array_len(L, 1);
@@ -282,7 +295,9 @@ static int throwable_l_mktype_tuple(lua_State *L)
 static int l_mktype_tuple(lua_State *L)
 {
     MkTupleUD ud = {0};
-    bool ok = zoo_call_prot(L, lua_gettop(L), 1, throwable_l_mktype_tuple, &ud);
+
+    lua_settop(L, 1);
+    bool ok = zoo_ccall(L, 1, 1, throwable_l_mktype_tuple, &ud);
 
     for (size_t i = 0; i < ud.n_copied; ++i) {
         g_variant_type_free((GVariantType *) ud.items[i]);
@@ -308,33 +323,34 @@ void zoo_uncvt_type_bake_steal(GVariantType *t, lua_State *L)
 
 static void register_mt(lua_State *L)
 {
-    zoo_mt_begin(L, MT_NAME);
+    static const Zoo_RegistryEntry mt_registry[] = {
+        /*__OK__*/ ZOO_REG_ENT("get_type_string", l_get_type_string),
+        /*__OK__*/ ZOO_REG_ENT("get_category", l_get_category),
+        /*__OK__*/ ZOO_REG_ENT("is_basic", l_is_basic),
 
-    zoo_mt_add_method(L, "get_type_string", l_get_type_string);
-    zoo_mt_add_method(L, "get_category", l_get_category);
-    zoo_mt_add_method(L, "is_basic", l_is_basic);
+        /*__OK__*/ ZOO_REG_ENT("get_item_types", l_get_item_types),
+        /*__OK__*/ ZOO_REG_ENT("get_elem_type", l_get_elem_type),
+        /*__OK__*/ ZOO_REG_ENT("get_kv_types", l_get_kv_types),
 
-    zoo_mt_add_method(L, "get_item_types", l_get_item_types);
-    zoo_mt_add_method(L, "get_elem_type", l_get_elem_type);
-    zoo_mt_add_method(L, "get_kv_types", l_get_kv_types);
+        /*__OK__*/ ZOO_REG_ENT("equals_to", l_equals_to),
 
-    zoo_mt_add_method(L, "equals_to", l_equals_to);
+        /*__OK__*/ ZOO_REG_ENT("__gc", tobj_gc),
 
-    zoo_mt_add_method(L, "__gc", tobj_gc);
-
-    zoo_mt_end(L);
+        {0},
+    };
+    zoo_make_mt(L, MT_NAME, mt_registry);
 }
 
 void zoo_uncvt_type_register_mt_and_funcs(lua_State *L)
 {
     register_mt(L);
 
-#define REG(Name_, F_) (lua_pushcfunction(L, (F_)), lua_setfield(L, -2, (Name_)))
-
-    REG("mktype_simple", l_mktype_simple);
-    REG("mktype_array", l_mktype_array);
-    REG("mktype_dict_entry", l_mktype_dict_entry);
-    REG("mktype_tuple", l_mktype_tuple);
-
-#undef REG
+    static const Zoo_RegistryEntry registry[] = {
+        /*__OK__*/ ZOO_REG_ENT("mktype_simple", l_mktype_simple),
+        /*__OK__*/ ZOO_REG_ENT("mktype_array", l_mktype_array),
+        /*__OK__*/ ZOO_REG_ENT("mktype_dict_entry", l_mktype_dict_entry),
+        /*__OK__*/ ZOO_REG_ENT("mktype_tuple", l_mktype_tuple),
+        {0},
+    };
+    zoo_registry_register(L, registry);
 }

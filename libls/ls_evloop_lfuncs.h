@@ -103,7 +103,7 @@ LS_INHEADER int ls_pushed_timeout_lfunc(lua_State *L)
 LS_INHEADER void ls_pushed_timeout_push_luafunc(LS_PushedTimeout *p, lua_State *L)
 {
     lua_pushlightuserdata(L, p);
-    lua_pushcclosure(L, ls_pushed_timeout_lfunc, 1);
+    /*__OK__*/ lua_pushcclosure(L, ls_pushed_timeout_lfunc, 1);
 }
 
 // Destroys /p/.
@@ -167,5 +167,5 @@ LS_INHEADER int ls_self_pipe_lfunc(lua_State *L)
 LS_INHEADER void ls_self_pipe_push_luafunc(int fds[2], lua_State *L)
 {
     lua_pushlightuserdata(L, fds);
-    lua_pushcclosure(L, ls_self_pipe_lfunc, 1);
+    /*__OK__*/ lua_pushcclosure(L, ls_self_pipe_lfunc, 1);
 }

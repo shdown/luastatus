@@ -27,6 +27,7 @@
 #include "urlencode.h"
 #include "urldecode.h"
 #include "libls/ls_alloc_utils.h"
+#include "libls/ls_lua_compat.h"
 
 static inline bool getbool(lua_State *L, int arg)
 {
@@ -50,13 +51,11 @@ static int l_urlencode(lua_State *L)
         ls_oom();
     }
 
-    char *buf = LS_XNEW(char, nres);
+    char *buf = ls_lua_newud(L, nres); // L: ? ud
 
     urlencode(src, MUT_SAFEV_new_UNSAFE(buf, nres), plus_notation);
 
-    lua_pushlstring(L, buf, nres);
-
-    free(buf);
+    lua_pushlstring(L, buf, nres); // L: ? ud str
 
     return 1;
 }
@@ -70,26 +69,21 @@ static int l_urldecode(lua_State *L)
 
     size_t nres = urldecode_size(src);
 
-    char *buf = LS_XNEW(char, nres);
+    char *buf = ls_lua_newud(L, nres); // L: ? ud
 
-    if (!urldecode(src, MUT_SAFEV_new_UNSAFE(buf, nres))) {
-        lua_pushnil(L);
-        goto done;
+    if (urldecode(src, MUT_SAFEV_new_UNSAFE(buf, nres))) {
+        lua_pushlstring(L, buf, nres); // L: ? ud str
+    } else {
+        lua_pushnil(L); // L: ? ud nil
     }
-
-    lua_pushlstring(L, buf, nres);
-
-done:
-    free(buf);
     return 1;
 }
 
 void mod_urlencode_register_funcs(lua_State *L)
 {
-#define REG(func, name) (lua_pushcfunction(L, (func)), lua_setfield((L), -2, (name)))
+    /*__OK__*/ lua_pushcfunction(L, l_urlencode);
+    lua_setfield(L, -2, "urlencode");
 
-    REG(l_urlencode, "urlencode");
-    REG(l_urldecode, "urldecode");
-
-#undef REG
+    /*__OK__*/ lua_pushcfunction(L, l_urldecode);
+    lua_setfield(L, -2, "urldecode");
 }

@@ -60,6 +60,21 @@ LS_INHEADER size_t ls_lua_array_len(lua_State *L, int pos)
 #endif
 }
 
+LS_INHEADER void *ls_lua_newud(lua_State *L, size_t sz)
+{
+    // We're not sure if lua_newuserdata()/lua_newuserdatauv() handle zero size.
+    // So replace zero size with 1 byte.
+    if (!sz) {
+        sz = 1;
+    }
+
+#if LUA_VERSION_NUM >= 504
+    return lua_newuserdatauv(L, sz, 1);
+#else
+    return lua_newuserdata(L, sz);
+#endif
+}
+
 #ifdef LUA_MAXINTEGER
 # define LS_LUA_MAXI \
     (LUA_MAXINTEGER > (SIZE_MAX - 1) ? (SIZE_MAX - 1) : LUA_MAXINTEGER)
@@ -69,5 +84,5 @@ LS_INHEADER size_t ls_lua_array_len(lua_State *L, int pos)
 
 LS_INHEADER int ls_lua_num_prealloc(size_t n)
 {
-    return n < (size_t) INT_MAX ? (int) n : INT_MAX;
+    return n < INT_MAX ? n : INT_MAX;
 }

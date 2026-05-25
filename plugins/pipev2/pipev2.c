@@ -304,14 +304,14 @@ static void register_funcs(LuastatusPluginData *pd, lua_State *L)
     // L: table
 
     lua_pushlightuserdata(L, p); // L: table ud
-    lua_pushcclosure(L, l_write_to_stdin, 1); // L: table func
+    /*__OK__*/ lua_pushcclosure(L, l_write_to_stdin, 1); // L: table func
     lua_setfield(L, -2, "write_to_stdin"); // L: table
 
     lua_pushlightuserdata(L, p); // L: table ud
-    lua_pushcclosure(L, l_kill, 1); // L: table func
+    /*__OK__*/ lua_pushcclosure(L, l_kill, 1); // L: table func
     lua_setfield(L, -2, "kill"); // L: table
 
-    lua_pushcfunction(L, l_get_sigrt_bounds); // L: table func
+    /*__OK__*/ lua_pushcfunction(L, l_get_sigrt_bounds); // L: table func
     lua_setfield(L, -2, "get_sigrt_bounds"); // L: table
 }
 

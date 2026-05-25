@@ -175,7 +175,7 @@ static void register_funcs(LuastatusBarlibData *bd, lua_State *L)
 {
     (void) bd;
     // L: table
-    lua_pushcfunction(L, l_escape); // L: table l_escape
+    /*__OK__*/ lua_pushcfunction(L, l_escape); // L: table l_escape
     lua_setfield(L, -2, "escape"); // L: table
 }
 

@@ -174,10 +174,10 @@ static void register_funcs(LuastatusPluginData *pd, lua_State *L)
     ls_self_pipe_push_luafunc(p->pipefds, L); // L: table func
     lua_setfield(L, -2, "wake_up"); // L: table
 
-    lua_pushcfunction(L, l_get_supported_opts); // L: table func
+    /*__OK__*/ lua_pushcfunction(L, l_get_supported_opts); // L: table func
     lua_setfield(L, -2, "get_supported_opts");
 
-    lua_pushcfunction(L, l_time_now); // L: table func
+    /*__OK__*/ lua_pushcfunction(L, l_time_now); // L: table func
     lua_setfield(L, -2, "time_now");
 
     mod_json_register_funcs(L);

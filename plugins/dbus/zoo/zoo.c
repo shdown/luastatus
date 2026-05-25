@@ -31,23 +31,35 @@
 
 #include "libls/ls_alloc_utils.h"
 #include "libls/ls_panic.h"
+#include "libls/ls_lua_madness.h"
 
 #include "zoo_call_params.h"
 #include "zoo_uncvt_type.h"
 #include "zoo_uncvt_val.h"
+#include "zoo_registry.h"
 #include "../cvt.h"
 #include "../bustype2idx.h"
 
 static void failure(lua_State *L, GError *err)
 {
     lua_pushboolean(L, 0);
-    lua_pushstring(L, err->message);
+    ls_lua_madness_pushstr(L, err->message);
+}
+
+static int throwable_cvt(lua_State *L)
+{
+    GVariant *gv = lua_touserdata(L, 1);
+    cvt(L, gv);
+    return 1;
 }
 
 static void success(lua_State *L, GVariant *res)
 {
     lua_pushboolean(L, 1);
-    cvt(L, res);
+
+    /*__OK__*/ lua_pushcfunction(L, throwable_cvt);
+    lua_pushlightuserdata(L, res);
+    ls_lua_madness_call_or_die(L, 1, 1);
 }
 
 static const char *lookupf(Zoo_CallParams *p, const char *key)
@@ -329,19 +341,18 @@ void zoo_register_funcs(Zoo *z, lua_State *L)
     zoo_uncvt_val_register_mt_and_funcs(L); // L: ? table table
     lua_setfield(L, -2, "dbustypes_lowlevel"); // L: ? table
 
-#define REG(Name_, F_) \
-    (lua_pushlightuserdata(L, z), \
-    lua_pushcclosure(L, (F_), 1), \
-    lua_setfield(L, -2, (Name_)))
-
-    REG("call_method", l_call_method);
-    REG("call_method_str", l_call_method_str);
-    REG("get_property", l_get_property);
-    REG("get_all_properties", l_get_all_properties);
-    REG("set_property", l_set_property);
-    REG("set_property_str", l_set_property_str);
-
-#undef REG
+    static const Zoo_RegistryEntry registry[] = {
+        /*__OK__*/ ZOO_REG_ENT("call_method",        l_call_method),
+        /*__OK__*/ ZOO_REG_ENT("call_method_str",    l_call_method_str),
+        /*__OK__*/ ZOO_REG_ENT("get_property",       l_get_property),
+        /*__OK__*/ ZOO_REG_ENT("get_all_properties", l_get_all_properties),
+        /*__OK__*/ ZOO_REG_ENT("set_property",       l_set_property),
+        /*__OK__*/ ZOO_REG_ENT("set_property_str",   l_set_property_str),
+        {0},
+    };
+    lua_pushlightuserdata(L, z);
+    zoo_registry_register_with_upvalue(L, registry);
+    lua_pop(L, 1);
 }
 
 void zoo_destroy(Zoo *z)

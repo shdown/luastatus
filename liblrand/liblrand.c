@@ -163,7 +163,7 @@ static void reg(lua_State *L, int prng_lref, lua_CFunction f, const char *key)
 {
     // L: ? math
     lua_rawgeti(L, LUA_REGISTRYINDEX, prng_lref); // L: ? math prng
-    lua_pushcclosure(L, f, 1); // L: ? math f
+    /*__OK__*/ lua_pushcclosure(L, f, 1); // L: ? math f
     lua_setfield(L, -2, key); // L: ? math
 }
 

@@ -23,6 +23,8 @@
 #include <lua.h>
 #include <lauxlib.h>
 #include "libsafe/safev.h"
+#include "libls/ls_lua_madness.h"
+#include "libls/ls_lua_compat.h"
 #include "json_decode.h"
 #include "json_encode_str.h"
 #include "json_encode_num.h"
@@ -54,7 +56,8 @@ static int l_json_decode(lua_State *L)
 
     char errbuf[256];
 
-    bool is_ok = json_decode(L, input, MAX_DEPTH, flags, errbuf, sizeof(errbuf));
+    const JsonDecodeRefs *refs = lua_touserdata(L, lua_upvalueindex(1));
+    bool is_ok = json_decode(L, refs, input, MAX_DEPTH, flags, errbuf, sizeof(errbuf));
 
     if (is_ok) {
         return 1;
@@ -90,21 +93,24 @@ static int l_json_encode_num(lua_State *L)
     double d = luaL_checknumber(L, 1);
     char *res = json_encode_num(d);
     if (res) {
-        lua_pushstring(L, res);
+        ls_lua_madness_pushstr(L, res);
+        free(res);
     } else {
         lua_pushnil(L);
     }
-    free(res);
     return 1;
 }
 
 void mod_json_register_funcs(lua_State *L)
 {
-#define REG(func, name) (lua_pushcfunction(L, (func)), lua_setfield((L), -2, (name)))
+    JsonDecodeRefs *refs = ls_lua_newud(L, sizeof(JsonDecodeRefs));
+    json_decode_reg_refs(L, refs);
+    /*__OK__*/ lua_pushcclosure(L, l_json_decode, 1);
+    lua_setfield(L, -2, "json_decode");
 
-    REG(l_json_decode, "json_decode");
-    REG(l_json_encode_str, "json_encode_str");
-    REG(l_json_encode_num, "json_encode_num");
+    /*__OK__*/ lua_pushcfunction(L, l_json_encode_str);
+    lua_setfield(L, -2, "json_encode_str");
 
-#undef REG
+    /*__OK__*/ lua_pushcfunction(L, l_json_encode_num);
+    lua_setfield(L, -2, "json_encode_num");
 }

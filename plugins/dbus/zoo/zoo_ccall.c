@@ -17,29 +17,15 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include "zoo_ccall.h"
 
-#include <stdbool.h>
-#include <stddef.h>
-#include <lua.h>
-
-enum {
-    JSON_DEC_MARK_ARRAYS_VS_DICT = 1 << 0,
-    JSON_DEC_MARK_NULLS          = 1 << 1,
-};
-
-typedef struct {
-    int lref_mt_arr;
-    int lref_mt_dict;
-} JsonDecodeRefs;
-
-void json_decode_reg_refs(lua_State *L, JsonDecodeRefs *out);
-
-bool json_decode(
-        lua_State *L,
-        const JsonDecodeRefs *refs,
-        const char *input,
-        int max_depth,
-        int flags,
-        char *errbuf,
-        size_t nerrbuf);
+bool zoo_ccall(lua_State *L, int nargs, int nresults, lua_CFunction f, void *ud)
+{
+    // L: ? args
+    lua_pushlightuserdata(L, ud); // L: ? args ud
+    /*__OK__*/ lua_pushcfunction(L, f); // L: ? args ud f
+    int total = nargs + 1;
+    lua_insert(L, lua_gettop(L) - total); // L: ? f args ud
+    int rc = lua_pcall(L, total, nresults, 0);
+    return rc == 0;
+}

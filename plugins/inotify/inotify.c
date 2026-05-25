@@ -312,21 +312,21 @@ static void register_funcs(LuastatusPluginData *pd, lua_State *L)
 {
     // L: table
     lua_pushlightuserdata(L, pd); // L: table pd
-    lua_pushcclosure(L, l_add_watch, 1); // L: table closure
+    /*__OK__*/ lua_pushcclosure(L, l_add_watch, 1); // L: table closure
     lua_setfield(L, -2, "add_watch"); // L: table
 
     // L: table
     lua_pushlightuserdata(L, pd); // L: table pd
-    lua_pushcclosure(L, l_remove_watch, 1); // L: table closure
+    /*__OK__*/ lua_pushcclosure(L, l_remove_watch, 1); // L: table closure
     lua_setfield(L, -2, "remove_watch"); // L: table
 
     // L: table
     lua_pushlightuserdata(L, pd); // L: table pd
-    lua_pushcclosure(L, l_get_initial_wds, 1); // L: table closure
+    /*__OK__*/ lua_pushcclosure(L, l_get_initial_wds, 1); // L: table closure
     lua_setfield(L, -2, "get_initial_wds"); // L: table
 
     // L: table
-    lua_pushcfunction(L, l_get_supported_events); // L: table func
+    /*__OK__*/ lua_pushcfunction(L, l_get_supported_events); // L: table func
     lua_setfield(L, -2, "get_supported_events"); // L: table
 
     procalive_lfuncs_register_all(L); // L: table

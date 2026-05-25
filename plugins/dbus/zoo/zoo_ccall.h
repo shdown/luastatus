@@ -17,28 +17,13 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "zoo_mt.h"
+#pragma once
 
+#include <stdbool.h>
 #include <lua.h>
-#include <lauxlib.h>
 
-void zoo_mt_begin(lua_State *L, const char *mt_name)
-{
-    // L: ?
-    luaL_newmetatable(L, mt_name); // L: ? mt
+// ccall = 'checked call' or 'C function call'.
 
-    lua_pushvalue(L, -1); // L: ? mt mt
-    lua_setfield(L, -2, "__index"); // L: ? mt
-}
+#define ZOO_CCALL_USERDATA(L, nargs) lua_touserdata((L), (nargs) + 1)
 
-void zoo_mt_add_method(lua_State *L, const char *name, lua_CFunction f)
-{
-    lua_pushcfunction(L, f); // L: ? mt f
-    lua_setfield(L, -2, name); // L: ? mt
-}
-
-void zoo_mt_end(lua_State *L)
-{
-    // L: ? mt
-    lua_pop(L, 1); // L: ?
-}
+bool zoo_ccall(lua_State *L, int nargs, int nresults, lua_CFunction f, void *ud);
