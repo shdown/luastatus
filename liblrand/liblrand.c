@@ -61,7 +61,7 @@ static bool check_is_luajit(lua_State *L)
 }
 
 #if LUA_VERSION_NUM == 501
-static int l_math_random(lua_State *L)
+static int l_math_random(lua_State *L) /*__THROWABLE__*/
 {
     PRNG *prng = lua_touserdata(L, lua_upvalueindex(1));
 
@@ -87,7 +87,7 @@ static int l_math_random(lua_State *L)
     return 1;
 }
 #elif LUA_VERSION_NUM == 502
-static int l_math_random(lua_State *L)
+static int l_math_random(lua_State *L) /*__THROWABLE__*/
 {
     PRNG *prng = lua_touserdata(L, lua_upvalueindex(1));
 
@@ -113,7 +113,7 @@ static int l_math_random(lua_State *L)
     return 1;
 }
 #elif LUA_VERSION_NUM == 503
-static int l_math_random(lua_State *L)
+static int l_math_random(lua_State *L) /*__THROWABLE__*/
 {
     PRNG *prng = lua_touserdata(L, lua_upvalueindex(1));
 
@@ -149,7 +149,7 @@ static int l_math_random(lua_State *L)
 # error "Unsupported LUA_VERSION_NUM."
 #endif
 
-static int l_math_randomseed(lua_State *L)
+static int l_math_randomseed(lua_State *L) /*__THROWABLE__*/
 {
     PRNG *prng = lua_touserdata(L, lua_upvalueindex(1));
 

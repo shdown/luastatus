@@ -157,7 +157,7 @@ static bool convert(lua_State *L, cJSON *j, Params *params, int recur_lim)
     }
 }
 
-static int throwable_convert(lua_State *L)
+static int x_convert(lua_State *L) /*__FATAL_IF_THROWS__*/
 {
     cJSON *j = lua_touserdata(L, 1);
     Params *params = lua_touserdata(L, 2);
@@ -209,7 +209,7 @@ bool json_decode(
         .err_descr = NULL,
     };
 
-    /*__OK__*/ lua_pushcfunction(L, throwable_convert);
+    /*__OK__*/ lua_pushcfunction(L, x_convert);
     lua_pushlightuserdata(L, j);
     lua_pushlightuserdata(L, &params);
     lua_pushlightuserdata(L, &max_depth);

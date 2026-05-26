@@ -232,7 +232,7 @@ error:
     return LUASTATUS_ERR;
 }
 
-static int l_add_watch(lua_State *L)
+static int l_add_watch(lua_State *L) /*__THROWABLE__*/
 {
     char errbuf[256];
     MoonVisit mv = {.L = L, .errbuf = errbuf, .nerrbuf = sizeof(errbuf)};
@@ -268,7 +268,7 @@ mverror:
     return luaL_error(L, "%s", errbuf);
 }
 
-static int l_remove_watch(lua_State *L)
+static int l_remove_watch(lua_State *L) /*__THROWABLE__*/
 {
     int wd = luaL_checkinteger(L, 1);
 
@@ -284,7 +284,7 @@ static int l_remove_watch(lua_State *L)
     return 1;
 }
 
-static int l_get_initial_wds(lua_State *L)
+static int l_get_initial_wds(lua_State *L) /*__THROWABLE__*/
 {
     LuastatusPluginData *pd = lua_touserdata(L, lua_upvalueindex(1));
     Priv *p = pd->priv;
@@ -297,7 +297,7 @@ static int l_get_initial_wds(lua_State *L)
     return 1;
 }
 
-static int l_get_supported_events(lua_State *L)
+static int l_get_supported_events(lua_State *L) /*__THROWABLE__*/
 {
     lua_createtable(L, 0, EVENT_TYPES_NUM); // L: table
     for (const EventType *et = EVENT_TYPES; et != EVENT_TYPES_END; ++et) {

@@ -64,7 +64,7 @@ static GVariant *fetch_gvar_borrow(lua_State *L, int pos, const char *what)
     return vobj->v;
 }
 
-static int throwable_make_vobj_steal(lua_State *L)
+static int x_make_vobj_steal(lua_State *L) /*__FATAL_IF_THROWS__*/
 {
     GVariant *v = lua_touserdata(L, 1);
     LS_ASSERT(v != NULL);
@@ -85,7 +85,7 @@ static void make_vobj_steal(lua_State *L, GVariant *v)
     LS_ASSERT(v != NULL);
     LS_ASSERT(!g_variant_is_floating(v));
 
-    /*__OK__*/ lua_pushcfunction(L, throwable_make_vobj_steal);
+    /*__OK__*/ lua_pushcfunction(L, x_make_vobj_steal);
     lua_pushlightuserdata(L, v);
     ls_lua_madness_call_or_die(L, 1, 1);
 }
@@ -98,7 +98,7 @@ static void make_vobj_from_floating(lua_State *L, GVariant *v)
     make_vobj_steal(L, g_variant_ref_sink(v));
 }
 
-static int vobj_gc(lua_State *L)
+static int vobj_gc(lua_State *L) /*__MUST_NEVER_THROW__*/
 {
     Vobj *vobj = fetch_vobj(L, 1, "argument #1");
     if (vobj->v) {
@@ -235,13 +235,13 @@ bad_type:
     LS_MUST_BE_UNREACHABLE();
 }
 
-static int l_mkval_simple(lua_State *L)
+static int l_mkval_simple(lua_State *L) /*__THROWABLE__*/
 {
     make_vobj_from_floating(L, mkval_simple_impl(L));
     return 1;
 }
 
-static int l_mkval_dict_entry(lua_State *L)
+static int l_mkval_dict_entry(lua_State *L) /*__THROWABLE__*/
 {
     // Both /k/ and /v/ are borrowed (STACK).
     GVariant *k = fetch_gvar_borrow(L, 1, "argument #1");
@@ -268,7 +268,7 @@ static void free_ud(MkSomethingUD ud)
     free(ud.items);
 }
 
-static int throwable_l_mkval_tuple(lua_State *L)
+static int xx_mkval_tuple(lua_State *L) /*__PASS_THRU_IF_THROWS__*/
 {
     MkSomethingUD *ud = ZOO_CCALL_USERDATA(L, 1);
 
@@ -293,12 +293,12 @@ static int throwable_l_mkval_tuple(lua_State *L)
     return 1;
 }
 
-static int l_mkval_tuple(lua_State *L)
+static int l_mkval_tuple(lua_State *L) /*__THROWABLE__*/
 {
     MkSomethingUD ud = {0};
 
     lua_settop(L, 1);
-    bool ok = zoo_ccall(L, 1, 1, throwable_l_mkval_tuple, &ud);
+    bool ok = zoo_ccall(L, 1, 1, xx_mkval_tuple, &ud);
 
     free_ud(ud);
 
@@ -309,7 +309,7 @@ static int l_mkval_tuple(lua_State *L)
     }
 }
 
-static int throwable_l_mkval_array(lua_State *L)
+static int xx_mkval_array(lua_State *L) /*__PASS_THRU_IF_THROWS__*/
 {
     MkSomethingUD *ud = ZOO_CCALL_USERDATA(L, 2);
 
@@ -348,12 +348,12 @@ static int throwable_l_mkval_array(lua_State *L)
     return 1;
 }
 
-static int l_mkval_array(lua_State *L)
+static int l_mkval_array(lua_State *L) /*__THROWABLE__*/
 {
     MkSomethingUD ud = {0};
 
     lua_settop(L, 2);
-    bool ok = zoo_ccall(L, 2, 1, throwable_l_mkval_array, &ud);
+    bool ok = zoo_ccall(L, 2, 1, xx_mkval_array, &ud);
 
     free_ud(ud);
 
@@ -364,7 +364,7 @@ static int l_mkval_array(lua_State *L)
     }
 }
 
-static int l_get_type(lua_State *L)
+static int l_get_type(lua_State *L) /*__THROWABLE__*/
 {
     // /v/ is borrowed (STACK).
     GVariant *v = fetch_gvar_borrow(L, 1, "argument #1");
@@ -375,7 +375,7 @@ static int l_get_type(lua_State *L)
     return 1;
 }
 
-static int l_equals_to(lua_State *L)
+static int l_equals_to(lua_State *L) /*__THROWABLE__*/
 {
     // Both /a/ and /b/ are borrowed (STACK).
     GVariant *a = fetch_gvar_borrow(L, 1, "argument #1");
@@ -386,14 +386,16 @@ static int l_equals_to(lua_State *L)
     return 1;
 }
 
-static int l_to_lua(lua_State *L)
+#if 0
+static int l_to_lua(lua_State *L) /*__THROWABLE__*/
 {
     // /v/ is borrowed (STACK).
     GVariant *v = fetch_gvar_borrow(L, 1, "argument #1");
 
-    cvt(L, v);
+    x_cvt(L, v);
     return 1;
 }
+#endif
 
 GVariant *zoo_uncvt_val_fetch_newref(lua_State *L, int pos, const char *what)
 {
@@ -406,7 +408,9 @@ static void register_mt(lua_State *L)
     static const Zoo_RegistryEntry mt_registry[] = {
         /*__OK__*/ ZOO_REG_ENT("get_type", l_get_type),
         /*__OK__*/ ZOO_REG_ENT("equals_to", l_equals_to),
+#if 0
         /*__OK__*/ ZOO_REG_ENT("to_lua", l_to_lua),
+#endif
 
         /*__OK__*/ ZOO_REG_ENT("__gc", vobj_gc),
 

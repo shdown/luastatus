@@ -75,7 +75,7 @@ static void append_to_lua_buf_callback(void *ud, SAFEV v)
     luaL_addlstring(b, SAFEV_ptr_UNSAFE(v), SAFEV_len(v));
 }
 
-static int l_json_encode_str(lua_State *L)
+static int l_json_encode_str(lua_State *L) /*__THROWABLE__*/
 {
     size_t ns;
     const char *s = luaL_checklstring(L, 1, &ns);
@@ -88,7 +88,7 @@ static int l_json_encode_str(lua_State *L)
     return 1;
 }
 
-static int l_json_encode_num(lua_State *L)
+static int l_json_encode_num(lua_State *L) /*__THROWABLE__*/
 {
     double d = luaL_checknumber(L, 1);
     char *res = json_encode_num(d);

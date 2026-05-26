@@ -204,7 +204,7 @@ mverror:
     return LUASTATUS_ERR;
 }
 
-static int l_write_to_stdin(lua_State *L)
+static int l_write_to_stdin(lua_State *L) /*__THROWABLE__*/
 {
     Priv *p = lua_touserdata(L, lua_upvalueindex(1));
 
@@ -267,7 +267,7 @@ static int fetch_sig_num(lua_State *L)
     }
 }
 
-static int l_kill(lua_State *L)
+static int l_kill(lua_State *L) /*__THROWABLE__*/
 {
     Priv *p = lua_touserdata(L, lua_upvalueindex(1));
 
@@ -317,7 +317,7 @@ static int l_kill(lua_State *L)
     }
 }
 
-static int l_get_sigrt_bounds(lua_State *L)
+static int l_get_sigrt_bounds(lua_State *L) /*__THROWABLE__*/
 {
     lua_pushinteger(L, SIGRTMIN);
     lua_pushinteger(L, SIGRTMAX);

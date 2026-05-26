@@ -126,7 +126,7 @@ int procalive_lfunc_stat(lua_State *L)
     return 2;
 }
 
-static int throwable_pushglob(lua_State *L)
+static int x_pushglob(lua_State *L) /*__FATAL_IF_THROWS__*/
 {
     glob_t *g = lua_touserdata(L, 1);
 
@@ -175,7 +175,7 @@ int procalive_lfunc_glob(lua_State *L)
             res = -1;
             goto done;
         }
-        /*__OK__*/ lua_pushcfunction(L, throwable_pushglob); // L: pushglob
+        /*__OK__*/ lua_pushcfunction(L, x_pushglob); // L: pushglob
         lua_pushlightuserdata(L, &g); // L: pushglob g
         do_lua_call_or_die(L, 1, 1); // L: result
         res = 1;

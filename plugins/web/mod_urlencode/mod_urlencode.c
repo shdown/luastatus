@@ -38,7 +38,7 @@ static inline bool getbool(lua_State *L, int arg)
     return lua_toboolean(L, arg);
 }
 
-static int l_urlencode(lua_State *L)
+static int l_urlencode(lua_State *L) /*__THROWABLE__*/
 {
     size_t ns;
     const char *s = luaL_checklstring(L, 1, &ns);
@@ -60,7 +60,7 @@ static int l_urlencode(lua_State *L)
     return 1;
 }
 
-static int l_urldecode(lua_State *L)
+static int l_urldecode(lua_State *L) /*__THROWABLE__*/
 {
     size_t ns;
     const char *s = luaL_checklstring(L, 1, &ns);

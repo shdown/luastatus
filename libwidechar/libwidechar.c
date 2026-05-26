@@ -258,7 +258,7 @@ static SAFEV extract_string_with_ij(lua_State *L, int str_pos, int i_pos)
     return SAFEV_subspan(v, i, j);
 }
 
-static int lfunc_width(lua_State *L)
+static int lfunc_width(lua_State *L) /*__THROWABLE__*/
 {
     SAFEV v = extract_string_with_ij(L, 1, 2);
 
@@ -276,7 +276,7 @@ static int lfunc_width(lua_State *L)
     return 1;
 }
 
-static int lfunc_truncate_to_width(lua_State *L)
+static int lfunc_truncate_to_width(lua_State *L) /*__THROWABLE__*/
 {
     SAFEV v = extract_string_with_ij(L, 1, 3);
 
@@ -309,7 +309,7 @@ static void append_to_lua_buf_callback(void *ud, SAFEV segment)
     luaL_addlstring(b, SAFEV_ptr_UNSAFE(segment), SAFEV_len(segment));
 }
 
-static int throwable_make_valid_and_printable(lua_State *L)
+static int x_make_valid_and_printable(lua_State *L) /*__FATAL_IF_THROWS__*/
 {
     SAFEV v   = *(SAFEV *) lua_touserdata(L, 1);
     SAFEV bad = *(SAFEV *) lua_touserdata(L, 2);
@@ -346,7 +346,7 @@ static int lfunc_make_valid_and_printable(lua_State *L)
 
     LocaleSavedData lsd = begin_locale(L);
 
-    /*__OK__*/ lua_pushcfunction(L, throwable_make_valid_and_printable); // L: ? f
+    /*__OK__*/ lua_pushcfunction(L, x_make_valid_and_printable); // L: ? f
     lua_pushlightuserdata(L, &v); // L: ? f arg1
     lua_pushlightuserdata(L, &bad); // L: ? f arg1 arg2
     do_lua_call_or_die(L, 2, 1); // L: ? result
@@ -356,7 +356,7 @@ static int lfunc_make_valid_and_printable(lua_State *L)
     return 1;
 }
 
-static int lfunc_is_dummy_implementation(lua_State *L)
+static int lfunc_is_dummy_implementation(lua_State *L) /*__THROWABLE__*/
 {
     lua_pushboolean(L, IS_DUMMY_IMPLEMENTATION); // L: bool
     return 1;

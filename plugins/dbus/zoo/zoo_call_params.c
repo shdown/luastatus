@@ -143,7 +143,7 @@ static void do_bus_type(lua_State *L, const char *key, GBusType *dst)
     lua_pop(L, 1); // L: ? table
 }
 
-static int throwable_parse(lua_State *L)
+static int xx_parse(lua_State *L) /*__PASS_THRU_IF_THROWS__*/
 {
     Zoo_CallParams *p = ZOO_CCALL_USERDATA(L, 1);
     lua_settop(L, 1);
@@ -183,7 +183,7 @@ void zoo_call_params_parse(lua_State *L, Zoo_CallParams *p, int arg)
     luaL_checktype(L, arg, LUA_TTABLE);
 
     lua_pushvalue(L, arg);
-    if (!zoo_ccall(L, 1, 0, throwable_parse, p)) {
+    if (!zoo_ccall(L, 1, 0, xx_parse, p)) {
         zoo_call_params_free(p);
         lua_error(L);
     }

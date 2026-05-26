@@ -28,7 +28,7 @@ typedef struct {
     size_t nb;
 } Pushlstr_Arg;
 
-static int throwable_pushlstr(lua_State *L)
+static int x_pushlstr(lua_State *L) /*__FATAL_IF_THROWS__*/
 {
     const Pushlstr_Arg *arg = lua_touserdata(L, 1);
     if (arg) {
@@ -41,7 +41,7 @@ static int throwable_pushlstr(lua_State *L)
 
 void ls_lua_madness_pushlstr(lua_State *L, const char *b, size_t nb)
 {
-    /*__OK__*/ lua_pushcfunction(L, throwable_pushlstr);
+    /*__OK__*/ lua_pushcfunction(L, x_pushlstr);
 
     Pushlstr_Arg arg = {.b = b, .nb = nb};
     lua_pushlightuserdata(L, &arg);
@@ -51,7 +51,7 @@ void ls_lua_madness_pushlstr(lua_State *L, const char *b, size_t nb)
 
 void ls_lua_madness_pushstr(lua_State *L, const char *s)
 {
-    /*__OK__*/ lua_pushcfunction(L, throwable_pushlstr);
+    /*__OK__*/ lua_pushcfunction(L, x_pushlstr);
 
     Pushlstr_Arg arg;
     if (s) {

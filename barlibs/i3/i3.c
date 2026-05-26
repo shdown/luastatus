@@ -188,10 +188,9 @@ static void append_to_lua_buf(void *ud, SAFEV segment)
     luaL_addlstring(b, SAFEV_ptr_UNSAFE(segment), SAFEV_len(segment));
 }
 
-static int l_pango_escape(lua_State *L)
+static int l_pango_escape(lua_State *L) /*__THROWABLE__*/
 {
     size_t ns;
-    // WARNING: luaL_check*() functions do a long jump on error!
     const char *s = luaL_checklstring(L, 1, &ns);
 
     luaL_Buffer b;

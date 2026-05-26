@@ -283,7 +283,7 @@ error:
     ls_fifo_device_close(&dev);
 }
 
-static int lfunc_add_dyn_path(lua_State *L)
+static int lfunc_add_dyn_path(lua_State *L) /*__THROWABLE__*/
 {
     Priv *p = lua_touserdata(L, lua_upvalueindex(1));
     const char *path = luaL_checkstring(L, 1);
@@ -298,7 +298,7 @@ static int lfunc_add_dyn_path(lua_State *L)
     return 1;
 }
 
-static int lfunc_remove_dyn_path(lua_State *L)
+static int lfunc_remove_dyn_path(lua_State *L) /*__THROWABLE__*/
 {
     Priv *p = lua_touserdata(L, lua_upvalueindex(1));
     const char *path = luaL_checkstring(L, 1);
@@ -314,7 +314,7 @@ static int lfunc_remove_dyn_path(lua_State *L)
 }
 
 // Note: this Lua function is provided for backward compatibility purposes only.
-static int lfunc_get_max_dyn_paths(lua_State *L)
+static int lfunc_get_max_dyn_paths(lua_State *L) /*__THROWABLE__*/
 {
     lua_pushinteger(L, INT_MAX);
     return 1;

@@ -155,10 +155,9 @@ static void append_to_lua_buf_callback(void *ud, SAFEV v)
     luaL_addlstring(b, SAFEV_ptr_UNSAFE(v), SAFEV_len(v));
 }
 
-static int l_escape(lua_State *L)
+static int l_escape(lua_State *L) /*__THROWABLE__*/
 {
     size_t ns;
-    // WARNING: /luaL_check*()/ functions do a long jump on error!
     const char *s = luaL_checklstring(L, 1, &ns);
 
     luaL_Buffer b;

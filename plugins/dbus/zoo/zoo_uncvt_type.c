@@ -57,7 +57,7 @@ static const GVariantType *fetch_gtype_borrow(lua_State *L, int pos, const char 
     return tobj->t;
 }
 
-static int throwable_make_tobj_steal(lua_State *L)
+static int x_make_tobj_steal(lua_State *L) /*__FATAL_IF_THROWS__*/
 {
     GVariantType *t = lua_touserdata(L, 1);
     LS_ASSERT(t != NULL);
@@ -76,7 +76,7 @@ static void make_tobj_steal(lua_State *L, GVariantType *t)
 {
     LS_ASSERT(t != NULL);
 
-    /*__OK__*/ lua_pushcfunction(L, throwable_make_tobj_steal);
+    /*__OK__*/ lua_pushcfunction(L, x_make_tobj_steal);
     lua_pushlightuserdata(L, t);
     ls_lua_madness_call_or_die(L, 1, 1);
 }
@@ -88,7 +88,7 @@ static void make_tobj_copy(lua_State *L, const GVariantType *t)
     make_tobj_steal(L, g_variant_type_copy(t));
 }
 
-static int tobj_gc(lua_State *L)
+static int tobj_gc(lua_State *L) /*__MUST_NEVER_THROW__*/
 {
     Tobj *tobj = fetch_tobj(L, 1, "argument #1");
     if (tobj->t) {
@@ -98,7 +98,7 @@ static int tobj_gc(lua_State *L)
     return 0;
 }
 
-static int l_equals_to(lua_State *L)
+static int l_equals_to(lua_State *L) /*__THROWABLE__*/
 {
     // Both /t1/ and /t2/ are borrowed (STACK).
     const GVariantType *t1 = fetch_gtype_borrow(L, 1, "argument #1");
@@ -108,7 +108,7 @@ static int l_equals_to(lua_State *L)
     return 1;
 }
 
-static int l_get_type_string(lua_State *L)
+static int l_get_type_string(lua_State *L) /*__THROWABLE__*/
 {
     // /t/ is borrowed (STACK).
     const GVariantType *t = fetch_gtype_borrow(L, 1, "argument #1");
@@ -120,7 +120,7 @@ static int l_get_type_string(lua_State *L)
     return 1;
 }
 
-static int l_get_category(lua_State *L)
+static int l_get_category(lua_State *L) /*__THROWABLE__*/
 {
     // /t/ is borrowed (STACK).
     const GVariantType *t = fetch_gtype_borrow(L, 1, "argument #1");
@@ -139,7 +139,7 @@ static int l_get_category(lua_State *L)
     return 1;
 }
 
-static int l_is_basic(lua_State *L)
+static int l_is_basic(lua_State *L) /*__THROWABLE__*/
 {
     // /t/ is borrowed (STACK).
     const GVariantType *t = fetch_gtype_borrow(L, 1, "argument #1");
@@ -148,7 +148,7 @@ static int l_is_basic(lua_State *L)
     return 1;
 }
 
-static int l_get_item_types(lua_State *L)
+static int l_get_item_types(lua_State *L) /*__THROWABLE__*/
 {
     // /t/ is borrowed (STACK).
     const GVariantType *t = fetch_gtype_borrow(L, 1, "argument #1");
@@ -178,7 +178,7 @@ static int l_get_item_types(lua_State *L)
     return 1;
 }
 
-static int l_get_elem_type(lua_State *L)
+static int l_get_elem_type(lua_State *L) /*__THROWABLE__*/
 {
     // /t/ is borrowed (STACK).
     const GVariantType *t = fetch_gtype_borrow(L, 1, "argument #1");
@@ -191,7 +191,7 @@ static int l_get_elem_type(lua_State *L)
     return 1;
 }
 
-static int l_get_kv_types(lua_State *L)
+static int l_get_kv_types(lua_State *L) /*__THROWABLE__*/
 {
     // /t/ is borrowed (STACK).
     const GVariantType *t = fetch_gtype_borrow(L, 1, "argument #1");
@@ -206,7 +206,7 @@ static int l_get_kv_types(lua_State *L)
     return 2;
 }
 
-static int l_mktype_simple(lua_State *L)
+static int l_mktype_simple(lua_State *L) /*__THROWABLE__*/
 {
     static const char VALID[] = {
         'b', // boolean
@@ -239,7 +239,7 @@ bad:
     return luaL_argerror(L, 1, "not a simple type name");
 }
 
-static int l_mktype_array(lua_State *L)
+static int l_mktype_array(lua_State *L) /*__THROWABLE__*/
 {
     // /t/ is borrowed (STACK).
     const GVariantType *t = fetch_gtype_borrow(L, 1, "argument #1");
@@ -248,7 +248,7 @@ static int l_mktype_array(lua_State *L)
     return 1;
 }
 
-static int l_mktype_dict_entry(lua_State *L)
+static int l_mktype_dict_entry(lua_State *L) /*__THROWABLE__*/
 {
     // Both /tk/ and /tv/ are borrowed (STACK).
     const GVariantType *tk = fetch_gtype_borrow(L, 1, "argument #1");
@@ -267,7 +267,7 @@ typedef struct {
     size_t n_copied;
 } MkTupleUD;
 
-static int throwable_l_mktype_tuple(lua_State *L)
+static int xx_mktype_tuple(lua_State *L) /*__PASS_THRU_IF_THROWS__*/
 {
     MkTupleUD *ud = ZOO_CCALL_USERDATA(L, 1);
 
@@ -292,12 +292,12 @@ static int throwable_l_mktype_tuple(lua_State *L)
     return 1;
 }
 
-static int l_mktype_tuple(lua_State *L)
+static int l_mktype_tuple(lua_State *L) /*__THROWABLE__*/
 {
     MkTupleUD ud = {0};
 
     lua_settop(L, 1);
-    bool ok = zoo_ccall(L, 1, 1, throwable_l_mktype_tuple, &ud);
+    bool ok = zoo_ccall(L, 1, 1, xx_mktype_tuple, &ud);
 
     for (size_t i = 0; i < ud.n_copied; ++i) {
         g_variant_type_free((GVariantType *) ud.items[i]);

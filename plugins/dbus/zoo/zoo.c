@@ -46,7 +46,7 @@ static void failure(lua_State *L, GError *err)
     ls_lua_madness_pushstr(L, err->message);
 }
 
-static int throwable_cvt(lua_State *L)
+static int x_cvt(lua_State *L) /*__FATAL_IF_THROWS__*/
 {
     GVariant *gv = lua_touserdata(L, 1);
     cvt(L, gv);
@@ -57,7 +57,7 @@ static void success(lua_State *L, GVariant *res)
 {
     lua_pushboolean(L, 1);
 
-    /*__OK__*/ lua_pushcfunction(L, throwable_cvt);
+    /*__OK__*/ lua_pushcfunction(L, x_cvt);
     lua_pushlightuserdata(L, res);
     ls_lua_madness_call_or_die(L, 1, 1);
 }
@@ -132,7 +132,7 @@ static int do_the_bloody_thing(
     return 2;
 }
 
-static int l_call_method(lua_State *L)
+static int l_call_method(lua_State *L) /*__THROWABLE__*/
 {
     Zoo *z = lua_touserdata(L, lua_upvalueindex(1));
 
@@ -162,7 +162,7 @@ static int l_call_method(lua_State *L)
     return nret;
 }
 
-static int l_call_method_str(lua_State *L)
+static int l_call_method_str(lua_State *L) /*__THROWABLE__*/
 {
     Zoo *z = lua_touserdata(L, lua_upvalueindex(1));
 
@@ -196,7 +196,7 @@ static int l_call_method_str(lua_State *L)
     return nret;
 }
 
-static int l_get_property(lua_State *L)
+static int l_get_property(lua_State *L) /*__THROWABLE__*/
 {
     Zoo *z = lua_touserdata(L, lua_upvalueindex(1));
 
@@ -228,7 +228,7 @@ static int l_get_property(lua_State *L)
     return nret;
 }
 
-static int l_get_all_properties(lua_State *L)
+static int l_get_all_properties(lua_State *L) /*__THROWABLE__*/
 {
     Zoo *z = lua_touserdata(L, lua_upvalueindex(1));
 
@@ -258,7 +258,7 @@ static int l_get_all_properties(lua_State *L)
     return nret;
 }
 
-static int l_set_property_str(lua_State *L)
+static int l_set_property_str(lua_State *L) /*__THROWABLE__*/
 {
     Zoo *z = lua_touserdata(L, lua_upvalueindex(1));
 
@@ -292,7 +292,7 @@ static int l_set_property_str(lua_State *L)
     return nret;
 }
 
-static int l_set_property(lua_State *L)
+static int l_set_property(lua_State *L) /*__THROWABLE__*/
 {
     Zoo *z = lua_touserdata(L, lua_upvalueindex(1));
 

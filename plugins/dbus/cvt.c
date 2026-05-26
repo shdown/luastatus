@@ -32,7 +32,7 @@
 #include "libls/ls_panic.h"
 #include "libls/ls_lua_compat.h"
 
-static int l_special_object(lua_State *L)
+static int l_special_object(lua_State *L) /*__THROWABLE__*/
 {
     lua_pushvalue(L, lua_upvalueindex(1)); // L: upvalue1
     if (lua_isnil(L, -1)) {

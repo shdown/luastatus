@@ -150,7 +150,7 @@ error:
     return LUASTATUS_ERR;
 }
 
-static int l_get_supported_opts(lua_State *L)
+static int l_get_supported_opts(lua_State *L) /*__THROWABLE__*/
 {
     lua_createtable(L, 0, OPTS_NUM); // L: ? table
     for (size_t i = 0; i < OPTS_NUM; ++i) {
@@ -160,7 +160,7 @@ static int l_get_supported_opts(lua_State *L)
     return 1;
 }
 
-static int l_time_now(lua_State *L)
+static int l_time_now(lua_State *L) /*__THROWABLE__*/
 {
     double res = ls_timespec_to_raw_double(ls_now_timespec());
     lua_pushnumber(L, res);
