@@ -55,6 +55,7 @@ typedef struct {
 
 typedef struct {
     ArgsList argv;
+    char *file_path;
 
     // The /getdelim()/ function requires the /int delim/ parameter to be "representable
     // as an unsigned char" (i.e. to be non-negative).
@@ -96,6 +97,8 @@ static void destroy(LuastatusPluginData *pd)
 
     args_list_destroy(&p->argv);
 
+    free(p->file_path);
+
     LS_PTH_CHECK(pthread_mutex_destroy(&p->child_mtx));
 
     ls_close(p->child_stdin_fd);
@@ -135,6 +138,7 @@ static int init(LuastatusPluginData *pd, lua_State *L)
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
     *p = (Priv) {
         .argv = {0},
+        .file_path = NULL,
         .delimiter = '\n',
         .pipe_stdin = false,
         .greet = false,
@@ -148,12 +152,23 @@ static int init(LuastatusPluginData *pd, lua_State *L)
     MoonVisit mv = {.L = L, .errbuf = errbuf, .nerrbuf = sizeof(errbuf)};
 
     // Parse argv
-    if (moon_visit_table_f(&mv, -1, "argv", visit_argv_elem, p, false) < 0) {
+    if (moon_visit_table_f(&mv, -1, "argv", visit_argv_elem, p, true) < 0) {
         goto mverror;
     }
-    if (!p->argv.size) {
-        snprintf(errbuf, sizeof(errbuf), "'argv' array is empty");
-        goto error;
+    // Parse file_path
+    if (moon_visit_str(&mv, -1, "file_path", &p->file_path, NULL, true) < 0) {
+        goto mverror;
+    }
+
+    if (!p->argv.size && !p->file_path) {
+        snprintf(
+            errbuf, sizeof(errbuf),
+            "'argv' is empty or nil, and no 'file_path' specified");
+        goto mverror;
+    }
+    if (p->argv.size && p->file_path) {
+        snprintf(errbuf, sizeof(errbuf), "both 'argv' and 'file_path' were specified");
+        goto mverror;
     }
 
     // Parse delimiter
@@ -163,6 +178,10 @@ static int init(LuastatusPluginData *pd, lua_State *L)
 
     // Parse pipe_stdin
     if (moon_visit_bool(&mv, -1, "pipe_stdin", &p->pipe_stdin, true) < 0) {
+        goto mverror;
+    }
+    if (p->pipe_stdin && p->file_path) {
+        snprintf(errbuf, sizeof(errbuf), "'pipe_stdin' with file mode does not make sense");
         goto mverror;
     }
 
@@ -180,7 +199,7 @@ static int init(LuastatusPluginData *pd, lua_State *L)
 
 mverror:
     LS_FATALF(pd, "%s", errbuf);
-error:
+//error:
     destroy(pd);
     return LUASTATUS_ERR;
 }
@@ -188,6 +207,10 @@ error:
 static int l_write_to_stdin(lua_State *L)
 {
     Priv *p = lua_touserdata(L, lua_upvalueindex(1));
+
+    if (p->file_path) {
+        return luaL_error(L, "file mode is used");
+    }
 
     if (!p->pipe_stdin) {
         return luaL_error(L, "'pipe_stdin' option was not enabled");
@@ -247,6 +270,10 @@ static int fetch_sig_num(lua_State *L)
 static int l_kill(lua_State *L)
 {
     Priv *p = lua_touserdata(L, lua_upvalueindex(1));
+
+    if (p->file_path) {
+        return luaL_error(L, "file mode is used");
+    }
 
     int sig_num = fetch_sig_num(L);
 
@@ -356,6 +383,9 @@ static bool do_spawn(LuastatusPluginData *pd, FILE **out_f)
 {
     Priv *p = pd->priv;
 
+    LS_ASSERT(!p->file_path);
+    LS_ASSERT(p->argv.size > 0);
+
     args_list_add(&p->argv, NULL);
 
     LaunchResult res;
@@ -382,9 +412,34 @@ static bool do_spawn(LuastatusPluginData *pd, FILE **out_f)
     return true;
 }
 
+static bool do_open_file(LuastatusPluginData *pd, FILE **out_f)
+{
+    Priv *p = pd->priv;
+
+    LS_ASSERT(p->file_path);
+    LS_ASSERT(p->argv.size == 0);
+
+    int fd = open(p->file_path, O_RDONLY | O_CLOEXEC);
+    if (fd < 0) {
+        LS_FATALF(pd, "cannot open file '%s': %s", p->file_path, ls_tls_strerror(errno));
+        return false;
+    }
+
+    FILE *f = fdopen(fd, "r");
+    if (!f) {
+        LS_FATALF(pd, "fdopen: %s", ls_tls_strerror(errno));
+        close(fd);
+        return false;
+    }
+    *out_f = f;
+    return true;
+}
+
 static void do_wait(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
+
+    LS_ASSERT(!p->file_path);
 
     LS_PTH_CHECK(pthread_mutex_lock(&p->child_mtx));
 
@@ -437,8 +492,15 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     Priv *p = pd->priv;
 
     FILE *f;
-    if (!do_spawn(pd, &f)) {
-        return;
+
+    if (p->file_path) {
+        if (!do_open_file(pd, &f)) {
+            return;
+        }
+    } else {
+        if (!do_spawn(pd, &f)) {
+            return;
+        }
     }
 
     if (p->greet) {
@@ -465,16 +527,18 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     free(buf);
     fclose(f);
 
-    do_wait(pd);
+    if (!p->file_path) {
+        do_wait(pd);
+    }
 
     if (p->bye) {
         make_call_simple(pd, funcs, "bye");
 
         // It's fine, it is the desired behavior to simply hang here. "bye" is typically used by a
         // widget to have a last chance to do something and/or show something to the user after the
-        // process has died; not hanging and returning here would mean anything shown to the user in
-        // the "bye" callback is lost (luastatus will tell the barlib to show an error segment
-        // instead).
+        // process has died (or we got EOF from the file); not hanging and returning here would mean
+        // anything shown to the user in the "bye" callback is lost (luastatus will tell the barlib
+        // to show an error segment instead).
         for (;;) {
             pause();
         }
