@@ -156,7 +156,7 @@ static inline const char *evt_result_to_str(RunnerEventResult val)
     LS_MUST_BE_UNREACHABLE();
 }
 
-static int l_call_event(lua_State *L)
+static int l_call_event(lua_State *L) /*__THROWABLE__*/
 {
     Priv *p = lua_touserdata(L, lua_upvalueindex(1));
 

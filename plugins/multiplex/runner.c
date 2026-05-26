@@ -231,8 +231,13 @@ static lua_State *xnew_lua_state(void)
 // Returns a string representation of an error object located at the position /pos/ of /L/'s stack.
 static inline const char *get_lua_error_msg(lua_State *L, int pos)
 {
-    const char *msg = lua_tostring(L, pos);
-    return msg ? msg : "(error object cannot be converted to string)";
+    // This function must not throw. So we don't use 'lua_tostring()' without checking that it
+    // actually has string type.
+    if (lua_type(L, pos) == LUA_TSTRING) {
+        return lua_tostring(L, pos);
+    } else {
+        return "(error object cannot be converted to string)";
+    }
 }
 
 // Checks a /lua_*/ call that returns a /LUA_*/ error code, performed on a Lua interpreter instance
@@ -274,7 +279,7 @@ static bool check_lua_call(Runner *runner, lua_State *L, int ret)
 // /do_lua_call/.
 //
 // Currently, it returns (to /check_lua_call/) the traceback of the error.
-static int l_error_handler(lua_State *L)
+static int l_error_handler(lua_State *L) /*__THROWABLE__*/
 {
     // L: error
     lua_getglobal(L, LUA_DBLIBNAME); // L: error debug
@@ -295,7 +300,7 @@ static inline bool do_lua_call(Runner *runner, lua_State *L, int nargs, int nres
 }
 
 // Replacement for Lua's /os.exit()/: a simple /exit()/ used by Lua is not thread-safe in Linux.
-static int l_os_exit(lua_State *L)
+static int l_os_exit(lua_State *L) /*__THROWABLE__*/
 {
     int code = luaL_optinteger(L, 1, /*default value*/ EXIT_SUCCESS);
     fflush(stdout);
@@ -305,7 +310,7 @@ static int l_os_exit(lua_State *L)
 
 // Replacement for Lua's /os.getenv()/: a simple /getenv()/ used by Lua is not guaranteed by POSIX
 // to be thread-safe.
-static int l_os_getenv(lua_State *L)
+static int l_os_getenv(lua_State *L) /*__THROWABLE__*/
 {
     const char *r = ls_getenv_r(luaL_checkstring(L, 1));
     if (r) {
@@ -317,7 +322,7 @@ static int l_os_getenv(lua_State *L)
 }
 
 // Replacement for Lua's /os.setlocale()/: this thing is inherently thread-unsafe.
-static int l_os_setlocale(lua_State *L)
+static int l_os_setlocale(lua_State *L) /*__THROWABLE__*/
 {
     ls_lua_pushfail(L);
     return 1;
@@ -325,7 +330,7 @@ static int l_os_setlocale(lua_State *L)
 
 // Implementation of /luastatus.require_plugin()/. Expects a single upvalue: an initially empty
 // table that will be used as a registry of loaded Lua plugins.
-static int l_require_plugin(lua_State *L)
+static int l_require_plugin(lua_State *L) /*__THROWABLE__*/
 {
     const char *arg = luaL_checkstring(L, 1);
     if ((strchr(arg, '/'))) {
