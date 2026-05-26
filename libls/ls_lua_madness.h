@@ -22,8 +22,16 @@
 #include <lua.h>
 #include <stddef.h>
 
+// Pushes a pointer-and-length string onto the L's stack. Panics on
+// out-of-memory condition instead of throwing like 'lua_pushlstring()'.
 void ls_lua_madness_pushlstr(lua_State *L, const char *b, size_t nb);
 
+// Pushes a C string onto the L's stack. Panics on out-of-memory condition
+// instead of throwing like 'lua_pushstring()'.
+//
+// For compatibility with Lua's 'lua_pushstring': if 's' is NULL, pushes nil.
 void ls_lua_madness_pushstr(lua_State *L, const char *s);
 
+// Calls a function, like 'lua_call()', but panics on any error instead of
+// throwing like 'lua_call()'.
 void ls_lua_madness_call_or_die(lua_State *L, int nargs, int nresults);

@@ -20,6 +20,7 @@
 #include "ls_lua_madness.h"
 #include <lua.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <string.h>
 #include "ls_panic.h"
 
@@ -72,12 +73,18 @@ void ls_lua_madness_call_or_die(lua_State *L, int nargs, int nresults)
 {
     int rc = lua_pcall(L, nargs, nresults, 0);
     if (rc != 0) {
-        const char *msg;
+        char buf[256];
         if (rc == LUA_ERRMEM) {
-            msg = "out of memory (reported from Lua)";
+            snprintf(buf, sizeof(buf), "out of memory (reported from Lua)");
         } else {
-            msg = "error thrown out of a lua_CFunction that must never throw";
+            const char *msg = (lua_type(L, -1) == LUA_TSTRING)
+                ? lua_tostring(L, -1)
+                : "(error object is not a function)";
+            snprintf(
+                buf, sizeof(buf),
+                "error thrown out of a lua_CFunction that must never throw: %.*s",
+                (int) (sizeof(buf) - 64), msg);
         }
-        LS_PANIC(msg);
+        LS_PANIC(buf);
     }
 }
