@@ -40,8 +40,6 @@ static inline bool getbool(lua_State *L, int arg)
 
 static int l_json_decode(lua_State *L)
 {
-    enum { MAX_DEPTH = 100 };
-
     const char *input = luaL_checkstring(L, 1);
     bool mark_arrays_vs_dicts = getbool(L, 2);
     bool mark_nulls = getbool(L, 3);
@@ -57,7 +55,7 @@ static int l_json_decode(lua_State *L)
     char errbuf[256];
 
     const JsonDecodeRefs *refs = lua_touserdata(L, lua_upvalueindex(1));
-    bool is_ok = json_decode(L, refs, input, MAX_DEPTH, flags, errbuf, sizeof(errbuf));
+    bool is_ok = json_decode(L, refs, input, flags, errbuf, sizeof(errbuf));
 
     if (is_ok) {
         return 1;

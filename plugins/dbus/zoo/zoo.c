@@ -46,20 +46,10 @@ static void failure(lua_State *L, GError *err)
     ls_lua_madness_pushstr(L, err->message);
 }
 
-static int x_cvt(lua_State *L) /*__FATAL_IF_THROWS__*/
-{
-    GVariant *gv = lua_touserdata(L, 1);
-    cvt(L, gv);
-    return 1;
-}
-
 static void success(lua_State *L, GVariant *res)
 {
     lua_pushboolean(L, 1);
-
-    /*__OK__*/ lua_pushcfunction(L, x_cvt);
-    lua_pushlightuserdata(L, res);
-    ls_lua_madness_call_or_die(L, 1, 1);
+    cvt(L, res);
 }
 
 static const char *lookupf(Zoo_CallParams *p, const char *key)

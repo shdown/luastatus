@@ -31,6 +31,9 @@
 #include "libls/ls_compdep.h"
 #include "libls/ls_panic.h"
 #include "libls/ls_lua_compat.h"
+#include "libls/ls_lua_madness.h"
+
+enum { MAX_DEPTH = 200 };
 
 static int l_special_object(lua_State *L) /*__THROWABLE__*/
 {
@@ -65,6 +68,11 @@ static void push_gvariant(lua_State *L, GVariant *var, unsigned recurlim);
 static void on_recur_lim(lua_State *L)
 {
     push_special_object(L, "depth limit exceeded", -1, true);
+}
+
+static void on_checkstack_failure(lua_State *L)
+{
+    push_special_object(L, "out of memory", -1, true);
 }
 
 static inline void push_gvariant_strlike(lua_State *L, GVariant *var)
@@ -111,6 +119,12 @@ static void push_gvariant(lua_State *L, GVariant *var, unsigned recurlim)
 
     if (!recurlim--) {
         on_recur_lim(L);
+        return;
+    }
+
+    // This should never happen. Still, let's do it, just to be safe.
+    if (!lua_checkstack(L, 10)) {
+        on_checkstack_failure(L);
         return;
     }
 
@@ -183,16 +197,26 @@ static void push_gvariant(lua_State *L, GVariant *var, unsigned recurlim)
     }
 }
 
-void cvt(lua_State *L, GVariant *var)
+static int x_cvt(lua_State *L) /*__FATAL_IF_THROWS__*/
 {
+    GVariant *var = lua_touserdata(L, 1);
+
     if (!var) {
         lua_pushnil(L);
-        return;
+        return 1;
     }
 
-    if (lua_checkstack(L, 210)) {
-        push_gvariant(L, var, 200);
+    if (lua_checkstack(L, MAX_DEPTH + 10)) {
+        push_gvariant(L, var, MAX_DEPTH);
     } else {
-        push_special_object(L, "out of memory", -1, true);
+        on_checkstack_failure(L);
     }
+    return 1;
+}
+
+void cvt(lua_State *L, GVariant *var)
+{
+    lua_pushcfunction(L, x_cvt);
+    lua_pushlightuserdata(L, var);
+    ls_lua_madness_call_or_die(L, 1, 1);
 }

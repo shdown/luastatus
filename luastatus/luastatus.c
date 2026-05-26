@@ -465,8 +465,11 @@ static lua_State *xnew_lua_state(void)
 // Returns a string representation of an error object located at the position /pos/ of /L/'s stack.
 static inline const char *get_lua_error_msg(lua_State *L, int pos)
 {
-    const char *msg = lua_tostring(L, pos);
-    return msg ? msg : "(error object cannot be converted to string)";
+    if (lua_type(L, pos) == LUA_TSTRING) {
+        return lua_tostring(L, pos);
+    } else {
+        return "(error object is not a string)";
+    }
 }
 
 // Checks a /lua_*/ call that returns a /LUA_*/ error code, performed on a Lua interpreter instance

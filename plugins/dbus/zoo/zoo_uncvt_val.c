@@ -386,16 +386,14 @@ static int l_equals_to(lua_State *L) /*__THROWABLE__*/
     return 1;
 }
 
-#if 0
 static int l_to_lua(lua_State *L) /*__THROWABLE__*/
 {
     // /v/ is borrowed (STACK).
     GVariant *v = fetch_gvar_borrow(L, 1, "argument #1");
 
-    x_cvt(L, v);
+    cvt(L, v);
     return 1;
 }
-#endif
 
 GVariant *zoo_uncvt_val_fetch_newref(lua_State *L, int pos, const char *what)
 {
@@ -408,9 +406,7 @@ static void register_mt(lua_State *L)
     static const Zoo_RegistryEntry mt_registry[] = {
         /*__OK__*/ ZOO_REG_ENT("get_type", l_get_type),
         /*__OK__*/ ZOO_REG_ENT("equals_to", l_equals_to),
-#if 0
         /*__OK__*/ ZOO_REG_ENT("to_lua", l_to_lua),
-#endif
 
         /*__OK__*/ ZOO_REG_ENT("__gc", vobj_gc),
 

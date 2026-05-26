@@ -38,6 +38,8 @@
 #include "libls/ls_panic.h"
 #include "libls/ls_lua_madness.h"
 
+enum { MAX_DEPTH = 200 };
+
 typedef struct {
     JsonDecodeRefs refs;
     int flags;
@@ -117,6 +119,8 @@ static bool convert(lua_State *L, cJSON *j, Params *params, int recur_lim)
         params->err_descr = "depth limit exceeded";
         return false;
     }
+
+    // This should never happen. Still, let's do it, just to be safe.
     if (!lua_checkstack(L, 10)) {
         params->err_descr = "too many elements on Lua stack";
         return false;
@@ -161,9 +165,8 @@ static int x_convert(lua_State *L) /*__FATAL_IF_THROWS__*/
 {
     cJSON *j = lua_touserdata(L, 1);
     Params *params = lua_touserdata(L, 2);
-    const int *max_depth = lua_touserdata(L, 3);
 
-    bool is_ok = convert(L, j, params, *max_depth);
+    bool is_ok = convert(L, j, params, MAX_DEPTH);
     params->is_ok = is_ok;
     if (!is_ok) {
         lua_settop(L, 0);
@@ -176,7 +179,6 @@ bool json_decode(
         lua_State *L,
         const JsonDecodeRefs *refs,
         const char *input,
-        int max_depth,
         int flags,
         char *errbuf,
         size_t nerrbuf)
@@ -184,8 +186,8 @@ bool json_decode(
     LS_ASSERT(input != NULL);
     LS_ASSERT(refs != NULL);
 
-    if (!lua_checkstack(L, max_depth)) {
-        snprintf(errbuf, nerrbuf, "Lua failed to allocate stack of size %d", max_depth);
+    if (!lua_checkstack(L, MAX_DEPTH + 10)) {
+        snprintf(errbuf, nerrbuf, "Lua failed to allocate stack of required size");
         return false;
     }
 
@@ -212,8 +214,7 @@ bool json_decode(
     /*__OK__*/ lua_pushcfunction(L, x_convert);
     lua_pushlightuserdata(L, j);
     lua_pushlightuserdata(L, &params);
-    lua_pushlightuserdata(L, &max_depth);
-    ls_lua_madness_call_or_die(L, 3, 1);
+    ls_lua_madness_call_or_die(L, 2, 1);
 
     cJSON_Delete(j);
 

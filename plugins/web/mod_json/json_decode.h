@@ -39,7 +39,6 @@ bool json_decode(
         lua_State *L,
         const JsonDecodeRefs *refs,
         const char *input,
-        int max_depth,
         int flags,
         char *errbuf,
         size_t nerrbuf);
