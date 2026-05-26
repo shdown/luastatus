@@ -166,12 +166,22 @@ static int x_convert(lua_State *L) /*__FATAL_IF_THROWS__*/
     cJSON *j = lua_touserdata(L, 1);
     Params *params = lua_touserdata(L, 2);
 
+    if (!lua_checkstack(L, MAX_DEPTH + 10)) {
+        params->err_descr = "Lua failed to allocate stack of required size";
+        params->is_ok = false;
+        goto fail;
+    }
+
     bool is_ok = convert(L, j, params, MAX_DEPTH);
     params->is_ok = is_ok;
     if (!is_ok) {
-        lua_settop(L, 0);
-        lua_pushnil(L);
+        goto fail;
     }
+    return 1;
+
+fail:
+    lua_settop(L, 0);
+    lua_pushnil(L);
     return 1;
 }
 
@@ -185,11 +195,6 @@ bool json_decode(
 {
     LS_ASSERT(input != NULL);
     LS_ASSERT(refs != NULL);
-
-    if (!lua_checkstack(L, MAX_DEPTH + 10)) {
-        snprintf(errbuf, nerrbuf, "Lua failed to allocate stack of required size");
-        return false;
-    }
 
     if (strlen(input) > (INT_MAX - 16)) {
         snprintf(errbuf, nerrbuf, "JSON payload is too large");
