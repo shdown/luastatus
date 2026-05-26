@@ -76,6 +76,8 @@ static void make_tobj_steal(lua_State *L, GVariantType *t)
 {
     LS_ASSERT(t != NULL);
 
+    // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
+
     /*__OK__*/ lua_pushcfunction(L, x_make_tobj_steal);
     lua_pushlightuserdata(L, t);
     ls_lua_madness_call_or_die(L, 1, 1);
@@ -323,6 +325,8 @@ void zoo_uncvt_type_bake_steal(GVariantType *t, lua_State *L)
 
 static void register_mt(lua_State *L)
 {
+    // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
+
     static const Zoo_RegistryEntry mt_registry[] = {
         /*__OK__*/ ZOO_REG_ENT("get_type_string", l_get_type_string),
         /*__OK__*/ ZOO_REG_ENT("get_category", l_get_category),
@@ -344,6 +348,8 @@ static void register_mt(lua_State *L)
 void zoo_uncvt_type_register_mt_and_funcs(lua_State *L)
 {
     register_mt(L);
+
+    // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
 
     static const Zoo_RegistryEntry registry[] = {
         /*__OK__*/ ZOO_REG_ENT("mktype_simple", l_mktype_simple),

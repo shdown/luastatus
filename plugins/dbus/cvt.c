@@ -53,6 +53,8 @@ static void push_special_object(lua_State *L, const char *s, size_t ns, bool is_
         ns = strlen(s);
     }
 
+    // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
+
     int num_upvalues = 1;
     if (is_error) {
         lua_pushnil(L);
@@ -216,7 +218,9 @@ static int x_cvt(lua_State *L) /*__FATAL_IF_THROWS__*/
 
 void cvt(lua_State *L, GVariant *var)
 {
-    lua_pushcfunction(L, x_cvt);
+    // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
+
+    /*__OK__*/ lua_pushcfunction(L, x_cvt);
     lua_pushlightuserdata(L, var);
     ls_lua_madness_call_or_die(L, 1, 1);
 }

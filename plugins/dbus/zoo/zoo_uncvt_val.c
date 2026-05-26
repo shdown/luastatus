@@ -85,6 +85,8 @@ static void make_vobj_steal(lua_State *L, GVariant *v)
     LS_ASSERT(v != NULL);
     LS_ASSERT(!g_variant_is_floating(v));
 
+    // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
+
     /*__OK__*/ lua_pushcfunction(L, x_make_vobj_steal);
     lua_pushlightuserdata(L, v);
     ls_lua_madness_call_or_die(L, 1, 1);
@@ -403,6 +405,8 @@ GVariant *zoo_uncvt_val_fetch_newref(lua_State *L, int pos, const char *what)
 
 static void register_mt(lua_State *L)
 {
+    // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
+
     static const Zoo_RegistryEntry mt_registry[] = {
         /*__OK__*/ ZOO_REG_ENT("get_type", l_get_type),
         /*__OK__*/ ZOO_REG_ENT("equals_to", l_equals_to),
@@ -418,6 +422,8 @@ static void register_mt(lua_State *L)
 void zoo_uncvt_val_register_mt_and_funcs(lua_State *L)
 {
     register_mt(L);
+
+    // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
 
     static const Zoo_RegistryEntry registry[] = {
         /*__OK__*/ ZOO_REG_ENT("mkval_simple", l_mkval_simple),

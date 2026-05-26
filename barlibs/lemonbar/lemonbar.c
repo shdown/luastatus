@@ -173,6 +173,9 @@ static int l_escape(lua_State *L) /*__THROWABLE__*/
 static void register_funcs(LuastatusBarlibData *bd, lua_State *L)
 {
     (void) bd;
+
+    // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
+
     // L: table
     /*__OK__*/ lua_pushcfunction(L, l_escape); // L: table l_escape
     lua_setfield(L, -2, "escape"); // L: table

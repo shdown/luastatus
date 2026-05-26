@@ -170,6 +170,9 @@ static int l_time_now(lua_State *L) /*__THROWABLE__*/
 static void register_funcs(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv;
+
+    // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
+
     // L: table
     ls_self_pipe_push_luafunc(p->pipefds, L); // L: table func
     lua_setfield(L, -2, "wake_up"); // L: table

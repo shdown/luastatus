@@ -161,6 +161,8 @@ static int l_math_randomseed(lua_State *L) /*__THROWABLE__*/
 
 static void reg(lua_State *L, int prng_lref, lua_CFunction f, const char *key)
 {
+    // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
+
     // L: ? math
     lua_rawgeti(L, LUA_REGISTRYINDEX, prng_lref); // L: ? math prng
     /*__OK__*/ lua_pushcclosure(L, f, 1); // L: ? math f

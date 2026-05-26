@@ -207,6 +207,8 @@ static void register_funcs(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv;
 
+    // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
+
     // L: table
     lua_pushlightuserdata(L, p); // L: table ud
     /*__OK__*/ lua_pushcclosure(L, l_call_event, 1); // L: table func

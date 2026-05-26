@@ -310,6 +310,8 @@ static int l_get_supported_events(lua_State *L) /*__THROWABLE__*/
 
 static void register_funcs(LuastatusPluginData *pd, lua_State *L)
 {
+    // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
+
     // L: table
     lua_pushlightuserdata(L, pd); // L: table pd
     /*__OK__*/ lua_pushcclosure(L, l_add_watch, 1); // L: table closure

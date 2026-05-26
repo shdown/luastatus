@@ -81,6 +81,8 @@ static int l_urldecode(lua_State *L) /*__THROWABLE__*/
 
 void mod_urlencode_register_funcs(lua_State *L)
 {
+    // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
+
     /*__OK__*/ lua_pushcfunction(L, l_urlencode);
     lua_setfield(L, -2, "urlencode");
 

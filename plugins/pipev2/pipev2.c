@@ -238,32 +238,36 @@ static int l_write_to_stdin(lua_State *L) /*__THROWABLE__*/
     }
 }
 
-static int fetch_sig_num(lua_State *L)
+static void fetch_sig_num(lua_State *L, int *out)
 {
     if (lua_isnoneornil(L, 1)) {
-        return SIGTERM;
+        *out = SIGTERM;
+        return;
     }
 
     int t = lua_type(L, 1);
     if (t == LUA_TNUMBER) {
         int res = lua_tointeger(L, 1);
         if (res < 0) {
-            return luaL_argerror(L, 1, "number is negative or out of range");
+            (void) luaL_argerror(L, 1, "number is negative or out of range");
+            LS_MUST_BE_UNREACHABLE();
         }
-        return res;
+        *out = res;
 
     } else if (t == LUA_TSTRING) {
         const char *sig_name = lua_tostring(L, 1);
         int res = sigdb_lookup_num_by_name(sig_name);
         if (res < 0) {
-            return luaL_argerror(L, 1, "unknown signal name");
+            (void) luaL_argerror(L, 1, "unknown signal name");
+            LS_MUST_BE_UNREACHABLE();
         }
-        return res;
+        *out = res;
 
     } else {
-        return luaL_error(
+        (void) luaL_error(
             L, "expected number of string as argument, found %s",
             luaL_typename(L, 1));
+        LS_MUST_BE_UNREACHABLE();
     }
 }
 
@@ -275,7 +279,8 @@ static int l_kill(lua_State *L) /*__THROWABLE__*/
         return luaL_error(L, "file mode is used");
     }
 
-    int sig_num = fetch_sig_num(L);
+    int sig_num;
+    fetch_sig_num(L, &sig_num);
 
     // If /is_ok/ == 1: killed successfully.
     // If /is_ok/ == 0: error, error number in /err_num/.
@@ -327,6 +332,8 @@ static int l_get_sigrt_bounds(lua_State *L) /*__THROWABLE__*/
 static void register_funcs(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv;
+
+    // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
 
     // L: table
 

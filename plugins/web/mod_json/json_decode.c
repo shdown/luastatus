@@ -216,6 +216,7 @@ bool json_decode(
         .err_descr = NULL,
     };
 
+    // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
     /*__OK__*/ lua_pushcfunction(L, x_convert);
     lua_pushlightuserdata(L, j);
     lua_pushlightuserdata(L, &params);

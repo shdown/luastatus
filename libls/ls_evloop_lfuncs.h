@@ -102,6 +102,8 @@ LS_INHEADER int ls_pushed_timeout_lfunc(lua_State *L)
 // The caller must ensure that the /L/'s stack has at least 2 free slots.
 LS_INHEADER void ls_pushed_timeout_push_luafunc(LS_PushedTimeout *p, lua_State *L)
 {
+    // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
+
     lua_pushlightuserdata(L, p);
     /*__OK__*/ lua_pushcclosure(L, ls_pushed_timeout_lfunc, 1);
 }
@@ -166,6 +168,8 @@ LS_INHEADER int ls_self_pipe_lfunc(lua_State *L)
 // The caller must ensure that the /L/'s stack has at least 2 free slots.
 LS_INHEADER void ls_self_pipe_push_luafunc(int fds[2], lua_State *L)
 {
+    // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
+
     lua_pushlightuserdata(L, fds);
     /*__OK__*/ lua_pushcclosure(L, ls_self_pipe_lfunc, 1);
 }

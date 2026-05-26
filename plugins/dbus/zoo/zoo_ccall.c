@@ -21,6 +21,8 @@
 
 bool zoo_ccall(lua_State *L, int nargs, int nresults, lua_CFunction f, void *ud)
 {
+    // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
+
     // L: ? args
     lua_pushlightuserdata(L, ud); // L: ? args ud
     /*__OK__*/ lua_pushcfunction(L, f); // L: ? args ud f

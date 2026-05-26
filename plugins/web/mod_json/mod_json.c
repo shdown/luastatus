@@ -38,7 +38,7 @@ static inline bool getbool(lua_State *L, int arg)
     return lua_toboolean(L, arg);
 }
 
-static int l_json_decode(lua_State *L)
+static int l_json_decode(lua_State *L) /*__THROWABLE__*/
 {
     const char *input = luaL_checkstring(L, 1);
     bool mark_arrays_vs_dicts = getbool(L, 2);
@@ -101,14 +101,17 @@ static int l_json_encode_num(lua_State *L) /*__THROWABLE__*/
 
 void mod_json_register_funcs(lua_State *L)
 {
-    JsonDecodeRefs *refs = ls_lua_newud(L, sizeof(JsonDecodeRefs));
+    // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
+
+    // L: ? table
+    JsonDecodeRefs *refs = ls_lua_newud(L, sizeof(JsonDecodeRefs)); // L: ? table refs
     json_decode_reg_refs(L, refs);
-    /*__OK__*/ lua_pushcclosure(L, l_json_decode, 1);
-    lua_setfield(L, -2, "json_decode");
+    /*__OK__*/ lua_pushcclosure(L, l_json_decode, 1); // L: ? table func
+    lua_setfield(L, -2, "json_decode"); // L: ? table
 
-    /*__OK__*/ lua_pushcfunction(L, l_json_encode_str);
-    lua_setfield(L, -2, "json_encode_str");
+    /*__OK__*/ lua_pushcfunction(L, l_json_encode_str); // L: ? table func
+    lua_setfield(L, -2, "json_encode_str"); // L: ? table
 
-    /*__OK__*/ lua_pushcfunction(L, l_json_encode_num);
-    lua_setfield(L, -2, "json_encode_num");
+    /*__OK__*/ lua_pushcfunction(L, l_json_encode_num); // L: ? table func
+    lua_setfield(L, -2, "json_encode_num"); // L: ? table
 }

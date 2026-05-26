@@ -328,6 +328,8 @@ static void register_funcs(LuastatusPluginData *pd, lua_State *L)
         return;
     }
 
+    // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
+
     // L: ? table
 
     lua_pushlightuserdata(L, p); // L: ? table ud

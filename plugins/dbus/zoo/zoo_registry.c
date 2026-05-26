@@ -23,6 +23,8 @@ void zoo_registry_register(
         lua_State *L,
         const Zoo_RegistryEntry *registry)
 {
+    // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
+
     // L: ? table
     for (const Zoo_RegistryEntry *e = registry; e->name; ++e) {
         // L: ? table
@@ -36,6 +38,8 @@ void zoo_registry_register_with_upvalue(
         lua_State *L,
         const Zoo_RegistryEntry *registry)
 {
+    // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
+
     // L: ? table upvalue
     for (const Zoo_RegistryEntry *e = registry; e->name; ++e) {
         // L: ? table upvalue

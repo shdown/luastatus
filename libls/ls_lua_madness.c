@@ -41,6 +41,8 @@ static int x_pushlstr(lua_State *L) /*__FATAL_IF_THROWS__*/
 
 void ls_lua_madness_pushlstr(lua_State *L, const char *b, size_t nb)
 {
+    // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
+
     /*__OK__*/ lua_pushcfunction(L, x_pushlstr);
 
     Pushlstr_Arg arg = {.b = b, .nb = nb};
@@ -51,6 +53,8 @@ void ls_lua_madness_pushlstr(lua_State *L, const char *b, size_t nb)
 
 void ls_lua_madness_pushstr(lua_State *L, const char *s)
 {
+    // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
+
     /*__OK__*/ lua_pushcfunction(L, x_pushlstr);
 
     Pushlstr_Arg arg;

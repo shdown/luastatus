@@ -645,6 +645,8 @@ static void inject_libs_replacements(lua_State *L)
     // L: ?
     liblrand_inject(L); // L: ?
 
+    // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
+
     lua_getglobal(L, "os"); // L: ? os
 
     /*__OK__*/ lua_pushcfunction(L, l_os_exit); // L: ? os l_os_exit
@@ -668,6 +670,8 @@ static void inject_libs_replacements(lua_State *L)
 
 static void inject_luastatus_module(lua_State *L, Widget *w)
 {
+    // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
+
     lua_createtable(L, 0, 4); // L: ? table
 
     // ========== require_plugin ==========
@@ -703,6 +707,8 @@ static void inject_libs(lua_State *L, Widget *w)
 
 static void sepstate_maybe_init(void)
 {
+    // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
+
     if (sepstate.L) {
         // already initialized
         return;
@@ -828,6 +834,8 @@ static bool widget_init(Widget *w, const char *filename)
     bool plugin_loaded = false;
 
     DEBUGF("initializing widget '%s'", filename);
+
+    // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
 
     luaL_openlibs(w->L);
     // w->L: -

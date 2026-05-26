@@ -338,8 +338,10 @@ static void do_lua_call_or_die(lua_State *L, int nargs, int nresults)
     }
 }
 
-static int lfunc_make_valid_and_printable(lua_State *L)
+static int lfunc_make_valid_and_printable(lua_State *L) /*__THROWABLE__*/
 {
+    // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
+
     SAFEV v = extract_string_with_ij(L, 1, 3);
 
     SAFEV bad = v_from_lua_string(L, 2);
@@ -367,7 +369,11 @@ void libwidechar_register_lua_funcs(lua_State *L)
     (void) L;
 
 #if ! defined(__NetBSD__)
+
+    // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
+
     // L: table
+
     /*__OK__*/ lua_pushcfunction(L, lfunc_width); // L: table func
     lua_setfield(L, -2, "width"); // L: table
 
@@ -379,5 +385,6 @@ void libwidechar_register_lua_funcs(lua_State *L)
 
     /*__OK__*/ lua_pushcfunction(L, lfunc_is_dummy_implementation); // L: table func
     lua_setfield(L, -2, "is_dummy_implementation"); // L: table
+
 #endif
 }

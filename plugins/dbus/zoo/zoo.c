@@ -331,6 +331,8 @@ void zoo_register_funcs(Zoo *z, lua_State *L)
     zoo_uncvt_val_register_mt_and_funcs(L); // L: ? table table
     lua_setfield(L, -2, "dbustypes_lowlevel"); // L: ? table
 
+    // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
+
     static const Zoo_RegistryEntry registry[] = {
         /*__OK__*/ ZOO_REG_ENT("call_method",        l_call_method),
         /*__OK__*/ ZOO_REG_ENT("call_method_str",    l_call_method_str),
@@ -340,9 +342,9 @@ void zoo_register_funcs(Zoo *z, lua_State *L)
         /*__OK__*/ ZOO_REG_ENT("set_property_str",   l_set_property_str),
         {0},
     };
-    lua_pushlightuserdata(L, z);
-    zoo_registry_register_with_upvalue(L, registry);
-    lua_pop(L, 1);
+    lua_pushlightuserdata(L, z); // L: ? table upvalue
+    zoo_registry_register_with_upvalue(L, registry); // L: ? table upvalue
+    lua_pop(L, 1); // L: ? table
 }
 
 void zoo_destroy(Zoo *z)

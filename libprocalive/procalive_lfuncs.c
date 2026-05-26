@@ -275,6 +275,8 @@ int procalive_lfunc_is_process_alive(lua_State *L)
 
 void procalive_lfuncs_register_all(lua_State *L)
 {
+    // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
+
     // L: table
 
     /*__OK__*/ lua_pushcfunction(L, procalive_lfunc_access); // L: table func
