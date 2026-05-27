@@ -10,9 +10,8 @@ add_executable (
     luastatus
     $<TARGET_OBJECTS:ls>
     $<TARGET_OBJECTS:hackyfix>
-    $<TARGET_OBJECTS:runshell>
     $<TARGET_OBJECTS:widechar>
-    $<TARGET_OBJECTS:lrand>
+    $<TARGET_OBJECTS:lreplace>
 
     # Required by libwidechar
     $<TARGET_OBJECTS:safe>

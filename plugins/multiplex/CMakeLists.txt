@@ -3,9 +3,8 @@ luastatus_add_plugin (
     plugin-multiplex
     $<TARGET_OBJECTS:ls>
     $<TARGET_OBJECTS:moonvisit>
-    $<TARGET_OBJECTS:runshell>
     $<TARGET_OBJECTS:widechar>
-    $<TARGET_OBJECTS:lrand>
+    $<TARGET_OBJECTS:lreplace>
     $<TARGET_OBJECTS:safe>
     ${sources}
 )

@@ -36,7 +36,6 @@
 
 #include "libls/ls_alloc_utils.h"
 #include "libls/ls_compdep.h"
-#include "libls/ls_getenv_r.h"
 #include "libls/ls_algo.h"
 #include "libls/ls_panic.h"
 #include "libls/ls_xallocf.h"
@@ -44,8 +43,9 @@
 #include "libls/ls_lua_madness.h"
 
 #include "libwidechar/libwidechar.h"
-#include "librunshell/runshell.h"
-#include "liblrand/liblrand.h"
+#include "liblreplace/inject_all.h"
+#include "liblreplace/runshell.h"
+#include "liblreplace/panic_handler.h"
 
 #include "config.generated.h"
 #include "comm.h"
@@ -459,6 +459,9 @@ static lua_State *xnew_lua_state(void)
         FATALF("luaL_newstate() failed: out of memory?");
         abort();
     }
+
+    liblreplace_panic_handler_install(L);
+
     return L;
 }
 
@@ -529,35 +532,6 @@ static int l_error_handler(lua_State *L) /*__THROWABLE__*/
 static inline bool do_lua_call(lua_State *L, int nargs, int nresults)
 {
     return check_lua_call(L, lua_pcall(L, nargs, nresults, 1));
-}
-
-// Replacement for Lua's /os.exit()/: a simple /exit()/ used by Lua is not thread-safe in Linux.
-static int l_os_exit(lua_State *L) /*__THROWABLE__*/
-{
-    int code = luaL_optinteger(L, 1, /*default value*/ EXIT_SUCCESS);
-    fflush(stdout);
-    fflush(stderr);
-    _exit(code);
-}
-
-// Replacement for Lua's /os.getenv()/: a simple /getenv()/ used by Lua is not guaranteed by POSIX
-// to be thread-safe.
-static int l_os_getenv(lua_State *L) /*__THROWABLE__*/
-{
-    const char *r = ls_getenv_r(luaL_checkstring(L, 1));
-    if (r) {
-        lua_pushstring(L, r);
-    } else {
-        ls_lua_pushfail(L);
-    }
-    return 1;
-}
-
-// Replacement for Lua's /os.setlocale()/: this thing is inherently thread-unsafe.
-static int l_os_setlocale(lua_State *L) /*__THROWABLE__*/
-{
-    ls_lua_pushfail(L);
-    return 1;
 }
 
 // Implementation of /luastatus.require_plugin()/. Expects a single upvalue: an initially empty
@@ -640,34 +614,6 @@ static int l_communicate(lua_State *L) /*__THROWABLE__*/
     }
 }
 
-static void inject_libs_replacements(lua_State *L)
-{
-    // L: ?
-    liblrand_inject(L); // L: ?
-
-    // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
-
-    lua_getglobal(L, "os"); // L: ? os
-
-    /*__OK__*/ lua_pushcfunction(L, l_os_exit); // L: ? os l_os_exit
-    lua_setfield(L, -2, "exit"); // L: ? os
-
-    /*__OK__*/ lua_pushcfunction(L, l_os_getenv); // L: ? os l_os_getenv
-    lua_setfield(L, -2, "getenv"); // L: ? os
-
-    /*__OK__*/ lua_pushcfunction(L, l_os_setlocale); // L: ? os l_os_setlocale
-    lua_setfield(L, -2, "setlocale"); // L: ? os
-
-    bool is_lua51 = ls_lua_is_lua51(L);
-    /*__OK__*/ lua_pushcfunction(
-        L,
-        is_lua51 ? runshell_l_os_execute_lua51ver : runshell_l_os_execute);
-    // L: ? os os_execute_func
-    lua_setfield(L, -2, "execute"); // L: ? os
-
-    lua_pop(L, 1); // L: ?
-}
-
 static void inject_luastatus_module(lua_State *L, Widget *w)
 {
     // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
@@ -680,7 +626,7 @@ static void inject_luastatus_module(lua_State *L, Widget *w)
     lua_setfield(L, -2, "require_plugin"); // L: ? table
 
     // ========== execute ==========
-    /*__OK__*/ lua_pushcfunction(L, runshell_l_os_execute); // L: ? table cfunction
+    /*__OK__*/ lua_pushcfunction(L, liblreplace_runshell_l_os_execute); // L: ? table func
     lua_setfield(L, -2, "execute"); // L: ? table
 
     // ========== libwidechar ==========
@@ -701,7 +647,7 @@ static void inject_luastatus_module(lua_State *L, Widget *w)
 //    /luastatus.plugin/ and /luastatus.barlib/ submodules (created later).
 static void inject_libs(lua_State *L, Widget *w)
 {
-    inject_libs_replacements(L);
+    liblreplace_inject_all(L);
     inject_luastatus_module(L, w);
 }
 

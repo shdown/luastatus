@@ -121,11 +121,10 @@ endfunction ()
 add_subdirectory (libls)
 add_subdirectory (libsafe)
 add_subdirectory (libhackyfix)
-add_subdirectory (librunshell)
 add_subdirectory (libmoonvisit)
 add_subdirectory (libwidechar)
 add_subdirectory (libprocalive)
-add_subdirectory (liblrand)
+add_subdirectory (liblreplace)
 add_subdirectory (luastatus)
 
 #------------------------------------------------------------------------------

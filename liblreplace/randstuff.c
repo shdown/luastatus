@@ -17,7 +17,7 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "liblrand.h"
+#include "randstuff.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -27,7 +27,7 @@
 
 #if LUA_VERSION_NUM >= 504
 
-void liblrand_inject(lua_State *L)
+void liblreplace_randstuff_inject(lua_State *L)
 {
     (void) L;
 }
@@ -159,36 +159,39 @@ static int l_math_randomseed(lua_State *L) /*__THROWABLE__*/
     return 0;
 }
 
-static void reg(lua_State *L, int prng_lref, lua_CFunction f, const char *key)
+static void reg(lua_State *L, lua_CFunction f, const char *key)
 {
     // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
 
-    // L: ? math
-    lua_rawgeti(L, LUA_REGISTRYINDEX, prng_lref); // L: ? math prng
-    /*__OK__*/ lua_pushcclosure(L, f, 1); // L: ? math f
-    lua_setfield(L, -2, key); // L: ? math
+    // L: ? PRNG math
+    lua_pushvalue(L, -2); // L: ? PRNG math PRNG
+    /*__OK__*/ lua_pushcclosure(L, f, 1); // L: ? PRNG math func
+    lua_setfield(L, -2, key); // L: ? PRNG math
 }
 
-void liblrand_inject(lua_State *L)
+#if LUA_VERSION_NUM >= 504
+# define my_lua_newuserdata(L, sz) lua_newuserdatauv((L), (sz), 1)
+#else
+# define my_lua_newuserdata(L, sz) lua_newuserdata((L), (sz))
+#endif
+
+void liblreplace_randstuff_inject(lua_State *L)
 {
     if (check_is_luajit(L)) {
         return;
     }
     // L: ?
 
-    PRNG *prng = lua_newuserdata(L, sizeof(PRNG)); // L: ? prng
+    PRNG *prng = my_lua_newuserdata(L, sizeof(PRNG)); // L: ? PRNG
     prng_init(prng, 1);
-    int prng_lref = luaL_ref(L, LUA_REGISTRYINDEX); // L: ?
 
-    lua_getglobal(L, "math"); // L: ? math
+    lua_getglobal(L, "math"); // L: ? PRNG math
 
-    reg(L, prng_lref, l_math_random, "random");
-    reg(L, prng_lref, l_math_randomseed, "randomseed");
+    reg(L, l_math_random, "random");
+    reg(L, l_math_randomseed, "randomseed");
 
-    luaL_unref(L, LUA_REGISTRYINDEX, prng_lref);
-
-     // L: ? math
-     lua_pop(L, 1); // L: ?
+    // L: ? PRNG math
+    lua_pop(L, 2); // L: ?
 }
 
 #endif

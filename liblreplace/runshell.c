@@ -39,7 +39,7 @@
 #define CANNOT_FAIL(Expr_) \
     do { \
         if ((Expr_) < 0) { \
-            perror("librunshell: " #Expr_ " failed"); \
+            perror("liblreplace: runshell: " #Expr_ " failed"); \
             abort(); \
         } \
     } while (0)
@@ -47,7 +47,7 @@
 #define CANNOT_FAIL_PTH(Expr_) \
     do { \
         if ((errno = (Expr_)) != 0) { \
-            perror("librunshell: " #Expr_ " failed"); \
+            perror("liblreplace: runshell: " #Expr_ " failed"); \
             abort(); \
         } \
     } while (0)
@@ -68,10 +68,10 @@ static const char *my_strerror(int errnum)
 
 extern char **environ;
 
-int runshell(const char *cmd)
+int liblreplace_runshell(const char *cmd)
 {
     if (!cmd) {
-        fputs("librunshell: passed cmd == NULL (this is not supported)\n", stderr);
+        fputs("liblreplace: runshell: passed cmd == NULL (this is not supported)\n", stderr);
         abort();
     }
 
@@ -125,7 +125,7 @@ int runshell(const char *cmd)
     return ret;
 }
 
-int runshell_l_os_execute_lua51ver(lua_State *L)
+int liblreplace_runshell_l_os_execute_lua51ver(lua_State *L) /*__THROWABLE__*/
 {
     const char *cmd = luaL_optstring(L, 1, NULL);
     // L: ?
@@ -133,11 +133,11 @@ int runshell_l_os_execute_lua51ver(lua_State *L)
         lua_pushinteger(L, 1); // L: ? 1
         return 1;
     }
-    lua_pushinteger(L, runshell(cmd)); // L: ? code
+    lua_pushinteger(L, liblreplace_runshell(cmd)); // L: ? code
     return 1;
 }
 
-int runshell_l_os_execute(lua_State *L)
+int liblreplace_runshell_l_os_execute(lua_State *L) /*__THROWABLE__*/
 {
     const char *cmd = luaL_optstring(L, 1, NULL);
     // L: ?
@@ -145,7 +145,7 @@ int runshell_l_os_execute(lua_State *L)
         lua_pushboolean(L, 1); // L: ? true
         return 1;
     }
-    int rc = runshell(cmd);
+    int rc = liblreplace_runshell(cmd);
     if (rc < 0) {
         int saved_errno = errno;
         my_pushfail(L); // L: ? fail
@@ -171,4 +171,37 @@ int runshell_l_os_execute(lua_State *L)
     lua_pushstring(L, normal_exit ? "exit" : "signal"); // L: ? is_ok what
     lua_pushinteger(L, code); // L: ? is_ok what code
     return 3;
+}
+
+static bool is_lua51(lua_State *L)
+{
+#if LUA_VERSION_NUM >= 502
+    (void) L;
+    return false;
+#else
+    // LuaJIT, when compiled with -DLUAJIT_ENABLE_LUA52COMPAT, still defines
+    // LUA_VERSION_NUM to 501, but syntax parser, library functions and some
+    // aspect of language work as if it was Lua 5.2.
+
+    // L: ?
+    lua_getglobal(L, "rawlen"); // L: ? rawlen
+    bool ret = lua_isnil(L, -1);
+    lua_pop(L, 1); // L: ?
+    return ret;
+#endif
+}
+
+void liblreplace_runshell_inject(lua_State *L)
+{
+    lua_CFunction f = is_lua51(L)
+        ? liblreplace_runshell_l_os_execute_lua51ver
+        : liblreplace_runshell_l_os_execute;
+
+    // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
+
+    // L: ?
+    lua_getglobal(L, "os"); // L: ? os
+    /*__OK__*/ lua_pushcfunction(L, f); // L: ? os func
+    lua_setfield(L, -2, "execute"); // L: ? os func
+    lua_pop(L, 1); // L: ?
 }

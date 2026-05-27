@@ -21,9 +21,10 @@ Examples of things that are very problematic in multi-threaded environments:
     in another thread now may block for indefinite time. Note that Lua's stdlib
     also uses stdio all over the place.
 
-Examples of usage of non-thread-safe (according to POSIX-2008) functions:
-  * exit(): only used in implementation of os.exit().
-    - we replace this Lua function in luastatus.
+Examples of usage of non-thread-safe (either in POSIX-2008 or glibc) functions:
+  * exit(): used internally if panic handler returns, and default panic handler
+      always returns! And also in implementation of os.exit().
+    - we replace both default panic handler and os.exit() in luastatus.
 
   * setlocale(): only used in implementation of os.setlocale().
     - we replace this Lua function in luastatus.
@@ -33,6 +34,10 @@ Examples of usage of non-thread-safe (according to POSIX-2008) functions:
 
   * rand() and srand(): only used in implementation of math.random() and
       math.randomseed(), and only in Lua 5.1, 5.2 and 5.3.
+    - we replace these Lua functions in luastatus.
+
+  * gmtime() and localtime(): only used in implementation of math.date() in
+      Lua 5.1.
     - we replace this Lua function in luastatus.
 
   * dlerror(): used internally!

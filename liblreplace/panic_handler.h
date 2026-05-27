@@ -21,4 +21,4 @@
 
 #include <lua.h>
 
-void liblrand_inject(lua_State *L);
+void liblreplace_panic_handler_install(lua_State *L);

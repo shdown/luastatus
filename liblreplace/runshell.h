@@ -34,8 +34,10 @@
 //
 //   4. Is otherwise thread-safe (POSIX does not guarantee thread-safety of
 //      /system()/, and, on musl, it is not thread-safe).
-int runshell(const char *cmd);
+int liblreplace_runshell(const char *cmd);
 
-int runshell_l_os_execute(lua_State *L);
+int liblreplace_runshell_l_os_execute(lua_State *L) /*__THROWABLE__*/;
 
-int runshell_l_os_execute_lua51ver(lua_State *L);
+int liblreplace_runshell_l_os_execute_lua51ver(lua_State *L) /*__THROWABLE__*/;
+
+void liblreplace_runshell_inject(lua_State *L);
