@@ -56,4 +56,9 @@ sleep 1
 pa_start
 
 #PT_TOOL=valgrind PT_MAX_LAG=250 ./tests/pt.sh .
-PT_MAX_LAG=300 ./tests/pt.sh .
+
+skip=
+if [[ $LUAVER == lua5.[45]/* ]]; then
+    skip='skip:plugin-imap'
+fi
+PT_MAX_LAG=300 ./tests/pt.sh . $skip
