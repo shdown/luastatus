@@ -16,6 +16,9 @@ if (MATH_LIBRARY)
     target_link_libraries (plugin-web PUBLIC ${MATH_LIBRARY})
 endif ()
 
+###CHECK_INCLUDES_PRAGMA:MODULES=libcurl libcjson
+###CHECK_INCLUDES_PRAGMA:EXTRA_CPPFLAGS=-DCJSON_FOUND_BY_PKG_CONFIG=1 -I@{CUR_DIR}
+
 find_package (PkgConfig REQUIRED)
 pkg_check_modules (CURL_STUFF REQUIRED libcurl)
 luastatus_target_build_with (plugin-web CURL_STUFF)
