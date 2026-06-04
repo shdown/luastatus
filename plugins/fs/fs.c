@@ -20,6 +20,7 @@
 #include <errno.h>
 #include <glob.h>
 #include <stdbool.h>
+#include <limits.h>
 #include <lua.h>
 #include <lauxlib.h>
 #include <stdlib.h>

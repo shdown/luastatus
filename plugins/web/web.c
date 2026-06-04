@@ -17,13 +17,17 @@
  * along with luastatus.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <lua.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <string.h>
 #include <poll.h>
 #include <sys/types.h>
+#include <lua.h>
+#include <lauxlib.h>
+
+#include <curl/curl.h>
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
@@ -38,6 +42,7 @@
 #include "libls/ls_strarr.h"
 #include "libls/ls_lua_compat.h"
 #include "libls/ls_tls_ebuf.h"
+#include "libls/ls_panic.h"
 
 #include "next_request_params.h"
 #include "set_error.h"

@@ -21,7 +21,6 @@
 
 #include <stdbool.h>
 #include <sys/inotify.h>
-#include <errno.h>
 
 #include "libls/ls_io_utils.h"
 #include "libls/ls_compdep.h"

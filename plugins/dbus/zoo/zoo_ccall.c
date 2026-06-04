@@ -18,6 +18,7 @@
  */
 
 #include "zoo_ccall.h"
+#include <lua.h>
 
 bool zoo_ccall(lua_State *L, int nargs, int nresults, lua_CFunction f, void *ud)
 {

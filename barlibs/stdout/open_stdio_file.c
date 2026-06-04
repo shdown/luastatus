@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <errno.h>
 #include <fcntl.h>
 
 #include "libls/ls_io_utils.h"

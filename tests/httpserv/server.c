@@ -21,6 +21,7 @@
 #include <libwebsockets.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <signal.h>
 #include "buffer.h"
 #include "common.h"

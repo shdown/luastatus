@@ -36,6 +36,7 @@
 
 #include "libls/ls_alloc_utils.h"
 #include "libls/ls_strarr.h"
+#include "libls/ls_panic.h"
 
 #include "wrongly.h"
 #include "somehow.h"

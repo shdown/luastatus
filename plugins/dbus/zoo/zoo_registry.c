@@ -18,6 +18,7 @@
  */
 
 #include "zoo_registry.h"
+#include <lua.h>
 
 void zoo_registry_register(
         lua_State *L,
