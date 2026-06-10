@@ -171,4 +171,6 @@ DEF_OPT (BUILD_PLUGIN_WEB                 "plugins/web"                 OFF)
 DEF_OPT (BUILD_PLUGIN_XKB                 "plugins/xkb"                 ON)
 DEF_OPT (BUILD_PLUGIN_XTITLE              "plugins/xtitle"              ON)
 
+DEF_OPT (BUILD_PLUGIN_SWAY_XKB            "plugins/sway-xkb"            OFF)
+
 DEF_OPT (BUILD_TESTS                      "tests"                       OFF)
