@@ -12,6 +12,8 @@ Overview
 ========
 This plugin spawns a process and then reads lines (or chunks separated by some other configured delimiter) from its stdout.
 
+Alternatively, it can read from a FIFO file (without spawning ``cat $path_to_fifo``).
+
 It can optionally redirect the child process' stdin as well.
 This way, a widget is able to write data into its stdin, thus establishing bidirectional communication.
 
@@ -21,9 +23,13 @@ Options
 =======
 The following options are supported:
 
-* ``argv``: array of string (**required**)
+* ``argv``: array of string
 
-  Program name or path, followed by the arguments.
+  Program name or path, followed by the arguments. **(Exactly one of ``argv`` or ``file_path`` is required.)**
+
+* ``file_path``: string
+
+  FIFO file path to read from. **(Exactly one of ``argv`` or ``file_path`` is required.)**
 
 * ``delimiter``: string
 
@@ -37,13 +43,15 @@ The following options are supported:
   If enabled, the widget will be able to write data into its stdin, thus establishing bidirectional communication.
   Defaults to ``false``.
 
+  Not supported in FIFO file mode.
+
 * ``greet``: boolean
 
   Whether or not to call the callback in the beginning with ``what="hello"``.
 
 * ``bye``: boolean
 
-  Whether or not to call the callback in the end (after the process has died) with ``what="bye"``.
+  Whether or not to call the callback in the end with ``what="bye"``.
 
 ``cb`` argument
 ===============
@@ -51,10 +59,11 @@ A table with ``what`` key:
 
 * If it's ``"hello"``, then the ``greet`` option was enabled, and the callback is called before any other calls.
 
-* If it's ``"line"``, then the child process has just produced a line (or, if a custom delimiter is used, a chunk separated by the delimiter).
-  The ``line`` field of the table contains the line itself.
+* If it's ``"line"``, then the child process (or FIFO) has just produced a line (or, if a custom delimiter is
+  used, a chunk separated by the delimiter). The ``line`` field of the table contains the line itself.
 
-* If it's ``"bye"``, then the ``bye`` option was enabled, and the child process has just died.
+* If it's ``"bye"``, then the ``bye`` option was enabled, and the child process has just died
+  (or the FIFO file has been closed from the other end).
 
 Functions
 =========
@@ -69,6 +78,8 @@ This plugin provides the following functions:
   On failure, it returns ``false, err_msg``, where ``err_msg`` is the error message,
   but see `Notes`_.
 
+  Not supported in FIFO file mode.
+
 * ``luastatus.plugin.kill([signal])``
 
   Sends a signal to the child process.
@@ -81,6 +92,8 @@ This plugin provides the following functions:
   but see `Notes`_.
 
   For the list of supported signal spellings, see `Supported signal names`_.
+
+  Not supported in FIFO file mode.
 
 * ``luastatus.plugin.get_sigrt_bounds()``
 
