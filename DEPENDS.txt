@@ -75,6 +75,9 @@ Plugin 'pulse' has the following dependencies:
 Plugin 'systemd-unit' has the following dependencies:
 * plugin 'dbus'
 
+Plugin 'sway-xkb' has the following dependencies:
+* cJSON >=1.7.10
+
 Plugin 'temperature-linux' has the following dependencies:
 * plugin 'timer'
 
