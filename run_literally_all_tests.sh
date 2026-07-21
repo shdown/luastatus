@@ -16,6 +16,8 @@ fi
 
 cd -- "$(dirname "$(readlink "$0" || printf '%s\n' "$0")")"
 
+export PLUGIN_DBUS_OPTIONAL=1
+
 COMMON_D_ARGS=(
     -DBUILD_PLUGIN_PULSE=YES
     -DBUILD_PLUGIN_UNIXSOCK=YES
