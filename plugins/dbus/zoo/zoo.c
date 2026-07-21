@@ -76,6 +76,9 @@ static int do_the_bloody_thing(
     const char *method_name,
     GVariant *args)
 {
+    // We "assume ownership" of /args/; now we need to unref it exactly once before exit.
+    args = g_variant_ref_sink(args);
+
     GDBusConnection *conn = z->conns[bustype2idx(p->bus_type)];
     if (!conn) {
         GError *err = NULL;
@@ -86,9 +89,7 @@ static int do_the_bloody_thing(
             g_error_free(err);
 
             // Dispose of /args/.
-            if (g_variant_is_floating(args)) {
-                g_variant_unref(args);
-            }
+            g_variant_unref(args);
 
             return 2;
         }
@@ -110,6 +111,9 @@ static int do_the_bloody_thing(
         /*cancellable=*/ NULL,
         /*error=*/ &err
     );
+    // Dispose of /args/.
+    g_variant_unref(args);
+
     if (res) {
         LS_ASSERT(err == NULL);
         success(L, res);
