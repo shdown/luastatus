@@ -29,7 +29,7 @@ bool strset_binsearch(char **data, size_t ndata, const char *s)
 {
     size_t l = 0;
     size_t r = ndata;
-    // Invariants: l <= r, data at half-open interval [l; r) contains 's'.
+    // Invariants: l <= r, data at half-open interval [l; r) may contain 's'.
     while (r - l > 1) {
         size_t m = l + (r - l) / 2;
         if (strcmp(data[m], s) <= 0) {
