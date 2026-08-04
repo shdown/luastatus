@@ -381,7 +381,7 @@ static ssize_t my_recvmsg(int fd_netlink, struct msghdr *msg, LS_TimeDelta tmo, 
         errno = EAGAIN;
         return -1;
     }
-    if (pfds[1].revents & POLLIN) {
+    if (pfds[1].revents) {
         // We have some input on /fd_extra/.
 
         char dummy;

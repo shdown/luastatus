@@ -337,7 +337,7 @@ static bool iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         } else {
             is_timeout = false;
 
-            if (pollfds.nprefix && (pollfds.data[0].revents & POLLIN)) {
+            if (pollfds.nprefix && pollfds.data[0].revents) {
                 char c;
                 ssize_t unused = read(p->pipefds[0], &c, 1);
                 (void) unused;
@@ -359,7 +359,7 @@ static bool iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
             LS_FATALF(pd, "snd_mixer_poll_descriptors_revents() reported error condition");
             goto error;
         }
-        if (revents & POLLIN) {
+        if (revents & (POLLIN | POLLHUP)) {
             if ((r = snd_mixer_handle_events(mixer)) < 0) {
                 LS_FATALF(pd, "snd_mixer_handle_events: %s", snd_strerror(r));
                 goto error;
