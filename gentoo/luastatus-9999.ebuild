@@ -1,5 +1,4 @@
-# Copyright 2026 shdown
-# Distributed under the terms of the GNU General Public License v2
+# Generated automatically.
 
 EAPI=8
 CMAKE_IN_SOURCE_BUILD=1
@@ -45,6 +44,7 @@ PLUGINS="
  +${PN}_plugins_network_rate_linux
  +${PN}_plugins_pipev2
   ${PN}_plugins_pulse
+  ${PN}_plugins_sway_xkb
   ${PN}_plugins_systemd_unit
  +${PN}_plugins_temperature_linux
  +${PN}_plugins_timer
@@ -99,11 +99,12 @@ RDEPEND="
  ${PN}_plugins_inotify? ( sys-kernel/linux-headers )
  ${PN}_plugins_network_linux? ( dev-libs/libnl )
  ${PN}_plugins_pulse? ( media-libs/libpulse )
+ ${PN}_plugins_sway_xkb? ( dev-libs/cJSON )
  ${PN}_plugins_systemd_unit? ( sys-apps/systemd )
  ${PN}_plugins_udev? ( virtual/libudev )
- ${PN}_plugins_web? ( dev-libs/cJSON net-misc/curl )
+ ${PN}_plugins_web? ( net-misc/curl dev-libs/cJSON )
  ${PN}_plugins_xkb? ( x11-libs/libX11 )
- ${PN}_plugins_xtitle? ( x11-libs/xcb-util x11-libs/xcb-util-wm x11-libs/libxcb )
+ ${PN}_plugins_xtitle? ( x11-libs/xcb-util-wm x11-libs/libxcb x11-libs/xcb-util )
 "
 
 src_configure() {
@@ -139,6 +140,7 @@ src_configure() {
   -DBUILD_PLUGIN_NETWORK_RATE_LINUX=$(usex ${PN}_plugins_network_rate_linux)
   -DBUILD_PLUGIN_PIPEV2=$(usex ${PN}_plugins_pipev2)
   -DBUILD_PLUGIN_PULSE=$(usex ${PN}_plugins_pulse)
+  -DBUILD_PLUGIN_SWAY_XKB=$(usex ${PN}_plugins_sway_xkb)
   -DBUILD_PLUGIN_SYSTEMD_UNIT=$(usex ${PN}_plugins_systemd_unit)
   -DBUILD_PLUGIN_TEMPERATURE_LINUX=$(usex ${PN}_plugins_temperature_linux)
   -DBUILD_PLUGIN_TIMER=$(usex ${PN}_plugins_timer)
