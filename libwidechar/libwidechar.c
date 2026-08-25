@@ -42,7 +42,16 @@ enum { IS_DUMMY_IMPLEMENTATION = 0 };
 
 #else
 
-static inline int my_wcwidth(wchar_t c) { return c == L'\0' ? 0 : 1; }
+static inline int my_wcwidth(wchar_t c)
+{
+    if (c == L'\0') {
+        return 0;
+    } else if (c > 0 && c < 32) {
+        return -1;
+    } else {
+        return 1;
+    }
+}
 enum { IS_DUMMY_IMPLEMENTATION = 1 };
 
 #endif
