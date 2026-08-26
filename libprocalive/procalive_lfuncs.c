@@ -153,7 +153,7 @@ static void do_lua_call_or_die(lua_State *L, int nargs, int nresults)
         } else {
             const char *msg = (lua_type(L, -1) == LUA_TSTRING)
                 ? lua_tostring(L, -1)
-                : "(error object is not a function)";
+                : "(error object is not a string)";
             snprintf(
                 buf, sizeof(buf),
                 "error thrown out of a lua_CFunction that must never throw: %.*s",

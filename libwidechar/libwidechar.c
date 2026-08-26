@@ -46,7 +46,7 @@ static inline int my_wcwidth(wchar_t c)
 {
     if (c == L'\0') {
         return 0;
-    } else if (c > 0 && c < 32) {
+    } else if ((c > 0 && c < 32) || c == 127) {
         return -1;
     } else {
         return 1;
@@ -342,7 +342,7 @@ static void do_lua_call_or_die(lua_State *L, int nargs, int nresults)
         } else {
             const char *msg = (lua_type(L, -1) == LUA_TSTRING)
                 ? lua_tostring(L, -1)
-                : "(error object is not a function)";
+                : "(error object is not a string)";
             snprintf(
                 buf, sizeof(buf),
                 "error thrown out of a lua_CFunction that must never throw: %.*s",
