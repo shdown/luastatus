@@ -18,7 +18,7 @@ From a command line, this can be done with, e.g.::
 
     echo some_data | socat stdio UNIX-CONNECT:/tmp/my-unix-socket
 
-(This is an experimental plugin; it is not enabled by default.)
+(This plugin is not enabled by default.)
 
 Options
 =======

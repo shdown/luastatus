@@ -21,7 +21,7 @@ The following options are supported:
 * ``socket_path``: string (optional)
 
 Specify custom Sway WM socket path. Default is to auto-detect via ``SWAYSOCK`` environment
-variable or output of ``sway --get-socket-path`` command.
+variable or output of ``sway --get-socketpath`` command.
 
 * ``report_all_names``: boolean (optional)
 

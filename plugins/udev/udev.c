@@ -94,11 +94,19 @@ static int init(LuastatusPluginData *pd, lua_State *L)
     if (moon_visit_bool(&mv, -1, "greet", &p->greet, true) < 0)
         goto mverror;
 
+    if (p->devtype && !p->subsystem) {
+        LS_FATALF(
+            pd,
+            "'subsystem' is not set, but 'devtype' is - this is prohibited (set"
+            "'subsystem' to \"*\" if you don't care about subsystem)");
+        goto error;
+    }
+
     return LUASTATUS_OK;
 
 mverror:
     LS_FATALF(pd, "%s", errbuf);
-//error:
+error:
     destroy(pd);
     return LUASTATUS_ERR;
 }

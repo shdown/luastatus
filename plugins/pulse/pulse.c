@@ -329,6 +329,7 @@ static void context_state_cb(pa_context *c, void *vud)
 static bool iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     bool ret = false;
+
     Priv *p = pd->priv;
     UserData ud = {.pd = pd, .funcs = funcs, .sink_idx = UINT32_MAX};
     pa_mainloop_api *api = NULL;
@@ -368,13 +369,13 @@ static bool iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         }
     }
 
-    ret = true;
-
     int ignored;
     if (pa_mainloop_run(ud.ml, &ignored) < 0) {
         LS_FATALF(pd, "pa_mainloop_run: %s", pa_strerror(pa_context_errno(ctx)));
         goto error;
     }
+
+    ret = true;
 
 error:
     if (pipe_ev) {
