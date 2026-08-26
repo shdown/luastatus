@@ -47,12 +47,8 @@ static int l_special_object(lua_State *L) /*__THROWABLE__*/
     }
 }
 
-static void push_special_object(lua_State *L, const char *s, size_t ns, bool is_error)
+static void push_special_object(lua_State *L, const char *s, bool is_error)
 {
-    if (ns == (size_t) -1) {
-        ns = strlen(s);
-    }
-
     // See 'DOCS/c_notes/lua_cfuncs.md' in the root of the repo for what __OK__ means.
 
     int num_upvalues = 1;
@@ -60,7 +56,7 @@ static void push_special_object(lua_State *L, const char *s, size_t ns, bool is_
         lua_pushnil(L);
         num_upvalues = 2;
     }
-    lua_pushlstring(L, s, ns);
+    lua_pushstring(L, s);
     /*__OK__*/ lua_pushcclosure(L, l_special_object, num_upvalues);
 }
 
@@ -69,12 +65,12 @@ static void push_gvariant(lua_State *L, GVariant *var, unsigned recurlim);
 
 static void on_recur_lim(lua_State *L)
 {
-    push_special_object(L, "depth limit exceeded", -1, true);
+    push_special_object(L, "depth limit exceeded", true);
 }
 
 static void on_checkstack_failure(lua_State *L)
 {
-    push_special_object(L, "out of memory", -1, true);
+    push_special_object(L, "out of memory", true);
 }
 
 static inline void push_gvariant_strlike(lua_State *L, GVariant *var)
@@ -91,7 +87,7 @@ static void push_gvariant_iterable(lua_State *L, GVariant *var, unsigned recurli
 
     size_t n = g_variant_iter_n_children(&iter);
     if (n > (size_t) LS_LUA_MAXI) {
-        push_special_object(L, "array would be too big", -1, true);
+        push_special_object(L, "array would be too big", true);
         return;
     }
     lua_createtable(L, ls_lua_num_prealloc(n), 0); // L: table
@@ -188,13 +184,11 @@ static void push_gvariant(lua_State *L, GVariant *var, unsigned recurlim)
         break;
 
     case G_VARIANT_CLASS_HANDLE:
+        push_special_object(L, "handle", false);
+        break;
+
     default:
-        {
-            const GVariantType *type = g_variant_get_type(var);
-            const gchar *s = g_variant_type_peek_string(type);
-            gsize ns = g_variant_type_get_string_length(type);
-            push_special_object(L, s, ns, false);
-        }
+        push_special_object(L, "unknown", false);
         break;
     }
 }
