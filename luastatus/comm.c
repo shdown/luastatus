@@ -20,15 +20,20 @@
 #include "comm.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include <pthread.h>
 #include "libls/ls_alloc_utils.h"
 #include "libls/ls_panic.h"
 
 static pthread_mutex_t mtx;
+static bool inited = false;
 
 void comm_global_init(void)
 {
-    LS_PTH_CHECK(pthread_mutex_init(&mtx, NULL));
+    if (!inited) {
+        LS_PTH_CHECK(pthread_mutex_init(&mtx, NULL));
+    }
+    inited = true;
 }
 
 void comm_lock(void)
@@ -70,5 +75,8 @@ void comm_destroy(Comm *c)
 
 void comm_global_deinit(void)
 {
-    LS_PTH_CHECK(pthread_mutex_destroy(&mtx));
+    if (inited) {
+        LS_PTH_CHECK(pthread_mutex_destroy(&mtx));
+    }
+    inited = false;
 }
