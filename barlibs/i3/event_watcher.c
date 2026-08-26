@@ -305,6 +305,24 @@ static int callback_end_array(void *vctx)
     return token_helper(vctx, (Token) {TYPE_ARRAY_END, {0}});
 }
 
+static void *yaf_malloc(void *ignored, size_t sz)
+{
+    (void) ignored;
+    return ls_xmalloc(sz, 1);
+}
+
+static void *yaf_realloc(void *ignored, void *p, size_t new_sz)
+{
+    (void) ignored;
+    return ls_xrealloc(p, new_sz, 1);
+}
+
+static void yaf_free(void *ignored, void *p)
+{
+    (void) ignored;
+    free(p);
+}
+
 int event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
 {
     Priv *p = bd->priv;
@@ -332,12 +350,21 @@ int event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
         .yajl_start_array = callback_start_array,
         .yajl_end_array   = callback_end_array,
     };
-    yajl_handle hand = yajl_alloc(&callbacks, NULL, &ctx);
+    yajl_alloc_funcs yaf = {
+        .malloc = yaf_malloc,
+        .realloc = yaf_realloc,
+        .free = yaf_free,
+        .ctx = NULL,
+    };
+    yajl_handle hand = yajl_alloc(&callbacks, &yaf, &ctx);
 
     unsigned char buf[1024];
     while (1) {
         ssize_t nread = read(p->in_fd, buf, sizeof(buf));
         if (nread < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
             LS_ERRF(bd, "(event watcher) read error: %s", ls_tls_strerror(errno));
             goto error;
         } else if (nread == 0) {
