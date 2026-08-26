@@ -428,10 +428,32 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     g_main_loop_run(mainloop);
 
 error:
+    // Quoting the docs of 'g_source_destroy()':
+    //
+    // > Removes a source from its GMainContext, if any, and marks it as destroyed.
+    // > [...]
+    // > This does not unref the GSource: if you still hold a reference, use g_source_unref() to
+    // > drop it.
+    //
+    // Per GLib's ownership model, once a source is attached, the context also holds a reference to
+    // it: 'g_source_unref()' alone only releases the caller's reference, it doesn't detach the
+    // source.
+    //
+    // Since our context obtained is via 'g_main_context_ref_thread_default()', it is likely to be
+    // the process's shared default 'GMainContext'.
+    //
+    // So, in order to properly clean up, we need to do the following for each of our sources:
+    //   1. call 'g_source_destroy()' if it has been attached;
+    //   2. call 'g_source_unref()'.
+    // Since 'g_source_destroy()' does nothing if the source if not attached, we can just call these
+    // two functions in sequence.
+
     if (source_tmo) {
+        g_source_destroy(source_tmo);
         g_source_unref(source_tmo);
     }
     if (source_idle) {
+        g_source_destroy(source_idle);
         g_source_unref(source_idle);
     }
     if (context) {
