@@ -137,6 +137,11 @@ static int init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidget
         goto error;
     }
 
+    if (out_fd == in_fd) {
+        LS_FATALF(bd, "in_fd == out_fd");
+        goto error;
+    }
+
     // open output
     if (!open_output(bd, &p->out, out_fd)) {
         goto error;

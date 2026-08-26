@@ -114,6 +114,10 @@ static int init(LuastatusBarlibData *bd, const char *const *opts, size_t nwidget
         LS_FATALF(bd, "out_fd is not specified or less than 3");
         goto error;
     }
+    if (in_fd == out_fd) {
+        LS_FATALF(bd, "in_fd == out_fd");
+        goto error;
+    }
 
     // assign
     p->in_fd = in_fd;
