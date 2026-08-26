@@ -192,7 +192,7 @@ static GetVolFuncs select_gv_funcs(bool capture, bool in_db)
     };
 }
 
-static void push_vol_info(lua_State *L, snd_mixer_elem_t *elem, GetVolFuncs gv_funcs)
+static bool push_vol_info(lua_State *L, snd_mixer_elem_t *elem, GetVolFuncs gv_funcs)
 {
     lua_createtable(L, 0, 2); // L: table
 
@@ -217,6 +217,8 @@ static void push_vol_info(lua_State *L, snd_mixer_elem_t *elem, GetVolFuncs gv_f
         lua_setfield(L, -2, "mute"); // L: table
     }
     // L: table
+
+    return !snd_mixer_elem_empty(elem);
 }
 
 typedef struct {
@@ -306,15 +308,27 @@ static bool iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     GetVolFuncs gv_funcs = select_gv_funcs(p->capture, p->in_db);
     bool is_timeout = false;
     while (1) {
+        bool is_alive;
+
         lua_State *L = funcs.call_begin(pd->userdata);
         if (is_timeout) {
             lua_pushnil(L); // L: nil
+            is_alive = true;
         } else {
-            push_vol_info(L, elem, gv_funcs); // L: table
+            is_alive = push_vol_info(L, elem, gv_funcs); // L: table
         }
         funcs.call_end(pd->userdata);
 
+        if (!is_alive) {
+            LS_FATALF(pd, "mixer elem has no HCTL elements left");
+            goto error;
+        }
+
         int nextrafds = snd_mixer_poll_descriptors_count(mixer);
+        if (nextrafds < 0) {
+            LS_FATALF(pd, "snd_mixer_poll_descriptors_count() failed somewhy");
+            goto error;
+        }
         pollfd_set_resize(&pollfds, pollfds.nprefix + nextrafds);
 
         if ((r = snd_mixer_poll_descriptors(
