@@ -45,7 +45,7 @@ common_args="--a=1:a --b=1:b $common_args_noab"
 "$luastatus_root"/fuzz_utils/gen_testcases/gen_testcases.py \
     ./testcases_write_quoted \
     $common_args_noab \
-    --a=1:'"' \
+    --a=1:'"\' \
     --b=1:xyz \
     --a-is-important \
     --num-files=10

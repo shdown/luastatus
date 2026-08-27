@@ -523,7 +523,11 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         if (r <= 0) {
             break;
         }
-        make_call_line(pd, funcs, buf, r - 1);
+
+        if (buf[r - 1] == p->delimiter) {
+            --r;
+        }
+        make_call_line(pd, funcs, buf, r);
     }
 
     if (feof(f)) {

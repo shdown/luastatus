@@ -27,5 +27,5 @@ char *json_encode_num(double d)
     if (!isfinite(d)) {
         return NULL;
     }
-    return ls_xallocf("%.20f", d);
+    return ls_xallocf("%.20g", d);
 }

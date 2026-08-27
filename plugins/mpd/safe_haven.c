@@ -41,30 +41,17 @@ ResponseType response_type(SAFEV v)
     return RESP_OTHER;
 }
 
-static inline void do_fwrite_str_view(FILE *f, SAFEV v)
-{
-    size_t n = SAFEV_len(v);
-    if (n) {
-        fwrite(SAFEV_ptr_UNSAFE(v), 1, n, f);
-    }
-}
-
 void write_quoted(FILE *f, SAFEV v)
 {
     fputc('"', f);
 
-    for (;;) {
-        size_t i = SAFEV_index_of(v, '"');
-        if (i == (size_t) -1) {
-            break;
+    for (size_t i = 0; i < SAFEV_len(v); ++i) {
+        char c = SAFEV_at(v, i);
+        if (c == '\\' || c == '"') {
+            fputc('\\', f);
         }
-        SAFEV cur_seg = SAFEV_subspan(v, 0, i);
-        do_fwrite_str_view(f, cur_seg);
-        fputs("\\\"", f);
-        v = SAFEV_suffix(v, i + 1);
+        fputc((unsigned char) c, f);
     }
-
-    do_fwrite_str_view(f, v);
 
     fputc('"', f);
 }

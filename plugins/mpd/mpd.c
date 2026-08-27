@@ -138,6 +138,16 @@ fail:
     return -1;
 }
 
+static bool validate_password(const char *s)
+{
+    for (size_t i = 0; s[i]; ++i) {
+        if (s[i] == '\n' || s[i] == '\r') {
+            return false;
+        }
+    }
+    return true;
+}
+
 static int init(LuastatusPluginData *pd, lua_State *L)
 {
     Priv *p = pd->priv = LS_XNEW(Priv, 1);
@@ -171,8 +181,8 @@ static int init(LuastatusPluginData *pd, lua_State *L)
     // Parse password
     if (moon_visit_str(&mv, -1, "password", &p->password, NULL, true) < 0)
         goto mverror;
-    if (p->password && (strchr(p->password, '\n'))) {
-        LS_FATALF(pd, "password contains a line break");
+    if (p->password && !validate_password(p->password)) {
+        LS_FATALF(pd, "password contains a line break (CR or LF)");
         goto error;
     }
 
