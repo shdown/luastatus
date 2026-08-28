@@ -344,12 +344,19 @@ static bool iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         LS_FATALF(pd, "pa_mainloop_get_api() failed");
         goto error;
     }
-    pa_proplist *proplist = pa_proplist_new();
-    pa_proplist_sets(proplist, PA_PROP_APPLICATION_NAME, "luastatus-plugin-pulse");
-    pa_proplist_sets(proplist, PA_PROP_APPLICATION_ID, "io.github.shdown.luastatus");
-    pa_proplist_sets(proplist, PA_PROP_APPLICATION_VERSION, "0.0.1");
-    ctx = pa_context_new_with_proplist(api, "luastatus-plugin-pulse", proplist);
-    pa_proplist_free(proplist);
+
+    {
+        pa_proplist *proplist = pa_proplist_new();
+        if (!proplist) {
+            LS_FATALF(pd, "pa_proplist_new() failed");
+            goto error;
+        }
+        pa_proplist_sets(proplist, PA_PROP_APPLICATION_NAME, "luastatus-plugin-pulse");
+        pa_proplist_sets(proplist, PA_PROP_APPLICATION_ID, "io.github.shdown.luastatus");
+        pa_proplist_sets(proplist, PA_PROP_APPLICATION_VERSION, "0.0.1");
+        ctx = pa_context_new_with_proplist(api, "luastatus-plugin-pulse", proplist);
+        pa_proplist_free(proplist);
+    }
     if (!ctx) {
         LS_FATALF(pd, "pa_context_new_with_proplist() failed");
         goto error;
