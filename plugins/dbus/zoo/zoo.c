@@ -356,7 +356,6 @@ void zoo_destroy(Zoo *z)
     for (size_t i = 0; i < 2; ++i) {
         GDBusConnection *conn = z->conns[i];
         if (conn) {
-            g_dbus_connection_close_sync(conn, NULL, NULL);
             g_object_unref(conn);
         }
     }

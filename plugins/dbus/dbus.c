@@ -463,11 +463,9 @@ error:
         g_main_loop_unref(mainloop);
     }
     if (session_bus) {
-        g_dbus_connection_close_sync(session_bus, NULL, NULL);
         g_object_unref(session_bus);
     }
     if (system_bus) {
-        g_dbus_connection_close_sync(system_bus, NULL, NULL);
         g_object_unref(system_bus);
     }
     if (err) {
