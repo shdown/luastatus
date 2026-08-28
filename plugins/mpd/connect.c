@@ -116,6 +116,18 @@ static int bind_addr_family2af(BindAddrFamily family)
     LS_MUST_BE_UNREACHABLE();
 }
 
+static int connect_restart_on_eintr(
+    int sockfd,
+    const struct sockaddr *addr,
+    socklen_t addrlen)
+{
+    int res;
+    while ((res = connect(sockfd, addr, addrlen)) < 0 && errno == EINTR) {
+        // do nothing
+    }
+    return res;
+}
+
 int inetdom_open(
         LuastatusPluginData *pd,
         const char *hostname,
@@ -159,7 +171,7 @@ int inetdom_open(
             fd = -1;
             continue;
         }
-        if (connect(fd, pai->ai_addr, pai->ai_addrlen) < 0) {
+        if (connect_restart_on_eintr(fd, pai->ai_addr, pai->ai_addrlen) < 0) {
             LS_WARNF(pd, "(candidate) connect: %s", ls_tls_strerror(errno));
             close(fd);
             fd = -1;
