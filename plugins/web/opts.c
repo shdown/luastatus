@@ -47,6 +47,43 @@ static bool apply_str(NextRequestParams *dst, lua_State *L, CURLoption which, ch
     return true;
 }
 
+static bool apply_post_fields(NextRequestParams *dst, lua_State *L, CURLoption which, char **out_errmsg)
+{
+    (void) which;
+
+    // L: ? something
+    if (lua_type(L, -1) != LUA_TSTRING) {
+        set_type_error(out_errmsg, L, -1, LUA_TSTRING, "");
+        return false;
+    }
+
+    size_t ns;
+    const char *s = lua_tolstring(L, -1, &ns);
+
+    if (ns > 0x7fffffff) {
+        set_error(out_errmsg, "post_fields string is too large");
+        return false;
+    }
+
+    CURLcode rc;
+
+    rc = curl_easy_setopt(dst->C, CURLOPT_POSTFIELDSIZE, (long) ns);
+    if (rc != CURLE_OK) {
+        goto bad_rc;
+    }
+
+    rc = curl_easy_setopt(dst->C, CURLOPT_COPYPOSTFIELDS, (char *) s);
+    if (rc != CURLE_OK) {
+        goto bad_rc;
+    }
+
+    return true;
+
+bad_rc:
+    set_curl_error(out_errmsg, rc);
+    return false;
+}
+
 static bool apply_bool(NextRequestParams *dst, lua_State *L, CURLoption which, char **out_errmsg)
 {
     // L: ? something
@@ -240,7 +277,7 @@ const Opt OPTS[] = {
     {"proxy_username", apply_str, CURLOPT_PROXYUSERNAME},
     {"proxy_password", apply_str, CURLOPT_PROXYPASSWORD},
 
-    {"post_fields", apply_str, CURLOPT_COPYPOSTFIELDS},
+    {"post_fields", apply_post_fields, 0},
 };
 
 const size_t OPTS_NUM = LS_ARRAY_SIZE(OPTS);
