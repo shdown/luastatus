@@ -171,15 +171,23 @@ static void report_event(
     funcs.call_end(pd->userdata);
 }
 
-static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
+typedef enum {
+    ITRES_ERROR_AFTER_SUCCESS,
+    ITRES_ERROR,
+    ITRES_FATAL_ERROR,
+} IterResult;
+
+static IterResult iteration(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs, bool *ever_reported_error)
 {
     Priv *p = pd->priv;
 
     struct udev *udev = udev_new();
     if (!udev) {
         LS_FATALF(pd, "udev_new() failed");
-        return;
+        return ITRES_FATAL_ERROR;
     }
+
+    IterResult iter_result = ITRES_FATAL_ERROR;
 
     struct udev_monitor *mon = udev_monitor_new_from_netlink(
         udev,
@@ -221,34 +229,74 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
         goto error;
     }
 
-    if (p->greet) {
+    if (*ever_reported_error) {
+        report_status(pd, funcs, "recover");
+    } else if (p->greet) {
         report_status(pd, funcs, "hello");
     }
 
+    iter_result = ITRES_ERROR;
+
     LS_TimeDelta default_tmo = ls_double_to_TD(p->tmo, LS_TD_FOREVER);
-    while (1) {
+    for (;;) {
         LS_TimeDelta tmo = ls_pushed_timeout_fetch(&p->pushed_tmo, default_tmo);
         int r = ls_wait_input_on_fd(fd, tmo);
         if (r < 0) {
-            LS_FATALF(pd, "ls_wait_input_on_fd: %s", ls_tls_strerror(errno));
-            goto error;
+            LS_ERRF(pd, "ls_wait_input_on_fd: %s", ls_tls_strerror(errno));
+            goto error_in_loop;
         } else if (r == 0) {
             report_status(pd, funcs, "timeout");
         } else {
             struct udev_device *dev = udev_monitor_receive_device(mon);
             if (!dev) {
-                // what the...?
-                continue;
+                LS_ERRF(pd, "udev_monitor_receive_device() failed!");
+                goto error_in_loop;
             }
             report_event(pd, funcs, dev);
             udev_device_unref(dev);
+            iter_result = ITRES_ERROR_AFTER_SUCCESS;
         }
     }
+
+error_in_loop:
+    report_status(pd, funcs, "error");
+    *ever_reported_error = true;
+
 error:
     if (mon) {
         udev_monitor_unref(mon);
     }
     udev_unref(udev);
+    return iter_result;
+}
+
+static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
+{
+    enum { MAX_NUM_ERRORS = 10 };
+
+    bool ever_reported_error = false;
+    int num_errors = 0;
+    for (;;) {
+        switch (iteration(pd, funcs, &ever_reported_error)) {
+
+        case ITRES_ERROR_AFTER_SUCCESS:
+            num_errors = 0;
+            break;
+
+        case ITRES_ERROR:
+            ++num_errors;
+            if (num_errors >= MAX_NUM_ERRORS) {
+                // Persistent error.
+                LS_ERRF(pd, "Too many errors in row, sleeping for 5s");
+                ls_sleep_simple(5.0);
+                num_errors = 0;
+            }
+            break;
+
+        case ITRES_FATAL_ERROR:
+            return;
+        }
+    }
 }
 
 LuastatusPluginIface luastatus_plugin_iface_v1 = {

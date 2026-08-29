@@ -35,7 +35,11 @@ function P.widget(tbl)
         },
         cb = function(t)
             if t.what ~= 'event' then
-                return tbl.cb(nil)
+                if t.what == 'error' then
+                    error('udev failure, waiting for recovery')
+                else
+                    return tbl.cb(nil)
+                end
             end
             local s = t.syspath
             if tbl.syspath and tbl.syspath ~= s then

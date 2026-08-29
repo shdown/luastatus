@@ -73,6 +73,14 @@ A table with ``what`` entry:
 
   - ``action``.
 
+* if it is ``"error"``, a persistent udev failure occurred; luastatus is going to try to
+  reconnect after some unspecified amount of time. No ``"timeout"`` events will be reported until
+  recovery.
+
+* if it is ``"recover"``, then the persistent udev failure has been recovered from (this is like
+  the ``"hello"`` event, but sent after ``"error"`` event unconditionally, even if ``greet``
+  option was not enabled).
+
 Functions
 =========
 The following functions are provided:

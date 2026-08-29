@@ -88,7 +88,10 @@ function P.widget(tbl)
             timeout = period,
             greet = true
         },
-        cb = function()
+        cb = function(t)
+            if t.what == 'error' then
+                error('udev failure, waiting for recovery')
+            end
             return tbl.cb(get_battery_info(devpath, tbl.use_energy_full_design))
         end,
         event = tbl.event,
