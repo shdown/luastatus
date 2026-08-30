@@ -52,6 +52,10 @@ local function safely_wrap_ssl(conn, ssl_params)
     return new_conn
 end
 
+local function imap_quote(s)
+    return '"' .. s:gsub('["\\]', '\\%0') .. '"'
+end
+
 function IMAP:open(host, port, params)
     local conn = socket.tcp()
     conn:connect(host, port)
@@ -138,15 +142,19 @@ function P.widget(tbl)
             ssl_params = tbl.ssl_params,
         })
 
-        assert(mbox:command(string.format('LOGIN %s %s', tbl.login, tbl.password)))
-        assert(mbox:command('SELECT ' .. tbl.mailbox))
+        assert(mbox:command(string.format(
+            'LOGIN %s %s',
+            imap_quote(tbl.login),
+            imap_quote(tbl.password)
+        )))
+        assert(mbox:command('SELECT ' .. imap_quote(tbl.mailbox)))
     end
 
     local function get_unseen()
         local unseen
         repeat
             local finish = true
-            assert(mbox:command('STATUS ' .. tbl.mailbox .. ' (UNSEEN)', function(line)
+            assert(mbox:command('STATUS ' .. imap_quote(tbl.mailbox) .. ' (UNSEEN)', function(line)
                 if not line:match('^%*') then
                     return
                 end
