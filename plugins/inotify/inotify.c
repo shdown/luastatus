@@ -375,7 +375,7 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
     // order to get the maximum possible alignment for it and not resort to compiler-dependent hacks
     // like this one recommended by inotify(7):
     //     /__attribute__ ((aligned(__alignof__(struct inotify_event))))/.
-    enum { NBUF = sizeof(struct inotify_event) + NAME_MAX + 2 };
+    enum { NBUF = 10 * (sizeof(struct inotify_event) + NAME_MAX + 1) };
     char *buf = LS_XNEW(char, NBUF);
 
     if (p->greet) {
@@ -412,9 +412,6 @@ static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
                 goto error;
             } else if (r == 0) {
                 LS_FATALF(pd, "read() from the inotify file descriptor returned 0");
-                goto error;
-            } else if (r == NBUF) {
-                LS_FATALF(pd, "got an event with filename length > NAME_MAX+1");
                 goto error;
             }
             const struct inotify_event *event;
