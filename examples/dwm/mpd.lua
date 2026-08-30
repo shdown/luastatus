@@ -14,7 +14,7 @@ widget = {
                 title = t.song.file or ''
             end
 
-            title = luastatus.libwidechar.make_valid(title, '?')
+            title = luastatus.libwidechar.make_valid_and_printable(title, '?')
 
             if assert(luastatus.libwidechar.width(title)) > titlewidth then
                 title = luastatus.libwidechar.truncate_to_width(title, titlewidth - 1) .. '…'
