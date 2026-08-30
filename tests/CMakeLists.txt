@@ -3,10 +3,11 @@ target_compile_definitions (plugin-mock PUBLIC -D_POSIX_C_SOURCE=200809L)
 luastatus_target_compile_with (plugin-mock LUA)
 target_include_directories (plugin-mock PUBLIC "${PROJECT_SOURCE_DIR}")
 
-luastatus_add_plugin_noinstall (plugin-udev-mock $<TARGET_OBJECTS:ls> $<TARGET_OBJECTS:moonvisit> "udev_mock_plugin.c")
-target_compile_definitions (plugin-udev-mock PUBLIC -D_POSIX_C_SOURCE=200809L)
-luastatus_target_compile_with (plugin-udev-mock LUA)
-target_include_directories (plugin-udev-mock PUBLIC "${PROJECT_SOURCE_DIR}")
+# This thing isn't ready yet.
+#luastatus_add_plugin_noinstall (plugin-udev-mock $<TARGET_OBJECTS:ls> $<TARGET_OBJECTS:moonvisit> "udev_mock_plugin.c")
+#target_compile_definitions (plugin-udev-mock PUBLIC -D_POSIX_C_SOURCE=200809L)
+#luastatus_target_compile_with (plugin-udev-mock LUA)
+#target_include_directories (plugin-udev-mock PUBLIC "${PROJECT_SOURCE_DIR}")
 
 luastatus_add_barlib_noinstall (barlib-mock $<TARGET_OBJECTS:ls> "mock_barlib.c")
 target_compile_definitions (barlib-mock PUBLIC -D_POSIX_C_SOURCE=200809L)
