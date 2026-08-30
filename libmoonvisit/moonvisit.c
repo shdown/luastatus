@@ -63,7 +63,9 @@ bool moon_visit_err(MoonVisit *mv, const char *fmt, ...)
     va_end(vl);
 
     if (r < 0) {
-        mv->errbuf[0] = '\0';
+        if (mv->nerrbuf) {
+            mv->errbuf[0] = '\0';
+        }
         return false;
     }
     return true;
