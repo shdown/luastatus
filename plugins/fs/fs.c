@@ -159,10 +159,17 @@ error:
 static bool push_for(LuastatusPluginData *pd, lua_State *L, const char *path)
 {
     struct statvfs st;
-    if (statvfs(path, &st) < 0) {
+    int rc;
+
+    while ((rc = statvfs(path, &st)) < 0 && errno == EINTR) {
+        // do nothing
+    }
+
+    if (rc < 0) {
         LS_WARNF(pd, "statvfs: %s: %s", path, ls_tls_strerror(errno));
         return false;
     }
+
     lua_createtable(L, 0, 3); // L: table
     lua_pushnumber(L, ((double) st.f_frsize) * st.f_blocks); // L: table n
     lua_setfield(L, -2, "total"); // L: table

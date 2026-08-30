@@ -427,7 +427,7 @@ static bool do_open_file(LuastatusPluginData *pd, FILE **out_f)
     LS_ASSERT(p->file_path);
     LS_ASSERT(p->argv.size == 0);
 
-    int fd = open(p->file_path, O_RDONLY | O_CLOEXEC);
+    int fd = ls_open_fifo_blocking(p->file_path);
     if (fd < 0) {
         LS_FATALF(pd, "cannot open file '%s': %s", p->file_path, ls_tls_strerror(errno));
         return false;

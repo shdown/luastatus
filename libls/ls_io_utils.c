@@ -19,6 +19,7 @@
 
 #include "ls_io_utils.h"
 #include <stddef.h>
+#include <stdbool.h>
 #include <poll.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -63,13 +64,21 @@ int ls_poll(struct pollfd *fds, size_t nfds, LS_TimeDelta tmo)
     return r;
 }
 
-int ls_open_fifo(const char *fifo)
+static int open_fifo_generic(const char *fifo, bool blocking)
 {
     LS_ASSERT(fifo != NULL);
 
     int saved_errno;
 
-    int fd = open(fifo, O_RDONLY | O_CLOEXEC | O_NONBLOCK);
+    int flags = O_RDONLY | O_CLOEXEC;
+    if (!blocking) {
+        flags |= O_NONBLOCK;
+    }
+
+    int fd;
+    while ((fd = open(fifo, flags)) < 0 && errno == EINTR) {
+        // do nothing
+    }
     if (fd < 0) {
         goto error;
     }
@@ -91,4 +100,14 @@ error:
     ls_close(fd);
     errno = saved_errno;
     return -1;
+}
+
+int ls_open_fifo(const char *fifo)
+{
+    return open_fifo_generic(fifo, false);
+}
+
+int ls_open_fifo_blocking(const char *fifo)
+{
+    return open_fifo_generic(fifo, true);
 }

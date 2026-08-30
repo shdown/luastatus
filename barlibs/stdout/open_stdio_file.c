@@ -55,7 +55,7 @@ static bool open_input_filename(
         FILE **dst,
         const char *filename)
 {
-    int fd = open(filename, O_RDONLY | O_CLOEXEC);
+    int fd = ls_open_fifo_blocking(filename);
     if (fd < 0) {
         LS_FATALF(bd, "can't open '%s' (in_filename): %s", filename, ls_tls_strerror(errno));
         return false;

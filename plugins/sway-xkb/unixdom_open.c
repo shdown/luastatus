@@ -34,6 +34,18 @@
 
 #include "external_context.h"
 
+static int connect_restart_on_eintr(
+    int sockfd,
+    const struct sockaddr *addr,
+    socklen_t addrlen)
+{
+    int res;
+    while ((res = connect(sockfd, addr, addrlen)) < 0 && errno == EINTR) {
+        // do nothing
+    }
+    return res;
+}
+
 int unixdom_open(ExternalContext ectx, const char *path)
 {
     LS_ASSERT(path != NULL);
@@ -52,7 +64,7 @@ int unixdom_open(ExternalContext ectx, const char *path)
         LS_FATALF(ectx, "socket: %s", ls_tls_strerror(errno));
         goto error;
     }
-    if (connect(fd, (struct sockaddr *) &saun, sizeof(saun)) < 0) {
+    if (connect_restart_on_eintr(fd, (struct sockaddr *) &saun, sizeof(saun)) < 0) {
         LS_FATALF(ectx, "connect: %s: %s", path, ls_tls_strerror(errno));
         goto error;
     }

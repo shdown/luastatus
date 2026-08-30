@@ -20,6 +20,7 @@
 #pragma once
 
 #include <stddef.h>
+#include <stdbool.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
@@ -84,5 +85,8 @@ LS_INHEADER int ls_wait_input_on_fd(int fd, LS_TimeDelta tmo)
     return ls_poll(&pfd, 1, tmo);
 }
 
-// Open a FIFO for reading, and check that this is really a FIFO.
+// Open a FIFO for reading in non-blocking mode, and check that this is really a FIFO.
 int ls_open_fifo(const char *fifo);
+
+// Open a FIFO for reading in blocking mode, and check that this is really a FIFO.
+int ls_open_fifo_blocking(const char *fifo);

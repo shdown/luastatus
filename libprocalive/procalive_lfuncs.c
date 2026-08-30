@@ -61,7 +61,12 @@ int procalive_lfunc_access(lua_State *L)
 {
     const char *path = luaL_checkstring(L, 1);
 
-    if (access(path, F_OK) >= 0) {
+    int rc;
+    while ((rc = access(path, F_OK)) < 0 && errno == EINTR) {
+        // do nothing
+    }
+
+    if (rc >= 0) {
         lua_pushboolean(L, 1);
         // L: true
         lua_pushnil(L);
@@ -86,7 +91,12 @@ int procalive_lfunc_stat(lua_State *L)
     const char *path = luaL_checkstring(L, 1);
 
     struct stat sb;
-    if (stat(path, &sb) < 0) {
+    int rc;
+    while ((rc = stat(path, &sb)) < 0 && errno == EINTR) {
+        // do nothing
+    }
+
+    if (rc < 0) {
         int saved_errno = errno;
         lua_pushnil(L); // L: nil
         lua_pushstring(L, my_strerror(saved_errno)); // L: nil err

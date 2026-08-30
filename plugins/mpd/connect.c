@@ -37,6 +37,18 @@
 #include "libls/ls_io_utils.h"
 #include "libls/ls_panic.h"
 
+static int connect_restart_on_eintr(
+    int sockfd,
+    const struct sockaddr *addr,
+    socklen_t addrlen)
+{
+    int res;
+    while ((res = connect(sockfd, addr, addrlen)) < 0 && errno == EINTR) {
+        // do nothing
+    }
+    return res;
+}
+
 int unixdom_open(LuastatusPluginData *pd, const char *path)
 {
     LS_ASSERT(path != NULL);
@@ -55,7 +67,7 @@ int unixdom_open(LuastatusPluginData *pd, const char *path)
         LS_ERRF(pd, "socket: %s", ls_tls_strerror(errno));
         goto error;
     }
-    if (connect(fd, (struct sockaddr *) &saun, sizeof(saun)) < 0) {
+    if (connect_restart_on_eintr(fd, (struct sockaddr *) &saun, sizeof(saun)) < 0) {
         LS_ERRF(pd, "connect: %s: %s", path, ls_tls_strerror(errno));
         goto error;
     }
@@ -114,18 +126,6 @@ static int bind_addr_family2af(BindAddrFamily family)
         return AF_INET6;
     }
     LS_MUST_BE_UNREACHABLE();
-}
-
-static int connect_restart_on_eintr(
-    int sockfd,
-    const struct sockaddr *addr,
-    socklen_t addrlen)
-{
-    int res;
-    while ((res = connect(sockfd, addr, addrlen)) < 0 && errno == EINTR) {
-        // do nothing
-    }
-    return res;
 }
 
 int inetdom_open(
