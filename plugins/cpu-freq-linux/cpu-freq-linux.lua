@@ -38,7 +38,6 @@ end
 
 -- Fetches list of all CPU paths and assigns to 'data.paths'.
 local function data_fetch_paths(data)
-    local paths = {}
     local cpu_dir
     local cpu_dir_escaped
     if data._cpu_dir then
@@ -55,13 +54,18 @@ for x in cpu[0-9]*/; do
     printf '%s\n' "$x"
 done
     ]]))
-    for p in f:lines() do
-        table.insert(paths, string.format('%s/%s', cpu_dir, p))
+
+    local basenames = {}
+    for bn in f:lines() do
+        table.insert(basenames, bn)
+    end
+    numeric_sort(basenames)
+
+    local paths = {}
+    for _, bn in ipairs(basenames) do
+        table.insert(paths, string.format('%s/%s', cpu_dir, bn))
     end
     f:close()
-
-    numeric_sort(paths)
-
     data.paths = paths
 end
 
