@@ -51,12 +51,14 @@ local function get_battery_info(devpath, use_energy_full_design)
         end
     end
 
-    local ef = use_energy_full_design and p.energy_full_design or p.energy_full
-    -- A buggy driver can report energy_now as energy_full_design, which
-    -- will lead to an overshoot in capacity.
-    local capacity = math.min(math.floor(p.energy_now / ef * 100 + 0.5), 100)
+    local r = {status = p.status}
 
-    local r = {status = p.status, capacity = capacity}
+    local ef = use_energy_full_design and p.energy_full_design or p.energy_full
+    if p.energy_now and ef and ef ~= 0 then
+        -- A buggy driver can report energy_now as energy_full_design, which
+        -- will lead to an overshoot in capacity.
+        r.capacity = math.min(math.floor(p.energy_now / ef * 100 + 0.5), 100)
+    end
 
     local pn = tonumber(p.power_now)
     if pn ~= nil and pn ~= 0 then
