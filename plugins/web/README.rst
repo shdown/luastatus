@@ -173,38 +173,39 @@ The following functions are provided in the plugin table:
   Only available if the ``make_self_pipe`` option was set to ``true``; otherwise, it throws an
   error.
 
-* ``luastatus.plugin.time_now()``
+* ``timestamp = luastatus.plugin.time_now()``
 
   Returns the current timestamp, as a floating-point number in seconds.
   If the system supports it, uses monotonic clock; otherwise, uses wall-clock.
   It may be helpful in case of a sleep interrupted by a wake-up.
 
-* ``luastatus.plugin.get_supported_opts()``
+* ``tbl = luastatus.plugin.get_supported_opts()``
 
   Returns a table listing all supported request options (keys are option names, values are ``true``).
 
-* ``luastatus.plugin.json_decode(input, mark_arrays_vs_dicts, mark_nulls)``
+* ``result[, err_msg] = luastatus.plugin.json_decode(input[, mark_arrays_vs_dicts[, mark_nulls]])``
 
   Decodes a JSON string into a Lua table. See the `JSON Decoding`_ section for details on the parameters.
 
-* ``luastatus.plugin.json_encode_str(str)``
+* ``result_str = luastatus.plugin.json_encode_str(str)``
 
   Encodes a string into a JSON-safe string.
   Please note that it does **not** enclose the output in double quotes.
 
-* ``luastatus.plugin.json_encode_num(num)``
+* ``maybe_str = luastatus.plugin.json_encode_num(num)``
 
   Converts a number into a JSON-conforming string representation.
 
-* ``luastatus.plugin.urlencode(str[, plus_notation])``
+  Returs nil on failure (``num`` is NaN or infinity).
+
+* ``result_str = luastatus.plugin.urlencode(str[, plus_notation])``
 
   URL-encodes a string.
   ``plus_notation`` is an optional boolean parameter; if set to true, spaces will be replaced
   with ``+``, not ``%20``. ``plus_notation`` defaults to false.
 
-* ``luastatus.plugin.urldecode(str)``
+* ``maybe_str = luastatus.plugin.urldecode(str)``
   URL-decodes a string. Returns nil on failure.
-
 
 JSON Decoding
 =============
