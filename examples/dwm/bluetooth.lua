@@ -23,7 +23,7 @@ local function get_devices()
     for line in handle:lines() do
         local match = string.match(line, "Device ([%x:]+)")
         if match then
-            table.insert(devices, math)
+            table.insert(devices, match)
         end
     end
     handle:close()

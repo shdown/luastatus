@@ -21,8 +21,10 @@ widget = luastatus.require_plugin('imap').widget{
     password = credentials.gmail.password,
     error_sleep_period = 60,
     cb = function(unseen)
-        if unseen == nil or unseen == 0 then
+        if unseen == nil then
             return nil
+        elseif unseen == 0 then
+            return '[-]'
         else
             return string.format('[%d unseen]', unseen)
         end
