@@ -14,6 +14,7 @@ end
 
 widget = luastatus.require_plugin('systemd-unit').widget{
     unit_name = 'tor.service',
+    no_throw = true,
     cb = function(state)
         if state == 'active' then
             return make_output('✓', 'green')
