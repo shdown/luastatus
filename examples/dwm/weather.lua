@@ -123,7 +123,7 @@ widget = {
     cb = function(t)
         local err_msg = check_error(t)
         if err_msg then
-            print(string.format('WARNING: luastatus: weather widget: %s'), err_msg)
+            print(string.format('WARNING: luastatus: weather widget: %s', err_msg))
             return '<!>'
         end
 
