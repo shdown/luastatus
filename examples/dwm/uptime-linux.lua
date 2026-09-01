@@ -32,7 +32,7 @@ widget = {
         period = 2,
     },
     cb = function(_)
-        local f = io.open('/proc/uptime', 'r')
+        local f = assert(io.open('/proc/uptime', 'r'))
         local sec, _ = f:read('*number', '*number')
         f:close()
 
