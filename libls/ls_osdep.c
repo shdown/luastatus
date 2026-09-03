@@ -29,9 +29,16 @@
 int ls_cloexec_pipe(int pipefd[2])
 {
 #if LS_HAVE_GNU_PIPE2
-    return pipe2(pipefd, O_CLOEXEC);
+    if (pipe2(pipefd, O_CLOEXEC) < 0) {
+        pipefd[0] = -1;
+        pipefd[1] = -1;
+        return -1;
+    }
+    return 0;
 #else
     if (pipe(pipefd) < 0) {
+        pipefd[0] = -1;
+        pipefd[1] = -1;
         return -1;
     }
     ls_make_cloexec(pipefd[0]);
