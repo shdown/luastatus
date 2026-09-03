@@ -53,6 +53,12 @@ The following options are supported:
 
   Whether or not to call the callback in the end with ``what="bye"``.
 
+* ``report_non_whole``: boolean
+
+  Whether or not to call the callback on the last chunk not ending with the delimiter ("death cry")
+  before the bail-out.
+  Defaults to false.
+
 ``cb`` argument
 ===============
 A table with ``what`` key:
@@ -60,7 +66,12 @@ A table with ``what`` key:
 * If it's ``"hello"``, then the ``greet`` option was enabled, and the callback is called before any other calls.
 
 * If it's ``"line"``, then the child process (or FIFO) has just produced a line (or, if a custom delimiter is
-  used, a chunk separated by the delimiter). The ``line`` field of the table contains the line itself.
+  used, a chunk separated by the delimiter).
+  The ``line`` field of the table contains the line itself.
+
+  If ``report_non_whole`` option was enabled, and this is the "death cry" (the last chunk not ending
+  with the delimiter before the bail-out), the table also contains a ``"non_whole"`` field with
+  value of ``true``.
 
 * If it's ``"bye"``, then the ``bye`` option was enabled, and the child process has just died
   (or the FIFO file has been closed from the other end).

@@ -20,8 +20,31 @@
 #pragma once
 
 #include <stddef.h>
-#include <sys/types.h>
 
-int utils_full_write(int fd, const char *data, size_t ndata);
+struct NB_Reader;
+typedef struct NB_Reader NB_Reader;
 
-int utils_waitpid(pid_t pid, int *out_status);
+typedef struct {
+    const char *ptr;
+    size_t len;
+} NB_Reader_Line;
+
+NB_Reader *nb_reader_new(int fd, char delim);
+
+// Return value:
+//     -1:
+//         I/O error or EOF; error number is in errno (if errno == 0, it's EOF).
+//         Partial line content is written to /*out_line/.
+//
+//     0:  no whole line yet.
+//
+//     1:  got whole line.
+//         Line content, without delimiter, is written to /*out_line/.
+//         Call /nb_reader_consumed_line()/ when you don't need the line data anymore
+//         (MUST be called before the next call to this function).
+//
+int nb_reader_read(NB_Reader *x, NB_Reader_Line *out_line);
+
+void nb_reader_consumed_line(NB_Reader *x);
+
+void nb_reader_destroy(NB_Reader *x);

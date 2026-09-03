@@ -23,16 +23,19 @@
 #include <signal.h>
 #include <errno.h>
 #include <unistd.h>
-#include <fcntl.h>
 #include <pthread.h>
 #include <sys/types.h>
+#include <sys/wait.h>
+#include <poll.h>
 #include <lua.h>
 #include <lauxlib.h>
 
+#include "libls/ls_algo.h"
 #include "libls/ls_alloc_utils.h"
 #include "libls/ls_panic.h"
 #include "libls/ls_io_utils.h"
 #include "libls/ls_tls_ebuf.h"
+#include "libls/ls_time_utils.h"
 
 #include "include/plugin_v1.h"
 #include "include/sayf_macros.h"
@@ -40,13 +43,38 @@
 #include "libmoonvisit/moonvisit.h"
 
 #include "launch.h"
-#include "utils.h"
 #include "sigdb.h"
+#include "nb_writer.h"
+#include "nb_reader.h"
 
 enum {
     PID_NOT_SPAWNED_YET = 0,
     PID_ALREADY_TERMINATED = -1,
 };
+
+typedef struct {
+    pthread_mutex_t mtx;
+    int stdin_fd;
+    NB_Writer *stdin_writer;
+    pid_t pid;
+} ChildState;
+
+static void child_state_new(ChildState *x)
+{
+    LS_PTH_CHECK(pthread_mutex_init(&x->mtx, NULL));
+    x->stdin_fd = -1;
+    x->stdin_writer = NULL;
+    x->pid = PID_NOT_SPAWNED_YET;
+}
+
+static void child_state_destroy(ChildState *x)
+{
+    LS_PTH_CHECK(pthread_mutex_destroy(&x->mtx));
+    ls_close(x->stdin_fd);
+    if (x->stdin_writer) {
+        nb_writer_destroy(x->stdin_writer);
+    }
+}
 
 typedef struct {
     LaunchArg *data;
@@ -57,21 +85,14 @@ typedef struct {
 typedef struct {
     ArgsList argv;
     char *file_path;
-
-    // The /getdelim()/ function requires the /int delim/ parameter to be "representable
-    // as an unsigned char" (i.e. to be non-negative).
-    //
-    // Since the signedness of /char/ depends on the implementation, we store the
-    // delimiter as an /unsigned char/. Then we can pass it to /getdelim()/ without cast.
-    unsigned char delimiter;
+    char delimiter;
 
     bool pipe_stdin;
     bool greet;
     bool bye;
+    bool report_non_whole;
 
-    pthread_mutex_t child_mtx;
-    int child_stdin_fd;
-    pid_t child_pid;
+    ChildState child_state;
 } Priv;
 
 static void args_list_add(ArgsList *x, const char *s)
@@ -100,9 +121,7 @@ static void destroy(LuastatusPluginData *pd)
 
     free(p->file_path);
 
-    LS_PTH_CHECK(pthread_mutex_destroy(&p->child_mtx));
-
-    ls_close(p->child_stdin_fd);
+    child_state_destroy(&p->child_state);
 
     free(p);
 }
@@ -144,10 +163,9 @@ static int init(LuastatusPluginData *pd, lua_State *L)
         .pipe_stdin = false,
         .greet = false,
         .bye = false,
-        .child_stdin_fd = -1,
-        .child_pid = PID_NOT_SPAWNED_YET,
+        .report_non_whole = false,
     };
-    LS_PTH_CHECK(pthread_mutex_init(&p->child_mtx, NULL));
+    child_state_new(&p->child_state);
 
     char errbuf[256];
     MoonVisit mv = {.L = L, .errbuf = errbuf, .nerrbuf = sizeof(errbuf)};
@@ -196,6 +214,11 @@ static int init(LuastatusPluginData *pd, lua_State *L)
         goto mverror;
     }
 
+    // Parse report_non_whole
+    if (moon_visit_bool(&mv, -1, "report_non_whole", &p->report_non_whole, true) < 0) {
+        goto mverror;
+    }
+
     return LUASTATUS_OK;
 
 mverror:
@@ -220,22 +243,31 @@ static int l_write_to_stdin(lua_State *L) /*__THROWABLE__*/
     size_t ndata;
     const char *data = luaL_checklstring(L, 1, &ndata);
 
-    LS_PTH_CHECK(pthread_mutex_lock(&p->child_mtx));
-    int fd = p->child_stdin_fd;
-    LS_PTH_CHECK(pthread_mutex_unlock(&p->child_mtx));
+    int rc;
 
-    if (fd < 0) {
-        return luaL_error(L, "process has not been created yet");
+    LS_PTH_CHECK(pthread_mutex_lock(&p->child_state.mtx));
+    NB_Writer *writer = p->child_state.stdin_writer;
+    if (writer) {
+        rc = 1;
+        nb_writer_enqueue(writer, data, ndata);
+    } else {
+        if (p->child_state.pid == PID_NOT_SPAWNED_YET) {
+            rc = -1;
+        } else {
+            rc = 0;
+        }
     }
+    LS_PTH_CHECK(pthread_mutex_unlock(&p->child_state.mtx));
 
-    if (utils_full_write(fd, data, ndata) >= 0) {
+    if (rc < 0) {
+        return luaL_error(L, "process has not been created yet");
+    } else if (rc == 0) {
+        lua_pushboolean(L, 0);
+        lua_pushstring(L, "child terminated");
+        return 2;
+    } else {
         lua_pushboolean(L, 1);
         return 1;
-    } else {
-        const char *err_descr = ls_tls_strerror(errno);
-        lua_pushboolean(L, 0);
-        lua_pushstring(L, err_descr);
-        return 2;
     }
 }
 
@@ -289,8 +321,8 @@ static int l_kill(lua_State *L) /*__THROWABLE__*/
     int is_ok;
     int err_num;
 
-    LS_PTH_CHECK(pthread_mutex_lock(&p->child_mtx));
-    pid_t pid = p->child_pid;
+    LS_PTH_CHECK(pthread_mutex_lock(&p->child_state.mtx));
+    pid_t pid = p->child_state.pid;
     if (pid > 0) {
         if (kill(pid, sig_num) < 0) {
             is_ok = 0;
@@ -306,7 +338,7 @@ static int l_kill(lua_State *L) /*__THROWABLE__*/
         }
         err_num = ESRCH;
     }
-    LS_PTH_CHECK(pthread_mutex_unlock(&p->child_mtx));
+    LS_PTH_CHECK(pthread_mutex_unlock(&p->child_state.mtx));
 
     if (is_ok < 0) {
         return luaL_error(L, "process has not been created yet");
@@ -371,28 +403,21 @@ static void report_reason_of_death(
     }
 }
 
-static void do_cleanup_leftover(LuastatusPluginData *pd, LaunchResult leftover)
-{
-    LS_INFOF(pd, "killing the spawned process with SIGKILL and waiting for it to terminate");
-
-    (void) kill(leftover.pid, SIGKILL);
-
-    int wait_status = 0;
-    int wait_rc = utils_waitpid(leftover.pid, &wait_status);
-    int wait_errno = errno;
-
-    report_reason_of_death(pd, wait_rc, wait_status, wait_errno);
-
-    ls_close(leftover.fd_stdin);
-    ls_close(leftover.fd_stdout);
-}
-
-static bool do_spawn(LuastatusPluginData *pd, FILE **out_f)
+static int do_spawn(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
 
     LS_ASSERT(!p->file_path);
     LS_ASSERT(p->argv.size > 0);
+
+    NB_Writer_Pipe writer_pipe = NB_WRITER_PIPE_DUMMY_INIT;
+
+    if (p->pipe_stdin) {
+        if (nb_writer_make_pipe(&writer_pipe) < 0) {
+            LS_FATALF(pd, "cannot create self-pipe: %s", ls_tls_strerror(errno));
+            goto error;
+        }
+    }
 
     args_list_add(&p->argv, NULL);
 
@@ -401,46 +426,56 @@ static bool do_spawn(LuastatusPluginData *pd, FILE **out_f)
 
     if (launch(p->argv.data, p->pipe_stdin, &res, &err) < 0) {
         LS_FATALF(pd, "cannot spawn process: %s: %s", err.where, ls_tls_strerror(err.errnum));
-        return false;
+        goto error;
     }
 
-    FILE *f = fdopen(res.fd_stdout, "r");
-    if (!f) {
-        LS_FATALF(pd, "fdopen: %s", ls_tls_strerror(errno));
-        do_cleanup_leftover(pd, res);
-        return false;
+    ls_make_nonblock(res.fd_stdout);
+
+    NB_Writer *writer;
+    if (res.fd_stdin >= 0) {
+        ls_make_nonblock(res.fd_stdin);
+        writer = nb_writer_new(res.fd_stdin, writer_pipe);
+    } else {
+        writer = NULL;
     }
-    *out_f = f;
 
-    LS_PTH_CHECK(pthread_mutex_lock(&p->child_mtx));
-    p->child_stdin_fd = res.fd_stdin;
-    p->child_pid = res.pid;
-    LS_PTH_CHECK(pthread_mutex_unlock(&p->child_mtx));
+    LS_PTH_CHECK(pthread_mutex_lock(&p->child_state.mtx));
+    p->child_state.stdin_fd = res.fd_stdin;
+    p->child_state.stdin_writer = writer;
+    p->child_state.pid = res.pid;
+    LS_PTH_CHECK(pthread_mutex_unlock(&p->child_state.mtx));
 
-    return true;
+    return res.fd_stdout;
+
+error:
+    nb_writer_pipe_destroy(writer_pipe);
+    return -1;
 }
 
-static bool do_open_file(LuastatusPluginData *pd, FILE **out_f)
+static int do_open_file(LuastatusPluginData *pd)
 {
     Priv *p = pd->priv;
 
     LS_ASSERT(p->file_path);
     LS_ASSERT(p->argv.size == 0);
 
-    int fd = ls_open_fifo_blocking(p->file_path);
+    int fd = ls_open_fifo(p->file_path);
     if (fd < 0) {
         LS_FATALF(pd, "cannot open file '%s': %s", p->file_path, ls_tls_strerror(errno));
-        return false;
+        return -1;
     }
+    return fd;
+}
 
-    FILE *f = fdopen(fd, "r");
-    if (!f) {
-        LS_FATALF(pd, "fdopen: %s", ls_tls_strerror(errno));
-        close(fd);
-        return false;
+static int waitpid_restart_on_eintr(pid_t pid, int *out_status)
+{
+    LS_ASSERT(pid > 0);
+
+    pid_t r;
+    while ((r = waitpid(pid, out_status, 0)) < 0 && errno == EINTR) {
+        // do nothing
     }
-    *out_f = f;
-    return true;
+    return r < 0 ? -1 : 0;
 }
 
 static void do_wait(LuastatusPluginData *pd)
@@ -449,15 +484,20 @@ static void do_wait(LuastatusPluginData *pd)
 
     LS_ASSERT(!p->file_path);
 
-    LS_PTH_CHECK(pthread_mutex_lock(&p->child_mtx));
+    LS_PTH_CHECK(pthread_mutex_lock(&p->child_state.mtx));
 
     int wait_status = 0;
-    int wait_rc = utils_waitpid(p->child_pid, &wait_status);
+    int wait_rc = waitpid_restart_on_eintr(p->child_state.pid, &wait_status);
     int wait_errno = errno;
 
-    p->child_pid = PID_ALREADY_TERMINATED;
+    if (p->child_state.stdin_writer) {
+        nb_writer_destroy(p->child_state.stdin_writer);
+        p->child_state.stdin_writer = NULL;
+    }
 
-    LS_PTH_CHECK(pthread_mutex_unlock(&p->child_mtx));
+    p->child_state.pid = PID_ALREADY_TERMINATED;
+
+    LS_PTH_CHECK(pthread_mutex_unlock(&p->child_state.mtx));
 
     report_reason_of_death(pd, wait_rc, wait_status, wait_errno);
 }
@@ -480,7 +520,8 @@ static void make_call_line(
     LuastatusPluginData *pd,
     LuastatusPluginRunFuncs funcs,
     const char *line,
-    size_t nline)
+    size_t nline,
+    bool non_whole)
 {
     lua_State *L = funcs.call_begin(pd->userdata);
     // L: ?
@@ -492,53 +533,107 @@ static void make_call_line(
     lua_pushlstring(L, line, nline); // L: ? table str
     lua_setfield(L, -2, "line"); // L: ? table
 
+    if (non_whole) {
+        lua_pushboolean(L, 1); // L: ? table true
+        lua_setfield(L, -2, "non_whole"); // L: ? table
+    }
+
     funcs.call_end(pd->userdata);
+}
+
+static void locked_get_writer_pfds(Priv *p, struct pollfd *dst)
+{
+    LS_PTH_CHECK(pthread_mutex_lock(&p->child_state.mtx));
+
+    int fd_pollout;
+    int fd_pollin;
+    nb_writer_get_fds_for_poll(p->child_state.stdin_writer, &fd_pollout, &fd_pollin);
+    dst[0] = (struct pollfd) {.fd = fd_pollout, .events = POLLOUT};
+    dst[1] = (struct pollfd) {.fd = fd_pollin,  .events = POLLIN};
+
+    LS_PTH_CHECK(pthread_mutex_unlock(&p->child_state.mtx));
+}
+
+static int locked_write(Priv *p, bool woken_up_on_selfpipe)
+{
+    LS_PTH_CHECK(pthread_mutex_lock(&p->child_state.mtx));
+
+    int res = nb_writer_write(p->child_state.stdin_writer, woken_up_on_selfpipe);
+    int saved_errno = errno;
+
+    LS_PTH_CHECK(pthread_mutex_unlock(&p->child_state.mtx));
+
+    errno = saved_errno;
+    return res;
 }
 
 static void run(LuastatusPluginData *pd, LuastatusPluginRunFuncs funcs)
 {
     Priv *p = pd->priv;
 
-    FILE *f;
-
+    int fd;
     if (p->file_path) {
-        if (!do_open_file(pd, &f)) {
-            return;
-        }
+        fd = do_open_file(pd);
     } else {
-        if (!do_spawn(pd, &f)) {
-            return;
-        }
+        fd = do_spawn(pd);
+    }
+    if (fd < 0) {
+        return;
     }
 
     if (p->greet) {
         make_call_simple(pd, funcs, "hello");
     }
 
-    char *buf = NULL;
-    size_t nbuf = 512;
+    NB_Reader *reader = nb_reader_new(fd, p->delimiter);
+
+    bool we_have_writer = !p->file_path && p->pipe_stdin;
 
     for (;;) {
-        ssize_t r = getdelim(&buf, &nbuf, p->delimiter, f);
-        if (r <= 0) {
-            break;
+        struct pollfd pfds[3] = {
+            {.fd = fd, .events = POLLIN},
+            {.fd = -1},
+            {.fd = -1},
+        };
+        if (we_have_writer) {
+            locked_get_writer_pfds(p, pfds + 1);
         }
 
-        if (buf[r - 1] == p->delimiter) {
-            --r;
+        int poll_rc = ls_poll(pfds, LS_ARRAY_SIZE(pfds), LS_TD_FOREVER);
+        if (poll_rc < 0) {
+            LS_FATALF(pd, "ls_poll: %s", ls_tls_strerror(errno));
+            goto maybe_wait;
         }
-        make_call_line(pd, funcs, buf, r);
+
+        if (pfds[0].revents) {
+            NB_Reader_Line line;
+            int read_rc = nb_reader_read(reader, &line);
+            if (read_rc < 0) {
+                int saved_errno = errno;
+                if (p->report_non_whole && line.len) {
+                    make_call_line(pd, funcs, line.ptr, line.len, false);
+                }
+                if (saved_errno) {
+                    LS_FATALF(pd, "read error: %s", ls_tls_strerror(saved_errno));
+                } else {
+                    LS_FATALF(pd, "child process closed its stdout");
+                }
+                goto maybe_wait;
+            } else if (read_rc > 0) {
+                make_call_line(pd, funcs, line.ptr, line.len, true);
+                nb_reader_consumed_line(reader);
+            }
+        }
+
+        if (pfds[1].revents || pfds[2].revents) {
+            if (locked_write(p, pfds[2].revents != 0) < 0) {
+                LS_FATALF(pd, "write error: %s", ls_tls_strerror(errno));
+                goto maybe_wait;
+            }
+        }
     }
 
-    if (feof(f)) {
-        LS_ERRF(pd, "child process closed its stdout");
-    } else {
-        LS_ERRF(pd, "read error: %s", ls_tls_strerror(errno));
-    }
-
-    free(buf);
-    fclose(f);
-
+maybe_wait:
     if (!p->file_path) {
         do_wait(pd);
     }
