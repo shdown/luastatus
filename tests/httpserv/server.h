@@ -38,6 +38,7 @@ typedef char *(*WriteBodyCallback)(
     void *ud);
 
 typedef void (*AfterRequestCallback)(
+    uint64_t cookie,
     void *ud);
 
 typedef void (*ReadyCallback)(

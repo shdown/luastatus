@@ -71,14 +71,14 @@ Request *request_new(uint64_t cookie)
     return p_req;
 }
 
-static Request *request_find_or_die(uint64_t cookie)
+static Request *find_request(uint64_t cookie)
 {
     for (size_t i = 0; i < request_list.size; ++i) {
         if (request_list.data[i].cookie == cookie) {
             return &request_list.data[i];
         }
     }
-    panic("cannot find request with given cookie");
+    return NULL;
 }
 
 static void request_free(Request *req)
@@ -148,7 +148,11 @@ static char *my_write_body_cb(
 {
     (void) ud;
 
-    Request *req = request_find_or_die(cookie);
+    Request *req = find_request(cookie);
+    if (!req) {
+        panic("cannot find request with given cookie");
+    }
+
     char *ret;
 
     int status = req->status;
@@ -212,9 +216,15 @@ static void freeze_or_die(void)
 }
 
 static void my_after_req_cb(
+    uint64_t cookie,
     void *ud)
 {
     (void) ud;
+
+    Request *req = find_request(cookie);
+    if (req) {
+        request_free(req);
+    }
 
     static unsigned req_count = 0;
     ++req_count;

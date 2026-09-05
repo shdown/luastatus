@@ -175,8 +175,8 @@ static int my_callback(
         return 0;
 
     } else if (reason == LWS_CALLBACK_CLOSED_HTTP) {
+        callbacks.after_req_cb(my_ctx->cookie, callbacks.ud);
         my_context_destroy(my_ctx);
-        callbacks.after_req_cb(callbacks.ud);
         return 0;
 
     } else {
