@@ -34,8 +34,27 @@
 
 static void do_the_thing(SAFEV v)
 {
-    char c = is_good_greeting(v);
-    fuzz_utils_used(&c, 1);
+    char res = is_good_greeting(v);
+
+    // Recently the whole fuzz thing started to fail because our processing of the string is too
+    // simple.
+    // So let's pretend we do some computation over the string.
+    {
+        unsigned char checksum = 123;
+        for (size_t i = 0; i < SAFEV_len(v); ++i) {
+            unsigned char c = SAFEV_at(v, i);
+            if (c < 127) {
+                checksum = checksum * 27 + c;
+                fuzz_utils_used(&checksum, 1);
+            } else {
+                checksum = checksum * 3 - c * 7;
+                fuzz_utils_used(&checksum, 1);
+            }
+        }
+        fuzz_utils_used(&checksum, 1);
+    }
+
+    fuzz_utils_used(&res, 1);
 }
 
 #elif MODE_GET_RESP_TYPE

@@ -28,7 +28,7 @@ results=()
 for d1 in "${fuzz_dirs[@]}"; do
     [[ -d "$d1" ]] || continue
 
-    for d2 in "$d1"/findgins*; do
+    for d2 in "$d1"/findings*; do
         [[ -d "$d2" ]] || continue
 
         for d3 in "$d2"/crashes "$d2"/hangs; do
