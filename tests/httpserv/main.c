@@ -207,7 +207,7 @@ write_error:
 static void freeze_or_die(void)
 {
     if (global_options.freeze_for < 0) {
-        fprintf(stderr, "Existing as requested by --max-requests=...\n");
+        fprintf(stderr, "Exiting as requested by --max-requests=...\n");
         exit(0);
     } else if (global_options.freeze_for > 0) {
         fprintf(stderr, "Freezing as requested by --freeze-for=...\n");
@@ -297,11 +297,16 @@ int main(int argc, char **argv)
 
     global_options.expected_path = xstrdup(pos[1]);
 
-    run_server(
+    bool rc = run_server(
         port,
         my_before_req_cb,
         my_write_body_cb,
         my_after_req_cb,
         my_ready_cb,
         NULL);
+
+    if (!rc) {
+        return 1;
+    }
+    return 40;
 }

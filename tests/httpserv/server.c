@@ -251,8 +251,6 @@ bool run_server(
         }
     }
 
-    // unreachable
-
     lws_context_destroy(context);
     return true;
 }
