@@ -10,4 +10,11 @@ if [ $# -ne 1 ]; then
 fi
 
 cd -- "$1"
-git rev-parse --short HEAD || cat VERSION || echo UNKNOWN
+
+if [ -d .git ]; then
+    git rev-parse --short HEAD
+elif -f VERSION; then
+    cat VERSION
+else
+    echo UNKNOWN
+fi
