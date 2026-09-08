@@ -1,9 +1,5 @@
-if (( ! PLUGIN_DBUS_OPTIONAL )); then
-    return 0
-fi
-
 x_dbus_begin
-x_dbus_spawn_dbus_srv_py
+x_dbus_spawn_dbus_srv
 
 pt_testcase_begin
 pt_add_fifo "$main_fifo_file"
@@ -19,14 +15,17 @@ local function do_call_plugin_function(f, params)
     return res
 end
 
-local function do_test_once(fmt, value, expected_result)
+local function do_test_once(fmt, raw_value, expected_result)
+    local raw_dval = luastatus.plugin.dbustypes.mkval_from_fmt(fmt, raw_value)
+    local args = luastatus.plugin.dbustypes.mkval_from_fmt('(v)', {raw_dval})
+
     local raw_res = do_call_plugin_function(luastatus.plugin.call_method, {
         bus = "session",
         dest = "io.github.shdown.luastatus.test",
         object_path = "/io/github/shdown/luastatus/test/MyObject",
         interface = "io.github.shdown.luastatus.test",
         method = "RecvVariant",
-        args = luastatus.plugin.dbustypes.mkval_from_fmt(fmt, value),
+        args = args,
     })
     local res = unpack1(raw_res)
     assert(type(res) == 'string')
@@ -34,32 +33,32 @@ local function do_test_once(fmt, value, expected_result)
 end
 
 local function test_all()
-    do_test_once('(b)', {true}, 'bool')
+    do_test_once('b', true, 'bool')
 
-    do_test_once('(y)', {42}, 'byte')
-    do_test_once('(y)', {'x'}, 'byte')
+    do_test_once('y', 42, 'byte')
+    do_test_once('y', 'x', 'byte')
 
-    do_test_once('(d)', {1.25}, 'double')
+    do_test_once('d', 1.25, 'double')
 
-    do_test_once('(s)', {'hello'}, 'string')
-    do_test_once('(o)', {'/io/github/shdown/luastatus/foo/bar'}, 'object_path')
-    do_test_once('(g)', {'(susssasa{sv}i)'}, 'signature')
+    do_test_once('s', 'hello', 'string')
+    do_test_once('o', '/io/github/shdown/luastatus/foo/bar', 'object_path')
+    do_test_once('g', '(susssasa{sv}i)', 'signature')
 
     local wrapped = luastatus.plugin.dbustypes.mkval_from_fmt('s', 'hi there')
-    do_test_once('(v)', {wrapped}, 'variant')
+    do_test_once('v', wrapped, 'variant')
 
     local INT_TYPES = {
-        {'(n)', 'i16'},
-        {'(q)', 'u16'},
-        {'(i)', 'i32'},
-        {'(u)', 'u32'},
-        {'(x)', 'i64'},
-        {'(t)', 'u64'},
+        {'n', 'i16'},
+        {'q', 'u16'},
+        {'i', 'i32'},
+        {'u', 'u32'},
+        {'x', 'i64'},
+        {'t', 'u64'},
     }
     for _, pq in ipairs(INT_TYPES) do
         local fmt, expected_result = pq[1], pq[2]
-        do_test_once(fmt, {53}, expected_result)
-        do_test_once(fmt, {'58'}, expected_result)
+        do_test_once(fmt, 53, expected_result)
+        do_test_once(fmt, '58', expected_result)
     end
 end
 
@@ -84,5 +83,5 @@ pt_expect_line 'ok' <&$pfd
 pt_close_fd "$pfd"
 pt_testcase_end
 
-x_dbus_kill_dbus_srv_py
+x_dbus_kill_dbus_srv
 x_dbus_end

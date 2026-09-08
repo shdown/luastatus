@@ -1,9 +1,5 @@
-if (( ! PLUGIN_DBUS_OPTIONAL )); then
-    return 0
-fi
-
 x_dbus_begin
-x_dbus_spawn_dbus_srv_py
+x_dbus_spawn_dbus_srv
 
 pt_testcase_begin
 pt_add_fifo "$main_fifo_file"
@@ -40,5 +36,5 @@ pt_expect_line 'ok' <&$pfd
 pt_close_fd "$pfd"
 pt_testcase_end
 
-x_dbus_kill_dbus_srv_py
+x_dbus_kill_dbus_srv
 x_dbus_end

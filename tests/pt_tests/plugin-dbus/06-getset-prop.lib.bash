@@ -1,9 +1,5 @@
-if (( ! PLUGIN_DBUS_OPTIONAL )); then
-    return 0
-fi
-
 x_dbus_begin
-x_dbus_spawn_dbus_srv_py
+x_dbus_spawn_dbus_srv
 
 pt_testcase_begin
 pt_add_fifo "$main_fifo_file"
@@ -19,25 +15,27 @@ local function do_call_plugin_function(f, params)
     return res
 end
 
-local function test_get_all_props()
+local function test_get_set_prop()
     do_call_plugin_function(luastatus.plugin.set_property_str, {
         bus = "session",
         dest = "io.github.shdown.luastatus.test",
         object_path = "/io/github/shdown/luastatus/test/MyObject",
         interface = "io.github.shdown.luastatus.test",
         property_name = "MyProperty",
-        value_str = "test... test... test...",
+        value_str = "hi there",
     })
 
-    local res = do_call_plugin_function(luastatus.plugin.get_all_properties, {
+    local prop = unpack1(do_call_plugin_function(luastatus.plugin.get_property, {
         bus = "session",
         dest = "io.github.shdown.luastatus.test",
         object_path = "/io/github/shdown/luastatus/test/MyObject",
         interface = "io.github.shdown.luastatus.test",
-    })
-    local k, v = unpack2(unpack1(unpack1(res)))
-    assert(k == 'MyProperty')
-    assert(v == 'test... test... test...')
+        property_name = "MyProperty",
+    }))
+
+    if prop ~= "hi there" then
+        error(string.format("invalid property value after Set(): %s", prop))
+    end
 end
 
 widget = {
@@ -47,7 +45,7 @@ widget = {
         greet = true,
     },
     cb = function(t)
-        test_get_all_props()
+        test_get_set_prop()
         f:write('ok\n')
     end,
 }
@@ -61,5 +59,5 @@ pt_expect_line 'ok' <&$pfd
 pt_close_fd "$pfd"
 pt_testcase_end
 
-x_dbus_kill_dbus_srv_py
+x_dbus_kill_dbus_srv
 x_dbus_end

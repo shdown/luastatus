@@ -34,6 +34,10 @@ if (BUILD_PLUGIN_NETWORK_LINUX)
     target_compile_definitions (listnets PUBLIC -D_POSIX_C_SOURCE=200809L)
 endif ()
 
+if (BUILD_PLUGIN_DBUS)
+    add_subdirectory ("dbus_serv")
+endif ()
+
 if (BUILD_PLUGIN_WEB)
     add_subdirectory ("httpserv")
 endif ()

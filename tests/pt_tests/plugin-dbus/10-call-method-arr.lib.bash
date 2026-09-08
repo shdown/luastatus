@@ -1,9 +1,5 @@
-if (( ! PLUGIN_DBUS_OPTIONAL )); then
-    return 0
-fi
-
 x_dbus_begin
-x_dbus_spawn_dbus_srv_py
+x_dbus_spawn_dbus_srv
 
 pt_testcase_begin
 pt_add_fifo "$main_fifo_file"
@@ -19,41 +15,28 @@ local function do_call_plugin_function(f, params)
     return res
 end
 
-local function do_test_once(method, args, expected_result)
+local function test_call_method()
+    local args = luastatus.plugin.dbustypes.mkval_from_fmt('(as)', {{
+        'one', 'two', 'three'
+    }})
     local raw_res = do_call_plugin_function(luastatus.plugin.call_method, {
         bus = "session",
         dest = "io.github.shdown.luastatus.test",
         object_path = "/io/github/shdown/luastatus/test/MyObject",
         interface = "io.github.shdown.luastatus.test",
-        method = method,
+        method = "ConvertArrayToDictHexify",
         args = args,
     })
     local res = unpack1(raw_res)
-    assert(type(res) == 'string')
-    assert(res == expected_result)
-end
 
-local function test_all()
-    do_test_once(
-        'RecvTuple0',
-        luastatus.plugin.dbustypes.mkval_from_fmt('()', {}),
-        'Empty'
-    )
-    do_test_once(
-        'RecvTuple1',
-        luastatus.plugin.dbustypes.mkval_from_fmt('(s)', {'hello'}),
-        'hello'
-    )
-    do_test_once(
-        'RecvTuple2',
-        luastatus.plugin.dbustypes.mkval_from_fmt('(ss)', {'hello', 'world'}),
-        'helloworld'
-    )
-    do_test_once(
-        'RecvTuple3',
-        luastatus.plugin.dbustypes.mkval_from_fmt('(sss)', {'hello', 'world', '!'}),
-        'helloworld!'
-    )
+    assert(type(res) == 'table')
+    local outputs = {}
+    for _, kv in ipairs(res) do
+        table.insert(outputs, string.format('%s:%s', kv[1], kv[2]))
+    end
+    table.sort(outputs)
+    local output = table.concat(outputs, ' ')
+    assert(output == '30:6F6E65 31:74776F 32:7468726565')
 end
 
 widget = {
@@ -63,7 +46,7 @@ widget = {
         greet = true,
     },
     cb = function(t)
-        test_all()
+        test_call_method()
         f:write('ok\n')
     end,
 }
@@ -77,5 +60,5 @@ pt_expect_line 'ok' <&$pfd
 pt_close_fd "$pfd"
 pt_testcase_end
 
-x_dbus_kill_dbus_srv_py
+x_dbus_kill_dbus_srv
 x_dbus_end

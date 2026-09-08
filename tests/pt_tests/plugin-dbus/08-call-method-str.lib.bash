@@ -1,9 +1,5 @@
-if (( ! PLUGIN_DBUS_OPTIONAL )); then
-    return 0
-fi
-
 x_dbus_begin
-x_dbus_spawn_dbus_srv_py
+x_dbus_spawn_dbus_srv
 
 pt_testcase_begin
 pt_add_fifo "$main_fifo_file"
@@ -19,28 +15,30 @@ local function do_call_plugin_function(f, params)
     return res
 end
 
-local function test_call_method()
-    local args = luastatus.plugin.dbustypes.mkval_from_fmt('(as)', {{
-        'one', 'two', 'three'
-    }})
-    local raw_res = do_call_plugin_function(luastatus.plugin.call_method, {
+local function test_call_method_upcase()
+    local raw_res = do_call_plugin_function(luastatus.plugin.call_method_str, {
         bus = "session",
         dest = "io.github.shdown.luastatus.test",
         object_path = "/io/github/shdown/luastatus/test/MyObject",
         interface = "io.github.shdown.luastatus.test",
-        method = "ConvertArrayToDictHexify",
-        args = args,
+        method = "Upcase",
+        arg_str = "Please upcase this",
     })
     local res = unpack1(raw_res)
+    assert(res == 'PLEASE UPCASE THIS')
+end
 
-    assert(type(res) == 'table')
-    local outputs = {}
-    for _, kv in ipairs(res) do
-        table.insert(outputs, string.format('%s:%s', kv[1], kv[2]))
-    end
-    table.sort(outputs)
-    local output = table.concat(outputs, ' ')
-    assert(output == '30:6F6E65 31:74776F 32:7468726565')
+local function test_call_method_ret42()
+    local raw_res = do_call_plugin_function(luastatus.plugin.call_method_str, {
+        bus = "session",
+        dest = "io.github.shdown.luastatus.test",
+        object_path = "/io/github/shdown/luastatus/test/MyObject",
+        interface = "io.github.shdown.luastatus.test",
+        method = "ReturnFortyTwo",
+        -- no "arg_str"
+    })
+    local res = unpack1(raw_res)
+    assert(res == '42')
 end
 
 widget = {
@@ -50,7 +48,8 @@ widget = {
         greet = true,
     },
     cb = function(t)
-        test_call_method()
+        test_call_method_upcase()
+        test_call_method_ret42()
         f:write('ok\n')
     end,
 }
@@ -64,5 +63,5 @@ pt_expect_line 'ok' <&$pfd
 pt_close_fd "$pfd"
 pt_testcase_end
 
-x_dbus_kill_dbus_srv_py
+x_dbus_kill_dbus_srv
 x_dbus_end

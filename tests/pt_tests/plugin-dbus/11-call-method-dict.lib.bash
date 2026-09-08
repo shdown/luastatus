@@ -1,11 +1,5 @@
-if (( ! PLUGIN_DBUS_OPTIONAL )); then
-    return 0
-fi
-
-# DTLL = dbustypes_lowlevel
-
 x_dbus_begin
-x_dbus_spawn_dbus_srv_py
+x_dbus_spawn_dbus_srv
 
 pt_testcase_begin
 pt_add_fifo "$main_fifo_file"
@@ -22,37 +16,22 @@ local function do_call_plugin_function(f, params)
 end
 
 local function test_call_method()
-    local DTLL = luastatus.plugin.dbustypes_lowlevel
-    local DTLL_str = DTLL.mktype_simple('s')
-
-    local S = function(s) return DTLL.mkval_simple(DTLL_str, s) end
-
-    local the_arg = DTLL.mkval_array(DTLL_str, {
-        S('one'),
-        S('two'),
-        S('three'),
-    })
-
-    local args = DTLL.mkval_tuple({the_arg})
-
+    local args = luastatus.plugin.dbustypes.mkval_from_fmt('(a{ss})', {{
+        {'key1', 'value1'},
+        {'key2', 'value2'},
+        {'key3', 'value3'},
+    }})
     local raw_res = do_call_plugin_function(luastatus.plugin.call_method, {
         bus = "session",
         dest = "io.github.shdown.luastatus.test",
         object_path = "/io/github/shdown/luastatus/test/MyObject",
         interface = "io.github.shdown.luastatus.test",
-        method = "ConvertArrayToDictHexify",
+        method = "ConvertDictToString",
         args = args,
     })
     local res = unpack1(raw_res)
-
-    assert(type(res) == 'table')
-    local outputs = {}
-    for _, kv in ipairs(res) do
-        table.insert(outputs, string.format('%s:%s', kv[1], kv[2]))
-    end
-    table.sort(outputs)
-    local output = table.concat(outputs, ' ')
-    assert(output == '30:6F6E65 31:74776F 32:7468726565')
+    assert(type(res) == 'string')
+    assert(res == 'key1:value1,key2:value2,key3:value3')
 end
 
 widget = {
@@ -76,5 +55,5 @@ pt_expect_line 'ok' <&$pfd
 pt_close_fd "$pfd"
 pt_testcase_end
 
-x_dbus_kill_dbus_srv_py
+x_dbus_kill_dbus_srv
 x_dbus_end

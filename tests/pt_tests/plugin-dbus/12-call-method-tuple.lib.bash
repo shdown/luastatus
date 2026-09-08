@@ -1,9 +1,5 @@
-if (( ! PLUGIN_DBUS_OPTIONAL )); then
-    return 0
-fi
-
 x_dbus_begin
-x_dbus_spawn_dbus_srv_py
+x_dbus_spawn_dbus_srv
 
 pt_testcase_begin
 pt_add_fifo "$main_fifo_file"
@@ -19,23 +15,41 @@ local function do_call_plugin_function(f, params)
     return res
 end
 
-local function test_call_method()
-    local args = luastatus.plugin.dbustypes.mkval_from_fmt('(a{ss})', {{
-        {'key1', 'value1'},
-        {'key2', 'value2'},
-        {'key3', 'value3'},
-    }})
+local function do_test_once(method, args, expected_result)
     local raw_res = do_call_plugin_function(luastatus.plugin.call_method, {
         bus = "session",
         dest = "io.github.shdown.luastatus.test",
         object_path = "/io/github/shdown/luastatus/test/MyObject",
         interface = "io.github.shdown.luastatus.test",
-        method = "ConvertDictToString",
+        method = method,
         args = args,
     })
     local res = unpack1(raw_res)
     assert(type(res) == 'string')
-    assert(res == 'key1:value1,key2:value2,key3:value3')
+    assert(res == expected_result)
+end
+
+local function test_all()
+    do_test_once(
+        'RecvTuple0',
+        luastatus.plugin.dbustypes.mkval_from_fmt('()', {}),
+        'Empty'
+    )
+    do_test_once(
+        'RecvTuple1',
+        luastatus.plugin.dbustypes.mkval_from_fmt('(s)', {'hello'}),
+        'hello'
+    )
+    do_test_once(
+        'RecvTuple2',
+        luastatus.plugin.dbustypes.mkval_from_fmt('(ss)', {'hello', 'world'}),
+        'helloworld'
+    )
+    do_test_once(
+        'RecvTuple3',
+        luastatus.plugin.dbustypes.mkval_from_fmt('(sss)', {'hello', 'world', '!'}),
+        'helloworld!'
+    )
 end
 
 widget = {
@@ -45,7 +59,7 @@ widget = {
         greet = true,
     },
     cb = function(t)
-        test_call_method()
+        test_all()
         f:write('ok\n')
     end,
 }
@@ -59,5 +73,5 @@ pt_expect_line 'ok' <&$pfd
 pt_close_fd "$pfd"
 pt_testcase_end
 
-x_dbus_kill_dbus_srv_py
+x_dbus_kill_dbus_srv
 x_dbus_end
