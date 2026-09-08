@@ -27,6 +27,7 @@
 #include "common.h"
 #include "wonderful_server.h"
 #include "vec.h"
+#include "my_glib_compat.h"
 
 #define MY_NAME "dbus_serv"
 
@@ -127,7 +128,7 @@ static gchar *hexify(const gchar *s)
     for (const gchar *cur = s; *cur; ++cur) {
         g_string_append_printf(res, "%02X", (unsigned) (uint8_t) *cur);
     }
-    return g_string_free_and_steal(res);
+    return my_g_string_free_and_steal(res);
 }
 
 static GVariant *MTH_convert_array_to_dict_hexify(void *ud, GVariant *params)
@@ -227,7 +228,7 @@ static GVariant *MTH_convert_dict_to_string(void *ud, GVariant *params)
     }
     vec_destroy(&entries);
 
-    gchar *res_s = g_string_free_and_steal(res_gs);
+    gchar *res_s = my_g_string_free_and_steal(res_gs);
 
     GVariant *res = g_variant_new("(s)", res_s);
     g_free(res_s);
@@ -253,7 +254,7 @@ static GVariant *concat_strings_of_tuple(GVariant *tuple, size_t nelems)
         g_variant_unref(elem);
     }
 
-    gchar *res_s = g_string_free_and_steal(res_gs);
+    gchar *res_s = my_g_string_free_and_steal(res_gs);
 
     log("result = '%s'\n", res_s);
 

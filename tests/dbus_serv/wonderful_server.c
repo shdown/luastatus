@@ -25,6 +25,7 @@
 #include <string.h>
 #include "common.h"
 #include "vec.h"
+#include "my_glib_compat.h"
 
 // NOTE: we paste strings into XML as they are, because it's a small testing program;
 // malicious/invalid names of methods/properties are impossible.
@@ -227,7 +228,7 @@ static gchar *build_xml(WonderfulServer *x)
     g_string_append_printf(GS, "</interface>\n");
     g_string_append_printf(GS, "</node>\n");
 
-    return g_string_free_and_steal(GS);
+    return my_g_string_free_and_steal(GS);
 }
 
 static void die_if_gerror_is_set(const char *where, GError *e)
