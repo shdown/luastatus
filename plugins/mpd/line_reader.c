@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <sys/types.h>
 #include "libls/ls_alloc_utils.h"
 #include "libsafe/safev.h"
@@ -37,10 +38,20 @@ int line_reader_read_line(LineReader *LR, FILE *f, SAFEV *out)
 {
     ssize_t r = getline(&LR->buf, &LR->capacity, f);
     if (r < 0) {
+        if (feof(f)) {
+            errno = 0;
+        }
         return -1;
     }
+
     SAFEV raw_v = SAFEV_new_UNSAFE(LR->buf, r);
-    *out = SAFEV_rstrip_once(raw_v, '\n');
+
+    if (!SAFEV_ends_with_ch(raw_v, '\n')) {
+        errno = 0;
+        return -1;
+    }
+
+    *out = SAFEV_subspan(raw_v, 0, SAFEV_len(raw_v) - 1);
     return 0;
 }
 

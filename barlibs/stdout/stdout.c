@@ -274,13 +274,13 @@ static int event_watcher(LuastatusBarlibData *bd, LuastatusBarlibEWFuncs funcs)
     ssize_t line_n;
     while ((line_n = getline(&line, &line_buf_n, p->in)) >= 0) {
 
-        if (line_n && line[line_n - 1] == '\n') {
-            --line_n;
+        if (line_n == 0 || line[line_n - 1] != '\n') {
+            continue;
         }
 
         for (size_t i = 0; i < p->nwidgets; ++i) {
             lua_State *L = funcs.call_begin(bd->userdata, i);
-            lua_pushlstring(L, line, line_n);
+            lua_pushlstring(L, line, line_n - 1);
             funcs.call_end(bd->userdata, i);
         }
     }

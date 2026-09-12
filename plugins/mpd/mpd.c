@@ -266,9 +266,9 @@ static inline int read_line(Context *ctx)
     return line_reader_read_line(&ctx->LR, ctx->f, &ctx->line_v);
 }
 
-static void log_io_error(LuastatusPluginData *pd, Context *ctx)
+static void log_io_error(LuastatusPluginData *pd)
 {
-    if (feof(ctx->f)) {
+    if (errno == 0) {
         LS_ERRF(pd, "connection closed");
     } else {
         LS_ERRF(pd, "I/O error: %s", ls_tls_strerror(errno));
@@ -293,7 +293,7 @@ static int loop_until_ok(
 {
     for (;;) {
         if (read_line(ctx) < 0) {
-            log_io_error(pd, ctx);
+            log_io_error(pd);
             return -1;
         }
         switch (response_type(ctx->line_v)) {
@@ -334,7 +334,7 @@ static void interact(
 
     // read and check the greeting
     if (read_line(&ctx) < 0) {
-        log_io_error(pd, &ctx);
+        log_io_error(pd);
         goto done;
     }
 
@@ -351,12 +351,12 @@ static void interact(
 
         fflush(ctx.f);
         if (ferror(ctx.f)) {
-            log_io_error(pd, &ctx);
+            log_io_error(pd);
             goto done;
         }
 
         if (read_line(&ctx) < 0) {
-            log_io_error(pd, &ctx);
+            log_io_error(pd);
             goto done;
         }
         if (response_type(ctx.line_v) != RESP_OK) {
@@ -372,7 +372,7 @@ static void interact(
         fputs("currentsong\n", ctx.f);
         fflush(ctx.f);
         if (ferror(ctx.f)) {
-            log_io_error(pd, &ctx);
+            log_io_error(pd);
             goto done;
         }
 
@@ -384,7 +384,7 @@ static void interact(
         fputs("status\n", ctx.f);
         fflush(ctx.f);
         if (ferror(ctx.f)) {
-            log_io_error(pd, &ctx);
+            log_io_error(pd);
             goto done;
         }
 
@@ -415,7 +415,7 @@ static void interact(
         fputs(p->idle_str.data, ctx.f);
         fflush(ctx.f);
         if (ferror(ctx.f)) {
-            log_io_error(pd, &ctx);
+            log_io_error(pd);
             goto done;
         }
 

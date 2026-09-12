@@ -103,6 +103,15 @@ LIBSAFE_INHEADER bool SAFEV_starts_with(SAFEV v, SAFEV prefix)
     return memcmp(prefix.s__, v.s__, prefix.n__) == 0;
 }
 
+// Checks if a view 'v' starts with a character 'ch'.
+LIBSAFE_INHEADER bool SAFEV_ends_with_ch(SAFEV v, char ch)
+{
+    if (!v.n__) {
+        return false;
+    }
+    return v.s__[v.n__ - 1] == ch;
+}
+
 // Checks if a view 'v' equals to a view 'v1'.
 LIBSAFE_INHEADER bool SAFEV_equals(SAFEV v, SAFEV v1)
 {
@@ -147,18 +156,6 @@ LIBSAFE_INHEADER const char *SAFEV_ptr_UNSAFE(SAFEV v)
 LIBSAFE_INHEADER size_t SAFEV_len(SAFEV v)
 {
     return v.n__;
-}
-
-// If 'v' ends with 'c', strips it off; otherwise, returns it unchanged.
-LIBSAFE_INHEADER SAFEV SAFEV_rstrip_once(SAFEV v, char c)
-{
-    if (!v.n__) {
-        return v;
-    }
-    if (SAFEV_at(v, v.n__ - 1) != c) {
-        return v;
-    }
-    return SAFEV_subspan(v, 0, v.n__ - 1);
 }
 
 // Returns min(i, SAFEV_len(v)).
