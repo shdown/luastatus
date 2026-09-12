@@ -158,7 +158,7 @@ pt_read_line() {
 
 pt_expect_line() {
     echo >&2 "Expecting line “$1”..."
-    IFS= read -r PT_LINE || pt_fail "expect_line: cannot read next line (process died?)"
+    IFS= read -r PT_LINE || pt_fail "pt_expect_line: cannot read next line (process died?)"
     if [[ "$PT_LINE" != "$1" ]]; then
         pt_fail "pt_expect_line: line does not match" "Expected: '$1'" "Found: '$PT_LINE'"
     fi
@@ -207,6 +207,9 @@ pt_has_spawned_thing() {
 
 pt_close_fd() {
     local fd=$(( $1 ))
+    if (( fd <= 0 )); then
+        pt_fail "pt_close_fd: zero or invalid fd '$1'"
+    fi
     exec {fd}>&-
 }
 
