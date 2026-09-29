@@ -28,19 +28,66 @@ local IMAP_TIMEOUT_ERROR = {}
 
 local IMAP = {}
 
-local function safely_wrap_ssl(conn, ssl_params)
+local function autodetect_ca_bundle()
+    local envvar1 = os.getenv('SSL_CERT_FILE') or ''
+    local envvar2 = os.getenv('SSL_CERT_DIR') or ''
+    if envvar1 ~= '' or envvar2 ~= '' then
+        return nil
+    end
+
+    local common_paths = {
+        -- Debian, Ubuntu, Gentoo
+        '/etc/ssl/certs/ca-certificates.crt',
+        -- RHEL/CentOS/Fedora
+        '/etc/pki/tls/certs/ca-bundle.crt',
+        -- Alpine
+        '/etc/ssl/cert.pem',
+        -- OpenSUSE
+        '/etc/ssl/ca-bundle.pem',
+        -- FreeBSD
+        '/usr/local/share/certs/ca-root-nss.crt',
+        -- Some other distros
+        '/etc/ssl/certs/ca-bundle.crt',
+    }
+
+    for _, path in ipairs(common_paths) do
+        if luastatus.plugin.access(path) then
+            return path
+        end
+    end
+
+    error('cannot auto-detect system CA bundle, please set SSL_CERT_FILE or SSL_CERT_DIR env var')
+end
+
+local function safely_wrap_ssl(conn, host, params)
     local new_conn
     local conn_to_close = conn
 
     local is_ok, err = pcall(function()
-        new_conn = assert(ssl.wrap(conn, ssl_params or {
-            mode = 'client',
-            protocol = 'any',
-            cafile = '/etc/ssl/certs/ca-certificates.crt',
-            verify = 'peer',
-            options = 'all',
-        }))
+
+        local ssl_params = params.ssl_params
+
+        if not ssl_params then
+            local cafile = nil
+            if not params._ssl_no_autodetect_ca_bundle then
+                cafile = autodetect_ca_bundle()
+                log('Auto-detected CA bundle file:', cafile or '(use env vars)')
+            end
+
+            ssl_params = {
+                mode = 'client',
+                protocol = 'tlsv1_2',
+                cafile = cafile,
+                verify = 'peer',
+                options = 'all',
+            }
+        end
+        new_conn = assert(ssl.wrap(conn, ssl_params))
         conn_to_close = new_conn
+
+        if not params._ssl_no_sni then
+            new_conn:sni(host)
+        end
         assert(new_conn:dohandshake())
     end)
 
@@ -61,7 +108,7 @@ function IMAP:open(host, port, params)
     conn:connect(host, port)
     conn:settimeout(params.handshake_timeout)
     if params.use_ssl then
-        conn = safely_wrap_ssl(conn, params.ssl_params)
+        conn = safely_wrap_ssl(conn, host, params)
     end
     conn:settimeout(params.timeout)
     self.__index = self
@@ -140,6 +187,8 @@ function P.widget(tbl)
             handshake_timeout = tbl.handshake_timeout,
             verbose = tbl.verbose,
             ssl_params = tbl.ssl_params,
+            _ssl_no_autodetect_ca_bundle = tbl._ssl_no_autodetect_ca_bundle,
+            _ssl_no_sni = tbl._ssl_no_sni,
         })
 
         assert(mbox:command(string.format(
