@@ -131,6 +131,9 @@ else
         if [[ $src_file == *.in.h ]]; then
             continue
         fi
+        if [[ $src_file == */fuzz/* || $src_file == */fuzz_*/* ]]; then
+            continue
+        fi
         do_check_specific_file "$src_file"
     done
 fi
