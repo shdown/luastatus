@@ -13,7 +13,7 @@ cd -- "$1"
 
 if [ -d .git ]; then
     git rev-parse --short HEAD
-elif -f VERSION; then
+elif [ -f VERSION ]; then
     cat VERSION
 else
     echo UNKNOWN
