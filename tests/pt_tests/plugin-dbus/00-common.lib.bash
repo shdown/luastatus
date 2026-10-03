@@ -18,7 +18,7 @@ x_dbus_spawn_dbus_srv() {
 }
 
 x_dbus_kill_dbus_srv() {
-    pt_kill_thing dbus_srv
+    pt_kill_thing dbus_serv
 }
 
 preface='
