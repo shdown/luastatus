@@ -45,7 +45,6 @@ esac
 PT_LUASTATUS=( "$PT_BUILD_DIR"/luastatus/luastatus ${DEBUG:+-l trace} )
 
 PT_PARROT=$PT_BUILD_DIR/tests/parrot
-PT_HTTPSERV=$PT_BUILD_DIR/tests/httpserv/httpserv
 
 PT_WIDGET_FILES=()
 PT_FILES_TO_REMOVE=()
@@ -242,13 +241,34 @@ pt_wait_thing() {
 
 pt_kill_thing() {
     local k=$1
+
+    local okay_if_dead=0
+    if [[ $2 == --okay-if-dead ]]; then
+        okay_if_dead=1
+    fi
+
     local pid=${PT_SPAWNED_THINGS[$k]}
     if [[ -n $pid ]]; then
-        kill "$pid" || pt_fail "Cannot kill '$k' (PID $pid)."
+
+        if ! kill "$pid"; then
+            if (( ! okay_if_dead )); then
+                pt_fail "Cannot kill '$k' (PID $pid)."
+            fi
+        fi
+
         wait "$pid" || true
     fi
     unset PT_SPAWNED_THINGS[$k]
     pt_close_thing_fds "$k"
+}
+
+pt_assert_thing_alive() {
+    local k=$1
+    local pid=${PT_SPAWNED_THINGS[$k]}
+    if [[ -z $pid ]]; then
+        pt_fail_internal_error "pt_assert_thing_alive: unknown thing '$k' (PT_SPAWNED_THINGS has no such key)"
+    fi
+    kill -0 "$pid" || pt_fail "Thing '$k' (PID $pid) is dead."
 }
 
 pt_spawn_luastatus() {
@@ -282,7 +302,10 @@ pt_kill_luastatus() {
 pt_kill_everything() {
     local k
     for k in "${!PT_SPAWNED_THINGS[@]}"; do
-        pt_kill_thing "$k"
+        pt_assert_thing_alive "$k"
+    done
+    for k in "${!PT_SPAWNED_THINGS[@]}"; do
+        pt_kill_thing "$k" --okay-if-dead
     done
 }
 

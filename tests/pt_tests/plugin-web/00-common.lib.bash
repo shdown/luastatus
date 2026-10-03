@@ -4,7 +4,7 @@ pt_find_free_tcp_port
 port=$PT_FOUND_FREE_PORT
 
 httpserv_spawn() {
-    pt_spawn_thing_pipe httpserv "$PT_HTTPSERV" --port="$port" "$@"
+    pt_spawn_thing_pipe httpserv "$PT_BUILD_DIR/tests/httpserv/httpserv" --port="$port" "$@"
     pt_expect_line 'ready' <&${PT_SPAWNED_THINGS_FDS_0[httpserv]}
 }
 
