@@ -21,7 +21,7 @@ pt_dbus_daemon__wait_until_works() {
     local i
     for (( i = 0; i < 10; ++i )); do
         if dbus-send "$bus_arg" "${other_args[@]}"; then
-            break
+            return 0
         fi
         sleep 1
     done

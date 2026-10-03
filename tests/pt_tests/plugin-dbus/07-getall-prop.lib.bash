@@ -1,3 +1,4 @@
+x_dbus_begin
 x_dbus_spawn_dbus_srv
 
 pt_testcase_begin

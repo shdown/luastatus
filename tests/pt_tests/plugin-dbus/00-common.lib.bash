@@ -12,7 +12,7 @@ dbus_srv_fifo=./tmp-fifo-for-dbus-srv-py
 
 x_dbus_spawn_dbus_srv() {
     pt_add_fifo "$dbus_srv_fifo"
-    pt_spawn_thing dbus_serv ./dbus_serv/dbus_serv "$dbus_srv_fifo"
+    pt_spawn_thing dbus_serv "$PT_BUILD_DIR"/tests/dbus_serv/dbus_serv "$dbus_srv_fifo"
     pt_expect_line 'running' < "$dbus_srv_fifo"
     sleep 1
 }

@@ -27,7 +27,6 @@ __EOF__
     done
 
     pt_close_fd "$pfd"
-    pt_close_fd "$pfd_in"
 
     pt_testcase_end
 }
