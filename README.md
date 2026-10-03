@@ -247,3 +247,12 @@ So we don't use any of these on a regular basis.
 We do use various AI tools for analysis, though (but not for code generation).
 This has proven to have much better signal-to-noise ratio than the traditional static analysis tools.
 This is currently done manually.
+
+License
+===
+
+luastatus is licensed under the GNU Lesser General Public License, version 3 or (at your option) any
+later version, except for the examples (everything in the examples/ folder), which are licensed
+under the Unlicense.
+
+See COPYING.LESSER.txt and COPYING-UNLICENSE.txt.
